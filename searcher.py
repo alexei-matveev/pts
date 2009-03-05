@@ -3,6 +3,7 @@
 from numpy import *
 from scipy import *
 import Gnuplot, Gnuplot.PlotItems, Gnuplot.funcutils
+import tempfile, os
 
 print "\n\nBegin Program..." 
 
@@ -45,6 +46,23 @@ class GaussianPES(QCDriver):
         y = v[1]
         dfdx = 2*x*exp(-(x**2 + y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.3*(2*x-2)*exp(-((x-1)**2 + (y-2)**2))
         dfdy = 2*y*exp(-(x**2 + y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.3*(2*y-4)*exp(-((x-1)**2 + (y-2)**2))
+
+        return array((dfdx,dfdy))
+
+class GaussianPES2(QCDriver):
+    def __init__(self):
+        QCDriver.__init__(self,2)
+
+    def energy(self, v):
+        x = v[0]
+        y = v[1]
+        return (-exp(-(x**2 + 0.2*y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*exp(-((x-1.5)**2 + (y-2.5)**2)))
+
+    def gradient(self, v):
+        x = v[0]
+        y = v[1]
+        dfdx = 2*x*exp(-(x**2 + 0.2*y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(2*x-3)*exp(-((x-1.5)**2 + (y-2.5)**2))
+        dfdy = 2*y*exp(-(x**2 + 0.2*y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.3*(2*y-5)*exp(-((x-1.5)**2 + (y-2.5)**2))
 
         return array((dfdx,dfdy))
 
@@ -135,6 +153,59 @@ class NEB_l(ReactionPathway):
         # Make list of spring constants for every inter-bead separation
         # For the time being, these are uniform
         self.sprConstVec = array([self.baseSprConst for x in range(beadsCount - 1)])
+
+class PathRepresentation():
+    def __init__(self, state_vec, beads_count, f_spacing_density = lambda x: 1):
+        self.state_vec = state_vec
+
+        self.f_spacing_density = f_spacing_density
+        int = integrate_f_spacing_density(f_spacing_density)
+        if int != 1
+            raise Exception("bad spacing function")
+
+
+    def regen_path():
+        """Rebuild a new path function based on the contents of state_vec"""
+        assert len(state_vec) > 1
+
+        if len(state_vec) == 2:
+            # linear path
+            pass
+        elif len(state_vec) == 3:
+            # parabolic path
+            pass
+        else
+            # spline path
+            pass
+
+    def point_at(x):
+        """Returns the vector of the coordinates of a point at position x 
+        along the reaction path."""
+        assert 0 <= x <= 1
+
+        if 
+
+        
+    def respace():
+        """Based on the current spacing density function (f_spacing_density) 
+        and the current configurations in state_vec, create a new path of 
+        bead_count points and store it in state_vec"""
+
+        pass
+
+    def tangents():
+        pass
+
+class GrowingString(ReactionPathway):
+    def __init__(self, reactants, products, f_test, f_density, qcDriver, beadsCount = 10):
+        ReactionPathway.__init__(self, reactants, products, f_test, beadsCount)
+        self.baseSprConst = baseSprConst
+        self.qcDriver = qcDriver
+
+        self.path_rep = PathRepresentation([reactants, products])
+
+    def step_opt():
+        
 
 
 class NEB(ReactionPathway):
@@ -251,17 +322,17 @@ class NEB(ReactionPathway):
 
         pesForces = array(zeros(self.beadsCount * self.dimension))
         pesForces.shape = (self.beadsCount, self.dimension)
-        print "pesf =", pesForces
+#        print "pesf =", pesForces
 
         for i in range(self.beadsCount)[1:-1]:
             pesForces[i] = -self.qcDriver.gradient(self.stateVec[i])
-            print "pesbefore =", pesForces[i]
+#            print "pesbefore =", pesForces[i]
             pesForces[i] = pesForces[i] - dot(pesForces[i], self.tangents[i]) * self.tangents[i]
-
-            print "pesafter =", pesForces[i], "t =", self.tangents[i]
+#            print "pesafter =", pesForces[i], "t =", self.tangents[i]
 
         print "pesf =", pesForces
         gradientsVec = -1 * (pesForces + springForces)
+        print "gradients =", gradientsVec
 
         return gradientsVec.flatten()
 
@@ -293,13 +364,24 @@ if len(reactants) != len(products):
 
 print "Reactants vector size =", len(reactants), "Products vector size =", len(products)
 
-neb = NEB(reactants, products, lambda x: True, 20, GaussianPES(), beadsCount = 30)
+defaultSprConst = 0.01
+neb = NEB(reactants, products, lambda x: True, defaultSprConst, GaussianPES(), beadsCount = 15)
 
 def main():
     from scipy.optimize import fmin_bfgs
 
     initState = neb.getStateAsArray()
     opt = fmin_bfgs(neb.objFunc, initState, fprime=neb.objFuncGrad)
+    gr = neb.objFuncGrad(opt)
+    n = linalg.norm(gr)
+    i = 0
+    while n > 0.001 and i < 4:
+        print "n =",n
+        opt = fmin_bfgs(neb.objFunc, opt, fprime=neb.objFuncGrad)
+        gr = neb.objFuncGrad(opt)
+        n = linalg.norm(gr)
+        i += 1
+
 
     # Points on grid to draw PES
     ps = 20.0
@@ -309,7 +391,7 @@ def main():
     # Make a 2-d array containing a function of x and y.  First create
     # xm and ym which contain the x and y values in a matrix form that
     # can be `broadcast' into a matrix of the appropriate shape:
-    gpes = GaussianPES()
+    gpes = GaussianPES2()
     g = Gnuplot.Gnuplot(debug=1)
     g('set data style lines')
     g('set hidden')
@@ -323,8 +405,8 @@ def main():
     opt.shape = (-1,2)
     print "opt = ", opt
     pathEnergies = array (map (gpes.energy, opt.tolist()))
-    print "pe = ", pathEnergies
-    pathEnergies += 0.1
+    print "pathEnergies = ", pathEnergies
+    pathEnergies += 0.02
     xs = array(opt[:,0])
     ys = array(opt[:,1])
     print "xs =",xs, "ys =",ys
@@ -332,7 +414,7 @@ def main():
     Gnuplot.Data(data, filename=tmpPathDataFile, inline=0, binary=0)
 
     # PLOT SURFACE AND PATH
-    g.splot(Gnuplot.File(tmpfile, binary=0), Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
+    g.splot(Gnuplot.File(tmpPESDataFile, binary=0), Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
     raw_input('Press to continue...\n')
 
     os.unlink(tmpPESDataFile)
