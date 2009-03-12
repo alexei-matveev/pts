@@ -127,8 +127,8 @@ class ReactionPathway:
     def objFuncGrad():
         pass
 
-    def dump():
-        print "pathdata", pathdata
+    def dump(self):
+        pass
 
 
 def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
@@ -357,6 +357,7 @@ class PathRepresentation():
         return str_positions
 
     def get_bead_coords(self, x):
+        """Returns the coordinates of the bead at point x <- [0,1]."""
         bead_coords = []
         for f in self.fs:
             bead_coords.append(f.f(x))
@@ -364,26 +365,29 @@ class PathRepresentation():
         return (array(bead_coords).flatten())
 
     def get_tangent(self, x):
+        """Returns the tangent to the path at point x <- [0,1]."""
+
         path_tangent = []
         for f in self.fs:
-            bead_coords.append(f.fprime(x))
+            path_tangent.append(f.fprime(x))
 
-        return (array(bead_coords).flatten())
+        t = array(path_tangent).flatten()
+        t = t / linalg.norm(t)
+        return t
 
     def generate_normd_positions(self, total_str_len, incremental_positions):
-        "Returns a list of normalised distances based on desired fractional distances along string."""
+        """Returns a list of distances along the string in terms of the normalised 
+        coordinate, based on desired fractional distances along string."""
 
         fractional_positions = self.get_str_positions()
 
         normd_positions = []
 
         print "fractional_positions: ", fractional_positions, "\n"
-#        print "incremental_positions: ", incremental_positions, "\n"
         for frac_pos in fractional_positions:
             print "frac_pos = ", frac_pos, "total_str_len = ", total_str_len
             for (norm, str) in incremental_positions:
 
-#                print "n = ", norm, "str =", str
                 if str >= frac_pos * total_str_len:
                     print "norm = ", norm
                     normd_positions.append(norm)
@@ -392,23 +396,28 @@ class PathRepresentation():
         print "normed_positions =", normd_positions
         return normd_positions
 
-    def tangents(self):
-        pass
-        
 
 class GrowingString(ReactionPathway):
-    def __init__(self, reactants, products, f_test, f_density, qcDriver, beadsCount = 10):
-        ReactionPathway.__init__(self, reactants, products, f_test, beadsCount)
+    def __init__(self, reactants, products, f_test, f_density, qcDriver, beads_count = 10):
+        ReactionPathway.__init__(self, reactants, products, f_test, beads_count)
         self.baseSprConst = baseSprConst
         self.qcDriver = qcDriver
 
-        self.path_rep = PathRepresentation([reactants, products])
+        self.path_rep = PathRepresentation([reactants, products], beads_count)
 
     def step_opt():
         pass
 
+def project_out(component_to_remove, vector):
+    """Projects the component of 'vector' that list along 'component_to_remove'
+    out of 'vector' and returns it."""
+    projection = dot(component_to_remove, vector)
+    output = vector - component_to_remove * vector
+    return output
 
 class NEB(ReactionPathway):
+"""Implements a Nudged Elastic Band (NEB) transition state searcher."""
+
     def __init__(self, reactants, products, f_test, baseSprConst, qcDriver, beadsCount = 10):
         ReactionPathway.__init__(self, reactants, products, f_test, beadsCount)
         self.baseSprConst = baseSprConst
@@ -425,8 +434,6 @@ class NEB(ReactionPathway):
         returns a list of length N-1 where each element of the output array is 
         f2(f1(k_i * x_i, k_i+1 * x_i+1)) ."""
 
-#       print type(self.stateVec)
-#       print type(list)
         assert type(list) == ndarray
         assert len(list) >= 2
         assert len(ks) == 0 or len(ks) == len(list)
@@ -445,14 +452,9 @@ class NEB(ReactionPathway):
         z = array(zeros(currDim))
         listPos = vstack((list, z))
         listNeg = vstack((z, list))
-#        print "listPos =",listPos
-#        print "listNeg =",listNeg
 
         list = f1 (listPos, listNeg)
-#        print "list2 =",list
-
         list = f2 (list[1:-1])
-#        print "list =",list
 
         return list
 
@@ -464,13 +466,9 @@ class NEB(ReactionPathway):
             self.tangents[i] = ( (self.stateVec[i] - self.stateVec[i-1]) + (self.stateVec[i+1] - self.stateVec[i]) ) / 2
             self.tangents[i] /= linalg.norm(self.tangents[i], 2)
 
-#        print "tangents =", self.tangents
-
     def updateBeadSeparations(self):
         self.beadSeparationSqrsSums = array( map (sum, self.specialReduce(self.stateVec).tolist()) )
         self.beadSeparationSqrsSums.shape = (self.beadsCount - 1, 1)
-#        print "beadSeparations =", self.beadSeparationSqrsSums
-
 
     def getStateAsArray(self):
         return self.stateVec.flatten()
@@ -485,9 +483,7 @@ class NEB(ReactionPathway):
         self.updateTangents()
         self.updateBeadSeparations()
         
-#        print "self.beadSeparationSqrsSums =", self.beadSeparationSqrsSums
         forceConstsBySeparationsSquared = multiply(self.sprConstVec, self.beadSeparationSqrsSums.flatten()).transpose()
-#        print "forceConstsBySeparationsSquared =", forceConstsBySeparationsSquared
         springEnergies = 0.5 * ndarray.sum (forceConstsBySeparationsSquared)
 
         # The following code block will need to be replaced for parallel operation
@@ -495,7 +491,6 @@ class NEB(ReactionPathway):
         for beadVec in self.stateVec[1:-1]:
             pesEnergies += self.qcDriver.energy(beadVec)
 
-#        print "pesEnergies =", pesEnergies, "springEnergies =", springEnergies
         return (pesEnergies + springEnergies)
 
     def objFuncGrad(self, newStateVec = []):
@@ -511,7 +506,6 @@ class NEB(ReactionPathway):
         self.updateTangents()
 
         separationsVec = self.beadSeparationSqrsSums ** 0.5
-#        print "sv =", separationsVec
         separationsDiffs = self.specialReduce(separationsVec, self.sprConstVec, f2 = lambda x: x)
         assert len(separationsDiffs) == self.beadsCount - 2
 
@@ -527,12 +521,15 @@ class NEB(ReactionPathway):
         for i in range(self.beadsCount)[1:-1]:
             pesForces[i] = -self.qcDriver.gradient(self.stateVec[i])
 #            print "pesbefore =", pesForces[i]
-            pesForces[i] = pesForces[i] - dot(pesForces[i], self.tangents[i]) * self.tangents[i]
+            # OLD LINE:
+#            pesForces[i] = pesForces[i] - dot(pesForces[i], self.tangents[i]) * self.tangents[i]
+
+            # NEW LINE:
+            pesForces[i] = project_out(self.tangents[i], pesForces[i])
+
 #            print "pesafter =", pesForces[i], "t =", self.tangents[i]
 
-        print "pesf =", pesForces
         gradientsVec = -1 * (pesForces + springForces)
-        print "gradients =", gradientsVec
 
         return gradientsVec.flatten()
 
@@ -556,7 +553,6 @@ def vectorInterpolate(start, end, beadsCount):
     return array(output)
 
 
-
 reactants = array([0,0])
 products = array([3,3])
 if len(reactants) != len(products):
@@ -567,7 +563,7 @@ print "Reactants vector size =", len(reactants), "Products vector size =", len(p
 def test_path_rep():
     ts = array((2.5, 1.9))
     ts2 = array((1.9, 2.5))
-    r = array((reactants, ts2, products))
+    r = array((reactants, ts, ts2, products))
     x = PathRepresentation(r, 5)
 
     str_len = x.get_total_str_len()
@@ -576,6 +572,9 @@ def test_path_rep():
     # Build linear, quadratic or spline representation of the path,
     # depending on the number of points.
     x.regen_path_func()
+    x.set_new_beads_count(10)
+    x.generate_beads(update=True)
+    print "tangents =", x.path_tangents
 
     plot2D(x)
 
@@ -612,12 +611,17 @@ def plot2D(react_path, path_res = 0.05):
     Gnuplot.Data(data1, filename=tmp_file2, inline=0, binary=0)
 
     # points along path
-    react_path.set_new_beads_count(10)
     beads = react_path.generate_beads()
     Gnuplot.Data(beads, filename=tmp_file3, inline=0, binary=0)
 
+    # draw tangent to the path
+    pt_ix = 4
+    t0_grad = react_path.path_tangents[pt_ix][1] / react_path.path_tangents[pt_ix][0]
+    t0_str = "%f * (x - %f) + %f" % (t0_grad, react_path.state_vec[pt_ix][0], react_path.state_vec[pt_ix][1])
+    t0_func = Gnuplot.Func(t0_str)
+
     # PLOT THE VARIOUS PATHS
-    g.plot(Gnuplot.File(tmp_file1, binary=0, title="Smooth", with_ = "linespoints"), Gnuplot.File(tmp_file2, binary=0, with_ = "linespoints"), Gnuplot.File(tmp_file3, binary=0, title="from class", with_ = "linespoints"))
+    g.plot(t0_func, Gnuplot.File(tmp_file1, binary=0, title="Smooth", with_ = "linespoints"), Gnuplot.File(tmp_file2, binary=0, with_ = "linespoints"), Gnuplot.File(tmp_file3, binary=0, title="from class", with_ = "linespoints"))
     raw_input('Press to continue...\n')
 
     os.unlink(tmp_file1)
