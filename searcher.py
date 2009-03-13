@@ -205,53 +205,50 @@ class SplineFunc(Func):
 
 
 class PathRepresentation():
-    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 100):
+    """Supports operations on a path represented by a line, parabola, or a 
+    spline, depending on whether it has 2, 3 or > 3 points."""
+
+    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 200):
 
         # vector of vectors defining the path
-        self.state_vec = state_vec
+        self.__state_vec = state_vec
 
         # number of vectors defining the path
         self.beads_count = beads_count
         self.dimensions = len(state_vec[0])
 
-        self.str_resolution = str_resolution
-        self.step = 1.0 / self.str_resolution
+        self.__str_resolution = str_resolution
+        self.__step = 1.0 / self.str_resolution
 
-        self.fs = []
-        self.path_tangents = []
+        self.__fs = []
+        self.__path_tangents = []
 
-        self.unit_interval = array((0.0,1.0))
+        self.__unit_interval = array((0.0,1.0))
 
         # TODO check all beads have same dimensionality
 
-        self.max_integral_error = 1e-8
+        self.__max_integral_error = 1e-8
 
-        self.rho = rho
-        (int,err) = scipy.integrate.quad(rho, 0.0, 1.0)
-        logger.info('Integral of spacing function was %lf', int)
-        if abs(int - 1.0) > 0.001:
-            raise Exception("bad spacing function")
+        self.__rho = self.set_rho(rho)
 
         msg = "beads_count = %d\nstr_resolution = %d" % (beads_count, str_resolution)
         print msg
 
-    def set_new_beads_count(self, x):
-        self.beads_count = x
-
     def regen_path_func(self):
-        """Rebuild a new path function and the derivative of the path based on the contents of state_vec."""
-        assert len(self.state_vec) > 1
+        """Rebuild a new path function and the derivative of the path based on 
+        the contents of state_vec."""
+        assert len(self.__state_vec) > 1
 
-        for i in range(self.dimensions):
+        for i in range(self.__dimensions):
 
-            ys = self.state_vec[:,i]
+            ys = self.__state_vec[:,i]
 
             # linear path
-            if len(self.state_vec) == 2:
-                self.fs.append(LinFunc(self.unit_interval, ys))
+            if len(self.__state_vec) == 2:
+                self.__fs.append(LinFunc(self.__unit_interval, ys))
 
             # parabolic path
-            elif len(self.state_vec) == 3:
+            elif len(self.__state_vec) == 3:
 
                 # TODO: at present, transition state assumed to be half way ebtween reacts and prods
                 ps = array((0.0, 0.5, 1.0))
@@ -263,22 +260,20 @@ class PathRepresentation():
 
                 quadratic_coeffs = linalg.solve(A,ys)
 
-                self.fs.append(QuadFunc(quadratic_coeffs))
+                self.__fs.append(QuadFunc(quadratic_coeffs))
 
             else:
                 # spline path
-                points_cnt = len(self.state_vec)
+                points_cnt = len(self.__state_vec)
                 xs = arange(0.0, 1.0 + 1.0 / (points_cnt - 1), 1.0 / (points_cnt - 1))
                 print "points_cnt =", points_cnt
                 print "xs =", xs
-                self.fs.append(SplineFunc(xs,ys))
+                self.__fs.append(SplineFunc(xs,ys))
 
-        tmp_fx = self.fs[0].f
-        tmp_fy = self.fs[1].f
-        print "fs =", self.fs
-        print "the thing = ", tmp_fx(0.5), tmp_fy(0.5)
+    def get_state_vec(self):
+        return self.__state_vec
 
-    def get_total_str_len(self):
+    def __get_total_str_len(self):
         """Returns the a duple of the total length of the string and a list of 
         pairs (x,y), where x a distance along the normalised path (i.e. on 
         [0,1]) and y is the corresponding distance along the string (i.e. on
@@ -287,99 +282,119 @@ class PathRepresentation():
         # function, integral of which gives total path length
         def arc_dist_func(x):
             output = 0
-            for a in self.fs:
+            for a in self.__fs:
                 output += a.fprime(x)**2
             return sqrt(output)
 
         # number of points to chop the string into
-        param_steps = arange(0, 1, self.step)
+        param_steps = arange(0, 1, self.__step)
 
         list = []
         cumm_dist = 0
-        for i in range(self.str_resolution):
-            lower, upper = i * self.step, (i + 1) * self.step
+        for i in range(self.__str_resolution):
+            lower, upper = i * self.__step, (i + 1) * self.__step
             (integral, error) = scipy.integrate.quad(arc_dist_func, lower, upper)
             cumm_dist += integral
 
-            assert error < self.max_integral_error
+            assert error < self.__max_integral_error
 
             list.append(cumm_dist)
 
         return (list[-1], zip(param_steps, list))
 
     def generate_beads(self, update = False):
-        """Returns an array of the vectors of the coordinates of beads along a reaction path,
-        according to the established path (line, parabola or spline) and the parameterisation
-        density"""
+        """Returns an array of the self.__beads_count vectors of the coordinates 
+        of beads along a reaction path, according to the established path 
+        (line, parabola or spline) and the parameterisation density."""
 
-        assert len(self.fs) > 1
+        assert len(self.__fs) > 1
 
-        (total_str_len, incremental_positions) = self.get_total_str_len()
+        # Find total string length and incremental distances x along the string 
+        # in terms of the normalised coodinate y, as a list of (x,y).
+        (total_str_len, incremental_positions) = self.__get_total_str_len()
 
-        normd_positions = self.generate_normd_positions(total_str_len, incremental_positions)
+        # For the desired distances along the string, find the values of the
+        # normalised coordinate that achive those distances.
+        normd_positions = self.__generate_normd_positions(total_str_len, incremental_positions)
 
         bead_vectors = []
         bead_tangents = []
         print "normd_positions =", normd_positions
         for str_pos in normd_positions:
-            bead_vectors.append(self.get_bead_coords(str_pos))
-            bead_tangents.append(self.get_tangent(str_pos))
+            bead_vectors.append(self.__get_bead_coords(str_pos))
+            bead_tangents.append(self.__get_tangent(str_pos))
 
+
+        reactants = self.__state_vec[0]
+        products = self.__state_vec[-1]
+        bead_vectors = [reactants] + bead_vectors + [products]
         print "bead_vectors =", bead_vectors
 
         if update:
-            self.state_vec = bead_vectors
-            self.path_tangents = bead_tangents
+            self.__state_vec = bead_vectors
+            self.__path_tangents = bead_tangents
 
         return bead_vectors
         
-    def get_str_positions(self):
+    def __get_str_positions(self):
         """Based on the provided density function self.rho(x) and 
         self.bead_count, generates the fractional positions along the string 
         at which beads should occur."""
 
-        param_steps = arange(0, 1 - self.step, self.step)
+        param_steps = arange(0, 1 - self.__step, self.__step)
         integrated_density_inc = 1.0 / (self.beads_count - 1.0)
         requirement_for_next_bead = integrated_density_inc
+
+        print "param_steps =", param_steps
 
         integral = 0
         str_positions = []
         for s in param_steps:
-            (i, err) = scipy.integrate.quad(self.rho, s, s + self.step)
-            integral += i
+#            (i, err) = scipy.integrate.quad(self.rho, s, s + self.step)
+            integral += self.rho(s) * self.__step
             if integral > requirement_for_next_bead:
-                """msg = "rfnb = %f integral =  %f" % (requirement_for_next_bead, integral)
-                print msg"""
+#                msg = "rfnb = %f integral =  %f" % (requirement_for_next_bead, integral)
+#                print msg
                 str_positions.append(s)
+#                print "req = ", requirement_for_next_bead
                 requirement_for_next_bead += integrated_density_inc
         
-        print "str_positions =", str_positions
+#        print "str_positions =", str_positions
+        prev = 0
+        for p in str_positions:
+            print "diff =", (p - prev)
+            prev = p
         return str_positions
 
-    def get_bead_coords(self, x):
+    def __get_bead_coords(self, x):
         """Returns the coordinates of the bead at point x <- [0,1]."""
         bead_coords = []
-        for f in self.fs:
+        for f in self.__fs:
             bead_coords.append(f.f(x))
 
         return (array(bead_coords).flatten())
 
-    def get_tangent(self, x):
+    def __get_tangent(self, x):
         """Returns the tangent to the path at point x <- [0,1]."""
 
         path_tangent = []
-        for f in self.fs:
+        for f in self.__fs:
             path_tangent.append(f.fprime(x))
 
         t = array(path_tangent).flatten()
         t = t / linalg.norm(t)
         return t
 
-    def generate_normd_positions(self, total_str_len, incremental_positions):
+    def set_rho(self, new_rho):
+        """Set new bead density function, ensuring that it is normalised."""
+        int = integrate.quad(new_rho, 0.0, 1.0)
+        self.__rho = lambda x: new_rho(x) / int
+
+    def __generate_normd_positions(self, total_str_len, incremental_positions):
         """Returns a list of distances along the string in terms of the normalised 
         coordinate, based on desired fractional distances along string."""
 
-        fractional_positions = self.get_str_positions()
+        fractional_positions = self.__get_str_positions()
 
         normd_positions = []
 
@@ -398,15 +413,54 @@ class PathRepresentation():
 
 
 class GrowingString(ReactionPathway):
-    def __init__(self, reactants, products, f_test, f_density, qcDriver, beads_count = 10):
+    def __init__(self, reactants, products, f_test, f_density, qc_driver, beads_count = 10):
         ReactionPathway.__init__(self, reactants, products, f_test, beads_count)
-        self.baseSprConst = baseSprConst
-        self.qcDriver = qcDriver
+        self.__qc_driver = qc_driver
 
-        self.path_rep = PathRepresentation([reactants, products], beads_count)
+        self.__path_rep = PathRepresentation([reactants, products], beads_count)
+        self.__path_rep.generate_beads(update = True)
 
-    def step_opt():
-        pass
+    def obj_func(self, newStateVec = []):
+         # The following code block will need to be replaced for parallel operation
+        pes_energies = 0
+        for bead_vec in self.path_rep.state_vec[1:-1]:
+            pes_energies += self.__qc_driver.energy(beadVec)
+
+        return pes_energies
+       
+    def obj_func_grad(self, newStateVec = []):
+        gradients = []
+        for i in range(self.path_rep.beads_count)[1:-1]:
+            g = self.__qc_driver.gradient(self.path_rep.state_vec[i])
+            t = self.__path_rep.path_tangents[i]
+            g = project_out(t, g)
+            gradients.append(g)
+
+        react_gradients = prod_gradients = zeros(self.__path_rep.get_dimensions())
+        gradients = [react_gradients] + gradients + [prod_gradients]
+        
+        return (array(gradients).flatten())
+
+    def update_path(self, state_vec = []):
+        """After each iteration of the optimiser this function must be called.
+        It rebuilds a new (spline) representation of the path and then 
+        redestributes the beads according to the density function."""
+
+        if len(state_vec) > 2:
+            self.__state_vec = state_vec
+
+        # rebuild line, parabola or spline representation of path
+        self.__path_rep.regen_path_func()
+
+        # respace the beads along the path
+        self.generate_beads(update = True)
+
+    def get_state_vec(self):
+        return self.__path_rep.get_state_vec()
+
+    def get_dimensions(self):
+        return self.__dimensions
+
 
 def project_out(component_to_remove, vector):
     """Projects the component of 'vector' that list along 'component_to_remove'
@@ -416,7 +470,7 @@ def project_out(component_to_remove, vector):
     return output
 
 class NEB(ReactionPathway):
-"""Implements a Nudged Elastic Band (NEB) transition state searcher."""
+    """Implements a Nudged Elastic Band (NEB) transition state searcher."""
 
     def __init__(self, reactants, products, f_test, baseSprConst, qcDriver, beadsCount = 10):
         ReactionPathway.__init__(self, reactants, products, f_test, beadsCount)
@@ -564,6 +618,13 @@ def test_path_rep():
     ts = array((2.5, 1.9))
     ts2 = array((1.9, 2.5))
     r = array((reactants, ts, ts2, products))
+    my_rho = lambda x: 30*(x*x*(x-1)*(x-1))
+    def my_rho1(x):
+        if x < 0.5:
+            return 4*x
+        else:
+            return -4*x + 4
+
     x = PathRepresentation(r, 5)
 
     str_len = x.get_total_str_len()
@@ -572,7 +633,7 @@ def test_path_rep():
     # Build linear, quadratic or spline representation of the path,
     # depending on the number of points.
     x.regen_path_func()
-    x.set_new_beads_count(10)
+    x.set_new_beads_count(20)
     x.generate_beads(update=True)
     print "tangents =", x.path_tangents
 
@@ -628,11 +689,23 @@ def plot2D(react_path, path_res = 0.05):
     os.unlink(tmp_file2)
     os.unlink(tmp_file3)
 
+def test_GrowingString():
+    from scipy.optimize import fmin_bfgs
+    f_test = lambda x: True
+    gs = GrowingString(reactants, products, f_test, qcDriver = GaussianPES(), \
+        beads_count = 8)
+    
+    opt = fmin_bfgs(gs.objFunc, gs.get_state_vec, fprime = gs.objFuncGrad, \
+        callback = gs.update_path)
+
+
+
 def mytest_NEB():
     from scipy.optimize import fmin_bfgs
 
     defaultSprConst = 0.01
-    neb = NEB(reactants, products, lambda x: True, defaultSprConst, GaussianPES(), beadsCount = 15)
+    neb = NEB(reactants, products, lambda x: True, defaultSprConst, \
+        GaussianPES(), beadsCount = 15)
     initState = neb.getStateAsArray()
     opt = fmin_bfgs(neb.objFunc, initState, fprime=neb.objFuncGrad)
     gr = neb.objFuncGrad(opt)
@@ -664,7 +737,8 @@ def mytest_NEB():
     # Get some tmp filenames
     (fd, tmpPESDataFile,) = tempfile.mkstemp(text=1)
     (fd, tmpPathDataFile,) = tempfile.mkstemp(text=1)
-    Gnuplot.funcutils.compute_GridData(xrange, yrange, lambda x,y: gpes.energy([x,y]),filename=tmpPESDataFile, binary=0)
+    Gnuplot.funcutils.compute_GridData(xrange, yrange, \
+    lambda x,y: gpes.energy([x,y]), filename=tmpPESDataFile, binary=0)
     opt.shape = (-1,2)
     print "opt = ", opt
     pathEnergies = array (map (gpes.energy, opt.tolist()))
@@ -677,7 +751,8 @@ def mytest_NEB():
     Gnuplot.Data(data, filename=tmpPathDataFile, inline=0, binary=0)
 
     # PLOT SURFACE AND PATH
-    g.splot(Gnuplot.File(tmpPESDataFile, binary=0), Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
+    g.splot(Gnuplot.File(tmpPESDataFile, binary=0), \
+        Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
     raw_input('Press to continue...\n')
 
     os.unlink(tmpPESDataFile)
