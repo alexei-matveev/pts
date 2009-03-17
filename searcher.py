@@ -378,7 +378,7 @@ class PathRepresentation():
     def __get_bead_coords(self, x):
         """Returns the coordinates of the bead at point x <- [0,1]."""
         bead_coords = []
-        print "len(self.__fs) =", len(self.__fs)
+#        print "len(self.__fs) =", len(self.__fs)
         for f in self.__fs:
             bead_coords.append(f.f(x))
 
@@ -492,8 +492,12 @@ class GrowingString(ReactionPathway):
 def project_out(component_to_remove, vector):
     """Projects the component of 'vector' that list along 'component_to_remove'
     out of 'vector' and returns it."""
+    print "c = ", component_to_remove,
+    print "v = ", vector
     projection = dot(component_to_remove, vector)
-    output = vector - projection * vector
+    print "p =", projection
+    output = vector - projection * component_to_remove
+    print "o =", output
     return output
 
 class NEB(ReactionPathway):
