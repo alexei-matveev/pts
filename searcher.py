@@ -50,7 +50,7 @@ class GaussianPES(QCDriver):
     def energy(self, v):
         x = v[0]
         y = v[1]
-        return (-exp(-(x**2 + y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.3*exp(-((x-1)**2 + (y-2)**2)))
+        return (-exp(-(x**2 + y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*exp(-((1.5*x-1)**2 + (y-2)**2)))
 
     def gradient(self, v):
         x = v[0]
@@ -411,11 +411,11 @@ class PathRepresentation():
 
         print "fractional_positions: ", fractional_positions, "\n"
         for frac_pos in fractional_positions:
-            print "frac_pos = ", frac_pos, "total_str_len = ", total_str_len
+#            print "frac_pos = ", frac_pos, "total_str_len = ", total_str_len
             for (norm, str) in incremental_positions:
 
                 if str >= frac_pos * total_str_len:
-                    print "norm = ", norm
+#                    print "norm = ", norm
                     normd_positions.append(norm)
                     break
 
@@ -435,7 +435,7 @@ class GrowingString(ReactionPathway):
         self.__path_rep.generate_beads(update = True)
 
     def obj_func(self, new_state_vec = []):
-        self.update_path(new_state_vec)
+        self.update_path(new_state_vec, respace = False)
 
         # The following code block will need to be replaced for parallel operation
         pes_energies = 0
@@ -446,7 +446,7 @@ class GrowingString(ReactionPathway):
         return pes_energies
        
     def obj_func_grad(self, new_state_vec = []):
-        self.update_path(new_state_vec)
+        self.update_path(new_state_vec, respace = False)
 
         gradients = []
 
@@ -454,10 +454,10 @@ class GrowingString(ReactionPathway):
         for i in range(self.__path_rep.beads_count)[1:-1]:
             g = self.__qc_driver.gradient(self.__path_rep.get_state_vec()[i])
             t = ts[i]
-            print "g_before = ", g,
-            print "t =", t
+#            print "g_before = ", g,
+#            print "t =", t
             g = project_out(t, g)
-            print "g_after =", g
+#            print "g_after =", g
             gradients.append(g)
 
         react_gradients = prod_gradients = zeros(self.__path_rep.get_dimensions())
@@ -467,7 +467,7 @@ class GrowingString(ReactionPathway):
         print "gradients =", gradients
         return (array(gradients).flatten())
 
-    def update_path(self, state_vec = []):
+    def update_path(self, state_vec = [], respace = True):
         """After each iteration of the optimiser this function must be called.
         It rebuilds a new (spline) representation of the path and then 
         redestributes the beads according to the density function."""
@@ -480,7 +480,8 @@ class GrowingString(ReactionPathway):
         self.__path_rep.regen_path_func()
 
         # respace the beads along the path
-        self.__path_rep.generate_beads(update = True)
+        if respace:
+            self.__path_rep.generate_beads(update = True)
 
     def get_state_vec(self):
         return array(self.__path_rep.get_state_vec()).flatten()
@@ -492,12 +493,8 @@ class GrowingString(ReactionPathway):
 def project_out(component_to_remove, vector):
     """Projects the component of 'vector' that list along 'component_to_remove'
     out of 'vector' and returns it."""
-    print "c = ", component_to_remove,
-    print "v = ", vector
     projection = dot(component_to_remove, vector)
-    print "p =", projection
     output = vector - projection * component_to_remove
-    print "o =", output
     return output
 
 class NEB(ReactionPathway):
@@ -721,12 +718,81 @@ def test_GrowingString():
     from scipy.optimize import fmin_bfgs
     f_test = lambda x: True
     rho = lambda x: 1
+    surf_plot = SurfPlot(GaussianPES())
+
     gs = GrowingString(reactants, products, f_test, rho, qc_driver = GaussianPES(), 
-        beads_count = 8)
+        beads_count = 16)
+
+    from scipy.optimize.lbfgsb import fmin_l_bfgs_b
+    from scipy.optimize import fmin_cg
 
     print "gsv =", gs.get_state_vec()
-    opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad,
-        callback = gs.update_path)
+#    (opt, a, b) = fmin_l_bfgs_b(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad) 
+#    opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=surf_plot.plot) 
+    opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = gs.) 
+
+
+    print "opt =", opt
+    surf_plot.plot(opt)
+      
+def gd(f, x0, fprime, callback):
+    i = 0
+    while 1:
+        x = x0
+        g = fprime(x)
+        if linalg.norm(g) < 0.00001:
+            print "%d iterations" % i
+            break
+
+        i += 1
+        x -= g * 0.5
+        callback(x)
+
+    return x
+
+class SurfPlot():
+    def __init__(self, pes):
+        self.__pes = pes
+
+    def plot(self, path):
+        opt = copy.deepcopy(path)
+
+        # Points on grid to draw PES
+        ps = 20.0
+        xrange = arange(ps)*(3.0/ps)
+        yrange = arange(ps)*(3.0/ps)
+
+        # Make a 2-d array containing a function of x and y.  First create
+        # xm and ym which contain the x and y values in a matrix form that
+        # can be `broadcast' into a matrix of the appropriate shape:
+        g = Gnuplot.Gnuplot(debug=1)
+        g('set data style lines')
+        g('set hidden')
+        g.xlabel('x')
+        g.ylabel('y')
+
+        # Get some tmp filenames
+        (fd, tmpPESDataFile,) = tempfile.mkstemp(text=1)
+        (fd, tmpPathDataFile,) = tempfile.mkstemp(text=1)
+        Gnuplot.funcutils.compute_GridData(xrange, yrange, 
+            lambda x,y: self.__pes.energy([x,y]), filename=tmpPESDataFile, binary=0)
+        opt.shape = (-1,2)
+        pathEnergies = array (map (self.__pes.energy, opt.tolist()))
+        pathEnergies += 0.05
+        xs = array(opt[:,0])
+        ys = array(opt[:,1])
+        print "xs =",xs, "ys =",ys
+        data = transpose((xs, ys, pathEnergies))
+        Gnuplot.Data(data, filename=tmpPathDataFile, inline=0, binary=0)
+
+        # PLOT SURFACE AND PATH
+        g.splot(Gnuplot.File(tmpPESDataFile, binary=0), 
+            Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
+        raw_input('Press to continue...\n')
+
+        os.unlink(tmpPESDataFile)
+        os.unlink(tmpPathDataFile)
+
 
 def mytest_NEB():
     from scipy.optimize import fmin_bfgs
