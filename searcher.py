@@ -198,7 +198,7 @@ class PathRepresentation():
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 200):
+    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 500):
 
         # vector of vectors defining the path
         if (isinstance(state_vec, ndarray)):
@@ -246,10 +246,10 @@ class PathRepresentation():
 
         self.__fs = []
 
+        print "state_vec2 =", self.__state_vec
         print "self.__dimensions =", self.__dimensions
         for i in range(self.__dimensions):
 
-            print self.__state_vec
             ys = self.__state_vec[:,i]
 
             # linear path
@@ -275,8 +275,8 @@ class PathRepresentation():
                 # spline path
                 points_cnt = len(self.__state_vec)
                 xs = arange(0.0, 1.0 + 1.0 / (points_cnt - 1), 1.0 / (points_cnt - 1))
-                print "points_cnt =", points_cnt
-                print "xs =", xs
+#                print "points_cnt =", points_cnt
+#                print "xs =", xs
                 self.__fs.append(SplineFunc(xs,ys))
 
     def __get_total_str_len(self):
@@ -327,7 +327,7 @@ class PathRepresentation():
 
         bead_vectors = []
         bead_tangents = []
-        print "normd_positions =", normd_positions
+#        print "normd_positions =", normd_positions
         for str_pos in normd_positions:
             bead_vectors.append(self.__get_bead_coords(str_pos))
             bead_tangents.append(self.__get_tangent(str_pos))
@@ -341,7 +341,10 @@ class PathRepresentation():
 
         if update:
             self.__state_vec = bead_vectors
+            print "New beads generated:", self.__state_vec
+
             self.__path_tangents = bead_tangents
+            print "Tangents updated:", self.__path_tangents
 
         return bead_vectors
         
@@ -369,10 +372,7 @@ class PathRepresentation():
                 requirement_for_next_bead += integrated_density_inc
         
 #        print "str_positions =", str_positions
-        prev = 0
-        for p in str_positions:
-            print "diff =", (p - prev)
-            prev = p
+        dump_diffs("spd", str_positions)
         return str_positions
 
     def __get_bead_coords(self, x):
@@ -419,7 +419,8 @@ class PathRepresentation():
                     normd_positions.append(norm)
                     break
 
-        print "normed_positions =", normd_positions
+        print "normd_positions =", normd_positions
+        dump_diffs("npd", normd_positions)
         return normd_positions
 
 
@@ -482,6 +483,9 @@ class GrowingString(ReactionPathway):
         # respace the beads along the path
         if respace:
             self.__path_rep.generate_beads(update = True)
+
+    def plot(self):
+        plot2D(self.__path_rep)
 
     def get_state_vec(self):
         return array(self.__path_rep.get_state_vec()).flatten()
@@ -665,7 +669,7 @@ def test_path_rep():
     plot2D(x)
 
 
-def plot2D(react_path, path_res = 0.05):
+def plot2D(react_path, path_res = 0.01):
     """Given a path object react_path, displays the a 2D depiction of it's 
     first two dimensions as a graph."""
     g = Gnuplot.Gnuplot(debug=1)
@@ -683,18 +687,19 @@ def plot2D(react_path, path_res = 0.05):
     f_y = react_path.get_fs()[1].f
     xs = array ([f_x(p) for p in params])
     ys = array ([f_y(p) for p in params])
-    print "params: ", params
-    print "xs: ", xs
-    print "ys: ", ys
+#    print "params: ", params
+#    print "xs: ", xs
+#    print "ys: ", ys
 
     # smooth path
     smooth_path = vstack((xs,ys)).transpose()
-    print "smooth_path =", smooth_path
+#    print "smooth_path =", smooth_path
     Gnuplot.Data(smooth_path, filename=tmp_file1, inline=0, binary=0)
     
     # state vector
-    data1 = react_path.get_state_vec()
-    Gnuplot.Data(data1, filename=tmp_file2, inline=0, binary=0)
+    data2 = react_path.get_state_vec()
+    print "plot2D: react_path.get_state_vec() =", data2
+    Gnuplot.Data(data2, filename=tmp_file2, inline=0, binary=0)
 
     # points along path
     beads = react_path.generate_beads()
@@ -707,7 +712,10 @@ def plot2D(react_path, path_res = 0.05):
     t0_func = Gnuplot.Func(t0_str)
 
     # PLOT THE VARIOUS PATHS
-    g.plot(t0_func, Gnuplot.File(tmp_file1, binary=0, title="Smooth", with_ = "linespoints"), Gnuplot.File(tmp_file2, binary=0, with_ = "linespoints"), Gnuplot.File(tmp_file3, binary=0, title="from class", with_ = "linespoints"))
+    g.plot(t0_func, Gnuplot.File(tmp_file1, binary=0, title="Smooth", 
+        with_ = "lines"), Gnuplot.File(tmp_file2, binary=0, 
+        with_ = "linespoints", title = "get_state_vec()"), Gnuplot.File(tmp_file3, binary=0, 
+        title="points on string from optimisation", with_ = "points"))
     raw_input('Press to continue...\n')
 
     os.unlink(tmp_file1)
@@ -723,24 +731,37 @@ def test_GrowingString():
     gs = GrowingString(reactants, products, f_test, rho, qc_driver = GaussianPES(), 
         beads_count = 16)
 
+    # Wrapper callback function
+    def mycb(x):
+        gs.update_path(x)
+#        surf_plot.plot(x)
+
     from scipy.optimize.lbfgsb import fmin_l_bfgs_b
     from scipy.optimize import fmin_cg
 
     print "gsv =", gs.get_state_vec()
 #    (opt, a, b) = fmin_l_bfgs_b(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad) 
 #    opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=surf_plot.plot) 
-    opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = gs.) 
-
+    opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
 
     print "opt =", opt
+    gs.plot()
     surf_plot.plot(opt)
+
+def dump_diffs(pref, list):
+    prev = 0
+    for p in list:
+        print "%s = %f" % (pref, (p - prev))
+        prev = p
+    print
+
       
-def gd(f, x0, fprime, callback):
+def gd(f, x0, fprime, callback = lambda x: True):
     i = 0
     while 1:
         x = x0
         g = fprime(x)
-        if linalg.norm(g) < 0.00001:
+        if linalg.norm(g, ord=inf) < 0.001:
             print "%d iterations" % i
             break
 
