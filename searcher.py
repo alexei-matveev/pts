@@ -193,6 +193,9 @@ class SplineFunc(Func):
     def fprime(self, x):
         return interpolate.splev(x, self.spline_data, der=1)
 
+def dup2val(dup):
+    (x,y) = dup
+    return x
 
 class PathRepresentation():
     """Supports operations on a path represented by a line, parabola, or a 
@@ -202,7 +205,7 @@ class PathRepresentation():
 
         # vector of vectors defining the path
         if (isinstance(state_vec, ndarray)):
-            self.__state_vec = self.__state_vec
+            self.__state_vec = state_vec
         else:
             self.__state_vec = array(state_vec)
 
@@ -279,6 +282,18 @@ class PathRepresentation():
 #                print "xs =", xs
                 self.__fs.append(SplineFunc(xs,ys))
 
+    def __arc_dist_func(self, x):
+        output = 0
+        for a in self.__fs:
+            output += a.fprime(x)**2
+        return sqrt(output)
+
+    def __get_total_str_len_exact(self):
+
+        (integral, error) = scipy.integrate.quad(self.__arc_dist_func, 0.0, 1.0)
+        return integral
+
+
     def __get_total_str_len(self):
         """Returns the a duple of the total length of the string and a list of 
         pairs (x,y), where x a distance along the normalised path (i.e. on 
@@ -309,6 +324,43 @@ class PathRepresentation():
             list.append(cumm_dist)
 
         return (list[-1], zip(param_steps, list))
+
+    def generate_beads_exact(self, update = False):
+        """Returns an array of the self.__beads_count vectors of the coordinates 
+        of beads along a reaction path, according to the established path 
+        (line, parabola or spline) and the parameterisation density."""
+
+        assert len(self.__fs) > 1
+
+        # Find total string length and incremental distances x along the string 
+        # in terms of the normalised coodinate y, as a list of (x,y).
+        total_str_len = self.__get_total_str_len_exact()
+
+        # For the desired distances along the string, find the values of the
+        # normalised coordinate that achive those distances.
+        normd_positions = self.__generate_normd_positions_exact(total_str_len)
+
+        bead_vectors = []
+        bead_tangents = []
+#        print "normd_positions =", normd_positions
+        for str_pos in normd_positions:
+            bead_vectors.append(self.__get_bead_coords(str_pos))
+            bead_tangents.append(self.__get_tangent(str_pos))
+
+
+        (reactants, products) = (self.__state_vec[0], self.__state_vec[-1])
+        bead_vectors = [reactants] + bead_vectors + [products]
+        bead_tangents = [self.__get_tangent(0)] + bead_tangents + [self.__get_tangent(1)]
+        print "bead_vectors =", bead_vectors
+
+        if update:
+            self.__state_vec = bead_vectors
+            print "New beads generated:", self.__state_vec
+
+            self.__path_tangents = bead_tangents
+            print "Tangents updated:", self.__path_tangents
+
+        return bead_vectors
 
     def generate_beads(self, update = False):
         """Returns an array of the self.__beads_count vectors of the coordinates 
@@ -348,6 +400,39 @@ class PathRepresentation():
 
         return bead_vectors
         
+    def __get_str_positions_exact(self):
+        from scipy.integrate import quad
+        from scipy.optimize import fmin
+
+        print "rho =", self.__rho(0.5)
+
+        integrated_density_inc = 1.0 / (self.beads_count - 1.0)
+        requirement_for_prev_bead = 0.0
+        requirement_for_next_bead = integrated_density_inc
+        print "idi =", integrated_density_inc
+
+        x_min = 0.0
+        x_max = -1
+
+        str_poses = []
+
+        def f_opt(x):
+            (i,e) = quad(self.__rho, x_min, x)
+            tmp = (i - integrated_density_inc)**2
+            return tmp
+
+        for i in range(self.beads_count - 2):
+
+            x_max = fmin(f_opt, requirement_for_next_bead, disp=False)
+            str_poses.append(x_max[0])
+            x_min = x_max[0]
+            requirement_for_prev_bead = requirement_for_next_bead
+            requirement_for_next_bead += integrated_density_inc
+
+        print "fractions along string:", str_poses
+        dump_diffs("spd_exact", str_poses)
+        return str_poses
+
     def __get_str_positions(self):
         """Based on the provided density function self.__rho(x) and 
         self.bead_count, generates the fractional positions along the string 
@@ -401,6 +486,32 @@ class PathRepresentation():
         self.__rho = lambda x: new_rho(x) / int
         return self.__rho
 
+    def __generate_normd_positions_exact(self, total_str_len):
+
+        #  desired fractional positions along the string
+        fractional_positions = self.__get_str_positions_exact()
+
+        normd_positions = []
+
+        prev_norm_coord = 0
+        prev_len_wanted = 0
+
+        from scipy.integrate import quad
+        from scipy.optimize import fmin
+        for frac_pos in fractional_positions:
+            next_norm_coord = frac_pos
+            next_len_wanted = total_str_len * frac_pos
+            length_err = lambda x: \
+                (dup2val(quad(self.__arc_dist_func, prev_norm_coord, x)) - (next_len_wanted - prev_len_wanted))**2
+            next_norm_coord = fmin(length_err, next_norm_coord, disp=False)
+
+            normd_positions.append(next_norm_coord)
+
+            prev_norm_coord = next_norm_coord
+            prev_len_wanted = next_len_wanted
+
+        return normd_positions
+            
     def __generate_normd_positions(self, total_str_len, incremental_positions):
         """Returns a list of distances along the string in terms of the normalised 
         coordinate, based on desired fractional distances along string."""
@@ -433,7 +544,7 @@ class GrowingString(ReactionPathway):
 
         self.__path_rep = PathRepresentation([reactants, products], beads_count)
         self.__path_rep.regen_path_func()
-        self.__path_rep.generate_beads(update = True)
+        self.__path_rep.generate_beads_exact(update = True)
 
     def obj_func(self, new_state_vec = []):
         self.update_path(new_state_vec, respace = False)
@@ -482,7 +593,7 @@ class GrowingString(ReactionPathway):
 
         # respace the beads along the path
         if respace:
-            self.__path_rep.generate_beads(update = True)
+            self.__path_rep.generate_beads_exact(update = True)
 
     def plot(self):
         plot2D(self.__path_rep)
@@ -663,7 +774,7 @@ def test_path_rep():
     # depending on the number of points.
     x.regen_path_func()
     x.beads_count = 20
-    x.generate_beads(update=True)
+    x.generate_beads_exact(update=True)
     print "tangents =", x.get_path_tangents()
 
     plot2D(x)
@@ -702,7 +813,7 @@ def plot2D(react_path, path_res = 0.01):
     Gnuplot.Data(data2, filename=tmp_file2, inline=0, binary=0)
 
     # points along path
-    beads = react_path.generate_beads()
+    beads = react_path.generate_beads_exact()
     Gnuplot.Data(beads, filename=tmp_file3, inline=0, binary=0)
 
     # draw tangent to the path
@@ -761,12 +872,12 @@ def gd(f, x0, fprime, callback = lambda x: True):
     while 1:
         x = x0
         g = fprime(x)
-        if linalg.norm(g, ord=inf) < 0.001:
+        if linalg.norm(g, ord=inf) < 0.005:
             print "%d iterations" % i
             break
 
         i += 1
-        x -= g * 0.5
+        x -= g * 0.3
         callback(x)
 
     return x
