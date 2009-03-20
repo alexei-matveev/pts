@@ -18,6 +18,12 @@ import scipy.integrate
 
 print "\n\nBegin Program..." 
 
+# Function labeller
+def flab(tag = "", tag1 = ""):
+    import sys
+#    import inspect
+#    print inspect.stack(sys._getframe())
+    print "**** ", sys._getframe(1).f_code.co_name, tag, tag1
 
 class QCDriver:
     def __init__(self, dimension):
@@ -201,7 +207,7 @@ class PathRepresentation():
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 500):
+    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 100):
 
         # vector of vectors defining the path
         if (isinstance(state_vec, ndarray)):
@@ -249,8 +255,8 @@ class PathRepresentation():
 
         self.__fs = []
 
-        print "state_vec2 =", self.__state_vec
-        print "self.__dimensions =", self.__dimensions
+        #print "state_vec2 =", self.__state_vec
+        #print "self.__dimensions =", self.__dimensions
         for i in range(self.__dimensions):
 
             ys = self.__state_vec[:,i]
@@ -325,10 +331,30 @@ class PathRepresentation():
 
         return (list[-1], zip(param_steps, list))
 
+    def sub_str_lengths(self, normd_poses):
+        """Finds the lengths of the pieces of the string specified in 
+        normd_poses in terms of normalised coordinate."""
+
+        my_normd_poses = array(normd_poses).flatten()
+
+        from scipy.integrate import quad
+        x0 = 0.0
+        lengths = []
+        for pos in my_normd_poses:
+            (len,err) = quad(self.__arc_dist_func, x0, pos)
+            lengths.append(len)
+            x0 = pos
+
+        lengths = array(lengths).flatten()
+        print "sub_str_lengths: normd_poses:", normd_poses
+        print "sub_str_lengths: sub lengths of string", lengths
+
     def generate_beads_exact(self, update = False):
         """Returns an array of the self.__beads_count vectors of the coordinates 
         of beads along a reaction path, according to the established path 
         (line, parabola or spline) and the parameterisation density."""
+
+        flab("called", update)
 
         assert len(self.__fs) > 1
 
@@ -339,6 +365,8 @@ class PathRepresentation():
         # For the desired distances along the string, find the values of the
         # normalised coordinate that achive those distances.
         normd_positions = self.__generate_normd_positions_exact(total_str_len)
+
+        self.sub_str_lengths(normd_positions)
 
         bead_vectors = []
         bead_tangents = []
@@ -404,8 +432,6 @@ class PathRepresentation():
         from scipy.integrate import quad
         from scipy.optimize import fmin
 
-        print "rho =", self.__rho(0.5)
-
         integrated_density_inc = 1.0 / (self.beads_count - 1.0)
         requirement_for_prev_bead = 0.0
         requirement_for_next_bead = integrated_density_inc
@@ -429,8 +455,8 @@ class PathRepresentation():
             requirement_for_prev_bead = requirement_for_next_bead
             requirement_for_next_bead += integrated_density_inc
 
-        print "fractions along string:", str_poses
-        dump_diffs("spd_exact", str_poses)
+        """print "fractions along string:", str_poses
+        dump_diffs("spd_exact", str_poses)"""
         return str_poses
 
     def __get_str_positions(self):
@@ -544,10 +570,11 @@ class GrowingString(ReactionPathway):
 
         self.__path_rep = PathRepresentation([reactants, products], beads_count)
         self.__path_rep.regen_path_func()
-        self.__path_rep.generate_beads_exact(update = True)
+        self.__path_rep.generate_beads(update = True)
 
     def obj_func(self, new_state_vec = []):
-        self.update_path(new_state_vec, respace = False)
+        flab("called")
+        self.update_path(new_state_vec, respace = True)
 
         # The following code block will need to be replaced for parallel operation
         pes_energies = 0
@@ -558,7 +585,8 @@ class GrowingString(ReactionPathway):
         return pes_energies
        
     def obj_func_grad(self, new_state_vec = []):
-        self.update_path(new_state_vec, respace = False)
+        flab("called")
+        self.update_path(new_state_vec, respace = True)
 
         gradients = []
 
@@ -584,6 +612,8 @@ class GrowingString(ReactionPathway):
         It rebuilds a new (spline) representation of the path and then 
         redestributes the beads according to the density function."""
 
+        flab("called", respace)
+
         if len(state_vec) > 2:
             self.__path_rep.set_state_vec(state_vec)
 
@@ -596,6 +626,8 @@ class GrowingString(ReactionPathway):
             self.__path_rep.generate_beads_exact(update = True)
 
     def plot(self):
+        flab("(GS) called")
+#        self.__path_rep.generate_beads_exact()
         plot2D(self.__path_rep)
 
     def get_state_vec(self):
@@ -774,7 +806,7 @@ def test_path_rep():
     # depending on the number of points.
     x.regen_path_func()
     x.beads_count = 20
-    x.generate_beads_exact(update=True)
+    x.generate_beads(update=True)
     print "tangents =", x.get_path_tangents()
 
     plot2D(x)
@@ -787,6 +819,8 @@ def plot2D(react_path, path_res = 0.01):
 
     g.xlabel('x')
     g.ylabel('y')
+    g('set xrange [0:3]')
+    g('set yrange [0:3]')
 
     # Get some tmp filenames
     (fd, tmp_file1,) = tempfile.mkstemp(text=1)
@@ -844,8 +878,10 @@ def test_GrowingString():
 
     # Wrapper callback function
     def mycb(x):
-        gs.update_path(x)
+        flab("called")
+#       gs.update_path(x, respace = True)
 #        surf_plot.plot(x)
+        return gs.get_state_vec()
 
     from scipy.optimize.lbfgsb import fmin_l_bfgs_b
     from scipy.optimize import fmin_cg
@@ -855,8 +891,8 @@ def test_GrowingString():
 #    opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=surf_plot.plot) 
     opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
 
-    print "opt =", opt
     gs.plot()
+    print "path to plot (for surface) =", opt
     surf_plot.plot(opt)
 
 def dump_diffs(pref, list):
@@ -866,20 +902,21 @@ def dump_diffs(pref, list):
         prev = p
     print
 
-      
-def gd(f, x0, fprime, callback = lambda x: True):
+def gd(f, x0, fprime, callback = lambda x: Nothing):
     i = 0
+    x = copy.deepcopy(x0)
     while 1:
-        x = x0
         g = fprime(x)
-        if linalg.norm(g, ord=inf) < 0.005:
+        print "it(x) =", x
+        if linalg.norm(g, ord=inf) < 0.0005:
             print "%d iterations" % i
             break
 
         i += 1
-        x -= g * 0.3
-        callback(x)
+        x = callback(x)
+        x -= g * 0.5
 
+    x = callback(x)
     return x
 
 class SurfPlot():
@@ -887,6 +924,7 @@ class SurfPlot():
         self.__pes = pes
 
     def plot(self, path):
+        flab("called")
         opt = copy.deepcopy(path)
 
         # Points on grid to draw PES
@@ -899,7 +937,9 @@ class SurfPlot():
         # can be `broadcast' into a matrix of the appropriate shape:
         g = Gnuplot.Gnuplot(debug=1)
         g('set data style lines')
-        g('set hidden')
+#        g('set hidden')
+        g('set contour')
+        g('set cntrparam levels 100')
         g.xlabel('x')
         g.ylabel('y')
 
@@ -920,6 +960,7 @@ class SurfPlot():
         # PLOT SURFACE AND PATH
         g.splot(Gnuplot.File(tmpPESDataFile, binary=0), 
             Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
+        print "Path to plot (SurfPlot) =", path
         raw_input('Press to continue...\n')
 
         os.unlink(tmpPESDataFile)
