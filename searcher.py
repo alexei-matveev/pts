@@ -61,8 +61,8 @@ class GaussianPES(QCDriver):
     def gradient(self, v):
         x = v[0]
         y = v[1]
-        dfdx = 2*x*exp(-(x**2 + y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.3*(2*x-2)*exp(-((x-1)**2 + (y-2)**2))
-        dfdy = 2*y*exp(-(x**2 + y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.3*(2*y-4)*exp(-((x-1)**2 + (y-2)**2))
+        dfdx = 2*x*exp(-(x**2 + y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(4.5*x-3)*exp(-((1.5*x-1)**2 + (y-2)**2))
+        dfdy = 2*y*exp(-(x**2 + y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.5*(2*y-4)*exp(-((1.5*x-1)**2 + (y-2)**2))
 
         return array((dfdx,dfdy))
 
@@ -207,7 +207,7 @@ class PathRepresentation():
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 100):
+    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 500):
 
         # vector of vectors defining the path
         if (isinstance(state_vec, ndarray)):
@@ -251,6 +251,7 @@ class PathRepresentation():
     def regen_path_func(self):
         """Rebuild a new path function and the derivative of the path based on 
         the contents of state_vec."""
+        flab("called")
         assert len(self.__state_vec) > 1
 
         self.__fs = []
@@ -299,36 +300,31 @@ class PathRepresentation():
         (integral, error) = scipy.integrate.quad(self.__arc_dist_func, 0.0, 1.0)
         return integral
 
-
     def __get_total_str_len(self):
         """Returns the a duple of the total length of the string and a list of 
         pairs (x,y), where x a distance along the normalised path (i.e. on 
         [0,1]) and y is the corresponding distance along the string (i.e. on
         [0,string_len])."""
         
-        # function, integral of which gives total path length
-        def arc_dist_func(x):
-            output = 0
-            for a in self.__fs:
-                output += a.fprime(x)**2
-            return sqrt(output)
+        flab("called")
 
         # number of points to chop the string into
         param_steps = arange(0, 1, self.__step)
 
         list = []
-        cumm_dist = 0
+        cummulative = 0
+
+        (str_len_precise, error) = scipy.integrate.quad(self.__arc_dist_func, 0, 1, limit=100)
+        assert error < self.__max_integral_error
+
         for i in range(self.__str_resolution):
-            lower, upper = i * self.__step, (i + 1) * self.__step
-            (integral, error) = scipy.integrate.quad(arc_dist_func, lower, upper)
-#            print "int = %lf, err = %lf, lower = %lf, upper = %lf" % (integral, 
-#                error, lower, upper)
-            cumm_dist += integral
+            pos = (i + 0.5) * self.__step
+            sub_integral = self.__step * self.__arc_dist_func(pos)
+            cummulative += sub_integral
+            list.append(cummulative)
 
-            assert error < self.__max_integral_error
-
-            list.append(cumm_dist)
-
+        print "int_approx = %lf, int_accurate = %lf" % (cummulative, str_len_precise)
+        flab("exiting")
         return (list[-1], zip(param_steps, list))
 
     def sub_str_lengths(self, normd_poses):
@@ -400,7 +396,7 @@ class PathRepresentation():
         # Find total string length and incremental distances x along the string 
         # in terms of the normalised coodinate y, as a list of (x,y).
         (total_str_len, incremental_positions) = self.__get_total_str_len()
-
+#
         # For the desired distances along the string, find the values of the
         # normalised coordinate that achive those distances.
         normd_positions = self.__generate_normd_positions(total_str_len, incremental_positions)
@@ -463,27 +459,21 @@ class PathRepresentation():
         """Based on the provided density function self.__rho(x) and 
         self.bead_count, generates the fractional positions along the string 
         at which beads should occur."""
+        flab("called")
 
         param_steps = arange(0, 1 - self.__step, self.__step)
         integrated_density_inc = 1.0 / (self.beads_count - 1.0)
         requirement_for_next_bead = integrated_density_inc
 
-#        print "param_steps =", param_steps
-
         integral = 0
         str_positions = []
         for s in param_steps:
-#            (i, err) = scipy.integrate.quad(self.__rho, s, s + self.step)
             integral += self.__rho(s) * self.__step
             if integral > requirement_for_next_bead:
-#                msg = "rfnb = %f integral =  %f" % (requirement_for_next_bead, integral)
-#                print msg
                 str_positions.append(s)
-#                print "req = ", requirement_for_next_bead
                 requirement_for_next_bead += integrated_density_inc
         
-#        print "str_positions =", str_positions
-        dump_diffs("spd", str_positions)
+#        dump_diffs("spd", str_positions)
         return str_positions
 
     def __get_bead_coords(self, x):
@@ -541,7 +531,9 @@ class PathRepresentation():
     def __generate_normd_positions(self, total_str_len, incremental_positions):
         """Returns a list of distances along the string in terms of the normalised 
         coordinate, based on desired fractional distances along string."""
+        flab("called")
 
+        # get fractional positions along string
         fractional_positions = self.__get_str_positions()
 
         normd_positions = []
@@ -557,18 +549,18 @@ class PathRepresentation():
                     break
 
         print "normd_positions =", normd_positions
-        dump_diffs("npd", normd_positions)
+#        dump_diffs("npd", normd_positions)
         return normd_positions
 
 
 class GrowingString(ReactionPathway):
-    def __init__(self, reactants, products, f_test, f_density, qc_driver, 
-        beads_count = 10):
+    def __init__(self, reactants, products, qc_driver, f_test = lambda x: True, 
+        beads_count = 10, rho = lambda x: 1):
 
         ReactionPathway.__init__(self, reactants, products, f_test)
         self.__qc_driver = qc_driver
 
-        self.__path_rep = PathRepresentation([reactants, products], beads_count)
+        self.__path_rep = PathRepresentation([reactants, products], beads_count, rho)
         self.__path_rep.regen_path_func()
         self.__path_rep.generate_beads(update = True)
 
@@ -623,7 +615,7 @@ class GrowingString(ReactionPathway):
 
         # respace the beads along the path
         if respace:
-            self.__path_rep.generate_beads_exact(update = True)
+            self.__path_rep.generate_beads(update = True)
 
     def plot(self):
         flab("(GS) called")
@@ -847,7 +839,7 @@ def plot2D(react_path, path_res = 0.01):
     Gnuplot.Data(data2, filename=tmp_file2, inline=0, binary=0)
 
     # points along path
-    beads = react_path.generate_beads_exact()
+    beads = react_path.generate_beads()
     Gnuplot.Data(beads, filename=tmp_file3, inline=0, binary=0)
 
     # draw tangent to the path
@@ -870,17 +862,18 @@ def plot2D(react_path, path_res = 0.01):
 def test_GrowingString():
     from scipy.optimize import fmin_bfgs
     f_test = lambda x: True
-    rho = lambda x: 1
+    rho_quartic = lambda x: (x*(x-1))**2
     surf_plot = SurfPlot(GaussianPES())
+    qc_driver = GaussianPES()
 
-    gs = GrowingString(reactants, products, f_test, rho, qc_driver = GaussianPES(), 
-        beads_count = 16)
+    gs = GrowingString(reactants, products, qc_driver, f_test, 
+        beads_count=16, rho=rho_quartic)
 
     # Wrapper callback function
     def mycb(x):
         flab("called")
 #       gs.update_path(x, respace = True)
-#        surf_plot.plot(x)
+        surf_plot.plot(x)
         return gs.get_state_vec()
 
     from scipy.optimize.lbfgsb import fmin_l_bfgs_b
@@ -888,8 +881,10 @@ def test_GrowingString():
 
     print "gsv =", gs.get_state_vec()
 #    (opt, a, b) = fmin_l_bfgs_b(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad) 
-#    opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=surf_plot.plot) 
-    opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+#    opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=mycb, gtol=0.003, norm=Inf) 
+#    opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+    opt = my_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+
 
     gs.plot()
     print "path to plot (for surface) =", opt
@@ -902,19 +897,56 @@ def dump_diffs(pref, list):
         prev = p
     print
 
+def my_bfgs(f, x0, fprime, callback = lambda x: Nothing):
+    from scipy.optimize import line_search
+    i = 0
+    dims = len(x0)
+    x = x0
+
+    def get_new_H_inv(sk, yk, H_inv_k):
+        A = outer(sk,sk) * (dot(sk,yk) + dot(yk, dot(H_inv_k, yk)))
+        B = dot(H_inv_k, outer(yk, sk)) + dot(outer(sk, yk), B_inv_k)
+        C = dot(sk, yk)
+
+        H_inv_new = H_inv_k + A/C/C - B/C
+        return H_inv_new
+
+    H_inv = eye(dims)
+    g = fprime(x)
+    energy = f(x)
+    while True:
+        s = dot(H_inv, -g)
+        #res = line_search(f, fprime, x, -1*g, g, energy, copy.deepcopy(energy))
+#        print "res =", res
+#        print "x =", x,
+#        print "g =", g
+#        alpha, d1, d2, d3, d4 = res
+        alpha = 1
+        x = x - alpha * s
+        x = callback(x)
+        g_old = g
+        g = fprime(x)
+
+        energy = f(x)
+
+        if norm(g, order=Inf) < 0.001:
+            break
+        y = g - g_old
+        H_inv = get_new_H_inv(s, y, H_inv)
+
+
 def gd(f, x0, fprime, callback = lambda x: Nothing):
     i = 0
     x = copy.deepcopy(x0)
     while 1:
         g = fprime(x)
-        print "it(x) =", x
-        if linalg.norm(g, ord=inf) < 0.0005:
+        if linalg.norm(g, ord=inf) < 0.01:
             print "%d iterations" % i
             break
 
         i += 1
         x = callback(x)
-        x -= g * 0.5
+        x -= g * 0.3
 
     x = callback(x)
     return x
@@ -937,7 +969,7 @@ class SurfPlot():
         # can be `broadcast' into a matrix of the appropriate shape:
         g = Gnuplot.Gnuplot(debug=1)
         g('set data style lines')
-#        g('set hidden')
+        g('set hidden')
         g('set contour')
         g('set cntrparam levels 100')
         g.xlabel('x')
