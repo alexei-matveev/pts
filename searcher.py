@@ -1150,3 +1150,15 @@ def rosen(x):
     return sum(100.0*(x[1:]-x[:-1]**2.0)**2.0 + (1-x[:-1])**2.0)
 
 
+"""
+Planning for parallel scheduler:
+
+q = add coordinates to queue
+scheduler.run(total_procs, max_procs, normal_procs)
+scheduler.join()
+outputs = scheduler.get_outputs()
+
+def 
+
+"""
+
