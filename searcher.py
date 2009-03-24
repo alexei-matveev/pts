@@ -285,8 +285,11 @@ class PathRepresentation():
                 # spline path
                 points_cnt = len(self.__state_vec)
                 xs = arange(0.0, 1.0 + 1.0 / (points_cnt - 1), 1.0 / (points_cnt - 1))
+                # enforce the number of poitns to be points_cnt
+                xs = xs[0:points_cnt]
 #                print "points_cnt =", points_cnt
-#                print "xs =", xs
+#                print "xs =", xs, "len(ys) =", len(ys)
+#                raw_input('P\n')
                 self.__fs.append(SplineFunc(xs,ys))
 
     def __arc_dist_func(self, x):
@@ -867,7 +870,7 @@ def test_GrowingString():
     qc_driver = GaussianPES()
 
     gs = GrowingString(reactants, products, qc_driver, f_test, 
-        beads_count=16, rho=rho_quartic)
+        beads_count=22, rho=lambda x:1)
 
     # Wrapper callback function
     def mycb(x):
@@ -882,8 +885,8 @@ def test_GrowingString():
     print "gsv =", gs.get_state_vec()
 #    (opt, a, b) = fmin_l_bfgs_b(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad) 
 #    opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=mycb, gtol=0.003, norm=Inf) 
-#    opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
-    opt = my_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+    opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+#    opt = my_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
 
 
     gs.plot()
@@ -904,11 +907,63 @@ def my_bfgs(f, x0, fprime, callback = lambda x: Nothing):
     x = x0
 
     def get_new_H_inv(sk, yk, H_inv_k):
+        print "sk =", sk, "yk =", yk
+        raw_input('Press to continue...\n')
+        p = 1 / dot(yk, sk)
+        tmp = yk*sk
+        print "tmp =",tmp
+        raw_input('Press to continue...\n')
+        print "p =",p
+        I_minus_psy = eye(dims) - p * outer(sk, yk)
+        print "I_minus_psy =", I_minus_psy
+        I_minus_pys = eye(dims) - p * outer(yk, sk)
+        pss = p * outer(s, s)
+
+        H_inv_new = dot (I_minus_psy, dot(H_inv_k, I_minus_pys)) + pss
+        return H_inv_new
+
+    H_inv = eye(dims)
+    g = fprime(x)
+    energy = f(x)
+    while True:
+        p = dot(H_inv, -g)
+        alpha = 1 # from line search eventually
+        x_old = x
+        x = x + alpha * p
+        x = callback(x)
+        g_old = g
+        g = fprime(x)
+
+        energy = f(x)
+
+        if linalg.norm(g, ord=inf) < 0.001:
+            break
+        s = x - x_old
+        y = g - g_old
+        H_inv = get_new_H_inv(s, y, H_inv)
+        print "H_inv =", H_inv.flatten(), "s =", s, "y =", y
+
+
+def my_bfgs_bad(f, x0, fprime, callback = lambda x: Nothing):
+    from scipy.optimize import line_search
+    i = 0
+    dims = len(x0)
+    x = x0
+
+    def get_new_H_inv(sk, yk, H_inv_k):
         A = outer(sk,sk) * (dot(sk,yk) + dot(yk, dot(H_inv_k, yk)))
-        B = dot(H_inv_k, outer(yk, sk)) + dot(outer(sk, yk), B_inv_k)
+        B = dot(H_inv_k, outer(yk, sk)) + dot(outer(sk, yk), H_inv_k)
         C = dot(sk, yk)
 
         H_inv_new = H_inv_k + A/C/C - B/C
+        return H_inv_new
+    def get_new_H_inv_old(sk, yk, H_inv_k):
+        p = 1 / dot(yk, sk)
+        I_minus_psy = eye(dim) - p * outer(sk, yk)
+        I_minus_pys = eye(dim) - p * outer(yk, sk)
+        pss = p * outer(s, s)
+
+        H_inv_new = dot (I_minus_psy, dot(H_inv_k, I_minus_pys)) + pss
         return H_inv_new
 
     H_inv = eye(dims)
@@ -922,17 +977,18 @@ def my_bfgs(f, x0, fprime, callback = lambda x: Nothing):
 #        print "g =", g
 #        alpha, d1, d2, d3, d4 = res
         alpha = 1
-        x = x - alpha * s
+        x = x + alpha * s
         x = callback(x)
         g_old = g
         g = fprime(x)
 
         energy = f(x)
 
-        if norm(g, order=Inf) < 0.001:
+        if linalg.norm(g, ord=inf) < 0.001:
             break
         y = g - g_old
         H_inv = get_new_H_inv(s, y, H_inv)
+        print "H_inv =", H_inv.shape, "s =", s, "y =", y
 
 
 def gd(f, x0, fprime, callback = lambda x: Nothing):
@@ -940,13 +996,13 @@ def gd(f, x0, fprime, callback = lambda x: Nothing):
     x = copy.deepcopy(x0)
     while 1:
         g = fprime(x)
-        if linalg.norm(g, ord=inf) < 0.01:
+        if linalg.norm(g, ord=inf) < 0.1 or i > 15:
             print "%d iterations" % i
             break
 
         i += 1
         x = callback(x)
-        x -= g * 0.3
+        x -= g * 0.2
 
     x = callback(x)
     return x
