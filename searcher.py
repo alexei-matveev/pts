@@ -229,7 +229,7 @@ class PathRepresentation():
 
         # TODO check all beads have same dimensionality
 
-        self.__max_integral_error = 1e-5
+        self.__max_integral_error = 1e-4
 
         self.__rho = self.set_rho(rho)
 
@@ -318,6 +318,7 @@ class PathRepresentation():
         cummulative = 0
 
         (str_len_precise, error) = scipy.integrate.quad(self.__arc_dist_func, 0, 1, limit=100)
+        print "String length integration error =", error
         assert error < self.__max_integral_error
 
         for i in range(self.__str_resolution):
@@ -499,9 +500,12 @@ class PathRepresentation():
         t = t / linalg.norm(t)
         return t
 
-    def set_rho(self, new_rho):
+    def set_rho(self, new_rho, normalise=True):
         """Set new bead density function, ensuring that it is normalised."""
-        (int, err) = scipy.integrate.quad(new_rho, 0.0, 1.0)
+        if normalise:
+            (int, err) = scipy.integrate.quad(new_rho, 0.0, 1.0)
+        else:
+            int = 1
         self.__rho = lambda x: new_rho(x) / int
         return self.__rho
 
@@ -555,17 +559,79 @@ class PathRepresentation():
 #        dump_diffs("npd", normd_positions)
         return normd_positions
 
+class PiecewiseRho:
+    def __init__(self, a1, a2, rho):
+        self.a1, self.a2, self.rho = a1, a2, rho
+
+    def f(x):
+        if 0 <= x <= a1:
+            return rho(x)
+        elif a1 < x < a2:
+            return 1.0 / (a2 - a1)
+        elif a2 < x < 1:
+            return rho(x)
 
 class GrowingString(ReactionPathway):
     def __init__(self, reactants, products, qc_driver, f_test = lambda x: True, 
-        beads_count = 10, rho = lambda x: 1):
+        beads_count = 10, rho = lambda x: 1, growing=True):
 
         ReactionPathway.__init__(self, reactants, products, f_test)
         self.__qc_driver = qc_driver
 
-        self.__path_rep = PathRepresentation([reactants, products], beads_count, rho)
+        self.__final_beads_count = beads_count
+        if growing:
+            self.__current_beads_count = 4
+        else:
+            self.__current_beads_count = self.__final_beads_count
+
+        # final bead spacing density function for grown string
+        self.__final_rho = rho
+
+        # current bead spacing density function for incompletely grown string
+        self.__current_rho = self.update_rho()
+
+        self.__path_rep = PathRepresentation([reactants, products], 
+            self.__current_beads_count, self.__current_rho)
         self.__path_rep.regen_path_func()
         self.__path_rep.generate_beads(update = True)
+
+    def grow_string():
+        """Adds 2, 1 or 0 beads to string (such that the total number of 
+        beads is less than or equal to self.__final_beads_count)."""
+
+        assert self.__current_beads_count <= self.__final_beads_count
+
+        if self.__current_beads_count == self.__final_beads_count:
+            return
+        elif self.__final_beads_count - self.__current_beads_count:
+            self.__current_beads_count += 1
+        else:
+            self.__current_beads_count += 1
+
+        self.update_rho()
+
+    def update_rho():
+        """Update the density function so that it will deliver beads spaced
+        as for a growing (or grown) string."""
+        assert self.__current_beads_count <= self.__final_beads_count
+
+        if self.__current_beads_count == self.__final_beads_count:
+            return self.__final_rho
+
+        # Value that integral must be equal to to give desired number of beads
+        # at end of the string.
+        end_int = (self.__current_beads_count / 2.0 - 1.0) 
+            / self.__final_beads_count
+
+        f_a1 = lambda x: quad(self.__final_rho, 0.0, x) - end_int
+        f_a2 = lambda x: quad(self.__final_rho, x, 1.0) - end_int
+
+        a1 = fmin(f_a1, end_int)
+        a2 = fmin(f_a2, end_int)
+
+        pwr = PiecewiseRho(a1, a2)
+        self.__current_rho = pwr.f
+        return self.__current_rho
 
     def obj_func(self, new_state_vec = []):
         flab("called")
@@ -589,10 +655,10 @@ class GrowingString(ReactionPathway):
         for i in range(self.__path_rep.beads_count)[1:-1]:
             g = self.__qc_driver.gradient(self.__path_rep.get_state_vec()[i])
             t = ts[i]
-#            print "g_before = ", g,
-#            print "t =", t
+            print "g_before = ", g,
+            print "t =", t,
             g = project_out(t, g)
-#            print "g_after =", g
+            print "g_after =", g
             gradients.append(g)
 
         react_gradients = prod_gradients = zeros(self.__path_rep.get_dimensions())
@@ -807,7 +873,7 @@ def test_path_rep():
     plot2D(x)
 
 
-def plot2D(react_path, path_res = 0.01):
+def plot2D(react_path, path_res = 0.002):
     """Given a path object react_path, displays the a 2D depiction of it's 
     first two dimensions as a graph."""
     g = Gnuplot.Gnuplot(debug=1)
@@ -870,13 +936,14 @@ def test_GrowingString():
     qc_driver = GaussianPES()
 
     gs = GrowingString(reactants, products, qc_driver, f_test, 
-        beads_count=22, rho=lambda x:1)
+        beads_count=16, rho=lambda x:1)
 
     # Wrapper callback function
     def mycb(x):
         flab("called")
 #       gs.update_path(x, respace = True)
-        surf_plot.plot(x)
+        #surf_plot.plot(x)
+        gs.plot()
         return gs.get_state_vec()
 
     from scipy.optimize.lbfgsb import fmin_l_bfgs_b
@@ -887,7 +954,6 @@ def test_GrowingString():
 #    opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=mycb, gtol=0.003, norm=Inf) 
     opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
 #    opt = my_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
-
 
     gs.plot()
     print "path to plot (for surface) =", opt
@@ -996,7 +1062,7 @@ def gd(f, x0, fprime, callback = lambda x: Nothing):
     x = copy.deepcopy(x0)
     while 1:
         g = fprime(x)
-        if linalg.norm(g, ord=inf) < 0.1 or i > 15:
+        if linalg.norm(g, ord=inf) < 0.01:
             print "%d iterations" % i
             break
 
