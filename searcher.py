@@ -16,6 +16,12 @@ ch.setLevel(logging.DEBUG)
 
 import scipy.integrate
 
+def report(str):
+    line = "================================================================="
+    print line
+    print "===", str
+    print line
+
 print "\n\nBegin Program..." 
 
 # Function labeller
@@ -242,6 +248,7 @@ class PathRepresentation():
         return self.__path_tangents
     def set_state_vec(self, new_state_vec):
         self.__state_vec = array(new_state_vec).flatten()
+        print self.beads_count
         self.__state_vec.shape = (self.beads_count, -1)
     def get_state_vec(self):
         return self.__state_vec
@@ -429,6 +436,7 @@ class PathRepresentation():
         return bead_vectors
         
     def __get_str_positions_exact(self):
+        flab("called")
         from scipy.integrate import quad
         from scipy.optimize import fmin
 
@@ -559,17 +567,21 @@ class PathRepresentation():
 #        dump_diffs("npd", normd_positions)
         return normd_positions
 
-class PiecewiseRho:
-    def __init__(self, a1, a2, rho):
-        self.a1, self.a2, self.rho = a1, a2, rho
 
-    def f(x):
-        if 0 <= x <= a1:
-            return rho(x)
-        elif a1 < x < a2:
-            return 1.0 / (a2 - a1)
-        elif a2 < x < 1:
-            return rho(x)
+class PiecewiseRho:
+    """Supports the creation of piecewise functions used by the GrowingString
+    class as the bead density function."""
+    def __init__(self, a1, a2, rho, max_beads):
+        self.a1, self.a2, self.rho = a1, a2, rho
+        self.max_beads = max_beads
+
+    def f(self, x):
+        if 0 <= x <= self.a1:
+            return self.rho(x)
+        elif self.a1 < x < self.a2:
+            return 1.0 / (self.a2 - self.a1) / self.max_beads
+        elif self.a2 < x < 1:
+            return self.rho(x)
 
 class GrowingString(ReactionPathway):
     def __init__(self, reactants, products, qc_driver, f_test = lambda x: True, 
@@ -580,58 +592,81 @@ class GrowingString(ReactionPathway):
 
         self.__final_beads_count = beads_count
         if growing:
-            self.__current_beads_count = 4
+            initial_beads_count = 4
         else:
-            self.__current_beads_count = self.__final_beads_count
+            initial_beads_count = self.__final_beads_count
+
+        # create PathRepresentation object
+        self.__path_rep = PathRepresentation([reactants, products], 
+            initial_beads_count, rho)
 
         # final bead spacing density function for grown string
         self.__final_rho = rho
 
         # current bead spacing density function for incompletely grown string
-        self.__current_rho = self.update_rho()
+        self.update_rho()
 
-        self.__path_rep = PathRepresentation([reactants, products], 
-            self.__current_beads_count, self.__current_rho)
+        # Build path function based on reagents and possibly transitionstate
+        # then place beads along that path
         self.__path_rep.regen_path_func()
         self.__path_rep.generate_beads(update = True)
 
-    def grow_string():
+    def __set_current_beads_count(self, new):
+        self.__path_rep.beads_count = new
+
+    def __get_current_beads_count(self):
+        return self.__path_rep.beads_count
+
+    def grow_string(self):
         """Adds 2, 1 or 0 beads to string (such that the total number of 
         beads is less than or equal to self.__final_beads_count)."""
+        assert self.__get_current_beads_count() <= self.__final_beads_count
+        flab("called")
 
-        assert self.__current_beads_count <= self.__final_beads_count
+        current_beads_count = self.__get_current_beads_count()
 
-        if self.__current_beads_count == self.__final_beads_count:
-            return
-        elif self.__final_beads_count - self.__current_beads_count:
-            self.__current_beads_count += 1
+        if current_beads_count == self.__final_beads_count:
+            return False
+        elif self.__final_beads_count - current_beads_count == 1:
+            self.__set_current_beads_count(current_beads_count + 1)
         else:
-            self.__current_beads_count += 1
+            self.__set_current_beads_count(current_beads_count + 2)
 
+        # build new bead density function based on updated number of beads
         self.update_rho()
+        self.__path_rep.generate_beads(update = True)
 
-    def update_rho():
+        return True
+
+    def update_rho(self):
         """Update the density function so that it will deliver beads spaced
         as for a growing (or grown) string."""
-        assert self.__current_beads_count <= self.__final_beads_count
+        flab("called")
+        assert self.__get_current_beads_count() <= self.__final_beads_count
 
-        if self.__current_beads_count == self.__final_beads_count:
+        from scipy.optimize import fmin
+        from scipy.integrate import quad
+
+        if self.__get_current_beads_count() == self.__final_beads_count:
             return self.__final_rho
 
         # Value that integral must be equal to to give desired number of beads
         # at end of the string.
-        end_int = (self.__current_beads_count / 2.0 - 1.0) 
+        end_int = (self.__get_current_beads_count() / 2.0 - 1.0) \
             / self.__final_beads_count
 
-        f_a1 = lambda x: quad(self.__final_rho, 0.0, x) - end_int
-        f_a2 = lambda x: quad(self.__final_rho, x, 1.0) - end_int
+        f_a1 = lambda x: (quad(self.__final_rho, 0.0, x)[0] - end_int)**2
+        f_a2 = lambda x: (quad(self.__final_rho, x, 1.0)[0] - end_int)**2
 
-        a1 = fmin(f_a1, end_int)
-        a2 = fmin(f_a2, end_int)
+        a1 = fmin(f_a1, end_int)[0]
+        a2 = fmin(f_a2, end_int)[0]
+        assert a2 > a1
 
-        pwr = PiecewiseRho(a1, a2)
-        self.__current_rho = pwr.f
-        return self.__current_rho
+        print "end_int", end_int
+        print "a1 =", a1, "a2 =", a2
+
+        pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
+        self.__path_rep.set_rho(pwr.f)
 
     def obj_func(self, new_state_vec = []):
         flab("called")
@@ -676,6 +711,7 @@ class GrowingString(ReactionPathway):
         flab("called", respace)
 
         if len(state_vec) > 2:
+            print "sv =", state_vec
             self.__path_rep.set_state_vec(state_vec)
 
 #        print "update_path: self.__path_rep.get_state_vec() =", self.__path_rep.get_state_vec()
@@ -912,7 +948,7 @@ def plot2D(react_path, path_res = 0.002):
     Gnuplot.Data(beads, filename=tmp_file3, inline=0, binary=0)
 
     # draw tangent to the path
-    pt_ix = 4
+    pt_ix = 1
     t0_grad = react_path.get_path_tangents()[pt_ix][1] / react_path.get_path_tangents()[pt_ix][0]
     t0_str = "%f * (x - %f) + %f" % (t0_grad, react_path.get_state_vec()[pt_ix][0], react_path.get_state_vec()[pt_ix][1])
     t0_func = Gnuplot.Func(t0_str)
@@ -936,24 +972,28 @@ def test_GrowingString():
     qc_driver = GaussianPES()
 
     gs = GrowingString(reactants, products, qc_driver, f_test, 
-        beads_count=16, rho=lambda x:1)
+        beads_count=10, rho=lambda x:1)
 
     # Wrapper callback function
     def mycb(x):
         flab("called")
-#       gs.update_path(x, respace = True)
-        #surf_plot.plot(x)
-        gs.plot()
+        gs.update_path(x, respace = True)
+        surf_plot.plot(x)
+#        gs.plot()
         return gs.get_state_vec()
 
     from scipy.optimize.lbfgsb import fmin_l_bfgs_b
     from scipy.optimize import fmin_cg
 
     print "gsv =", gs.get_state_vec()
-#    (opt, a, b) = fmin_l_bfgs_b(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad) 
-#    opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=mycb, gtol=0.003, norm=Inf) 
-    opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
-#    opt = my_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+    
+    while True:
+        # (opt, a, b) = fmin_l_bfgs_b(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad) 
+        # opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=mycb, gtol=0.003, norm=Inf) 
+        opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+        # opt = my_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+        if not gs.grow_string():
+            break
 
     gs.plot()
     print "path to plot (for surface) =", opt
@@ -1058,17 +1098,19 @@ def my_bfgs_bad(f, x0, fprime, callback = lambda x: Nothing):
 
 
 def gd(f, x0, fprime, callback = lambda x: Nothing):
+    report("Grad Desc Iteration")
     i = 0
     x = copy.deepcopy(x0)
     while 1:
         g = fprime(x)
-        if linalg.norm(g, ord=inf) < 0.01:
-            print "%d iterations" % i
+        if linalg.norm(g, ord=inf) < 0.05:
+            print "***CONVERGED after %d iterations" % i
             break
 
         i += 1
         x = callback(x)
         x -= g * 0.2
+        raw_input('Wait...\n')
 
     x = callback(x)
     return x
