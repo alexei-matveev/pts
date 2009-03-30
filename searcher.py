@@ -233,14 +233,22 @@ class PathRepresentation():
 
         self.__unit_interval = array((0.0,1.0))
 
-        # TODO check all beads have same dimensionality
+        # generate initial paramaterisation density
+        # TODO: Linear at present, perhaps change eventually
+        points_cnt = len(self.__state_vec)
+        self.__normalised_positions = arange(0.0, 1.0 + 1.0 / (points_cnt - 1), 1.0 / (points_cnt - 1))
+        self.__normalised_positions = self.__normalised_positions[0:points_cnt]
 
         self.__max_integral_error = 1e-4
 
         self.__rho = self.set_rho(rho)
 
+        self.dump_rho()
+
         msg = "beads_count = %d\nstr_resolution = %d" % (beads_count, str_resolution)
         print msg
+
+        # TODO check all beads have same dimensionality
 
     def get_fs(self):
         return self.__fs
@@ -259,6 +267,10 @@ class PathRepresentation():
         """Rebuild a new path function and the derivative of the path based on 
         the contents of state_vec."""
         flab("called")
+        """        print self.__state_vec
+        print len(self.__state_vec)
+        raw_input('Wait(2)\n')"""
+
         assert len(self.__state_vec) > 1
 
         self.__fs = []
@@ -290,14 +302,13 @@ class PathRepresentation():
 
             else:
                 # spline path
-                points_cnt = len(self.__state_vec)
-                xs = arange(0.0, 1.0 + 1.0 / (points_cnt - 1), 1.0 / (points_cnt - 1))
-                # enforce the number of poitns to be points_cnt
-                xs = xs[0:points_cnt]
+                xs = self.__normalised_positions
+                assert len(self.__normalised_positions) == len(self.__state_vec)
 #                print "points_cnt =", points_cnt
-#                print "xs =", xs, "len(ys) =", len(ys)
+#                print "xs =", xs, "ys =", ys
 #                raw_input('P\n')
                 self.__fs.append(SplineFunc(xs,ys))
+
 
     def __arc_dist_func(self, x):
         output = 0
@@ -433,6 +444,10 @@ class PathRepresentation():
             self.__path_tangents = bead_tangents
             print "Tangents updated:", self.__path_tangents
 
+            self.__normalised_positions = array([0.0] + normd_positions + [1.0])
+            print "Normalised positions updated:", self.__normalised_positions
+
+
         return bead_vectors
         
     def __get_str_positions_exact(self):
@@ -467,6 +482,16 @@ class PathRepresentation():
         dump_diffs("spd_exact", str_poses)"""
         return str_poses
 
+    def dump_rho(self):
+        res = 0.02
+        print "rho: ",
+        for x in arange(0.0, 1.0 + res, res):
+            if x < 1.0:
+                print self.__rho(x),
+        print
+        raw_input("that was rho...")
+
+
     def __get_str_positions(self):
         """Based on the provided density function self.__rho(x) and 
         self.bead_count, generates the fractional positions along the string 
@@ -475,6 +500,7 @@ class PathRepresentation():
 
         param_steps = arange(0, 1 - self.__step, self.__step)
         integrated_density_inc = 1.0 / (self.beads_count - 1.0)
+        print integrated_density_inc 
         requirement_for_next_bead = integrated_density_inc
 
         integral = 0
@@ -513,7 +539,8 @@ class PathRepresentation():
         if normalise:
             (int, err) = scipy.integrate.quad(new_rho, 0.0, 1.0)
         else:
-            int = 1
+            int = 1.0
+        print int
         self.__rho = lambda x: new_rho(x) / int
         return self.__rho
 
@@ -548,7 +575,8 @@ class PathRepresentation():
         coordinate, based on desired fractional distances along string."""
         flab("called")
 
-        # get fractional positions along string
+        # Get fractional positions along string, based on bead density function
+        # and the desired total number of beads
         fractional_positions = self.__get_str_positions()
 
         normd_positions = []
@@ -569,7 +597,7 @@ class PathRepresentation():
 
 
 class PiecewiseRho:
-    """Supports the creation of piecewise functions used by the GrowingString
+    """Supports the creation of piecewise functions as used by the GrowingString
     class as the bead density function."""
     def __init__(self, a1, a2, rho, max_beads):
         self.a1, self.a2, self.rho = a1, a2, rho
@@ -579,7 +607,7 @@ class PiecewiseRho:
         if 0 <= x <= self.a1:
             return self.rho(x)
         elif self.a1 < x < self.a2:
-            return 1.0 / (self.a2 - self.a1) / self.max_beads
+            return 0.0
         elif self.a2 < x < 1:
             return self.rho(x)
 
@@ -625,6 +653,8 @@ class GrowingString(ReactionPathway):
 
         current_beads_count = self.__get_current_beads_count()
 
+        print "beads = ", current_beads_count
+
         if current_beads_count == self.__final_beads_count:
             return False
         elif self.__final_beads_count - current_beads_count == 1:
@@ -648,6 +678,11 @@ class GrowingString(ReactionPathway):
         from scipy.integrate import quad
 
         if self.__get_current_beads_count() == self.__final_beads_count:
+            self.__path_rep.set_rho(self.__final_rho)
+
+            self.__path_rep.dump_rho() #debug
+            raw_input('Press to continue...\n') #debug
+
             return self.__final_rho
 
         # Value that integral must be equal to to give desired number of beads
@@ -662,11 +697,13 @@ class GrowingString(ReactionPathway):
         a2 = fmin(f_a2, end_int)[0]
         assert a2 > a1
 
+        pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
+        self.__path_rep.set_rho(pwr.f)
         print "end_int", end_int
         print "a1 =", a1, "a2 =", a2
 
-        pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
-        self.__path_rep.set_rho(pwr.f)
+        self.__path_rep.dump_rho()
+        raw_input('Press to continue...\n')
 
     def obj_func(self, new_state_vec = []):
         flab("called")
@@ -933,6 +970,9 @@ def plot2D(react_path, path_res = 0.002):
 #    print "xs: ", xs
 #    print "ys: ", ys
 
+    sp = SurfPlot(GaussianPES())
+    contour_file = sp.plot(None, write_contour_file=True)
+
     # smooth path
     smooth_path = vstack((xs,ys)).transpose()
 #    print "smooth_path =", smooth_path
@@ -954,15 +994,18 @@ def plot2D(react_path, path_res = 0.002):
     t0_func = Gnuplot.Func(t0_str)
 
     # PLOT THE VARIOUS PATHS
-    g.plot(t0_func, Gnuplot.File(tmp_file1, binary=0, title="Smooth", 
-        with_ = "lines"), Gnuplot.File(tmp_file2, binary=0, 
-        with_ = "linespoints", title = "get_state_vec()"), Gnuplot.File(tmp_file3, binary=0, 
-        title="points on string from optimisation", with_ = "points"))
+    g.plot(#t0_func, 
+        Gnuplot.File(tmp_file1, binary=0, title="Smooth", with_ = "lines"), 
+        Gnuplot.File(tmp_file2, binary=0, with_ = "points", title = "get_state_vec()"), 
+        Gnuplot.File(tmp_file3, binary=0, title="points on string from optimisation", with_ = "points"),
+        Gnuplot.File(contour_file, binary=0, title="contours", with_="lines"))
+    print contour_file
     raw_input('Press to continue...\n')
 
     os.unlink(tmp_file1)
     os.unlink(tmp_file2)
     os.unlink(tmp_file3)
+    os.unlink(contour_file)
 
 def test_GrowingString():
     from scipy.optimize import fmin_bfgs
@@ -978,8 +1021,8 @@ def test_GrowingString():
     def mycb(x):
         flab("called")
         gs.update_path(x, respace = True)
-        surf_plot.plot(x)
-#        gs.plot()
+#        surf_plot.plot(x)
+        gs.plot()
         return gs.get_state_vec()
 
     from scipy.optimize.lbfgsb import fmin_l_bfgs_b
@@ -1103,14 +1146,14 @@ def gd(f, x0, fprime, callback = lambda x: Nothing):
     x = copy.deepcopy(x0)
     while 1:
         g = fprime(x)
-        if linalg.norm(g, ord=inf) < 0.05:
+        if linalg.norm(g, ord=inf) < 5:
             print "***CONVERGED after %d iterations" % i
             break
 
         i += 1
         x = callback(x)
-        x -= g * 0.2
-        raw_input('Wait...\n')
+        x -= g * 0.5
+#        raw_input('Wait...\n')
 
     x = callback(x)
     return x
@@ -1119,7 +1162,7 @@ class SurfPlot():
     def __init__(self, pes):
         self.__pes = pes
 
-    def plot(self, path):
+    def plot(self, path, write_contour_file=False):
         flab("called")
         opt = copy.deepcopy(path)
 
@@ -1128,19 +1171,40 @@ class SurfPlot():
         xrange = arange(ps)*(3.0/ps)
         yrange = arange(ps)*(3.0/ps)
 
+        # tmp data file
+        (fd, tmpPESDataFile,) = tempfile.mkstemp(text=1)
+        Gnuplot.funcutils.compute_GridData(xrange, yrange, 
+            lambda x,y: self.__pes.energy([x,y]), filename=tmpPESDataFile, binary=0)
+
+        g = Gnuplot.Gnuplot(debug=1)
+        g('set contour')
+        g('set cntrparam levels 100')
+
+        # write out file containing 2D data representing contour lines
+        if write_contour_file:
+            (fd1, tmp_contour_file,) = tempfile.mkstemp(text=1)
+
+            g('unset surface')
+            str = "set table \"%s\"" % tmp_contour_file
+            g(str)
+            g.splot(Gnuplot.File(tmpPESDataFile, binary=0)) 
+            g.close()
+
+            print tmpPESDataFile
+#            raw_input('Press to continue...\n')
+            os.unlink(tmpPESDataFile)
+            os.close(fd)
+            return tmp_contour_file
+
         # Make a 2-d array containing a function of x and y.  First create
         # xm and ym which contain the x and y values in a matrix form that
         # can be `broadcast' into a matrix of the appropriate shape:
-        g = Gnuplot.Gnuplot(debug=1)
         g('set data style lines')
         g('set hidden')
-        g('set contour')
-        g('set cntrparam levels 100')
         g.xlabel('x')
         g.ylabel('y')
 
         # Get some tmp filenames
-        (fd, tmpPESDataFile,) = tempfile.mkstemp(text=1)
         (fd, tmpPathDataFile,) = tempfile.mkstemp(text=1)
         Gnuplot.funcutils.compute_GridData(xrange, yrange, 
             lambda x,y: self.__pes.energy([x,y]), filename=tmpPESDataFile, binary=0)
