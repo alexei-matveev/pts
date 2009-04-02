@@ -55,6 +55,64 @@ def e(a):
     return (z)
 """
 
+class FourWellPot(QCDriver):
+    """From "Dey, Janicki, and Ayers, J. Chem. Phys., Vol. 121, No. 14, 8 October 2004" """
+    def __init__(self):
+        QCDriver.__init__(self,2)
+
+        self.v0 = 4.0
+        self.a0 = 0.6
+        self.b1 = 0.1
+        self.b2 = 0.1
+        ais = 2.0 * ones(4)
+        sxs = [0.3, 1.0, 0.4, 1.0]
+        sys = [0.4, 1.0, 1.0, 0.1]
+        alphas = [1.3, -1.5, 1.4, -1.3]
+        betas = [-1.6, -1.7, 1.8, 1.23]
+
+        self.params_list = zip(ais, sxs, sys, alphas, betas)
+
+
+    def energy(self, v):
+
+        x, y = v[0], v[1]
+
+        def f_well(args):
+            a, sx, sy, alpha, beta = args
+            return a * exp(-sx * (x-alpha)**2 -sy * (y-beta)**2)
+        
+        e = self.v0 + self.a0*exp(-(x-self.b1)**2 -(y-self.b2)**2) \
+            - sum (map (f_well, self.params_list))
+
+        return e
+        
+    def gradient(self, v):
+
+        x, y = v[0], v[1]
+
+        def df_welldx(args):
+            a, sx, sy, alpha, beta = args
+            return a * (-sx * (2*x-2*alpha)) * exp(-sx * (x-alpha)**2 -sy * (y-beta)**2)
+
+        def df_welldy(args):
+            a, sx, sy, alpha, beta = args
+            return a * (-sy * (2*y-2*beta)) * exp(-sx * (x-alpha)**2 -sy * (y-beta)**2)
+       
+        dedx = -(2*x - 2*self.b1)*self.a0*exp(-(x-self.b1)**2 -(y-self.b2)**2) \
+            - sum (map (f_welldx, self.params_list))
+
+        dedy = -(2*y - 2*self.b2)*self.a0*exp(-(x-self.b1)**2 -(y-self.b2)**2) \
+            - sum (map (f_welldy, self.params_list))
+
+        return (dedx,dedy)
+
+def test_FourWellPot():
+    fwp = FourWellPot()
+
+    sp = SurfPlot(fwp)
+
+    sp.plot(maxx=2.5, minx=-2.5, maxy=2.5, miny=-2.5)
+
 class GaussianPES(QCDriver):
     def __init__(self):
         QCDriver.__init__(self,2)
@@ -155,6 +213,128 @@ def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
 
     return array(specialReduce_(list[0], list[1], list[2:], f1, f2, ks[0], ks[1], ks[2:]))
 
+class NEB(ReactionPathway):
+    """Implements a Nudged Elastic Band (NEB) transition state searcher."""
+
+    def __init__(self, reactants, products, f_test, base_spr_const, qc_driver, beads_count = 10):
+        ReactionPathway.__init__(self, reactants, products, f_test)
+        self.beads_count = beads_count
+        self.base_spr_const = base_spr_const
+        self.qc_driver = qc_driver
+        self.tangents = zeros(beads_count * self.dimension)
+        self.tangents.shape = (beads_count, self.dimension)
+        self.state_vec = vector_interpolate(reactants, products, beads_count)
+
+        # Make list of spring constants for every inter-bead separation
+        # For the time being, these are uniform
+        self.spr_const_vec = array([self.base_spr_const for x in range(beads_count - 1)])
+
+    def special_reduce(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
+        """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
+        returns a list of length N-1 where each element of the output array is 
+        f2(f1(k_i * x_i, k_i+1 * x_i+1)) ."""
+
+        assert type(list) == ndarray
+        assert len(list) >= 2
+        assert len(ks) == 0 or len(ks) == len(list)
+        
+        # Fill with trivial value that won't change the result of computations
+        if len(ks) == 0:
+            ks = array(ones(len(list)))
+
+        assert type(ks) == ndarray
+        for a in range(len(ks)):
+            list[a] = list[a] * ks[a]
+
+#        print "list =",list
+        curr_dim = list.shape[1]  # generate zero vector of the same dimension of the list of input dimensions
+#        print "cd = ", curr_dim
+        z = array(zeros(curr_dim))
+        list_pos = vstack((list, z))
+        list_neg = vstack((z, list))
+
+        list = f1 (list_pos, list_neg)
+        list = f2 (list[1:-1])
+
+        return list
+
+    def update_tangents(self):
+        # terminal beads have no tangent
+        self.tangents[0]  = zeros(self.dimension)
+        self.tangents[-1] = zeros(self.dimension)
+        for i in range(self.beads_count)[1:-1]:
+            self.tangents[i] = ( (self.state_vec[i] - self.state_vec[i-1]) + (self.state_vec[i+1] - self.state_vec[i]) ) / 2
+            self.tangents[i] /= linalg.norm(self.tangents[i], 2)
+
+    def update_bead_separations(self):
+        self.bead_separation_sqrs_sums = array( map (sum, self.special_reduce(self.state_vec).tolist()) )
+        self.bead_separation_sqrs_sums.shape = (self.beads_count - 1, 1)
+
+    def get_state_as_array(self):
+        return self.state_vec.flatten()
+
+    def obj_func(self, new_state_vec = []):
+        assert size(self.state_vec) == self.beads_count * self.dimension
+
+        if new_state_vec != []:
+            self.state_vec = array(new_state_vec)
+            self.state_vec.shape = (self.beads_count, self.dimension)
+
+        self.update_tangents()
+        self.update_bead_separations()
+        
+        force_consts_by_separations_squared = multiply(self.spr_const_vec, self.bead_separation_sqrs_sums.flatten()).transpose()
+        spring_energies = 0.5 * ndarray.sum (force_consts_by_separations_squared)
+
+        # The following code block will need to be replaced for parallel operation
+        pes_energies = 0
+        for bead_vec in self.state_vec[1:-1]:
+            pes_energies += self.qc_driver.energy(bead_vec)
+
+        return (pes_energies + spring_energies)
+
+    def obj_func_grad(self, new_state_vec = []):
+
+        # If a state vector has been specified, return the value of the 
+        # objective function for this new state and set the state of self
+        # to the new state.
+        if new_state_vec != []:
+            self.state_vec = array(new_state_vec)
+            self.state_vec.shape = (self.beads_count, self.dimension)
+
+        self.update_bead_separations()
+        self.update_tangents()
+
+        separations_vec = self.bead_separation_sqrs_sums ** 0.5
+        separations_diffs = self.special_reduce(separations_vec, self.spr_const_vec, f2 = lambda x: x)
+        assert len(separations_diffs) == self.beads_count - 2
+
+#        print "sd =", separations_diffs.flatten(), "t =", self.tangents[1:-1]
+        spring_forces = multiply(separations_diffs.flatten(), self.tangents[1:-1].transpose()).transpose()
+        spring_forces = vstack((zeros(self.dimension), spring_forces, zeros(self.dimension)))
+#        print "sf =", spring_forces
+
+        pes_forces = array(zeros(self.beads_count * self.dimension))
+        pes_forces.shape = (self.beads_count, self.dimension)
+#        print "pesf =", pes_forces
+
+        for i in range(self.beads_count)[1:-1]:
+            pes_forces[i] = -self.qc_driver.gradient(self.state_vec[i])
+#            print "pesbefore =", pes_forces[i]
+            # OLD LINE:
+#            pes_forces[i] = pes_forces[i] - dot(pes_forces[i], self.tangents[i]) * self.tangents[i]
+
+            # NEW LINE:
+            pes_forces[i] = project_out(self.tangents[i], pes_forces[i])
+
+#            print "pesafter =", pes_forces[i], "t =", self.tangents[i]
+
+        gradients_vec = -1 * (pes_forces + spring_forces)
+
+        return gradients_vec.flatten()
+
+
+
 class NEB_l(ReactionPathway):
     def __init__(self, reactants, products, f_test, baseSprConst, qcDriver, beadsCount = 10, str_resolution = 100):
         ReactionPathway.__init__(self, reactants, products, f_test, beadsCount)
@@ -243,7 +423,7 @@ class PathRepresentation():
 
         self.__rho = self.set_rho(rho)
 
-        self.dump_rho()
+#        self.dump_rho()
 
         msg = "beads_count = %d\nstr_resolution = %d" % (beads_count, str_resolution)
         print msg
@@ -500,19 +680,27 @@ class PathRepresentation():
 
         param_steps = arange(0, 1 - self.__step, self.__step)
         integrated_density_inc = 1.0 / (self.beads_count - 1.0)
-        print integrated_density_inc 
+#        print "integrated_density_inc =", integrated_density_inc 
         requirement_for_next_bead = integrated_density_inc
 
         integral = 0
         str_positions = []
+        prev_s = 0
         for s in param_steps:
-            integral += self.__rho(s) * self.__step
+            integral += 0.5 * (self.__rho(s) + self.__rho(prev_s)) * self.__step
             if integral > requirement_for_next_bead:
                 str_positions.append(s)
+#                print "requirement_for_next_bead =", requirement_for_next_bead
+#                print "integral =", integral
                 requirement_for_next_bead += integrated_density_inc
+            prev_s = s
         
 #        dump_diffs("spd", str_positions)
-        return str_positions
+
+        # Return first self.beads_count-2 points. Reason: sometimes, due to
+        # inaccuracies in the integration of the density function above, too
+        # many points are generated in str_positions.
+        return str_positions[0:self.beads_count-2]
 
     def __get_bead_coords(self, x):
         """Returns the coordinates of the bead at point x <- [0,1]."""
@@ -606,10 +794,13 @@ class PiecewiseRho:
     def f(self, x):
         if 0 <= x <= self.a1:
             return self.rho(x)
-        elif self.a1 < x < self.a2:
+        elif self.a1 < x <= self.a2:
             return 0.0
-        elif self.a2 < x < 1:
+        elif self.a2 < x <= 1.0:
             return self.rho(x)
+        else:
+            print "Value of (%f) not on [0,1], should never happen" % x
+            print "a1 = %f, a2 = %f" % (self.a1, self.a2)
 
 class GrowingString(ReactionPathway):
     def __init__(self, reactants, products, qc_driver, f_test = lambda x: True, 
@@ -629,7 +820,9 @@ class GrowingString(ReactionPathway):
             initial_beads_count, rho)
 
         # final bead spacing density function for grown string
-        self.__final_rho = rho
+        # make sure it is normalised
+        (int, err) = scipy.integrate.quad(rho, 0.0, 1.0)
+        self.__final_rho = lambda x: rho(x) / int
 
         # current bead spacing density function for incompletely grown string
         self.update_rho()
@@ -680,14 +873,14 @@ class GrowingString(ReactionPathway):
         if self.__get_current_beads_count() == self.__final_beads_count:
             self.__path_rep.set_rho(self.__final_rho)
 
-            self.__path_rep.dump_rho() #debug
-            raw_input('Press to continue...\n') #debug
+#            self.__path_rep.dump_rho() #debug
+#            raw_input('Press to continue...\n') #debug
 
             return self.__final_rho
 
         # Value that integral must be equal to to give desired number of beads
         # at end of the string.
-        end_int = (self.__get_current_beads_count() / 2.0 - 1.0) \
+        end_int = (self.__get_current_beads_count() / 2.0) \
             / self.__final_beads_count
 
         f_a1 = lambda x: (quad(self.__final_rho, 0.0, x)[0] - end_int)**2
@@ -695,15 +888,15 @@ class GrowingString(ReactionPathway):
 
         a1 = fmin(f_a1, end_int)[0]
         a2 = fmin(f_a2, end_int)[0]
+
+        print "end_int", end_int
+        print "a1 =", a1, "a2 =", a2
         assert a2 > a1
 
         pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
         self.__path_rep.set_rho(pwr.f)
-        print "end_int", end_int
-        print "a1 =", a1, "a2 =", a2
 
-        self.__path_rep.dump_rho()
-        raw_input('Press to continue...\n')
+#        self.__path_rep.dump_rho()
 
     def obj_func(self, new_state_vec = []):
         flab("called")
@@ -727,10 +920,10 @@ class GrowingString(ReactionPathway):
         for i in range(self.__path_rep.beads_count)[1:-1]:
             g = self.__qc_driver.gradient(self.__path_rep.get_state_vec()[i])
             t = ts[i]
-            print "g_before = ", g,
-            print "t =", t,
+#            print "g_before = ", g,
+#            print "t =", t,
             g = project_out(t, g)
-            print "g_after =", g
+#            print "g_after =", g
             gradients.append(g)
 
         react_gradients = prod_gradients = zeros(self.__path_rep.get_dimensions())
@@ -778,126 +971,8 @@ def project_out(component_to_remove, vector):
     output = vector - projection * component_to_remove
     return output
 
-class NEB(ReactionPathway):
-    """Implements a Nudged Elastic Band (NEB) transition state searcher."""
 
-    def __init__(self, reactants, products, f_test, baseSprConst, qcDriver, beadsCount = 10):
-        ReactionPathway.__init__(self, reactants, products, f_test, beadsCount)
-        self.baseSprConst = baseSprConst
-        self.qcDriver = qcDriver
-        self.tangents = zeros(beadsCount * self.dimension)
-        self.tangents.shape = (beadsCount, self.dimension)
-
-        # Make list of spring constants for every inter-bead separation
-        # For the time being, these are uniform
-        self.sprConstVec = array([self.baseSprConst for x in range(beadsCount - 1)])
-
-    def special_reduce(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
-        """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
-        returns a list of length N-1 where each element of the output array is 
-        f2(f1(k_i * x_i, k_i+1 * x_i+1)) ."""
-
-        assert type(list) == ndarray
-        assert len(list) >= 2
-        assert len(ks) == 0 or len(ks) == len(list)
-        
-        # Fill with trivial value that won't change the result of computations
-        if len(ks) == 0:
-            ks = array(ones(len(list)))
-
-        assert type(ks) == ndarray
-        for a in range(len(ks)):
-            list[a] = list[a] * ks[a]
-
-        print "list =",list
-        currDim = list.shape[1]  # generate zero vector of the same dimension of the list of input dimensions
-        print "cd = ", currDim
-        z = array(zeros(currDim))
-        listPos = vstack((list, z))
-        listNeg = vstack((z, list))
-
-        list = f1 (listPos, listNeg)
-        list = f2 (list[1:-1])
-
-        return list
-
-    def update_tangents(self):
-        # terminal beads have no tangent
-        self.tangents[0]  = zeros(self.dimension)
-        self.tangents[-1] = zeros(self.dimension)
-        for i in range(self.beadsCount)[1:-1]:
-            self.tangents[i] = ( (self.stateVec[i] - self.stateVec[i-1]) + (self.stateVec[i+1] - self.stateVec[i]) ) / 2
-            self.tangents[i] /= linalg.norm(self.tangents[i], 2)
-
-    def update_bead_separations(self):
-        self.beadSeparationSqrsSums = array( map (sum, self.specialReduce(self.stateVec).tolist()) )
-        self.beadSeparationSqrsSums.shape = (self.beadsCount - 1, 1)
-
-    def get_state_as_array(self):
-        return self.stateVec.flatten()
-
-    def obj_func(self, newStateVec = []):
-        assert size(self.stateVec) == self.beadsCount * self.dimension
-
-        if newStateVec != []:
-            self.stateVec = array(newStateVec)
-            self.stateVec.shape = (self.beadsCount, self.dimension)
-
-        self.updateTangents()
-        self.updateBeadSeparations()
-        
-        forceConstsBySeparationsSquared = multiply(self.sprConstVec, self.beadSeparationSqrsSums.flatten()).transpose()
-        springEnergies = 0.5 * ndarray.sum (forceConstsBySeparationsSquared)
-
-        # The following code block will need to be replaced for parallel operation
-        pesEnergies = 0
-        for beadVec in self.stateVec[1:-1]:
-            pesEnergies += self.qcDriver.energy(beadVec)
-
-        return (pesEnergies + springEnergies)
-
-    def obj_func_grad(self, newStateVec = []):
-
-        # If a state vector has been specified, return the value of the 
-        # objective function for this new state and set the state of self
-        # to the new state.
-        if newStateVec != []:
-            self.stateVec = array(newStateVec)
-            self.stateVec.shape = (self.beadsCount, self.dimension)
-
-        self.updateBeadSeparations()
-        self.updateTangents()
-
-        separationsVec = self.beadSeparationSqrsSums ** 0.5
-        separationsDiffs = self.specialReduce(separationsVec, self.sprConstVec, f2 = lambda x: x)
-        assert len(separationsDiffs) == self.beadsCount - 2
-
-#        print "sd =", separationsDiffs.flatten(), "t =", self.tangents[1:-1]
-        springForces = multiply(separationsDiffs.flatten(), self.tangents[1:-1].transpose()).transpose()
-        springForces = vstack((zeros(self.dimension), springForces, zeros(self.dimension)))
-        print "sf =", springForces
-
-        pesForces = array(zeros(self.beadsCount * self.dimension))
-        pesForces.shape = (self.beadsCount, self.dimension)
-#        print "pesf =", pesForces
-
-        for i in range(self.beadsCount)[1:-1]:
-            pesForces[i] = -self.qcDriver.gradient(self.stateVec[i])
-#            print "pesbefore =", pesForces[i]
-            # OLD LINE:
-#            pesForces[i] = pesForces[i] - dot(pesForces[i], self.tangents[i]) * self.tangents[i]
-
-            # NEW LINE:
-            pesForces[i] = project_out(self.tangents[i], pesForces[i])
-
-#            print "pesafter =", pesForces[i], "t =", self.tangents[i]
-
-        gradientsVec = -1 * (pesForces + springForces)
-
-        return gradientsVec.flatten()
-
-
-def vectorInterpolate(start, end, beadsCount):
+def vector_interpolate(start, end, beads_count):
     """start: start vector
     end: end vector
     points: TOTAL number of points in path, INCLUDING start and final point"""
@@ -905,13 +980,13 @@ def vectorInterpolate(start, end, beadsCount):
     assert len(start) == len(end)
     assert type(end) == ndarray
     assert type(start) == ndarray
-    assert beadsCount > 2
+    assert beads_count > 2
 
     start = array(start, dtype=float64)
     end = array(end, dtype=float64)
 
-    inc = (end - start) / (beadsCount - 1)
-    output = [ start + x * inc for x in range(beadsCount) ]
+    inc = (end - start) / (beads_count - 1)
+    output = [ start + x * inc for x in range(beads_count) ]
 
     return array(output)
 
@@ -1011,11 +1086,12 @@ def test_GrowingString():
     from scipy.optimize import fmin_bfgs
     f_test = lambda x: True
     rho_quartic = lambda x: (x*(x-1))**2
+    rho_flat = lambda x: 1
     surf_plot = SurfPlot(GaussianPES())
     qc_driver = GaussianPES()
 
     gs = GrowingString(reactants, products, qc_driver, f_test, 
-        beads_count=10, rho=lambda x:1)
+        beads_count=15, rho=rho_flat)
 
     # Wrapper callback function
     def mycb(x):
@@ -1029,18 +1105,50 @@ def test_GrowingString():
     from scipy.optimize import fmin_cg
 
     print "gsv =", gs.get_state_vec()
+
     
     while True:
         # (opt, a, b) = fmin_l_bfgs_b(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad) 
-        # opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=mycb, gtol=0.003, norm=Inf) 
-        opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
-        # opt = my_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+        #opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=mycb, gtol=0.05, norm=Inf) 
+        # opt = my_fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=mycb, gtol=0.05, norm=Inf) 
+
+        raw_input("test...\n")
+        # opt = gd(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+        #opt = my_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+        opt = my_runge_kutta(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
         if not gs.grow_string():
             break
 
     gs.plot()
     print "path to plot (for surface) =", opt
     surf_plot.plot(opt)
+
+
+def my_runge_kutta(f, x0, fprime, callback, gtol=0.05):
+    max_step = 0.3
+
+    x = x0
+    while True:
+        g = fprime(x)
+        if linalg.norm(g) < gtol:
+            return x
+
+        dt = 0.2
+        ki1 = dt * g
+        ki2 = dt * fprime(x + 0.5 * ki1)
+        ki3 = dt * fprime(x + 0.5 * ki2)
+        ki4 = dt * fprime(x + 0.5 * ki3)
+
+        step =  -(1./6.) * ki1 - (1./3.) * ki2 - (1./3.) * ki3 - (1./6.) * ki4
+
+        if linalg.norm(step, ord=inf) > max_step:
+            print "Scaling step"
+            step = max_step * step / linalg.norm(step, ord=inf)
+
+        x = x + step
+
+        if callback != None:
+            x = callback(x)
 
 def dump_diffs(pref, list):
     prev = 0
@@ -1049,48 +1157,297 @@ def dump_diffs(pref, list):
         prev = p
     print
 
-def my_bfgs(f, x0, fprime, callback = lambda x: Nothing):
+def vecnorm(x, ord=2):
+    import numpy
+    if ord == Inf:
+        return numpy.amax(abs(x))
+    elif ord == -Inf:
+        return numpy.amin(abs(x))
+    else:
+        return numpy.sum(abs(x)**ord,axis=0)**(1.0/ord)
+
+
+def wrap_function(function, args):
+    ncalls = [0]
+    def function_wrapper(x):
+        ncalls[0] += 1
+        return function(x, *args)
+    return ncalls, function_wrapper
+
+_epsilon = sqrt(finfo(float).eps)
+
+def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
+              epsilon=_epsilon, maxiter=None, full_output=0, disp=1,
+              retall=0, callback=None):
+    """Minimize a function using the BFGS algorithm.
+    
+    :Parameters:
+
+      f : the Python function or method to be minimized.
+      x0 : ndarray
+        the initial guess for the minimizer.
+
+      fprime : a function to compute the gradient of f.
+      args : extra arguments to f and fprime.
+      gtol : number
+        gradient norm must be less than gtol before succesful termination
+      norm : number
+        order of norm (Inf is max, -Inf is min)
+      epsilon : number
+        if fprime is approximated use this value for
+                 the step size (can be scalar or vector)
+      callback : an optional user-supplied function to call after each
+                  iteration.  It is called as callback(xk), where xk is the
+                  current parameter vector.
+
+    :Returns: (xopt, {fopt, gopt, Hopt, func_calls, grad_calls, warnflag}, <allvecs>)
+
+      xopt : ndarray
+        the minimizer of f.
+
+      fopt : number
+        the value of f(xopt).
+      gopt : ndarray
+        the value of f'(xopt).  (Should be near 0)
+      Bopt : ndarray
+        the value of 1/f''(xopt).  (inverse hessian matrix)
+      func_calls : number
+        the number of function_calls.
+      grad_calls : number
+        the number of gradient calls.
+      warnflag : integer
+                  1 : 'Maximum number of iterations exceeded.'
+                  2 : 'Gradient and/or function calls not changing'
+      allvecs  :  a list of all iterates  (only returned if retall==1)
+
+    :OtherParameters:
+
+      maxiter : number
+        the maximum number of iterations.
+      full_output : number
+        if non-zero then return fopt, func_calls, grad_calls,
+                     and warnflag in addition to xopt.
+      disp : number
+        print convergence message if non-zero.
+      retall : number
+        return a list of results at each iteration if non-zero
+
+    :SeeAlso:
+
+      fmin, fmin_powell, fmin_cg,
+             fmin_bfgs, fmin_ncg -- multivariate local optimizers
+      leastsq -- nonlinear least squares minimizer
+
+      fmin_l_bfgs_b, fmin_tnc,
+             fmin_cobyla -- constrained multivariate optimizers
+
+      anneal, brute -- global optimizers
+
+      fminbound, brent, golden, bracket -- local scalar minimizers
+
+      fsolve -- n-dimenstional root-finding
+
+      brentq, brenth, ridder, bisect, newton -- one-dimensional root-finding
+
+      fixed_point -- scalar fixed-point finder
+      
+    Notes
+    
+    ----------------------------------
+
+      Optimize the function, f, whose gradient is given by fprime using the
+      quasi-Newton method of Broyden, Fletcher, Goldfarb, and Shanno (BFGS)
+      See Wright, and Nocedal 'Numerical Optimization', 1999, pg. 198.
+      """
+    import numpy
+
+    x0 = asarray(x0).squeeze()
+    if x0.ndim == 0:
+        x0.shape = (1,)
+    if maxiter is None:
+        maxiter = len(x0)*200
+    func_calls, f = wrap_function(f, args)
+    if fprime is None:
+        grad_calls, myfprime = wrap_function(approx_fprime, (f, epsilon))
+    else:
+        grad_calls, myfprime = wrap_function(fprime, args)
+    gfk = myfprime(x0)
+    k = 0
+    N = len(x0)
+    I = numpy.eye(N,dtype=int)
+    Hk = I
+    old_fval = f(x0)
+    old_old_fval = old_fval + 5000
+    xk = x0
+    if retall:
+        allvecs = [x0]
+    sk = [2*gtol]
+    warnflag = 0
+    gnorm = vecnorm(gfk,ord=norm)
+    while (gnorm > gtol) and (k < maxiter):
+        pk = -numpy.dot(Hk,gfk)
+        """alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
+           linesearch.line_search(f,myfprime,xk,pk,gfk,
+                                  old_fval,old_old_fval)
+        if alpha_k is None:  # line search failed try different one.
+            alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
+                     line_search(f,myfprime,xk,pk,gfk,
+                                 old_fval,old_old_fval)
+            if alpha_k is None:
+
+                # This line search also failed to find a better solution.
+                warnflag = 2
+                break                """
+        alpha_k = 0.1
+        xkp1 = xk + alpha_k * pk #0.3 added by hcm
+        print "--------------------------------\npk =", pk
+        print "Hk =", Hk
+        if retall:
+            allvecs.append(xkp1)
+        sk = xkp1 - xk
+        xk = xkp1
+        #if gfkp1 is None:
+        gfkp1 = myfprime(xkp1)
+
+        yk = gfkp1 - gfk
+        gfk = gfkp1
+        if callback is not None:
+            #callback(xk)
+            xk = callback(xk) # changed to the following line by hcm
+        k += 1
+        gnorm = vecnorm(gfk,ord=norm)
+        if (gnorm <= gtol):
+            break
+
+        try: # this was handled in numeric, let it remaines for more safety
+            rhok = 1.0 / (numpy.dot(yk,sk))
+        except ZeroDivisionError: 
+            rhok = 1000.0
+            print "Divide-by-zero encountered: rhok assumed large"
+        if isinf(rhok): # this is patch for numpy
+            rhok = 1000.0
+            print "Divide-by-zero encountered: rhok assumed large"
+        A1 = I - sk[:,numpy.newaxis] * yk[numpy.newaxis,:] * rhok
+        A2 = I - yk[:,numpy.newaxis] * sk[numpy.newaxis,:] * rhok
+        Hk = numpy.dot(A1,numpy.dot(Hk,A2)) + rhok * sk[:,numpy.newaxis] \
+                 * sk[numpy.newaxis,:]
+
+    if disp or full_output:
+        fval = old_fval
+    if warnflag == 2:
+        if disp:
+            print "Warning: Desired error not necessarily achieved due to precision loss"
+            print "         Current function value: %f" % fval
+            print "         Iterations: %d" % k
+            print "         Function evaluations: %d" % func_calls[0]
+            print "         Gradient evaluations: %d" % grad_calls[0]
+
+    elif k >= maxiter:
+        warnflag = 1
+        if disp:
+            print "Warning: Maximum number of iterations has been exceeded"
+            print "         Current function value: %f" % fval
+            print "         Iterations: %d" % k
+            print "         Function evaluations: %d" % func_calls[0]
+            print "         Gradient evaluations: %d" % grad_calls[0]
+    else:
+        if disp:
+            print "Optimization terminated successfully."
+            print "         Current function value: %f" % fval
+            print "         Iterations: %d" % k
+            print "         Function evaluations: %d" % func_calls[0]
+            print "         Gradient evaluations: %d" % grad_calls[0]
+
+    if full_output:
+        retlist = xk, fval, gfk, Hk, func_calls[0], grad_calls[0], warnflag
+        if retall:
+            retlist += (allvecs,)
+    else:
+        retlist = xk
+        if retall:
+            retlist = (xk, allvecs)
+
+    return retlist
+
+def test_my_bfgs():
+    f = lambda v: v[0]**2*(v[0]-3) + v[1]**2
+    x0 = array([100,1])
+    fprime = lambda v: array([3*v[0]**2-6*v[0], 2*v[1]])
+
+    from scipy.optimize import fmin_bfgs
+    x = my_bfgs(f,x0, fprime)
+    print x
+
+
+def my_bfgs(f, x0, fprime, callback = None):
     from scipy.optimize import line_search
+    max_step_size = 0.3
     i = 0
     dims = len(x0)
+    I = eye(dims)
     x = x0
 
     def get_new_H_inv(sk, yk, H_inv_k):
-        print "sk =", sk, "yk =", yk
-        raw_input('Press to continue...\n')
         p = 1 / dot(yk, sk)
         tmp = yk*sk
-        print "tmp =",tmp
-        raw_input('Press to continue...\n')
-        print "p =",p
         I_minus_psy = eye(dims) - p * outer(sk, yk)
-        print "I_minus_psy =", I_minus_psy
         I_minus_pys = eye(dims) - p * outer(yk, sk)
         pss = p * outer(s, s)
 
         H_inv_new = dot (I_minus_psy, dot(H_inv_k, I_minus_pys)) + pss
         return H_inv_new
 
-    H_inv = eye(dims)
+    def get_new_H_inv2(sk, yk, Hk):
+        rhok = 1.0 / (dot(yk,sk))
+        A1 = I - sk[:,newaxis] * yk[newaxis,:] * rhok
+        A2 = I - yk[:,newaxis] * sk[newaxis,:] * rhok
+        Hk = dot(A1,dot(Hk,A2)) + rhok * sk[:,newaxis] \
+                 * sk[newaxis,:]
+        return Hk
+
+    H_inv = eye(dims) * 5
+    H_inv2 = eye(dims) * 0.1
     g = fprime(x)
     energy = f(x)
+    k=0
     while True:
-        p = dot(H_inv, -g)
+        p = -dot(H_inv, g)
         alpha = 1 # from line search eventually
+        step = alpha * p
+
+        step_size = linalg.norm(step, ord=Inf)
+        if step_size > max_step_size:
+            print "scaling step"
+            step = step * max_step_size / step_size
+        
+        print "step =", step
+        print "p =", p
+        print "x =", x
+        print "g =", g
+
         x_old = x
-        x = x + alpha * p
-        x = callback(x)
+        x = x + step
+        if callback != None:
+            print "x_before =", x
+            x = callback(x)
+            print "x_after =", x
         g_old = g
         g = fprime(x)
 
         energy = f(x)
 
-        if linalg.norm(g, ord=inf) < 0.001:
+        if linalg.norm(g, ord=2) < 0.01:
+            print k, " iterations"
+            return x
             break
         s = x - x_old
         y = g - g_old
-        H_inv = get_new_H_inv(s, y, H_inv)
-        print "H_inv =", H_inv.flatten(), "s =", s, "y =", y
+        H_inv = get_new_H_inv(s, y, copy.deepcopy(H_inv))
+        H_inv2 = get_new_H_inv2(s, y, copy.deepcopy(H_inv))
+        print "H_inv", H_inv
+#        print "H_inv2", H_inv2
+        k += 1
+#        print "H_inv =", H_inv.flatten(), "s =", s, "y =", y
 
 
 def my_bfgs_bad(f, x0, fprime, callback = lambda x: Nothing):
@@ -1144,15 +1501,18 @@ def gd(f, x0, fprime, callback = lambda x: Nothing):
     report("Grad Desc Iteration")
     i = 0
     x = copy.deepcopy(x0)
+    prevx = zeros(len(x))
     while 1:
         g = fprime(x)
-        if linalg.norm(g, ord=inf) < 5:
+        dx = x - prevx
+        if linalg.norm(dx, ord=2) < 0.05:
             print "***CONVERGED after %d iterations" % i
             break
 
         i += 1
+        prevx = x
         x = callback(x)
-        x -= g * 0.5
+        x -= g * 0.2
 #        raw_input('Wait...\n')
 
     x = callback(x)
@@ -1162,14 +1522,14 @@ class SurfPlot():
     def __init__(self, pes):
         self.__pes = pes
 
-    def plot(self, path, write_contour_file=False):
+    def plot(self, path = None, write_contour_file=False, maxx=3.0, minx=0.0, maxy=3.0, miny=0.0):
         flab("called")
         opt = copy.deepcopy(path)
 
         # Points on grid to draw PES
         ps = 20.0
-        xrange = arange(ps)*(3.0/ps)
-        yrange = arange(ps)*(3.0/ps)
+        xrange = arange(ps)*((maxx-minx)/ps) + minx
+        yrange = arange(ps)*((maxy-miny)/ps) + miny
 
         # tmp data file
         (fd, tmpPESDataFile,) = tempfile.mkstemp(text=1)
@@ -1191,7 +1551,6 @@ class SurfPlot():
             g.close()
 
             print tmpPESDataFile
-#            raw_input('Press to continue...\n')
             os.unlink(tmpPESDataFile)
             os.close(fd)
             return tmp_contour_file
@@ -1208,42 +1567,54 @@ class SurfPlot():
         (fd, tmpPathDataFile,) = tempfile.mkstemp(text=1)
         Gnuplot.funcutils.compute_GridData(xrange, yrange, 
             lambda x,y: self.__pes.energy([x,y]), filename=tmpPESDataFile, binary=0)
-        opt.shape = (-1,2)
-        pathEnergies = array (map (self.__pes.energy, opt.tolist()))
-        pathEnergies += 0.05
-        xs = array(opt[:,0])
-        ys = array(opt[:,1])
-        print "xs =",xs, "ys =",ys
-        data = transpose((xs, ys, pathEnergies))
-        Gnuplot.Data(data, filename=tmpPathDataFile, inline=0, binary=0)
+        if opt != None:
+            opt.shape = (-1,2)
+            pathEnergies = array (map (self.__pes.energy, opt.tolist()))
+            pathEnergies += 0.05
+            xs = array(opt[:,0])
+            ys = array(opt[:,1])
+            data = transpose((xs, ys, pathEnergies))
+            Gnuplot.Data(data, filename=tmpPathDataFile, inline=0, binary=0)
 
-        # PLOT SURFACE AND PATH
-        g.splot(Gnuplot.File(tmpPESDataFile, binary=0), 
-            Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
-        print "Path to plot (SurfPlot) =", path
+            # PLOT SURFACE AND PATH
+            g.splot(Gnuplot.File(tmpPESDataFile, binary=0), 
+                Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
+            os.unlink(tmpPathDataFile)
+
+        # PLOT SURFACE ONLY
+        g.splot(Gnuplot.File(tmpPESDataFile, binary=0))
+
         raw_input('Press to continue...\n')
 
         os.unlink(tmpPESDataFile)
-        os.unlink(tmpPathDataFile)
 
 
-def mytest_NEB():
+def test_NEB():
     from scipy.optimize import fmin_bfgs
 
-    defaultSprConst = 0.01
-    neb = NEB(reactants, products, lambda x: True, defaultSprConst,
-        GaussianPES(), beadsCount = 15)
-    initState = neb.getStateAsArray()
-    opt = fmin_bfgs(neb.objFunc, initState, fprime=neb.objFuncGrad)
-    gr = neb.objFuncGrad(opt)
+    default_spr_const = 1.
+    neb = NEB(reactants, products, lambda x: True, default_spr_const,
+        GaussianPES(), beads_count = 20)
+    init_state = neb.get_state_as_array()
+
+    surf_plot = SurfPlot(GaussianPES())
+
+    # Wrapper callback function
+    def mycb(x):
+        flab("called")
+        surf_plot.plot(x)
+        return x
+
+    opt = fmin_bfgs(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb)
+    gr = neb.obj_func_grad(opt)
     n = linalg.norm(gr)
     i = 0
-    while n > 0.001 and i < 4:
+    """while n > 0.001 and i < 4:
         print "n =",n
-        opt = fmin_bfgs(neb.objFunc, opt, fprime=neb.objFuncGrad)
-        gr = neb.objFuncGrad(opt)
+        opt = fmin_bfgs(neb.obj_func, opt, fprime=neb.obj_func_grad)
+        gr = neb.obj_func_grad(opt)
         n = linalg.norm(gr)
-        i += 1
+        i += 1"""
 
 
     # Points on grid to draw PES
@@ -1254,7 +1625,7 @@ def mytest_NEB():
     # Make a 2-d array containing a function of x and y.  First create
     # xm and ym which contain the x and y values in a matrix form that
     # can be `broadcast' into a matrix of the appropriate shape:
-    gpes = GaussianPES2()
+    gpes = GaussianPES()
     g = Gnuplot.Gnuplot(debug=1)
     g('set data style lines')
     g('set hidden')
