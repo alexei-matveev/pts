@@ -839,7 +839,7 @@ class GrowingString(ReactionPathway):
     def __set_current_beads_count(self, new):
         self.__path_rep.beads_count = new
 
-    def __get_current_beads_count(self):
+    def get_current_beads_count(self):
         return self.__path_rep.beads_count
 
     def grow_string(self):
@@ -869,12 +869,12 @@ class GrowingString(ReactionPathway):
         """Update the density function so that it will deliver beads spaced
         as for a growing (or grown) string."""
         flab("called")
-        assert self.__get_current_beads_count() <= self.__final_beads_count
+        assert self.get_current_beads_count() <= self.__final_beads_count
 
         from scipy.optimize import fmin
         from scipy.integrate import quad
 
-        if self.__get_current_beads_count() == self.__final_beads_count:
+        if self.get_current_beads_count() == self.__final_beads_count:
             self.__path_rep.set_rho(self.__final_rho)
 
 #            self.__path_rep.dump_rho() #debug
@@ -884,7 +884,7 @@ class GrowingString(ReactionPathway):
 
         # Value that integral must be equal to to give desired number of beads
         # at end of the string.
-        end_int = (self.__get_current_beads_count() / 2.0) \
+        end_int = (self.get_current_beads_count() / 2.0) \
             / self.__final_beads_count
 
         f_a1 = lambda x: (quad(self.__final_rho, 0.0, x)[0] - end_int)**2
@@ -1523,124 +1523,203 @@ def opt_gd(f, x0, fprime, callback = lambda x: Nothing):
     x = callback(x)
     return x
 
-def opt_global_local_wrap(string, local_opt, callback):
-    dims = string.get_dims()
+class QuadraticStringMethod():
+    """Quadratic String Method Functions
+       ---------------------------------
 
-    assert len(x0) % dims != 0
+    The functions in this class are described in the reference:
 
-    x = copy.deepcopy(x0)
-    points = len(x) #  do I need this?
+    [QSM] Burger and Yang, J Chem Phys 2006 vol 124 054109."""
 
-    if update_egt(my_x):
-        my_x.flatten()
-        e = string.obj_func(my_x)
-        g = string.obj_func_grad(my_x)
-        e.shape = (-1, dims)
-        g.shape = (-1, dims)
-
-        return e, g
-
-    # initial parameters for optimisation
-    e, g = update_eg(x)
-    trust_rad = ones(
-    H = []
-    Hi = linalg.norm(g) * eye(dims)
-    for i in range(string.get_current_beads_count()):
-        H.append(copy.deepcopy(Hi))
-
-    # optimisation over whole string
-    k = 0
-    while True:
-        prev_x = x
-        prev_m = m
-        x.shape = (-1, dims)
-        # optimise individual points along string
-        for i in range(points):
-            x[i], m[i] = local_opt(x[i], g[i], H[i], trust_rad[i])
-
-        x.flatten()
-
-        delta = x - prev_x
-        prev_g = g
-        prev_e = e
-        e, g = update_eg(x) # TODO: Question: will the state of the string be updated?
-        trust_rad = update_trust_rad(e, prev_e, m, prev_m)
-
-        gamma = g - prev_g
-        prev_H = H
-        H = update_H(delta, gamma, prev_H)
-
-        # redistribute, update tangents, etc
-        x = callback(x)
-
-        if linalg.norm(x) < gtol:
-            break
-
-        k += 1
+    def __init__(self, string = None, callback = None):
+        self.__string = string
+        self.__callback = callback
         
-def update_H(delta, gamma, H):
-    """Damped BFGS Hessian Update Scheme as described in Burger and Yang, J Chem 
-    Phys 2006 vol 124 054109, equations 14, 16, 18, 19."""
+        self.__init_trust_rad = 0.1
 
-    if dot(delta, gamma) <= 0:
-        return H
+    def mytest(self):
+        dims = 3
 
-    if dot(delta, gamma) > 0.2 * dot(delta, dot(H, delta)):
-        theta = 1
-    else:
-        theta = 0.8 * dot(delta, dot(H, delta)) / (dot(delta, dot(H, delta)) - dot(delta, gamma))
-    
-    gamma = theta * gamma + (1 - theta) * dot(H, delta)
+        # test update_H()
+        delta = arange(dims)
+        gamma = ones(dims)
+        H = arange(dims*dims)
+        H.shape = (-1, dims)
 
-    numerator1 = dot(H, outer(delta, dot(delta, H)))
-    denominator1 = outer(delta, dot(H, delta))
+        newH = self.update_H(delta, gamma, H)
+        print "newH =", newH
 
-    numerator2 = outer(gamma, gamma)
-    denominator2 = dot(gamma, delta)
+        # test update_trust_rads()
+        e = array((10,10))
+        prev_e = array((12,12))
+        m = array((10.2, 10.3))
+        prev_m = array((12.5, 12.8))
+        dx = array((0.5, 0.5, 0.6, 0.7))
+        dims = 2
+        prev_trust_rads = array((0.25, 0.25))
+        new_trust_rads = self.update_trust_rads(e, prev_e, m, prev_m, dx, dims, prev_trust_rads)
+        print new_trust_rads
 
-    H_new = H - numerator1 / denominator1 + numerator2 / denominator2
+    def opt_global_local_wrap(self, local_opt):
+        """Optimises a string by optimising its control points separately."""
 
-    return H_new
+        dims = string.get_dims()
 
+        assert len(x0) % dims != 0
 
-def local_opt(x0, g, H, tangent, trust_rad):
-    dims = len(x0)
-    def dx_on_dt(x):
-        approx_grad = g + dot(H, x - x0)
-        perp_component = eye(dims) - outer(tangent, tangent)
-        dx_on_dt_tmp = dot(approx_grad, perp_component)
+        x = copy.deepcopy(x0)
+        points = string.get_current_beads()
 
-    new_x = int_rk45(x0, dx_on_dt, trust_rad)
-    return new_x
+        if update_eg(my_x):
+            my_x.flatten()
+            e = self.__string.obj_func(my_x)
+            g = self.__string.obj_func_grad(my_x)
+            e.shape = (-1, dims)
+            g.shape = (-1, dims)
 
-def int_rk45(x0, dx_on_dt, trust_rad):
-    """Performs adaptive step size Runge-Kutta integration (or will do 
-    eventually)."""
-    
-    # TODO: dummy constant value, eventually must be generated 
-    # in accordance with reference.
-    eps0 = 0.05
+            return e, g
 
-    x = x0
-    h = h0
-    while True:
-        # two integration steps for Runge Kutta 4 and 5
-        x_update4 = int_rk_generic(x, dx_on_dt, 4, h)
-        x_update5 = int_rk_generic(x, dx_on_dt, 5, h)
+        # initial parameters for optimisation
+        e, g = update_eg(x)
+        trust_rad = ones(points) * self.__init_trust_rad # ???
+        H = []
+        Hi = linalg.norm(g) * eye(dims)
+        for i in range(string.get_current_beads_count()):
+            H.append(copy.deepcopy(Hi))
 
-        x_prev = x
-        dx_prev = dx_on_dt(x)
-        x += x_update5
-        dx = dx_on_dt(x)
+        # optimisation over whole string
+        k = 0
+        while True:
+            prev_x = x
+            prev_m = m
+            x.shape = (-1, dims)
+            # optimise individual points along string
+            for i in range(points):
+                x[i], m[i] = local_opt(x[i], g[i], H[i], trust_rad[i])
+            x.flatten()
 
-        if linalg.norm(x - x0) > trust_rad or dot(dx_prev, dx) > 0:
-            break
+            delta = x - prev_x
+            prev_g = g
+            prev_e = e
+            e, g = update_eg(x) # TODO: Question: will the state of the string be updated?
+            trust_rad = update_trust_rads(e, prev_e, m, prev_m, delta)
 
-        eps = linalg.norm(x_update4 - x_update5)
-        h = h * abs(eps0 / eps)**0.2
+            gamma = g - prev_g
+            prev_H = H
+            H = update_H(delta, gamma, prev_H)
 
-    
-    return x
+            # redistribute, update tangents, etc
+            x = self.__callback(x)
+
+            if linalg.norm(x) < gtol:
+                break
+
+            k += 1
+            
+    def update_H(self, delta, gamma, H):
+        """Damped BFGS Hessian Update Scheme as described in Ref. [QSM]., equations 14, 16, 18, 19."""
+
+        if dot(delta, gamma) <= 0:
+            return H
+
+        if dot(delta, gamma) > 0.2 * dot(delta, dot(H, delta)):
+            theta = 1
+        else:
+            theta = 0.8 * dot(delta, dot(H, delta)) / (dot(delta, dot(H, delta)) - dot(delta, gamma))
+        
+        gamma = theta * gamma + (1 - theta) * dot(H, delta)
+
+        numerator1 = dot(H, outer(delta, dot(delta, H)))
+        denominator1 = outer(delta, dot(H, delta))
+
+        numerator2 = outer(gamma, gamma)
+        denominator2 = dot(gamma, delta)
+
+        H_new = H - numerator1 / denominator1 + numerator2 / denominator2
+
+        return H_new
+
+    def update_trust_rads(self, e, prev_e, m, prev_m, dx, dims, prev_trust_rads):
+        """Equations 21a and 21b from [QSM]."""
+        
+        s = (-1, dims)
+        dx.shape = s
+
+        new_trust_rads = []
+
+        assert len(e) == len(prev_e) == len(m) == len(prev_m) == len(prev_trust_rads)
+
+        for i in range(len(e)):
+            rho = (e[i] - prev_e[i]) / (m[i] - prev_m[i])
+
+            if rho > 0.75 and 1.25 * linalg.norm(dx[i]) > prev_trust_rads[i]:
+                rad = 2 * rho
+
+            elif rho < 0.25:
+                rad = 0.25 * linalg.norm(dx[i])
+
+            else:
+                raise Exception("Should never happen") # I *think*
+
+            new_trust_rads.append(rad)
+
+        return new_trust_rads
+
+    def local_opt(self, x0, g, H, tangent, trust_rad):
+        """Optimiser used on each bead in the string."""
+
+        dims = len(x0)
+        def dx_on_dt(x):
+            approx_grad = g + dot(H, x - x0)
+            perp_component = eye(dims) - outer(tangent, tangent)
+            dx_on_dt_tmp = dot(approx_grad, perp_component)
+
+        new_x, Dx = int_rk45(x0, dx_on_dt, trust_rad)
+        new_func_val_inc = dot(Dx, g) + 0.5 * dot(Dx, dot(H, Dx))
+        return new_x
+
+    def rk45_step(x, f, h):
+        
+        k1 = h * f(x)
+        k2 = h * f(x + 1./4. * k1)
+        k3 = h * f(x + 3/32. * k1 + 9./32. * k2)
+        k4 = h * f(x + 1932./2197. * k1 - 7200./2197. * k2 + 7296./2197. * k3)
+        k5 = h * f(x + 439./216. * k1 - 8. * k2 + 3680./513. * k3 - 845./4104. * k4)
+        k6 = h * f(x - 8./27.*k1 + 2.*k2 - 3544./2565. * k3 + 1859./4104. - 11./40. * k5
+
+        step4 = 25./216.*k1 + 1408./2565.*k3 + 2197./4104.*k4 - 1./5.*k5
+        step5 = 16./135.*k1 + 6656./12825.*k3 + 28561./56430.*k4 - 9./50.*k5 + 2./55.*k6
+
+        return step4, step5
+
+    def int_rk45(self, x0, dx_on_dt, trust_rad):
+        """Performs adaptive step size Runge-Kutta integration (or will do 
+        eventually). Based on:
+            http://www.ecs.fullerton.edu/~mathews/n2003/RungeKuttaFehlbergMod.html
+        and
+            http://en.wikipedia.org/wiki/Runge-Kutta"""
+        
+        # TODO: dummy constant value, eventually must be generated 
+        # in accordance with reference [QSM].
+        eps0 = 0.05
+
+        x = x0
+        h = h0
+        while True:
+            # two integration steps for Runge Kutta 4 and 5
+            step4, step5 = rk45_step(x, dx_on_dt, h)
+
+            x_prev = x
+            dx_prev = dx
+            x += step4
+            dx = x - x0
+
+            if linalg.norm(x - x0) > trust_rad or dot(dx_prev, dx) > 0:
+                break
+
+            h = h * (eps0 * h / 2. / linalg.norm(step5 - step4))**0.25
+
+        return x, (x-x0)
 
 class SurfPlot():
     def __init__(self, pes):
