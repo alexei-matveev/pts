@@ -1,0 +1,13 @@
+02/04/2009
+----------
+
+TODO
+ - print / read new papers
+ - see what happens with numpy bfgs minimiser when linesearch is removed
+
+ 08/04/2009
+ ----------
+
+  - Why do they use a runge kutta method to solve the equations when all they 
+    want to do is minimise withing a trust region?
+  - Is it because it becomes tricky when you have a multidimentional function?

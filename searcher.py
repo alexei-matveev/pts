@@ -1536,6 +1536,7 @@ class QuadraticStringMethod():
         self.__callback = callback
         
         self.__init_trust_rad = 0.1
+        self.__h0 = 0.01
 
     def mytest(self):
         dims = 3
@@ -1559,6 +1560,13 @@ class QuadraticStringMethod():
         prev_trust_rads = array((0.25, 0.25))
         new_trust_rads = self.update_trust_rads(e, prev_e, m, prev_m, dx, dims, prev_trust_rads)
         print new_trust_rads
+
+    def mytest_rk45(self):
+        trust_rad = 1000.
+        x0 = 1.0
+        dx_on_dt = lambda xp: -0.1*xp
+        x, deltaX = self.int_rk45(x0, dx_on_dt, trust_rad, verbose=True)
+        print "Answers: x =", x, "deltaX =", deltaX
 
     def opt_global_local_wrap(self, local_opt):
         """Optimises a string by optimising its control points separately."""
@@ -1678,21 +1686,56 @@ class QuadraticStringMethod():
         new_func_val_inc = dot(Dx, g) + 0.5 * dot(Dx, dot(H, Dx))
         return new_x
 
-    def rk45_step(x, f, h):
+    def simple_int(self, x0, dx_on_dt, trust_rad, verbose=False):
+        
+        x = array([x0]).flatten()
+        d = zeros(len(x))
+        k=0
+        while True:
+            k += 1
+            prev_d = d
+            d = dx_on_dt(x)
+            x += 0.3 * 1.0/linalg.norm(d) * d
+            print "x =", x
+            if linalg.norm(x - x0) > trust_rad:
+                print "trust rad"
+                break
+            print "d,dprev=", d, prev_d
+            if dot(d, prev_d) < 0:
+                print "direc change"
+                break
+            if k > 10:
+                print "max iters"
+                break
+        return x, (x-x0)
+
+
+    def rk45_step(self, x, f, h):
         
         k1 = h * f(x)
-        k2 = h * f(x + 1./4. * k1)
-        k3 = h * f(x + 3/32. * k1 + 9./32. * k2)
-        k4 = h * f(x + 1932./2197. * k1 - 7200./2197. * k2 + 7296./2197. * k3)
-        k5 = h * f(x + 439./216. * k1 - 8. * k2 + 3680./513. * k3 - 845./4104. * k4)
-        k6 = h * f(x - 8./27.*k1 + 2.*k2 - 3544./2565. * k3 + 1859./4104. - 11./40. * k5
+        x2 = x + 1.0/4.0 * k1
+        k2 = h * f(x2)
+        x3 = x + 3.0/32.0 * k1 + 9.0/32.0 * k2
+        k3 = h * f(x3)
+        x4 = x + 1932./2197. * k1 - 7200./2197. * k2 + 7296./2197. * k3
+        k4 = h * f(x4)
+        x5 = x + 439./216. * k1 - 8. * k2 + 3680./513. * k3 - 845./4104. * k4
+        k5 = h * f(x5)
+        x6 = x - 8./27.*k1 + 2.*k2 - 3544./2565. * k3 + 1859./4104.*k4 - 11./40. * k5
+        k6 = h * f(x6)
+
+        xs = array((x,x2,x3,x4,x5,x6))
+        ks = array((k1, k2, k3, k4, k5, k6))
+        print "xs =", xs
+        print "ks =", ks
+        print "x =", x, "h =", h
 
         step4 = 25./216.*k1 + 1408./2565.*k3 + 2197./4104.*k4 - 1./5.*k5
         step5 = 16./135.*k1 + 6656./12825.*k3 + 28561./56430.*k4 - 9./50.*k5 + 2./55.*k6
 
         return step4, step5
 
-    def int_rk45(self, x0, dx_on_dt, trust_rad):
+    def int_rk45(self, x0, dx_on_dt, trust_rad, verbose = False):
         """Performs adaptive step size Runge-Kutta integration (or will do 
         eventually). Based on:
             http://www.ecs.fullerton.edu/~mathews/n2003/RungeKuttaFehlbergMod.html
@@ -1701,23 +1744,42 @@ class QuadraticStringMethod():
         
         # TODO: dummy constant value, eventually must be generated 
         # in accordance with reference [QSM].
-        eps0 = 0.05
+        eps0 = 0.1
 
-        x = x0
-        h = h0
+        x = array([x0]).flatten()
+        h = self.__h0
+
+        srch_dir = dx_on_dt(x)
+        k = 0
         while True:
             # two integration steps for Runge Kutta 4 and 5
-            step4, step5 = rk45_step(x, dx_on_dt, h)
+            step4, step5 = self.rk45_step(x, dx_on_dt, h)
+
+            if verbose:
+                print "step4 =", step4, "step5 =", step5
+                print "x =", x, "srch_dir =", srch_dir
 
             x_prev = x
-            dx_prev = dx
             x += step4
-            dx = x - x0
+            prev_srch_dir = srch_dir
+            srch_dir = dx_on_dt(x)
 
-            if linalg.norm(x - x0) > trust_rad or dot(dx_prev, dx) > 0:
+            if linalg.norm(x - x0) > trust_rad:
+                print "trust rad"
+                break
+            if dot(srch_dir, prev_srch_dir) < 0:
+                print "direc change"
+                break
+            if k > 500:
+                print "max iters"
                 break
 
-            h = h * (eps0 * h / 2. / linalg.norm(step5 - step4))**0.25
+            err = linalg.norm(step5 - step4)
+            print "err =", err
+            s = (eps0 * h / 2. / err)**0.25
+            h = min(s*h, 10.0)
+            k += 1
+            print
 
         return x, (x-x0)
 
