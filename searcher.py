@@ -1563,22 +1563,34 @@ class QuadraticStringMethod():
 
     def mytest_rk45(self):
         trust_rad = 1000.
-        x0 = 1.0
+        """x0 = 1.0
         dx_on_dt = lambda xp: -0.1*xp
         x, deltaX = self.int_rk45(x0, dx_on_dt, trust_rad, verbose=True)
+        print "Answers: x =", x, "deltaX =", deltaX"""
+
+        # projectile motion
+        vx0 = 100.0
+        vy0 = 1000.0
+        dx_on_dt = lambda x: array([vx0, vy0 - 9.8*x[0]/1.0])
+        x0 = array((3.,4.))
+        x, deltaX, path = self.int_rk45(x0, dx_on_dt, trust_rad, verbose=True)
         print "Answers: x =", x, "deltaX =", deltaX
+        for p in path:
+            print "%d\t%d" % (p[0], p[1])
+
+
 
     def opt_global_local_wrap(self, local_opt):
         """Optimises a string by optimising its control points separately."""
 
-        dims = string.get_dims()
+        dims = self.string.get_dims()
 
         assert len(x0) % dims != 0
 
         x = copy.deepcopy(x0)
         points = string.get_current_beads()
 
-        if update_eg(my_x):
+        def update_eg(my_x):
             my_x.flatten()
             e = self.__string.obj_func(my_x)
             g = self.__string.obj_func_grad(my_x)
@@ -1595,22 +1607,22 @@ class QuadraticStringMethod():
         for i in range(string.get_current_beads_count()):
             H.append(copy.deepcopy(Hi))
 
-        # optimisation over whole string
+        # optimisation of whole string to semi-global min
         k = 0
         while True:
-            prev_x = x
+            prev_x = copy.deepcopy(x)
             prev_m = m
-            x.shape = (-1, dims)
-            # optimise individual points along string
-            for i in range(points):
-                x[i], m[i] = local_opt(x[i], g[i], H[i], trust_rad[i])
-            x.flatten()
+
+            # optimisation of whole string on quadratic surface
+            quadratic_opt(x, g, H, dims, string)
 
             delta = x - prev_x
             prev_g = g
             prev_e = e
             e, g = update_eg(x) # TODO: Question: will the state of the string be updated?
-            trust_rad = update_trust_rads(e, prev_e, m, prev_m, delta)
+
+            """ don't update trust radius for the time being 
+            trust_rad = update_trust_rads(e, prev_e, m, prev_m, delta)"""
 
             gamma = g - prev_g
             prev_H = H
@@ -1627,15 +1639,16 @@ class QuadraticStringMethod():
     def update_H(self, delta, gamma, H):
         """Damped BFGS Hessian Update Scheme as described in Ref. [QSM]., equations 14, 16, 18, 19."""
 
+        """ For the time being, always update H
         if dot(delta, gamma) <= 0:
             return H
 
-        if dot(delta, gamma) > 0.2 * dot(delta, dot(H, delta)):
-            theta = 1
+        if dot(delta, gamma) > 0.2 * dot(delta, dot(H, delta)):"""
+"""            theta = 1
         else:
             theta = 0.8 * dot(delta, dot(H, delta)) / (dot(delta, dot(H, delta)) - dot(delta, gamma))
         
-        gamma = theta * gamma + (1 - theta) * dot(H, delta)
+        gamma = theta * gamma + (1 - theta) * dot(H, delta)"""
 
         numerator1 = dot(H, outer(delta, dot(delta, H)))
         denominator1 = outer(delta, dot(H, delta))
@@ -1673,18 +1686,109 @@ class QuadraticStringMethod():
 
         return new_trust_rads
 
-    def local_opt(self, x0, g, H, tangent, trust_rad):
-        """Optimiser used on each bead in the string."""
+    def quadratic_opt(self, x0, g0, H, dims, string):
+        """Optimiser used to optimise on quadratic surface."""
 
-        dims = len(x0)
-        def dx_on_dt(x):
-            approx_grad = g + dot(H, x - x0)
+        x = copy.deepcopy(x0)
+        x.shape = (-1, dims)
+        N = len(x)
+        g0.shape = (-1, dims)
+        H.shape = (-1, dims)
+
+        h = ones(N) * self.__h0
+        k = flag = 0
+        while True:
+            
+            tangent = string.update_tangent(x)
+
+            # optimize each bead in the string
+            for i in range(N):
+
+                prev_g = g
+                g = self.dx_on_dt(x0[i], x[i], g0[i], H[i], tangent[i])
+                step4, step5 = self.step_rk45(x[i], g, h[i])
+                prev_x[i] = x[i]
+                x[i] += step4
+
+                err = linalg.norm(step5 - step4)
+
+                if linalg.norm(x[i] - x0[i]) > trust_rad[i]:
+                    flag = self.__TRUST_EXCEEDED
+                elif dot(g, prev_g) < 0: # is this correct?
+                    flag = self.__DIRECTION_CHANGE
+
+            k += 1
+
+            if False:
+                s = (eps0 * h[i] / 2. / err)**0.25
+                h[i] = min(s*h[i], 0.2)
+
+            if k > self.__MAX_QUAD_ITERATIONS or flag != 0:
+                break
+
+        # TODO: was working in here somewhere
+
+        x.flatten()
+        return x 
+
+        def dx_on_dt(self, x0, x, g0, H, tangent):
+            approx_grad = g0 + dot(H, x - x0)
             perp_component = eye(dims) - outer(tangent, tangent)
             dx_on_dt_tmp = dot(approx_grad, perp_component)
+            return dx_on_dt_tmp
 
-        new_x, Dx = int_rk45(x0, dx_on_dt, trust_rad)
-        new_func_val_inc = dot(Dx, g) + 0.5 * dot(Dx, dot(H, Dx))
-        return new_x
+    def int_rk45(self, x0, dx_on_dt, trust_rad, verbose = False):
+        """Performs adaptive step size Runge-Kutta integration. Based on:
+            http://www.ecs.fullerton.edu/~mathews/n2003/RungeKuttaFehlbergMod.html
+        and
+            http://en.wikipedia.org/wiki/Runge-Kutta"""
+        
+        # TODO: dummy constant value, eventually must be generated 
+        # in accordance with reference [QSM].
+        eps0 = 0.1
+
+        x = array([x0]).flatten()
+        h = self.__h0
+
+        srch_dir = dx_on_dt(x)
+        k = 0
+        path = []
+        while True:
+            # two integration steps for Runge Kutta 4 and 5
+            step4, step5 = self.rk45_step(x, dx_on_dt, h)
+
+            err = linalg.norm(step5 - step4)
+
+            if verbose:
+                print "step4 =", step4, "step5 =", step5
+                print "x =", x, "srch_dir =", srch_dir
+                print "h =", h
+                print "err =", err
+
+            path.append(copy.deepcopy(x))
+            x_prev = x
+            x += step4
+            prev_srch_dir = srch_dir
+            srch_dir = dx_on_dt(x)
+
+            if linalg.norm(x - x0) > trust_rad:
+                print "trust rad"
+                break
+            #print "dot(srch_dir, prev_srch_dir) =", dot(srch_dir, prev_srch_dir)
+            if dot(srch_dir, prev_srch_dir) < 0:
+                print "direc change: sd =", srch_dir, "prev_sd =", prev_srch_dir
+                break
+            if k > 500:
+                print "max iters"
+                break
+
+            s = (eps0 * h / 2. / err)**0.25
+            h = min(s*h, 0.2)
+            k += 1
+            print
+
+        return x, (x-x0), path
+
 
     def simple_int(self, x0, dx_on_dt, trust_rad, verbose=False):
         
@@ -1726,62 +1830,14 @@ class QuadraticStringMethod():
 
         xs = array((x,x2,x3,x4,x5,x6))
         ks = array((k1, k2, k3, k4, k5, k6))
-        print "xs =", xs
-        print "ks =", ks
-        print "x =", x, "h =", h
+#        print "xs =", xs
+#        print "ks =", ks
+#        print "x =", x, "h =", h
 
         step4 = 25./216.*k1 + 1408./2565.*k3 + 2197./4104.*k4 - 1./5.*k5
         step5 = 16./135.*k1 + 6656./12825.*k3 + 28561./56430.*k4 - 9./50.*k5 + 2./55.*k6
 
         return step4, step5
-
-    def int_rk45(self, x0, dx_on_dt, trust_rad, verbose = False):
-        """Performs adaptive step size Runge-Kutta integration (or will do 
-        eventually). Based on:
-            http://www.ecs.fullerton.edu/~mathews/n2003/RungeKuttaFehlbergMod.html
-        and
-            http://en.wikipedia.org/wiki/Runge-Kutta"""
-        
-        # TODO: dummy constant value, eventually must be generated 
-        # in accordance with reference [QSM].
-        eps0 = 0.1
-
-        x = array([x0]).flatten()
-        h = self.__h0
-
-        srch_dir = dx_on_dt(x)
-        k = 0
-        while True:
-            # two integration steps for Runge Kutta 4 and 5
-            step4, step5 = self.rk45_step(x, dx_on_dt, h)
-
-            if verbose:
-                print "step4 =", step4, "step5 =", step5
-                print "x =", x, "srch_dir =", srch_dir
-
-            x_prev = x
-            x += step4
-            prev_srch_dir = srch_dir
-            srch_dir = dx_on_dt(x)
-
-            if linalg.norm(x - x0) > trust_rad:
-                print "trust rad"
-                break
-            if dot(srch_dir, prev_srch_dir) < 0:
-                print "direc change"
-                break
-            if k > 500:
-                print "max iters"
-                break
-
-            err = linalg.norm(step5 - step4)
-            print "err =", err
-            s = (eps0 * h / 2. / err)**0.25
-            h = min(s*h, 10.0)
-            k += 1
-            print
-
-        return x, (x-x0)
 
 class SurfPlot():
     def __init__(self, pes):
