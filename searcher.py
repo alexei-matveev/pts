@@ -432,6 +432,18 @@ class PathRepresentation():
         return self.__fs
     def get_path_tangents(self):
         return self.__path_tangents
+
+    def recalc_path_tangents(self):
+        """Returns the unit tangents to the path at the current set of 
+        normalised positions."""
+
+        tangents = []
+        for str_pos in self.__normalised_positions:
+            tangents.append(self.__get_tangent(str_pos))
+
+        tangents = array(tangents)
+        return tangents
+
     def set_state_vec(self, new_state_vec):
         self.__state_vec = array(new_state_vec).flatten()
         print self.beads_count
@@ -804,7 +816,7 @@ class GrowingString(ReactionPathway):
     def __init__(self, reagents, qc_driver, f_test = lambda x: True, 
         beads_count = 10, rho = lambda x: 1, growing=True):
 
-        ReactionPathway.__init__(self, reactants, products, f_test)
+        #ReactionPathway.__init__(self, reactants, products, f_test)
         self.__qc_driver = qc_driver
 
         self.__final_beads_count = beads_count
@@ -831,7 +843,7 @@ class GrowingString(ReactionPathway):
         self.__path_rep.generate_beads(update = True)
 
         # TODO: make sure all reagents are of same length
-        self.__dims = len(reactants[0])
+        self.__dims = len(reagents[0])
 
     def get_dims(self):
         return self.__dims
@@ -845,10 +857,10 @@ class GrowingString(ReactionPathway):
     def grow_string(self):
         """Adds 2, 1 or 0 beads to string (such that the total number of 
         beads is less than or equal to self.__final_beads_count)."""
-        assert self.__get_current_beads_count() <= self.__final_beads_count
+        assert self.get_current_beads_count() <= self.__final_beads_count
         flab("called")
 
-        current_beads_count = self.__get_current_beads_count()
+        current_beads_count = self.get_current_beads_count()
 
         print "beads = ", current_beads_count
 
@@ -1085,6 +1097,40 @@ def plot2D(react_path, path_res = 0.002):
     os.unlink(tmp_file2)
     os.unlink(tmp_file3)
     os.unlink(contour_file)
+
+def test_QSM():
+    from scipy.optimize import fmin_bfgs
+    f_test = lambda x: True
+    rho_quartic = lambda x: (x*(x-1))**2
+    rho_flat = lambda x: 1
+    surf_plot = SurfPlot(GaussianPES())
+    qc_driver = GaussianPES()
+
+    reagents = [reactants, products]
+    gs = GrowingString(reagents, qc_driver, 
+        beads_count=10, rho=rho_flat, growing=False)
+
+    # Wrapper callback function
+    def mycb(x):
+        flab("called")
+        gs.update_path(x, respace = True)
+#        surf_plot.plot(x)
+        gs.plot()
+        return gs.get_state_vec()
+
+    from scipy.optimize.lbfgsb import fmin_l_bfgs_b
+    from scipy.optimize import fmin_cg
+
+    qs = QuadraticStringMethod(gs, callback = mycb)
+    
+    #opt = my_runge_kutta(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
+    dims = len(reactants)
+
+    opt = qs.opt_global_local_wrap()
+
+    gs.plot()
+    print "path to plot (for surface) =", opt
+    surf_plot.plot(opt)
 
 def test_GrowingString():
     from scipy.optimize import fmin_bfgs
@@ -1523,6 +1569,8 @@ def opt_gd(f, x0, fprime, callback = lambda x: Nothing):
     x = callback(x)
     return x
 
+
+
 class QuadraticStringMethod():
     """Quadratic String Method Functions
        ---------------------------------
@@ -1537,6 +1585,11 @@ class QuadraticStringMethod():
         
         self.__init_trust_rad = 0.1
         self.__h0 = 0.01
+        self.__dims = self.__string.get_dims()
+
+        self.__TRUST_EXCEEDED = 1
+        self.__DIRECTION_CHANGE = 2
+        self.__MAX_QUAD_ITERATIONS = 30
 
     def mytest(self):
         dims = 3
@@ -1578,24 +1631,22 @@ class QuadraticStringMethod():
         for p in path:
             print "%d\t%d" % (p[0], p[1])
 
-
-
-    def opt_global_local_wrap(self, local_opt):
+    def opt_global_local_wrap(self):
         """Optimises a string by optimising its control points separately."""
 
-        dims = self.string.get_dims()
+        x0 = self.__string.get_state_vec()
 
-        assert len(x0) % dims != 0
+        assert len(x0) % self.__dims == 0
 
         x = copy.deepcopy(x0)
-        points = string.get_current_beads()
+        points = self.__string.get_current_beads_count()
 
         def update_eg(my_x):
+            """Returns energy and gradient for state vector my_x."""
             my_x.flatten()
             e = self.__string.obj_func(my_x)
             g = self.__string.obj_func_grad(my_x)
-            e.shape = (-1, dims)
-            g.shape = (-1, dims)
+            g.shape = (-1, self.__dims)
 
             return e, g
 
@@ -1603,18 +1654,18 @@ class QuadraticStringMethod():
         e, g = update_eg(x)
         trust_rad = ones(points) * self.__init_trust_rad # ???
         H = []
-        Hi = linalg.norm(g) * eye(dims)
-        for i in range(string.get_current_beads_count()):
+        Hi = linalg.norm(g) * eye(self.__dims)
+        for i in range(self.__string.get_current_beads_count()):
             H.append(copy.deepcopy(Hi))
 
         # optimisation of whole string to semi-global min
         k = 0
+        m = e
         while True:
             prev_x = copy.deepcopy(x)
-            prev_m = m
 
             # optimisation of whole string on quadratic surface
-            quadratic_opt(x, g, H, dims, string)
+            x = self.quadratic_opt(x, g, H)
 
             delta = x - prev_x
             prev_g = g
@@ -1626,17 +1677,20 @@ class QuadraticStringMethod():
 
             gamma = g - prev_g
             prev_H = H
-            H = update_H(delta, gamma, prev_H)
+            H = self.update_H(delta, gamma, prev_H)
 
             # redistribute, update tangents, etc
             x = self.__callback(x)
 
+            break # just for testing
             if linalg.norm(x) < gtol:
                 break
 
             k += 1
+
+        return x
             
-    def update_H(self, delta, gamma, H):
+    def update_H(self, deltas, gammas, Hs):
         """Damped BFGS Hessian Update Scheme as described in Ref. [QSM]., equations 14, 16, 18, 19."""
 
         """ For the time being, always update H
@@ -1644,21 +1698,32 @@ class QuadraticStringMethod():
             return H
 
         if dot(delta, gamma) > 0.2 * dot(delta, dot(H, delta)):"""
-"""            theta = 1
+        """            theta = 1
         else:
             theta = 0.8 * dot(delta, dot(H, delta)) / (dot(delta, dot(H, delta)) - dot(delta, gamma))
         
         gamma = theta * gamma + (1 - theta) * dot(H, delta)"""
 
-        numerator1 = dot(H, outer(delta, dot(delta, H)))
-        denominator1 = outer(delta, dot(H, delta))
+        deltas.shape = (-1, self.__dims)
+        gammas.shape = (-1, self.__dims)
 
-        numerator2 = outer(gamma, gamma)
-        denominator2 = dot(gamma, delta)
+        Hs_new = []
+        for i in range(self.__string.get_current_beads_count()):
+            H = Hs[i]
+            delta = deltas[i]
+            gamma = gammas[i]
 
-        H_new = H - numerator1 / denominator1 + numerator2 / denominator2
+            tmp1 = dot(delta, H)
+            numerator1 = dot(H, outer(delta, tmp1))
+            denominator1 = dot(delta, dot(H, delta))
 
-        return H_new
+            numerator2 = outer(gamma, gamma)
+            denominator2 = dot(gamma, delta)
+
+            H_new = H - numerator1 / denominator1 + numerator2 / denominator2
+            Hs_new.append(H_new)
+
+        return Hs_new
 
     def update_trust_rads(self, e, prev_e, m, prev_m, dx, dims, prev_trust_rads):
         """Equations 21a and 21b from [QSM]."""
@@ -1686,27 +1751,42 @@ class QuadraticStringMethod():
 
         return new_trust_rads
 
-    def quadratic_opt(self, x0, g0, H, dims, string):
+    def calc_tangents(self, state_vec):
+        """Based on a path represented by state_vec, returns its unit tangents."""
+
+        path_rep = PathRepresentation(state_vec, self.__string.get_current_beads_count())
+        path_rep.regen_path_func()
+        tangents = path_rep.recalc_path_tangents()
+        return tangents
+
+    def quadratic_opt(self, x0, g0, H):
         """Optimiser used to optimise on quadratic surface."""
 
+        dims = self.__dims
         x = copy.deepcopy(x0)
+        x0.shape = (-1, dims)
         x.shape = (-1, dims)
-        N = len(x)
-        g0.shape = (-1, dims)
-        H.shape = (-1, dims)
+        prev_x = copy.deepcopy(x)
+        N = self.__string.get_current_beads_count()  # number of beads in string
+        g0.shape = (-1, dims)     # initial gradient of quadratic surface
+        assert(len(H[0])) == dims # hessian of quadratic surface
 
-        h = ones(N) * self.__h0
+        # temporary
+        trust_rad = ones(N) * 0.5
+
+        h = ones(N) * self.__h0 # step size
         k = flag = 0
         while True:
             
-            tangent = string.update_tangent(x)
+            tangents = self.calc_tangents(x)
 
             # optimize each bead in the string
+            prev_g = copy.deepcopy(g0)
             for i in range(N):
 
-                prev_g = g
-                g = self.dx_on_dt(x0[i], x[i], g0[i], H[i], tangent[i])
-                step4, step5 = self.step_rk45(x[i], g, h[i])
+                g_of_x = lambda myx: self.dx_on_dt(x0[i], myx, g0[i], H[i], tangents[i])
+                g = g_of_x(x[i])
+                step4, step5 = self.rk45_step(x[i], g_of_x, h[i])
                 prev_x[i] = x[i]
                 x[i] += step4
 
@@ -1714,28 +1794,36 @@ class QuadraticStringMethod():
 
                 if linalg.norm(x[i] - x0[i]) > trust_rad[i]:
                     flag = self.__TRUST_EXCEEDED
-                elif dot(g, prev_g) < 0: # is this correct?
+                elif dot(g, prev_g[i]) < 0: # is this correct?
                     flag = self.__DIRECTION_CHANGE
 
+                prev_g[i] = g
+
             k += 1
+            print "k =", k
+            print "x =", x
 
             if False:
+                # adaptive step size
                 s = (eps0 * h[i] / 2. / err)**0.25
                 h[i] = min(s*h[i], 0.2)
 
             if k > self.__MAX_QUAD_ITERATIONS or flag != 0:
+                print "flag = ",flag
                 break
 
-        # TODO: was working in here somewhere
-
-        x.flatten()
+        x = x.flatten()
         return x 
 
-        def dx_on_dt(self, x0, x, g0, H, tangent):
-            approx_grad = g0 + dot(H, x - x0)
-            perp_component = eye(dims) - outer(tangent, tangent)
-            dx_on_dt_tmp = dot(approx_grad, perp_component)
-            return dx_on_dt_tmp
+    def dx_on_dt(self, x0, x, g0, H, tangent):
+        print g0
+        print H
+        print x
+        print x0
+        approx_grad = g0 + dot(H, x - x0)
+        perp_component = eye(self.__dims) - outer(tangent, tangent)
+        dx_on_dt_tmp = dot(approx_grad, perp_component)
+        return dx_on_dt_tmp
 
     def int_rk45(self, x0, dx_on_dt, trust_rad, verbose = False):
         """Performs adaptive step size Runge-Kutta integration. Based on:
