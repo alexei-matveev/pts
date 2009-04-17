@@ -11,3 +11,13 @@ TODO
   - Why do they use a runge kutta method to solve the equations when all they 
     want to do is minimise withing a trust region?
   - Is it because it becomes tricky when you have a multidimentional function?
+
+17/04/2009
+----------
+
+ - string starts going crazy after a few macro iterations.
+ - could be because the hessian is getting confused after it gets updated 
+   based on gradient from re-spaced points.
+ - will the methods described in the paper fix this?
+ - *** mostly fixed by makign trust radius better
+ - *** remaining problem seems to be that some points move far slower than others, causing kinks in the string

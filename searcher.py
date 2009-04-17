@@ -16,6 +16,17 @@ ch.setLevel(logging.DEBUG)
 
 import scipy.integrate
 
+def wt():
+    raw_input("Wait...\n")
+
+def _functionId(nFramesUp):
+    """ Create a string naming the function n frames up on the stack.
+    """
+    import sys
+    co = sys._getframe(nFramesUp+1).f_code
+    return "%s (%s @ %d)" % (co.co_name, co.co_filename, co.co_firstlineno)
+
+
 def report(str):
     line = "================================================================="
     print line
@@ -437,11 +448,14 @@ class PathRepresentation():
         """Returns the unit tangents to the path at the current set of 
         normalised positions."""
 
+        flab("called")
+
         tangents = []
         for str_pos in self.__normalised_positions:
             tangents.append(self.__get_tangent(str_pos))
 
         tangents = array(tangents)
+        flab("exited")
         return tangents
 
     def set_state_vec(self, new_state_vec):
@@ -498,6 +512,7 @@ class PathRepresentation():
 #                print "xs =", xs, "ys =", ys
 #                raw_input('P\n')
                 self.__fs.append(SplineFunc(xs,ys))
+        flab("exited")
 
 
     def __arc_dist_func(self, x):
@@ -729,6 +744,8 @@ class PathRepresentation():
             path_tangent.append(f.fprime(x))
 
         t = array(path_tangent).flatten()
+#        print t, x
+#        print self.__state_vec
         t = t / linalg.norm(t)
         return t
 
@@ -1579,7 +1596,7 @@ class QuadraticStringMethod():
 
     [QSM] Burger and Yang, J Chem Phys 2006 vol 124 054109."""
 
-    def __init__(self, string = None, callback = None):
+    def __init__(self, string = None, callback = None, gtol = 0.05):
         self.__string = string
         self.__callback = callback
         
@@ -1589,7 +1606,8 @@ class QuadraticStringMethod():
 
         self.__TRUST_EXCEEDED = 1
         self.__DIRECTION_CHANGE = 2
-        self.__MAX_QUAD_ITERATIONS = 30
+        self.__MAX_QUAD_ITERATIONS = 100
+        self.__gtol = gtol
 
     def mytest(self):
         dims = 3
@@ -1660,17 +1678,23 @@ class QuadraticStringMethod():
 
         # optimisation of whole string to semi-global min
         k = 0
-        m = e
+#        m = e
         while True:
             prev_x = copy.deepcopy(x)
 
-            # optimisation of whole string on quadratic surface
+            # optimisation of whole string on local quadratic surface
             x = self.quadratic_opt(x, g, H)
+
+            # redistribute, update tangents, etc
+            x = self.__callback(x)
 
             delta = x - prev_x
             prev_g = g
             prev_e = e
             e, g = update_eg(x) # TODO: Question: will the state of the string be updated?
+
+            if linalg.norm(g) < self.__gtol:
+                break
 
             """ don't update trust radius for the time being 
             trust_rad = update_trust_rads(e, prev_e, m, prev_m, delta)"""
@@ -1678,13 +1702,6 @@ class QuadraticStringMethod():
             gamma = g - prev_g
             prev_H = H
             H = self.update_H(delta, gamma, prev_H)
-
-            # redistribute, update tangents, etc
-            x = self.__callback(x)
-
-            break # just for testing
-            if linalg.norm(x) < gtol:
-                break
 
             k += 1
 
@@ -1720,7 +1737,28 @@ class QuadraticStringMethod():
             numerator2 = outer(gamma, gamma)
             denominator2 = dot(gamma, delta)
 
+            if i == 8:
+                print delta
+                print gamma
+                print H
+                print denominator1
+                print denominator2
+                print dot(delta,gamma)
+                print "********"
+                wt()
+
             H_new = H - numerator1 / denominator1 + numerator2 / denominator2
+
+            # Guard against when gradient doesn't change for a particular point.
+            # This typically happens for the reactant/product points which are
+            # already at a minimum.
+            if isfinite(H_new).flatten().tolist().count(False) > 0: # is there a more elegant expression?
+                H_new = H * 0
+            """if linalg.norm(dot(H_new, delta)) > 0.2:
+                H_new = eye(self.__dims) * 0.01
+                print "yes"
+                wt()"""
+
             Hs_new.append(H_new)
 
         return Hs_new
@@ -1762,6 +1800,8 @@ class QuadraticStringMethod():
     def quadratic_opt(self, x0, g0, H):
         """Optimiser used to optimise on quadratic surface."""
 
+        from numpy.linalg import norm
+
         dims = self.__dims
         x = copy.deepcopy(x0)
         x0.shape = (-1, dims)
@@ -1772,36 +1812,49 @@ class QuadraticStringMethod():
         assert(len(H[0])) == dims # hessian of quadratic surface
 
         # temporary
-        trust_rad = ones(N) * 0.5
+        trust_rad = ones(N) * self.__init_trust_rad
 
         h = ones(N) * self.__h0 # step size
         k = flag = 0
         while True:
             
+            print _functionId(0), ": x =", x
             tangents = self.calc_tangents(x)
 
             # optimize each bead in the string
             prev_g = copy.deepcopy(g0)
             for i in range(N):
 
-                g_of_x = lambda myx: self.dx_on_dt(x0[i], myx, g0[i], H[i], tangents[i])
-                g = g_of_x(x[i])
-                step4, step5 = self.rk45_step(x[i], g_of_x, h[i])
+                print "H[i] =", H[i]
+                dx_on_dt = lambda myx: self.dx_on_dt_general(x0[i], myx, g0[i], H[i], tangents[i])
+                
+                step4, step5 = self.rk45_step(x[i], dx_on_dt, h[i])
                 prev_x[i] = x[i]
+        
+                if linalg.norm(step4) > trust_rad[i]:
+                    step4 = step4 / linalg.norm(step4) * trust_rad[i]
+
                 x[i] += step4
+                print _functionId(0), ": x[i] =", x[i], "prev_x[i] =", prev_x[i], "step4 =", step4
 
-                err = linalg.norm(step5 - step4)
+                g = -dx_on_dt(x[i])
 
-                if linalg.norm(x[i] - x0[i]) > trust_rad[i]:
+                err = norm(step5 - step4)
+
+                if norm(x[i] - x0[i]) > trust_rad[i]:
+                    print "Trust radius exceeded for point", i
+                    wt()
                     flag = self.__TRUST_EXCEEDED
-                elif dot(g, prev_g[i]) < 0: # is this correct?
+                elif dot(g, prev_g[i]) < 0: # angle_change >= pi / 2: # is this correct?
+                    print "Direction change for point", i
+                    print "g = ", g, "g_prev =", prev_g[i]
+                    raw_input("Wait...\n")
                     flag = self.__DIRECTION_CHANGE
+
 
                 prev_g[i] = g
 
             k += 1
-            print "k =", k
-            print "x =", x
 
             if False:
                 # adaptive step size
@@ -1809,21 +1862,22 @@ class QuadraticStringMethod():
                 h[i] = min(s*h[i], 0.2)
 
             if k > self.__MAX_QUAD_ITERATIONS or flag != 0:
-                print "flag = ",flag
+                print "flag = ",flag, "k =", k
+                raw_input("Wait...\n")
                 break
 
         x = x.flatten()
         return x 
 
-    def dx_on_dt(self, x0, x, g0, H, tangent):
-        print g0
-        print H
-        print x
-        print x0
+    def dx_on_dt_general(self, x0, x, g0, H, tangent):
+#        print g0
+#        print H
+#        print x
+#        print x0
         approx_grad = g0 + dot(H, x - x0)
         perp_component = eye(self.__dims) - outer(tangent, tangent)
         dx_on_dt_tmp = dot(approx_grad, perp_component)
-        return dx_on_dt_tmp
+        return -dx_on_dt_tmp
 
     def int_rk45(self, x0, dx_on_dt, trust_rad, verbose = False):
         """Performs adaptive step size Runge-Kutta integration. Based on:
@@ -1925,6 +1979,7 @@ class QuadraticStringMethod():
         step4 = 25./216.*k1 + 1408./2565.*k3 + 2197./4104.*k4 - 1./5.*k5
         step5 = 16./135.*k1 + 6656./12825.*k3 + 28561./56430.*k4 - 9./50.*k5 + 2./55.*k6
 
+        print "*******STEP", x, h, step4
         return step4, step5
 
 class SurfPlot():
