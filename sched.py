@@ -35,19 +35,56 @@ def test_threads():
         queue.join()
         
 
+class CalcManager():
+    """Memorizes the results of previous calculations and, depending on the closeness
+    of newly requested calculations, either (a) runs a whole new calculation, 
+    (b) interpolates existing data or (c) returns existing data unmodified."""
 
-"""class ParaSched(threading.Thread):
-    def __init__(self, total_procs, norm_procs, max_procs, input_list, f):
-        self.__total_procs = total_procs
-        self.__norm_procs = norm_procs
-        self.__max_procs = norm_procs
+    def __init__(self, qc_driver, f_closeness = None, sched_args = None):
+        self.__para_sched = None
+        if sched_args != None:
+            self.__para_sched = ParaSched(qc_driver, *sched_args)
 
-        # setup queue
+    def add_energy_request(self, v):
+        pass
+
+    def add_grad_request(self, v):
+        pass
+
+    def proc_requests(self):
+        if self.__para_sched != None:
+            self.__para_sched.run_all()
+
+    def energy(self, v):
+        pass
+
+    def grad(self, v):
+        pass
+        
+
+
+class ParaSched:
+    def __init__(qc_driver, total_procs = 4, min_job_procs = 1, max_job_procs = 2)
+        
         self.__queue = Queue()
-        for x in input_list:
-            self.__queue.put(x)
 
-        self.__results = []
+        # no of workers to start
+        self.__workers = floor (total_procs / min_job_procs)
 
-        # start workers
-"""
+
+    def add_job(self, j, i = None):
+        self.__queue.put((v,i))
+
+    def run_all(self):
+        for i in range(self, ):
+            t = Thread(target=worker, args=(queue,))
+            t.start()
+
+        if queue.empty():
+            print "Problem: queue was empty"
+        else:
+            queue.join()
+
+    def get_result(v, i = None):
+        pass
+

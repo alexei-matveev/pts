@@ -31,6 +31,7 @@ Next tasks
 ----------
  - implement queing in qchem driver
  - test NEB again
- - test growing string with QSM
+ - compare SciPy BFGS optimiser with mine
+ - test growing string with QSM (DONE)
  - implement test for oscillating string/band
  - test on other potentials
