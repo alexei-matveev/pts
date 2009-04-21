@@ -20,4 +20,17 @@ TODO
    based on gradient from re-spaced points.
  - will the methods described in the paper fix this?
  - *** mostly fixed by makign trust radius better
- - *** remaining problem seems to be that some points move far slower than others, causing kinks in the string
+ - *** remaining problem seems to be that some points move far slower than 
+   others, causing kinks in the string
+ 
+20/04/2009
+----------
+ - above problem fixed by using adaptive step sizes
+
+Next tasks
+----------
+ - implement queing in qchem driver
+ - test NEB again
+ - test growing string with QSM
+ - implement test for oscillating string/band
+ - test on other potentials

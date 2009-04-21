@@ -906,9 +906,6 @@ class GrowingString(ReactionPathway):
         if self.get_current_beads_count() == self.__final_beads_count:
             self.__path_rep.set_rho(self.__final_rho)
 
-#            self.__path_rep.dump_rho() #debug
-#            raw_input('Press to continue...\n') #debug
-
             return self.__final_rho
 
         # Value that integral must be equal to to give desired number of beads
@@ -928,8 +925,6 @@ class GrowingString(ReactionPathway):
 
         pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
         self.__path_rep.set_rho(pwr.f)
-
-#        self.__path_rep.dump_rho()
 
     def obj_func(self, new_state_vec = []):
         flab("called")
@@ -953,10 +948,7 @@ class GrowingString(ReactionPathway):
         for i in range(self.__path_rep.beads_count)[1:-1]:
             g = self.__qc_driver.gradient(self.__path_rep.get_state_vec()[i])
             t = ts[i]
-#            print "g_before = ", g,
-#            print "t =", t,
             g = project_out(t, g)
-#            print "g_after =", g
             gradients.append(g)
 
         react_gradients = prod_gradients = zeros(self.__path_rep.get_dimensions())
@@ -977,7 +969,6 @@ class GrowingString(ReactionPathway):
             print "sv =", state_vec
             self.__path_rep.set_state_vec(state_vec)
 
-#        print "update_path: self.__path_rep.get_state_vec() =", self.__path_rep.get_state_vec()
         # rebuild line, parabola or spline representation of path
         self.__path_rep.regen_path_func()
 
@@ -1125,7 +1116,7 @@ def test_QSM():
 
     reagents = [reactants, products]
     gs = GrowingString(reagents, qc_driver, 
-        beads_count=10, rho=rho_flat, growing=False)
+        beads_count=8, rho=rho_flat, growing=False)
 
     # Wrapper callback function
     def mycb(x):
@@ -1140,14 +1131,49 @@ def test_QSM():
 
     qs = QuadraticStringMethod(gs, callback = mycb)
     
-    #opt = my_runge_kutta(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback = mycb) 
-    dims = len(reactants)
-
     opt = qs.opt_global_local_wrap()
 
     gs.plot()
     print "path to plot (for surface) =", opt
     surf_plot.plot(opt)
+
+def test_GQSM():
+    """Test the GROWING Quadratic String Method"""
+    from scipy.optimize import fmin_bfgs
+    f_test = lambda x: True
+    rho_quartic = lambda x: (x*(x-1))**2
+    rho_flat = lambda x: 1
+    surf_plot = SurfPlot(GaussianPES())
+    qc_driver = GaussianPES()
+
+    reagents = [reactants, products]
+    gs = GrowingString(reagents, qc_driver, 
+        beads_count=8, rho=rho_flat, growing=True)
+
+    # Wrapper callback function
+    def mycb(x):
+        flab("called")
+        gs.update_path(x, respace = True)
+        gs.plot()
+        return gs.get_state_vec()
+
+    from scipy.optimize.lbfgsb import fmin_l_bfgs_b
+    from scipy.optimize import fmin_cg
+
+    qs = QuadraticStringMethod(gs, callback = mycb)
+    
+    while True:
+        opt = qs.opt_global_local_wrap()
+
+        # grow the string, but break if not possible
+        if not gs.grow_string():
+            break
+
+    gs.plot()
+    print "path to plot (for surface) =", opt
+    surf_plot.plot(opt)
+
+
 
 def test_GrowingString():
     from scipy.optimize import fmin_bfgs
@@ -1596,18 +1622,21 @@ class QuadraticStringMethod():
 
     [QSM] Burger and Yang, J Chem Phys 2006 vol 124 054109."""
 
-    def __init__(self, string = None, callback = None, gtol = 0.05):
+    def __init__(self, string = None, callback = None, gtol = 0.1, update_trust_rads = False):
         self.__string = string
         self.__callback = callback
         
         self.__init_trust_rad = 0.1
-        self.__h0 = 0.01
+        self.__h0 = 0.1
+        self.__max_step_err = 0.01
         self.__dims = self.__string.get_dims()
 
         self.__TRUST_EXCEEDED = 1
         self.__DIRECTION_CHANGE = 2
         self.__MAX_QUAD_ITERATIONS = 100
         self.__gtol = gtol
+
+        self.__update_trust_rads = update_trust_rads
 
     def mytest(self):
         dims = 3
@@ -1663,8 +1692,8 @@ class QuadraticStringMethod():
             """Returns energy and gradient for state vector my_x."""
             my_x.flatten()
             e = self.__string.obj_func(my_x)
-            g = self.__string.obj_func_grad(my_x)
-            g.shape = (-1, self.__dims)
+            g = self.__string.obj_func_grad(my_x).flatten()
+#            g.shape = (-1, self.__dims)
 
             return e, g
 
@@ -1678,7 +1707,7 @@ class QuadraticStringMethod():
 
         # optimisation of whole string to semi-global min
         k = 0
-#        m = e
+        m = e # auadratically estimated energy
         while True:
             prev_x = copy.deepcopy(x)
 
@@ -1689,6 +1718,12 @@ class QuadraticStringMethod():
             x = self.__callback(x)
 
             delta = x - prev_x
+
+            # update quadratic estimate of new energy
+            prev_m = m
+            m = e + dot(delta, g) + 0.5 * dot(delta, self.mydot(H, delta))
+
+            # update real energy
             prev_g = g
             prev_e = e
             e, g = update_eg(x) # TODO: Question: will the state of the string be updated?
@@ -1698,6 +1733,10 @@ class QuadraticStringMethod():
 
             """ don't update trust radius for the time being 
             trust_rad = update_trust_rads(e, prev_e, m, prev_m, delta)"""
+
+            if self.__update_trust_rads:
+                prev_trust_rad = trust_rad
+                trust_rad = self.update_trust_rads(e, prev_e, m, prev_m, delta, prev_trust_rad)
 
             gamma = g - prev_g
             prev_H = H
@@ -1763,18 +1802,33 @@ class QuadraticStringMethod():
 
         return Hs_new
 
-    def update_trust_rads(self, e, prev_e, m, prev_m, dx, dims, prev_trust_rads):
+    def mydot(self, vec_of_mats, vec_of_vecs):
+        vec_of_vecs = copy.deepcopy(vec_of_vecs)
+        vec_of_vecs.shape = (-1, self.__dims)
+        assert len(vec_of_mats) == len(vec_of_vecs)
+        list = []
+        for i in range(len(vec_of_vecs)):
+            M = vec_of_mats[i]
+            v = vec_of_vecs[i]
+
+            list.append(dot(M, v))
+        return array(list).flatten()
+            
+    def update_trust_rads(self, e, prev_e, m, prev_m, dx, prev_trust_rads):
         """Equations 21a and 21b from [QSM]."""
         
-        s = (-1, dims)
+        s = (-1, self.__dims)
         dx.shape = s
+        N = self.__string.get_current_beads_count()  # number of beads in string
 
         new_trust_rads = []
 
-        assert len(e) == len(prev_e) == len(m) == len(prev_m) == len(prev_trust_rads)
+        assert len(prev_trust_rads) == N
 
-        for i in range(len(e)):
+        for i in range(N):
             rho = (e[i] - prev_e[i]) / (m[i] - prev_m[i])
+            print "rho =", rho
+            wt()
 
             if rho > 0.75 and 1.25 * linalg.norm(dx[i]) > prev_trust_rads[i]:
                 rad = 2 * rho
@@ -1808,6 +1862,7 @@ class QuadraticStringMethod():
         x.shape = (-1, dims)
         prev_x = copy.deepcopy(x)
         N = self.__string.get_current_beads_count()  # number of beads in string
+        g0 = copy.deepcopy(g0)
         g0.shape = (-1, dims)     # initial gradient of quadratic surface
         assert(len(H[0])) == dims # hessian of quadratic surface
 
@@ -1825,12 +1880,20 @@ class QuadraticStringMethod():
             prev_g = copy.deepcopy(g0)
             for i in range(N):
 
-                print "H[i] =", H[i]
+                print "i =", i
+                print "H =", H[i]
+                print "x =", x[i]
                 dx_on_dt = lambda myx: self.dx_on_dt_general(x0[i], myx, g0[i], H[i], tangents[i])
                 
                 step4, step5 = self.rk45_step(x[i], dx_on_dt, h[i])
+
+                if linalg.norm(step4, ord=inf) == 0.0:
+                    print "continuing. step4 =", step4
+#                    wt()
+                    continue
                 prev_x[i] = x[i]
         
+                # guard against case when even initial step goes over trust radius
                 if linalg.norm(step4) > trust_rad[i]:
                     step4 = step4 / linalg.norm(step4) * trust_rad[i]
 
@@ -1843,23 +1906,25 @@ class QuadraticStringMethod():
 
                 if norm(x[i] - x0[i]) > trust_rad[i]:
                     print "Trust radius exceeded for point", i
-                    wt()
+#                    wt()
                     flag = self.__TRUST_EXCEEDED
                 elif dot(g, prev_g[i]) < 0: # angle_change >= pi / 2: # is this correct?
                     print "Direction change for point", i
                     print "g = ", g, "g_prev =", prev_g[i]
-                    raw_input("Wait...\n")
+#                    raw_input("Wait...\n")
                     flag = self.__DIRECTION_CHANGE
+
+                if True:
+                    # adaptive step size
+                    print "Step size for point", i, "scaled from", h[i],
+                    h[i] = h[i] * abs(self.__max_step_err / err)**(1./5.)
+                    print "to", h[i], ". Error =", err
+#                    wt()
 
 
                 prev_g[i] = g
 
             k += 1
-
-            if False:
-                # adaptive step size
-                s = (eps0 * h[i] / 2. / err)**0.25
-                h[i] = min(s*h[i], 0.2)
 
             if k > self.__MAX_QUAD_ITERATIONS or flag != 0:
                 print "flag = ",flag, "k =", k
