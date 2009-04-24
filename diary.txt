@@ -27,9 +27,12 @@ TODO
 ----------
  - above problem fixed by using adaptive step sizes
 
-Next tasks
+Tasks
 ----------
- - implement queing in qchem driver
+ - investigate OpenBabel and cclib
+ - implement calc queueing, remembering and multithreading (DONE)
+ - improve logging / error reporting
+ - get code to use new scheduler
  - test NEB again
  - compare SciPy BFGS optimiser with mine
  - test growing string with QSM (DONE)
