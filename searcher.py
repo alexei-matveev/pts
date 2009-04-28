@@ -255,9 +255,7 @@ class NEB(ReactionPathway):
         for a in range(len(ks)):
             list[a] = list[a] * ks[a]
 
-#        print "list =",list
         curr_dim = list.shape[1]  # generate zero vector of the same dimension of the list of input dimensions
-#        print "cd = ", curr_dim
         z = array(zeros(curr_dim))
         list_pos = vstack((list, z))
         list_neg = vstack((z, list))
@@ -285,6 +283,8 @@ class NEB(ReactionPathway):
     def obj_func(self, new_state_vec = []):
         assert size(self.state_vec) == self.beads_count * self.dimension
 
+        print "**** Energy Call"
+
         if new_state_vec != []:
             self.state_vec = array(new_state_vec)
             self.state_vec.shape = (self.beads_count, self.dimension)
@@ -304,6 +304,8 @@ class NEB(ReactionPathway):
 
     def obj_func_grad(self, new_state_vec = []):
 
+        print "**** Gradient Call"
+
         # If a state vector has been specified, return the value of the 
         # objective function for this new state and set the state of self
         # to the new state.
@@ -318,14 +320,11 @@ class NEB(ReactionPathway):
         separations_diffs = self.special_reduce(separations_vec, self.spr_const_vec, f2 = lambda x: x)
         assert len(separations_diffs) == self.beads_count - 2
 
-#        print "sd =", separations_diffs.flatten(), "t =", self.tangents[1:-1]
         spring_forces = multiply(separations_diffs.flatten(), self.tangents[1:-1].transpose()).transpose()
         spring_forces = vstack((zeros(self.dimension), spring_forces, zeros(self.dimension)))
-#        print "sf =", spring_forces
 
         pes_forces = array(zeros(self.beads_count * self.dimension))
         pes_forces.shape = (self.beads_count, self.dimension)
-#        print "pesf =", pes_forces
 
         for i in range(self.beads_count)[1:-1]:
             pes_forces[i] = -self.qc_driver.gradient(self.state_vec[i])
@@ -343,18 +342,6 @@ class NEB(ReactionPathway):
         return gradients_vec.flatten()
 
 
-
-class NEB_l(ReactionPathway):
-    def __init__(self, reactants, products, f_test, baseSprConst, qcDriver, beadsCount = 10, str_resolution = 100):
-        ReactionPathway.__init__(self, reactants, products, f_test, beadsCount)
-        self.baseSprConst = baseSprConst
-        self.qcDriver = qcDriver
-        self.tangents = zeros(beadsCount * self.dimension)
-        self.tangents.shape = (beadsCount, self.dimension)
-
-        # Make list of spring constants for every inter-bead separation
-        # For the time being, these are uniform
-        self.sprConstVec = array([self.baseSprConst for x in range(beadsCount - 1)])
 
 class Func():
     def f():
@@ -1269,6 +1256,18 @@ def wrap_function(function, args):
 
 _epsilon = sqrt(finfo(float).eps)
 
+def dump_mat(mat):
+    for row in mat:
+        for col in row:
+            if col > 0:
+                print "+",
+            elif col < 0:
+                print "-",
+            else:
+                print "0",
+            #print "%.0e " % col,
+        print
+
 def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
               epsilon=_epsilon, maxiter=None, full_output=0, disp=1,
               retall=0, callback=None):
@@ -1353,6 +1352,7 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
       See Wright, and Nocedal 'Numerical Optimization', 1999, pg. 198.
       """
     import numpy
+    import scipy.optimize.linesearch as linesearch
 
     x0 = asarray(x0).squeeze()
     if x0.ndim == 0:
@@ -1379,22 +1379,25 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
     gnorm = vecnorm(gfk,ord=norm)
     while (gnorm > gtol) and (k < maxiter):
         pk = -numpy.dot(Hk,gfk)
-        """alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
-           linesearch.line_search(f,myfprime,xk,pk,gfk,
-                                  old_fval,old_old_fval)
-        if alpha_k is None:  # line search failed try different one.
+        if False:
             alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
-                     line_search(f,myfprime,xk,pk,gfk,
-                                 old_fval,old_old_fval)
-            if alpha_k is None:
+               linesearch.line_search(f,myfprime,xk,pk,gfk,
+                                      old_fval,old_old_fval)
+            if alpha_k is None:  # line search failed try different one.
+                alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
+                         line_search(f,myfprime,xk,pk,gfk,
+                                     old_fval,old_old_fval)
+                if alpha_k is None:
 
-                # This line search also failed to find a better solution.
-                warnflag = 2
-                break                """
-        alpha_k = 0.1
+                    # This line search also failed to find a better solution.
+                    warnflag = 2
+                    break
+        else:
+            alpha_k = 0.1
+        print "alpha =", alpha_k
         xkp1 = xk + alpha_k * pk #0.3 added by hcm
         print "--------------------------------\npk =", pk
-        print "Hk =", Hk
+        dump_mat(Hk)
         if retall:
             allvecs.append(xkp1)
         sk = xkp1 - xk
@@ -2037,9 +2040,6 @@ class QuadraticStringMethod():
 
         xs = array((x,x2,x3,x4,x5,x6))
         ks = array((k1, k2, k3, k4, k5, k6))
-#        print "xs =", xs
-#        print "ks =", ks
-#        print "x =", x, "h =", h
 
         step4 = 25./216.*k1 + 1408./2565.*k3 + 2197./4104.*k4 - 1./5.*k5
         step5 = 16./135.*k1 + 6656./12825.*k3 + 28561./56430.*k4 - 9./50.*k5 + 2./55.*k6
@@ -2104,17 +2104,21 @@ class SurfPlot():
             ys = array(opt[:,1])
             data = transpose((xs, ys, pathEnergies))
             Gnuplot.Data(data, filename=tmpPathDataFile, inline=0, binary=0)
+            import os
+            wt()
+
 
             # PLOT SURFACE AND PATH
             g.splot(Gnuplot.File(tmpPESDataFile, binary=0), 
                 Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
-            os.unlink(tmpPathDataFile)
+        else:
 
-        # PLOT SURFACE ONLY
-        g.splot(Gnuplot.File(tmpPESDataFile, binary=0))
+            # PLOT SURFACE ONLY
+            g.splot(Gnuplot.File(tmpPESDataFile, binary=0))
 
         raw_input('Press to continue...\n')
 
+        os.unlink(tmpPathDataFile)
         os.unlink(tmpPESDataFile)
 
 
@@ -2123,7 +2127,7 @@ def test_NEB():
 
     default_spr_const = 1.
     neb = NEB(reactants, products, lambda x: True, default_spr_const,
-        GaussianPES(), beads_count = 20)
+        GaussianPES(), beads_count = 10)
     init_state = neb.get_state_as_array()
 
     surf_plot = SurfPlot(GaussianPES())
@@ -2131,10 +2135,17 @@ def test_NEB():
     # Wrapper callback function
     def mycb(x):
         flab("called")
-        surf_plot.plot(x)
+        surf_plot.plot(path = x)
         return x
 
-    opt = fmin_bfgs(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb)
+    from scipy.optimize.lbfgsb import fmin_l_bfgs_b
+
+#    opt = my_fmin_bfgs(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb)
+    opt, energy, dict = fmin_l_bfgs_b(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb, pgtol=0.05)
+    print "opt =", opt
+    print dict
+    wt()
+
     gr = neb.obj_func_grad(opt)
     n = linalg.norm(gr)
     i = 0
