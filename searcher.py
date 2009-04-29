@@ -45,12 +45,19 @@ def flab(tag = "", tag1 = ""):
 class QCDriver:
     def __init__(self, dimension):
         self.dimension = dimension
+        self.__g_calls = 0
+        self.__e_calls = 0
 
-    def gradient(self, a):
-        return (-1)
+    def get_calls(self):
+        return (self.__e_calls, self.__g_calls)
 
-    def energy(self, a):
-        return (-1)
+    def gradient(self):
+        self.__g_calls += 1
+        pass
+
+    def energy(self):
+        self.__e_calls += 1
+        pass
 
 """def g(a):
     x = a[0]
@@ -85,6 +92,7 @@ class FourWellPot(QCDriver):
 
 
     def energy(self, v):
+        QCDriver.energy(self)
 
         x, y = v[0], v[1]
 
@@ -98,6 +106,7 @@ class FourWellPot(QCDriver):
         return e
         
     def gradient(self, v):
+        QCDriver.gradient(self)
 
         x, y = v[0], v[1]
 
@@ -127,11 +136,15 @@ class GaussianPES(QCDriver):
         QCDriver.__init__(self,2)
 
     def energy(self, v):
+        QCDriver.energy(self)
+
         x = v[0]
         y = v[1]
         return (-exp(-(x**2 + y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*exp(-((1.5*x-1)**2 + (y-2)**2)))
 
     def gradient(self, v):
+        QCDriver.gradient(self)
+
         x = v[0]
         y = v[1]
         dfdx = 2*x*exp(-(x**2 + y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(4.5*x-3)*exp(-((1.5*x-1)**2 + (y-2)**2))
@@ -144,11 +157,15 @@ class GaussianPES2(QCDriver):
         QCDriver.__init__(self,2)
 
     def energy(self, v):
+        QCDriver.energy(self)
+
         x = v[0]
         y = v[1]
         return (-exp(-(x**2 + 0.2*y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*exp(-((x-1.5)**2 + (y-2.5)**2)))
 
     def gradient(self, v):
+        QCDriver.gradient(self)
+
         x = v[0]
         y = v[1]
         dfdx = 2*x*exp(-(x**2 + 0.2*y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(2*x-3)*exp(-((x-1.5)**2 + (y-2.5)**2))
@@ -161,6 +178,8 @@ class QuarticPES(QCDriver):
         QCDriver.__init__(self,2)
 
     def gradient(self, a):
+        QCDriver.gradient(self)
+
         if len(a) != self.dimension:
             raise Exception("Wrong dimension")
 
@@ -171,6 +190,8 @@ class QuarticPES(QCDriver):
         return array([dzdy, dzdx])
 
     def energy(self, a):
+        QCDriver.energy(self)
+
         if len(a) != self.dimension:
             raise Exception("Wrong dimension")
 
@@ -849,6 +870,9 @@ class GrowingString(ReactionPathway):
         # TODO: make sure all reagents are of same length
         self.__dims = len(reagents[0])
 
+        # dummy energy of a reactant/product
+        self.__reagent_energy = 0
+
     def get_dims(self):
         return self.__dims
 
@@ -913,17 +937,21 @@ class GrowingString(ReactionPathway):
         pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
         self.__path_rep.set_rho(pwr.f)
 
-    def obj_func(self, new_state_vec = []):
+    def obj_func(self, new_state_vec = [], individual_energies = False):
         flab("called")
         self.update_path(new_state_vec, respace = True)
 
         # The following code block will need to be replaced for parallel operation
-        pes_energies = 0
+        es = [self.__reagent_energy]
         for bead_vec in self.__path_rep.get_state_vec()[1:-1]:
-            pes_energies += self.__qc_driver.energy(bead_vec)
-
+            es.append(self.__qc_driver.energy(bead_vec))
+        es.append(self.__reagent_energy)
+        pes_energies = sum(es)
         print "ENERGY =", pes_energies
-        return pes_energies
+        if individual_energies:
+            return array(es)
+        else:
+            return pes_energies
        
     def obj_func_grad(self, new_state_vec = []):
         flab("called")
@@ -1109,14 +1137,13 @@ def test_QSM():
     def mycb(x):
         flab("called")
         gs.update_path(x, respace = True)
-#        surf_plot.plot(x)
         gs.plot()
         return gs.get_state_vec()
 
     from scipy.optimize.lbfgsb import fmin_l_bfgs_b
     from scipy.optimize import fmin_cg
 
-    qs = QuadraticStringMethod(gs, callback = mycb)
+    qs = QuadraticStringMethod(gs, callback = mycb, update_trust_rads = True)
     
     opt = qs.opt_global_local_wrap()
 
@@ -1615,8 +1642,6 @@ def opt_gd(f, x0, fprime, callback = lambda x: Nothing):
     x = callback(x)
     return x
 
-
-
 class QuadraticStringMethod():
     """Quadratic String Method Functions
        ---------------------------------
@@ -1694,7 +1719,7 @@ class QuadraticStringMethod():
         def update_eg(my_x):
             """Returns energy and gradient for state vector my_x."""
             my_x.flatten()
-            e = self.__string.obj_func(my_x)
+            e = self.__string.obj_func(my_x, individual_energies = True)
             g = self.__string.obj_func_grad(my_x).flatten()
 #            g.shape = (-1, self.__dims)
 
@@ -1707,10 +1732,11 @@ class QuadraticStringMethod():
         Hi = linalg.norm(g) * eye(self.__dims)
         for i in range(self.__string.get_current_beads_count()):
             H.append(copy.deepcopy(Hi))
+        H = array(H)
 
         # optimisation of whole string to semi-global min
         k = 0
-        m = e # auadratically estimated energy
+        m = e # quadratically estimated energy
         while True:
             prev_x = copy.deepcopy(x)
 
@@ -1724,18 +1750,18 @@ class QuadraticStringMethod():
 
             # update quadratic estimate of new energy
             prev_m = m
-            m = e + dot(delta, g) + 0.5 * dot(delta, self.mydot(H, delta))
+            m = e + self.mydot(delta, g) + 0.5 * self.mydot(delta, self.mydot(H, delta))
+            print "m =", m
+            print "prev_m =", prev_m
+            wt()
 
             # update real energy
             prev_g = g
             prev_e = e
-            e, g = update_eg(x) # TODO: Question: will the state of the string be updated?
+            e, g, x = update_eg(x) # TODO: Question: will the state of the string be updated?
 
             if linalg.norm(g) < self.__gtol:
                 break
-
-            """ don't update trust radius for the time being 
-            trust_rad = update_trust_rads(e, prev_e, m, prev_m, delta)"""
 
             if self.__update_trust_rads:
                 prev_trust_rad = trust_rad
@@ -1779,7 +1805,7 @@ class QuadraticStringMethod():
             numerator2 = outer(gamma, gamma)
             denominator2 = dot(gamma, delta)
 
-            if i == 8:
+            if False and i == 8:
                 print delta
                 print gamma
                 print H
@@ -1803,19 +1829,35 @@ class QuadraticStringMethod():
 
             Hs_new.append(H_new)
 
-        return Hs_new
+        return array(Hs_new)
 
-    def mydot(self, vec_of_mats, vec_of_vecs):
-        vec_of_vecs = copy.deepcopy(vec_of_vecs)
-        vec_of_vecs.shape = (-1, self.__dims)
-        assert len(vec_of_mats) == len(vec_of_vecs)
+    def mydot(self, super_vec1, super_vec2):
+        N = self.__string.get_current_beads_count()
+        d = self.__dims
+
+        def set_shape(v):
+            if v.size == N * d: # vector of vectors
+                v.shape = (N, d)
+            elif v.size % (N * d) == 0: # vector of matrices
+                v.shape = (N, d, -1)
+            else:
+                raise Exception("vector %s inappropriate size for resizing with %d and %d" % (v, N, d))
+
+        super_vec1 = copy.deepcopy(super_vec1)
+        set_shape(super_vec1)
+
+        super_vec2 = copy.deepcopy(super_vec2)
+        set_shape(super_vec2)
+
         list = []
-        for i in range(len(vec_of_vecs)):
-            M = vec_of_mats[i]
-            v = vec_of_vecs[i]
+        for i in range(N):
+            v1 = super_vec1[i]
+            v2 = super_vec2[i]
 
-            list.append(dot(M, v))
-        return array(list).flatten()
+            list.append(dot(v1, v2))
+        a = array(list).flatten()
+
+        return a
             
     def update_trust_rads(self, e, prev_e, m, prev_m, dx, prev_trust_rads):
         """Equations 21a and 21b from [QSM]."""
@@ -1828,22 +1870,31 @@ class QuadraticStringMethod():
 
         assert len(prev_trust_rads) == N
 
+        print e
+        print prev_e
+        print m
+        print prev_m
         for i in range(N):
             rho = (e[i] - prev_e[i]) / (m[i] - prev_m[i])
-            print "rho =", rho
-            wt()
 
-            if rho > 0.75 and 1.25 * linalg.norm(dx[i]) > prev_trust_rads[i]:
+            # guards against case e.g. when end points are not being moved and
+            # hence the denominator is zero
+            if isnan(rho):
+                rho = 1
+            print "rho =", rho,
+
+            rad = prev_trust_rads[i]
+            if rho > 0.75 and 1.25 * linalg.norm(dx[i]) > rad:
                 rad = 2 * rho
 
             elif rho < 0.25:
                 rad = 0.25 * linalg.norm(dx[i])
 
-            else:
-                raise Exception("Should never happen") # I *think*
-
             new_trust_rads.append(rad)
 
+        print
+        print "ntr =", new_trust_rads
+        wt()
         return new_trust_rads
 
     def calc_tangents(self, state_vec):
@@ -2053,6 +2104,7 @@ class SurfPlot():
 
     def plot(self, path = None, write_contour_file=False, maxx=3.0, minx=0.0, maxy=3.0, miny=0.0):
         flab("called")
+        import os
         opt = copy.deepcopy(path)
 
         # Points on grid to draw PES

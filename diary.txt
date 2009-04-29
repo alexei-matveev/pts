@@ -27,8 +27,9 @@ TODO
 ----------
  - above problem fixed by using adaptive step sizes
 
-Tasks
+Tasks / wish list
 ----------
+ - implement final parts of QSM
  - investigate OpenBabel and cclib
  - implement calc queueing, remembering and multithreading (DONE)
  - improve logging / error reporting (DONE for sched.py)
