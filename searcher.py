@@ -9,10 +9,17 @@ import logging
 import copy
 import pickle
 
-logger = logging.getLogger("searcher.py")
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+progname = "searcher"
+
+lg = logging.getLogger(progname)
+lg.setLevel(logging.DEBUG)
+modlog = lg # synonyum
+
+if not globals().has_key("lg"):
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.DEBUG)
+    lg.addHandler(sh)
+
 
 import scipy.integrate
 
@@ -36,11 +43,9 @@ def report(str):
 print "\n\nBegin Program..." 
 
 # Function labeller
-def flab(tag = "", tag1 = ""):
+def flab(msg, tag = "", tag1 = ""):
     import sys
-#    import inspect
-#    print inspect.stack(sys._getframe())
-    print "**** ", sys._getframe(1).f_code.co_name, tag, tag1
+    lg.debug("**** " + sys._getframe(1).f_code.co_name + str(msg) + str(tag) + str(tag1))
 
 class QCDriver:
     def __init__(self, dimension):
@@ -304,8 +309,6 @@ class NEB(ReactionPathway):
     def obj_func(self, new_state_vec = []):
         assert size(self.state_vec) == self.beads_count * self.dimension
 
-        print "**** Energy Call"
-
         if new_state_vec != []:
             self.state_vec = array(new_state_vec)
             self.state_vec.shape = (self.beads_count, self.dimension)
@@ -324,8 +327,6 @@ class NEB(ReactionPathway):
         return (pes_energies + spring_energies)
 
     def obj_func_grad(self, new_state_vec = []):
-
-        print "**** Gradient Call"
 
         # If a state vector has been specified, return the value of the 
         # objective function for this new state and set the state of self
@@ -349,20 +350,11 @@ class NEB(ReactionPathway):
 
         for i in range(self.beads_count)[1:-1]:
             pes_forces[i] = -self.qc_driver.gradient(self.state_vec[i])
-#            print "pesbefore =", pes_forces[i]
-            # OLD LINE:
-#            pes_forces[i] = pes_forces[i] - dot(pes_forces[i], self.tangents[i]) * self.tangents[i]
-
-            # NEW LINE:
             pes_forces[i] = project_out(self.tangents[i], pes_forces[i])
-
-#            print "pesafter =", pes_forces[i], "t =", self.tangents[i]
 
         gradients_vec = -1 * (pes_forces + spring_forces)
 
         return gradients_vec.flatten()
-
-
 
 class Func():
     def f():
@@ -410,7 +402,7 @@ class PathRepresentation():
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 500):
+    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 500, logger = modlog):
 
         # vector of vectors defining the path
         if (isinstance(state_vec, ndarray)):
@@ -440,10 +432,7 @@ class PathRepresentation():
 
         self.__rho = self.set_rho(rho)
 
-#        self.dump_rho()
-
-        msg = "beads_count = %d\nstr_resolution = %d" % (beads_count, str_resolution)
-        print msg
+        self.lg = modlog
 
         # TODO check all beads have same dimensionality
 
@@ -468,7 +457,6 @@ class PathRepresentation():
 
     def set_state_vec(self, new_state_vec):
         self.__state_vec = array(new_state_vec).flatten()
-        print self.beads_count
         self.__state_vec.shape = (self.beads_count, -1)
     def get_state_vec(self):
         return self.__state_vec
@@ -479,16 +467,11 @@ class PathRepresentation():
         """Rebuild a new path function and the derivative of the path based on 
         the contents of state_vec."""
         flab("called")
-        """        print self.__state_vec
-        print len(self.__state_vec)
-        raw_input('Wait(2)\n')"""
 
         assert len(self.__state_vec) > 1
 
         self.__fs = []
 
-        #print "state_vec2 =", self.__state_vec
-        #print "self.__dimensions =", self.__dimensions
         for i in range(self.__dimensions):
 
             ys = self.__state_vec[:,i]
@@ -516,9 +499,6 @@ class PathRepresentation():
                 # spline path
                 xs = self.__normalised_positions
                 assert len(self.__normalised_positions) == len(self.__state_vec)
-#                print "points_cnt =", points_cnt
-#                print "xs =", xs, "ys =", ys
-#                raw_input('P\n')
                 self.__fs.append(SplineFunc(xs,ys))
         flab("exited")
 
@@ -549,7 +529,7 @@ class PathRepresentation():
         cummulative = 0
 
         (str_len_precise, error) = scipy.integrate.quad(self.__arc_dist_func, 0, 1, limit=100)
-        print "String length integration error =", error
+        self.lg.debug("String length integration error = " + str(error))
         assert error < self.__max_integral_error
 
         for i in range(self.__str_resolution):
@@ -558,7 +538,8 @@ class PathRepresentation():
             cummulative += sub_integral
             list.append(cummulative)
 
-        print "int_approx = %lf, int_accurate = %lf" % (cummulative, str_len_precise)
+        #self.lg.debug('int_approx = {0}, int_accurate = {1}'.format(cummulative, str_len_precise))
+
         flab("exiting")
         return (list[-1], zip(param_steps, list))
 
@@ -577,8 +558,6 @@ class PathRepresentation():
             x0 = pos
 
         lengths = array(lengths).flatten()
-        print "sub_str_lengths: normd_poses:", normd_poses
-        print "sub_str_lengths: sub lengths of string", lengths
 
     def generate_beads_exact(self, update = False):
         """Returns an array of the self.__beads_count vectors of the coordinates 
@@ -601,7 +580,6 @@ class PathRepresentation():
 
         bead_vectors = []
         bead_tangents = []
-#        print "normd_positions =", normd_positions
         for str_pos in normd_positions:
             bead_vectors.append(self.__get_bead_coords(str_pos))
             bead_tangents.append(self.__get_tangent(str_pos))
@@ -610,14 +588,11 @@ class PathRepresentation():
         (reactants, products) = (self.__state_vec[0], self.__state_vec[-1])
         bead_vectors = [reactants] + bead_vectors + [products]
         bead_tangents = [self.__get_tangent(0)] + bead_tangents + [self.__get_tangent(1)]
-        print "bead_vectors =", bead_vectors
 
         if update:
             self.__state_vec = bead_vectors
-            print "New beads generated:", self.__state_vec
 
             self.__path_tangents = bead_tangents
-            print "Tangents updated:", self.__path_tangents
 
         return bead_vectors
 
@@ -631,14 +606,13 @@ class PathRepresentation():
         # Find total string length and incremental distances x along the string 
         # in terms of the normalised coodinate y, as a list of (x,y).
         (total_str_len, incremental_positions) = self.__get_total_str_len()
-#
+
         # For the desired distances along the string, find the values of the
         # normalised coordinate that achive those distances.
         normd_positions = self.__generate_normd_positions(total_str_len, incremental_positions)
 
         bead_vectors = []
         bead_tangents = []
-#        print "normd_positions =", normd_positions
         for str_pos in normd_positions:
             bead_vectors.append(self.__get_bead_coords(str_pos))
             bead_tangents.append(self.__get_tangent(str_pos))
@@ -648,17 +622,16 @@ class PathRepresentation():
         products = self.__state_vec[-1]
         bead_vectors = [reactants] + bead_vectors + [products]
         bead_tangents = [self.__get_tangent(0)] + bead_tangents + [self.__get_tangent(1)]
-        print "bead_vectors =", bead_vectors
 
         if update:
             self.__state_vec = bead_vectors
-            print "New beads generated:", self.__state_vec
+            self.lg.info("New beads generated: " + str(self.__state_vec))
 
             self.__path_tangents = bead_tangents
-            print "Tangents updated:", self.__path_tangents
+            self.lg.info("Tangents updated:" + str(self.__path_tangents))
 
             self.__normalised_positions = array([0.0] + normd_positions + [1.0])
-            print "Normalised positions updated:", self.__normalised_positions
+            self.lg.info("Normalised positions updated:" + str(self.__normalised_positions))
 
 
         return bead_vectors
@@ -671,7 +644,6 @@ class PathRepresentation():
         integrated_density_inc = 1.0 / (self.beads_count - 1.0)
         requirement_for_prev_bead = 0.0
         requirement_for_next_bead = integrated_density_inc
-        print "idi =", integrated_density_inc
 
         x_min = 0.0
         x_max = -1
@@ -691,8 +663,6 @@ class PathRepresentation():
             requirement_for_prev_bead = requirement_for_next_bead
             requirement_for_next_bead += integrated_density_inc
 
-        """print "fractions along string:", str_poses
-        dump_diffs("spd_exact", str_poses)"""
         return str_poses
 
     def dump_rho(self):
@@ -713,7 +683,6 @@ class PathRepresentation():
 
         param_steps = arange(0, 1 - self.__step, self.__step)
         integrated_density_inc = 1.0 / (self.beads_count - 1.0)
-#        print "integrated_density_inc =", integrated_density_inc 
         requirement_for_next_bead = integrated_density_inc
 
         integral = 0
@@ -723,8 +692,6 @@ class PathRepresentation():
             integral += 0.5 * (self.__rho(s) + self.__rho(prev_s)) * self.__step
             if integral > requirement_for_next_bead:
                 str_positions.append(s)
-#                print "requirement_for_next_bead =", requirement_for_next_bead
-#                print "integral =", integral
                 requirement_for_next_bead += integrated_density_inc
             prev_s = s
         
@@ -738,7 +705,6 @@ class PathRepresentation():
     def __get_bead_coords(self, x):
         """Returns the coordinates of the bead at point x <- [0,1]."""
         bead_coords = []
-#        print "len(self.__fs) =", len(self.__fs)
         for f in self.__fs:
             bead_coords.append(f.f(x))
 
@@ -752,8 +718,6 @@ class PathRepresentation():
             path_tangent.append(f.fprime(x))
 
         t = array(path_tangent).flatten()
-#        print t, x
-#        print self.__state_vec
         t = t / linalg.norm(t)
         return t
 
@@ -763,7 +727,6 @@ class PathRepresentation():
             (int, err) = scipy.integrate.quad(new_rho, 0.0, 1.0)
         else:
             int = 1.0
-        print int
         self.__rho = lambda x: new_rho(x) / int
         return self.__rho
 
@@ -804,27 +767,25 @@ class PathRepresentation():
 
         normd_positions = []
 
-        print "fractional_positions: ", fractional_positions, "\n"
+        self.lg.debug("fractional_positions: %s" % fractional_positions)
         for frac_pos in fractional_positions:
-#            print "frac_pos = ", frac_pos, "total_str_len = ", total_str_len
             for (norm, str) in incremental_positions:
 
                 if str >= frac_pos * total_str_len:
-#                    print "norm = ", norm
                     normd_positions.append(norm)
                     break
 
-        print "normd_positions =", normd_positions
-#        dump_diffs("npd", normd_positions)
         return normd_positions
 
 
 class PiecewiseRho:
     """Supports the creation of piecewise functions as used by the GrowingString
     class as the bead density function."""
-    def __init__(self, a1, a2, rho, max_beads):
+    def __init__(self, a1, a2, rho, max_beads, logger = modlog):
         self.a1, self.a2, self.rho = a1, a2, rho
         self.max_beads = max_beads
+
+        self.lg = logger
 
     def f(self, x):
         if 0 <= x <= self.a1:
@@ -834,8 +795,8 @@ class PiecewiseRho:
         elif self.a2 < x <= 1.0:
             return self.rho(x)
         else:
-            print "Value of (%f) not on [0,1], should never happen" % x
-            print "a1 = %f, a2 = %f" % (self.a1, self.a2)
+            self.lg.error("Value of (%f) not on [0,1], should never happen" % x)
+            self.lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 class GrowingString(ReactionPathway):
     def __init__(self, reagents, qc_driver, f_test = lambda x: True, 
@@ -890,8 +851,6 @@ class GrowingString(ReactionPathway):
 
         current_beads_count = self.get_current_beads_count()
 
-        print "beads = ", current_beads_count
-
         if current_beads_count == self.__final_beads_count:
             return False
         elif self.__final_beads_count - current_beads_count == 1:
@@ -930,8 +889,6 @@ class GrowingString(ReactionPathway):
         a1 = fmin(f_a1, end_int)[0]
         a2 = fmin(f_a2, end_int)[0]
 
-        print "end_int", end_int
-        print "a1 =", a1, "a2 =", a2
         assert a2 > a1
 
         pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
@@ -947,7 +904,6 @@ class GrowingString(ReactionPathway):
             es.append(self.__qc_driver.energy(bead_vec))
         es.append(self.__reagent_energy)
         pes_energies = sum(es)
-        print "ENERGY =", pes_energies
         if individual_energies:
             return array(es)
         else:
@@ -970,7 +926,6 @@ class GrowingString(ReactionPathway):
         gradients = [react_gradients] + gradients + [prod_gradients]
         
         gradients = array(gradients).flatten()
-        print "gradients =", gradients
         return (array(gradients).flatten())
 
     def update_path(self, state_vec = [], respace = True):
@@ -981,7 +936,6 @@ class GrowingString(ReactionPathway):
         flab("called", respace)
 
         if len(state_vec) > 2:
-            print "sv =", state_vec
             self.__path_rep.set_state_vec(state_vec)
 
         # rebuild line, parabola or spline representation of path
@@ -1032,10 +986,6 @@ def vector_interpolate(start, end, beads_count):
 
 reactants = array([0,0])
 products = array([3,3])
-if len(reactants) != len(products):
-    print "Reactants/Products must be the same size"
-
-print "Reactants vector size =", len(reactants), "Products vector size =", len(products)
 
 def test_path_rep():
     ts = array((2.5, 1.9))
@@ -1080,21 +1030,16 @@ def plot2D(react_path, path_res = 0.002):
     f_y = react_path.get_fs()[1].f
     xs = array ([f_x(p) for p in params])
     ys = array ([f_y(p) for p in params])
-#    print "params: ", params
-#    print "xs: ", xs
-#    print "ys: ", ys
 
     sp = SurfPlot(GaussianPES())
     contour_file = sp.plot(None, write_contour_file=True)
 
     # smooth path
     smooth_path = vstack((xs,ys)).transpose()
-#    print "smooth_path =", smooth_path
     Gnuplot.Data(smooth_path, filename=tmp_file1, inline=0, binary=0)
     
     # state vector
     data2 = react_path.get_state_vec()
-    print "plot2D: react_path.get_state_vec() =", data2
     Gnuplot.Data(data2, filename=tmp_file2, inline=0, binary=0)
 
     # points along path
@@ -1113,7 +1058,6 @@ def plot2D(react_path, path_res = 0.002):
         Gnuplot.File(tmp_file2, binary=0, with_ = "points", title = "get_state_vec()"), 
         Gnuplot.File(tmp_file3, binary=0, title="points on string from optimisation", with_ = "points"),
         Gnuplot.File(contour_file, binary=0, title="contours", with_="lines"))
-    print contour_file
     raw_input('Press to continue...\n')
 
     os.unlink(tmp_file1)
@@ -1148,7 +1092,6 @@ def test_QSM():
     opt = qs.opt_global_local_wrap()
 
     gs.plot()
-    print "path to plot (for surface) =", opt
     surf_plot.plot(opt)
 
 def test_GQSM():
@@ -1184,7 +1127,6 @@ def test_GQSM():
             break
 
     gs.plot()
-    print "path to plot (for surface) =", opt
     surf_plot.plot(opt)
 
 
@@ -1211,9 +1153,6 @@ def test_GrowingString():
     from scipy.optimize.lbfgsb import fmin_l_bfgs_b
     from scipy.optimize import fmin_cg
 
-    print "gsv =", gs.get_state_vec()
-
-    
     while True:
         # (opt, a, b) = fmin_l_bfgs_b(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad) 
         #opt = fmin_bfgs(gs.obj_func, gs.get_state_vec(), fprime = gs.obj_func_grad, callback=mycb, gtol=0.05, norm=Inf) 
@@ -1227,7 +1166,6 @@ def test_GrowingString():
             break
 
     gs.plot()
-    print "path to plot (for surface) =", opt
     surf_plot.plot(opt)
 
 
@@ -1249,7 +1187,6 @@ def my_runge_kutta(f, x0, fprime, callback, gtol=0.05):
         step =  -(1./6.) * ki1 - (1./3.) * ki2 - (1./3.) * ki3 - (1./6.) * ki4
 
         if linalg.norm(step, ord=inf) > max_step:
-            print "Scaling step"
             step = max_step * step / linalg.norm(step, ord=inf)
 
         x = x + step
@@ -1292,7 +1229,6 @@ def dump_mat(mat):
                 print "-",
             else:
                 print "0",
-            #print "%.0e " % col,
         print
 
 def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
@@ -1421,7 +1357,7 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
                     break
         else:
             alpha_k = 0.1
-        print "alpha =", alpha_k
+        lg.debug("alpha = {0}".format(alpha_k))
         xkp1 = xk + alpha_k * pk #0.3 added by hcm
         print "--------------------------------\npk =", pk
         dump_mat(Hk)
@@ -1446,10 +1382,10 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
             rhok = 1.0 / (numpy.dot(yk,sk))
         except ZeroDivisionError: 
             rhok = 1000.0
-            print "Divide-by-zero encountered: rhok assumed large"
+            lg.debug("Divide-by-zero encountered: rhok assumed large")
         if isinf(rhok): # this is patch for numpy
             rhok = 1000.0
-            print "Divide-by-zero encountered: rhok assumed large"
+            lg.debug("Divide-by-zero encountered: rhok assumed large")
         A1 = I - sk[:,numpy.newaxis] * yk[numpy.newaxis,:] * rhok
         A2 = I - yk[:,numpy.newaxis] * sk[numpy.newaxis,:] * rhok
         Hk = numpy.dot(A1,numpy.dot(Hk,A2)) + rhok * sk[:,numpy.newaxis] \
@@ -1502,124 +1438,6 @@ def test_my_bfgs():
     print x
 
 
-def my_bfgs(f, x0, fprime, callback = None):
-    from scipy.optimize import line_search
-    max_step_size = 0.3
-    i = 0
-    dims = len(x0)
-    I = eye(dims)
-    x = x0
-
-    def get_new_H_inv(sk, yk, H_inv_k):
-        p = 1 / dot(yk, sk)
-        tmp = yk*sk
-        I_minus_psy = eye(dims) - p * outer(sk, yk)
-        I_minus_pys = eye(dims) - p * outer(yk, sk)
-        pss = p * outer(s, s)
-
-        H_inv_new = dot (I_minus_psy, dot(H_inv_k, I_minus_pys)) + pss
-        return H_inv_new
-
-    def get_new_H_inv2(sk, yk, Hk):
-        rhok = 1.0 / (dot(yk,sk))
-        A1 = I - sk[:,newaxis] * yk[newaxis,:] * rhok
-        A2 = I - yk[:,newaxis] * sk[newaxis,:] * rhok
-        Hk = dot(A1,dot(Hk,A2)) + rhok * sk[:,newaxis] \
-                 * sk[newaxis,:]
-        return Hk
-
-    H_inv = eye(dims) * 5
-    H_inv2 = eye(dims) * 0.1
-    g = fprime(x)
-    energy = f(x)
-    k=0
-    while True:
-        p = -dot(H_inv, g)
-        alpha = 1 # from line search eventually
-        step = alpha * p
-
-        step_size = linalg.norm(step, ord=Inf)
-        if step_size > max_step_size:
-            print "scaling step"
-            step = step * max_step_size / step_size
-        
-        print "step =", step
-        print "p =", p
-        print "x =", x
-        print "g =", g
-
-        x_old = x
-        x = x + step
-        if callback != None:
-            print "x_before =", x
-            x = callback(x)
-            print "x_after =", x
-        g_old = g
-        g = fprime(x)
-
-        energy = f(x)
-
-        if linalg.norm(g, ord=2) < 0.01:
-            print k, " iterations"
-            return x
-            break
-        s = x - x_old
-        y = g - g_old
-        H_inv = get_new_H_inv(s, y, copy.deepcopy(H_inv))
-        H_inv2 = get_new_H_inv2(s, y, copy.deepcopy(H_inv))
-        print "H_inv", H_inv
-#        print "H_inv2", H_inv2
-        k += 1
-#        print "H_inv =", H_inv.flatten(), "s =", s, "y =", y
-
-
-def my_bfgs_bad(f, x0, fprime, callback = lambda x: Nothing):
-    from scipy.optimize import line_search
-    i = 0
-    dims = len(x0)
-    x = x0
-
-    def get_new_H_inv(sk, yk, H_inv_k):
-        A = outer(sk,sk) * (dot(sk,yk) + dot(yk, dot(H_inv_k, yk)))
-        B = dot(H_inv_k, outer(yk, sk)) + dot(outer(sk, yk), H_inv_k)
-        C = dot(sk, yk)
-
-        H_inv_new = H_inv_k + A/C/C - B/C
-        return H_inv_new
-    def get_new_H_inv_old(sk, yk, H_inv_k):
-        p = 1 / dot(yk, sk)
-        I_minus_psy = eye(dim) - p * outer(sk, yk)
-        I_minus_pys = eye(dim) - p * outer(yk, sk)
-        pss = p * outer(s, s)
-
-        H_inv_new = dot (I_minus_psy, dot(H_inv_k, I_minus_pys)) + pss
-        return H_inv_new
-
-    H_inv = eye(dims)
-    g = fprime(x)
-    energy = f(x)
-    while True:
-        s = dot(H_inv, -g)
-        #res = line_search(f, fprime, x, -1*g, g, energy, copy.deepcopy(energy))
-#        print "res =", res
-#        print "x =", x,
-#        print "g =", g
-#        alpha, d1, d2, d3, d4 = res
-        alpha = 1
-        x = x + alpha * s
-        x = callback(x)
-        g_old = g
-        g = fprime(x)
-
-        energy = f(x)
-
-        if linalg.norm(g, ord=inf) < 0.001:
-            break
-        y = g - g_old
-        H_inv = get_new_H_inv(s, y, H_inv)
-        print "H_inv =", H_inv.shape, "s =", s, "y =", y
-
-
 def opt_gd(f, x0, fprime, callback = lambda x: Nothing):
     """A gradient descent solver."""
     report("Grad Desc Iteration")
@@ -1650,7 +1468,7 @@ class QuadraticStringMethod():
 
     [QSM] Burger and Yang, J Chem Phys 2006 vol 124 054109."""
 
-    def __init__(self, string = None, callback = None, gtol = 0.1, update_trust_rads = False):
+    def __init__(self, string = None, callback = None, gtol = 0.1, update_trust_rads = False, logger = modlog):
         self.__string = string
         self.__callback = callback
         
@@ -1665,6 +1483,8 @@ class QuadraticStringMethod():
         self.__gtol = gtol
 
         self.__update_trust_rads = update_trust_rads
+
+        self.lg = logger
 
     def mytest(self):
         dims = 3
@@ -1751,14 +1571,11 @@ class QuadraticStringMethod():
             # update quadratic estimate of new energy
             prev_m = m
             m = e + self.mydot(delta, g) + 0.5 * self.mydot(delta, self.mydot(H, delta))
-            print "m =", m
-            print "prev_m =", prev_m
-            wt()
 
             # update real energy
             prev_g = g
             prev_e = e
-            e, g, x = update_eg(x) # TODO: Question: will the state of the string be updated?
+            e, g = update_eg(x) # TODO: Question: will the state of the string be updated(through respacing)?
 
             if linalg.norm(g) < self.__gtol:
                 break
@@ -1775,19 +1592,9 @@ class QuadraticStringMethod():
 
         return x
             
-    def update_H(self, deltas, gammas, Hs):
+    def update_H(self, deltas, gammas, Hs, use_tricky_update = True):
         """Damped BFGS Hessian Update Scheme as described in Ref. [QSM]., equations 14, 16, 18, 19."""
 
-        """ For the time being, always update H
-        if dot(delta, gamma) <= 0:
-            return H
-
-        if dot(delta, gamma) > 0.2 * dot(delta, dot(H, delta)):"""
-        """            theta = 1
-        else:
-            theta = 0.8 * dot(delta, dot(H, delta)) / (dot(delta, dot(H, delta)) - dot(delta, gamma))
-        
-        gamma = theta * gamma + (1 - theta) * dot(H, delta)"""
 
         deltas.shape = (-1, self.__dims)
         gammas.shape = (-1, self.__dims)
@@ -1798,22 +1605,25 @@ class QuadraticStringMethod():
             delta = deltas[i]
             gamma = gammas[i]
 
+            if use_tricky_update:
+                if dot(delta, gamma) <= 0:
+                    H_new = H
+                    Hs_new.append(H_new)
+                    continue
+
+                if dot(delta, gamma) > 0.2 * dot(delta, dot(H, delta)):
+                            theta = 1
+                else:
+                    theta = 0.8 * dot(delta, dot(H, delta)) / (dot(delta, dot(H, delta)) - dot(delta, gamma))
+                
+                gamma = theta * gamma + (1 - theta) * dot(H, delta)
+
             tmp1 = dot(delta, H)
             numerator1 = dot(H, outer(delta, tmp1))
             denominator1 = dot(delta, dot(H, delta))
 
             numerator2 = outer(gamma, gamma)
             denominator2 = dot(gamma, delta)
-
-            if False and i == 8:
-                print delta
-                print gamma
-                print H
-                print denominator1
-                print denominator2
-                print dot(delta,gamma)
-                print "********"
-                wt()
 
             H_new = H - numerator1 / denominator1 + numerator2 / denominator2
 
@@ -1822,16 +1632,17 @@ class QuadraticStringMethod():
             # already at a minimum.
             if isfinite(H_new).flatten().tolist().count(False) > 0: # is there a more elegant expression?
                 H_new = H * 0
-            """if linalg.norm(dot(H_new, delta)) > 0.2:
-                H_new = eye(self.__dims) * 0.01
-                print "yes"
-                wt()"""
+
+            """    if linalg.norm(dot(H_new, delta)) > 0.2:
+                    H_new = eye(self.__dims) * 0.01""" # what was this for?
 
             Hs_new.append(H_new)
 
         return array(Hs_new)
 
     def mydot(self, super_vec1, super_vec2):
+        """Performs element wise dot multiplication of vectors of 
+        vectors/matrices (super vectors/matrices) with each other."""
         N = self.__string.get_current_beads_count()
         d = self.__dims
 
@@ -1870,10 +1681,10 @@ class QuadraticStringMethod():
 
         assert len(prev_trust_rads) == N
 
-        print e
-        print prev_e
-        print m
-        print prev_m
+#        self.lg.debug("e = {0}".format(e))
+#        self.lg.debug("prev_e = {0}".format(prev_e))
+#        self.lg.debug("m = {0}".format(m))
+#        self.lg.debug("prev_m = {0}".format(prev_n))
         for i in range(N):
             rho = (e[i] - prev_e[i]) / (m[i] - prev_m[i])
 
@@ -1881,7 +1692,7 @@ class QuadraticStringMethod():
             # hence the denominator is zero
             if isnan(rho):
                 rho = 1
-            print "rho =", rho,
+            self.lg.debug("rho = " + str(rho))
 
             rad = prev_trust_rads[i]
             if rho > 0.75 and 1.25 * linalg.norm(dx[i]) > rad:
@@ -1892,8 +1703,7 @@ class QuadraticStringMethod():
 
             new_trust_rads.append(rad)
 
-        print
-        print "ntr =", new_trust_rads
+        self.lg.info("new trust radii = " + str(new_trust_rads))
         wt()
         return new_trust_rads
 
@@ -1927,24 +1737,22 @@ class QuadraticStringMethod():
         k = flag = 0
         while True:
             
-            print _functionId(0), ": x =", x
             tangents = self.calc_tangents(x)
 
             # optimize each bead in the string
             prev_g = copy.deepcopy(g0)
             for i in range(N):
 
-                print "i =", i
-                print "H =", H[i]
-                print "x =", x[i]
+#                print "i =", i
+#                print "H =", H[i]
+#                print "x =", x[i]
                 dx_on_dt = lambda myx: self.dx_on_dt_general(x0[i], myx, g0[i], H[i], tangents[i])
                 
                 step4, step5 = self.rk45_step(x[i], dx_on_dt, h[i])
 
                 if linalg.norm(step4, ord=inf) == 0.0:
-                    print "continuing. step4 =", step4
-#                    wt()
                     continue
+
                 prev_x[i] = x[i]
         
                 # guard against case when even initial step goes over trust radius
@@ -1952,20 +1760,18 @@ class QuadraticStringMethod():
                     step4 = step4 / linalg.norm(step4) * trust_rad[i]
 
                 x[i] += step4
-                print _functionId(0), ": x[i] =", x[i], "prev_x[i] =", prev_x[i], "step4 =", step4
 
                 g = -dx_on_dt(x[i])
 
                 err = norm(step5 - step4)
 
                 if norm(x[i] - x0[i]) > trust_rad[i]:
-                    print "Trust radius exceeded for point", i
-#                    wt()
+                    #self.lg.debug("Trust radius exceeded for point {0}".format(i))
                     flag = self.__TRUST_EXCEEDED
+
                 elif dot(g, prev_g[i]) < 0: # angle_change >= pi / 2: # is this correct?
-                    print "Direction change for point", i
+                    #self.lg.debug("Direction change for point {0}".format(i))
                     print "g = ", g, "g_prev =", prev_g[i]
-#                    raw_input("Wait...\n")
                     flag = self.__DIRECTION_CHANGE
 
                 if True:
@@ -1973,7 +1779,6 @@ class QuadraticStringMethod():
                     print "Step size for point", i, "scaled from", h[i],
                     h[i] = h[i] * abs(self.__max_step_err / err)**(1./5.)
                     print "to", h[i], ". Error =", err
-#                    wt()
 
 
                 prev_g[i] = g
@@ -2051,30 +1856,6 @@ class QuadraticStringMethod():
         return x, (x-x0), path
 
 
-    def simple_int(self, x0, dx_on_dt, trust_rad, verbose=False):
-        
-        x = array([x0]).flatten()
-        d = zeros(len(x))
-        k=0
-        while True:
-            k += 1
-            prev_d = d
-            d = dx_on_dt(x)
-            x += 0.3 * 1.0/linalg.norm(d) * d
-            print "x =", x
-            if linalg.norm(x - x0) > trust_rad:
-                print "trust rad"
-                break
-            print "d,dprev=", d, prev_d
-            if dot(d, prev_d) < 0:
-                print "direc change"
-                break
-            if k > 10:
-                print "max iters"
-                break
-        return x, (x-x0)
-
-
     def rk45_step(self, x, f, h):
         
         k1 = h * f(x)
@@ -2101,6 +1882,8 @@ class QuadraticStringMethod():
 class SurfPlot():
     def __init__(self, pes):
         self.__pes = pes
+
+        self.lg = modlog
 
     def plot(self, path = None, write_contour_file=False, maxx=3.0, minx=0.0, maxy=3.0, miny=0.0):
         flab("called")
@@ -2250,50 +2033,4 @@ def test_NEB():
 
     return opt
 
-# parabolas
-# (x**2 + y**2)*((x-40)**2 + (y-4)**2)
-
-# gaussians
-# f(x,y) = -exp(-(x**2 + y**2)) - exp(-((x-3)**2 + (y-3)**2))
-# df/dx = 2*x*exp(-(x**2 + y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2))
-# df/dy = 2*y*exp(-(x**2 + y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2))
-
-def e_test(v):
-    x = v[0]
-    y = v[1]
-    return (-exp(-(x**2 + y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2))
-
-def g_test(v):
-    x = v[0]
-    y = v[1]
-    dfdx = 2*x*exp(-(x**2 + y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x
-    dfdy = 2*y*exp(-(x**2 + y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y
-    return array((dfdx,dfdy))
-
-def rosen_der(x):
-    xm = x[1:-1]
-    xm_m1 = x[:-2]
-    xm_p1 = x[2:]
-    der = zeros_like(x)
-    der[1:-1] = 200*(xm-xm_m1**2) - 400*(xm_p1 - xm**2)*xm - 2*(1-xm)
-    der[0] = -400*x[0]*(x[1]-x[0]**2) - 2*(1-x[0])
-    der[-1] = 200*(x[-1]-x[-2]**2)
-    return der
-
-def rosen(x):
-    """The Rosenbrock function"""
-    return sum(100.0*(x[1:]-x[:-1]**2.0)**2.0 + (1-x[:-1])**2.0)
-
-
-"""
-Planning for parallel scheduler:
-
-q = add coordinates to queue
-scheduler.run(total_procs, max_procs, normal_procs)
-scheduler.join()
-outputs = scheduler.get_outputs()
-
-def 
-
-"""
 

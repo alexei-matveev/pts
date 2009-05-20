@@ -9,7 +9,8 @@ print "Defining logger"
 lg = logging.getLogger(__name__)
 lg.setLevel(logging.DEBUG)
 
-if not globals().has_key("lg"):
+if not globals().has_key("ch"):
+    print "Defining stream handler"
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
     lg.addHandler(ch)
@@ -23,10 +24,41 @@ def is_same_v(v1, v2):
 def is_same_e(e1, e2):
     return abs(e1 - e2) < SAMENESS_THRESH
 
+class G03Launcher():
+    def run(self, j, ix):
+        import subprocess
+        import os
+        import re
+
+        n = j.v[0]
+        inputfn = "job" + str(n) + ".com"
+        outputfn = "job" + str(n) + ".log"
+        p = subprocess.Popen("g03 " + inputfn, shell=True)
+        sts = os.waitpid(p.pid, 0)
+        f = open(outputfn, 'r')
+        results = re.findall(r"SCF Done.+?=.+?\d+\.\d+", f.read(), re.S)
+        f.close()
+        return Result(j.v, results[-1])
+
+def test_parallel():
+    cm = CalcManager(G03Launcher(), (8,2,1))
+
+    inputs = range(1,11)
+    lg.info("inputs are %s", inputs)
+
+    for i in inputs:
+        cm.request_energy(array((i,i)))
+
+    cm.proc_requests()
+
+    for i in inputs:
+        e = cm.energy(i)
+        print e
+
 
 class MiniQC():
     """Mini qc driver. Just or testing"""
-    def run(self, j):
+    def run(self, j, ix):
         x = j.v[0]
         y = j.v[1]
 
@@ -304,10 +336,10 @@ class ParaSched:
         # no of workers to start
         self.__workers_count = int (floor (total_procs / min_job_procs))
 
-    def __worker(self, pending, finished):
+    def __worker(self, pending, finished, ix):
 
         my_id = get_ident()
-        lg.debug("worker starting, id = %s" % my_id)
+        lg.debug("worker starting, id = %s ix = %s" % (my_id, ix))
         while not pending.empty():
 
             try:
@@ -318,7 +350,7 @@ class ParaSched:
                 return
 
             # call quantum chem driver
-            res = self.__qc_driver.run(item)
+            res = self.__qc_driver.run(item, ix)
 
             finished.put(res)
             self.__pending.task_done()
@@ -336,7 +368,7 @@ class ParaSched:
         # start workers
         lg.info("%s spawning %d worker threads" % (self.__class__.__name__, self.__workers_count))
         for i in range(self.__workers_count):
-            t = Thread(target=self.__worker, args=(self.__pending, self.__finished))
+            t = Thread(target=self.__worker, args=(self.__pending, self.__finished, i))
             t.start()
 
         self.__pending.join()
@@ -381,4 +413,7 @@ def test_threads():
     else:
         queue.join()
 
+
+if __name__ == "__main__":
+    test_parallel()
 
