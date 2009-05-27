@@ -264,6 +264,16 @@ class NEB(ReactionPathway):
         # For the time being, these are uniform
         self.spr_const_vec = array([self.base_spr_const for x in range(beads_count - 1)])
 
+        # energy of a bead on PES, doesn't include spring energies
+        self.bead_pes_energies = zeros(beads_count)
+
+        # set reactant/product energies to arbitrarily low so that upwinding tangent calculation works
+        self.bead_pes_energies[0] = -1e10
+        self.bead_pes_energies[-1] = -1e10
+
+        self.use_upwinding_tangent = True
+
+
     def special_reduce(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
         """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
         returns a list of length N-1 where each element of the output array is 
@@ -295,8 +305,38 @@ class NEB(ReactionPathway):
         # terminal beads have no tangent
         self.tangents[0]  = zeros(self.dimension)
         self.tangents[-1] = zeros(self.dimension)
+
         for i in range(self.beads_count)[1:-1]:
-            self.tangents[i] = ( (self.state_vec[i] - self.state_vec[i-1]) + (self.state_vec[i+1] - self.state_vec[i]) ) / 2
+            if self.use_upwinding_tangent:
+                tang_plus = self.state_vec[i+1] - self.state_vec[i]
+                tang_minus = self.state_vec[i] - self.state_vec[i-1]
+
+                Vi = self.bead_pes_energies[i]
+                Vi_minus_1 = self.bead_pes_energies[i-1]
+                Vi_plus_1 = self.bead_pes_energies[i+1]
+                
+                delta_V_plus = abs(Vi_plus_1 - Vi)
+                delta_V_minus = abs(Vi - Vi_minus_1)
+
+                delta_V_max = max(delta_V_plus, delta_V_minus)
+                delta_V_min = min(delta_V_plus, delta_V_minus)
+
+                if Vi_plus_1 > Vi > Vi_minus_1:
+                    self.tangents[i] = tang_plus
+
+                elif Vi_plus_1 < Vi < Vi_minus_1:
+                    self.tangents[i] = tang_minus
+
+                elif Vi_plus_1 > Vi_minus_1:
+                    self.tangents[i] = tang_plus * delta_V_max + tang_minus * delta_V_min
+
+                elif Vi_plus_1 <= Vi_minus_1:
+                    self.tangents[i] = tang_minus * delta_V_min + tang_minus * delta_V_max
+                else:
+                    raise Exception("Should never happen")
+            else:
+                self.tangents[i] = ( (self.state_vec[i] - self.state_vec[i-1]) + (self.state_vec[i+1] - self.state_vec[i]) ) / 2
+
             self.tangents[i] /= linalg.norm(self.tangents[i], 2)
 
     def update_bead_separations(self):
@@ -321,8 +361,11 @@ class NEB(ReactionPathway):
 
         # The following code block will need to be replaced for parallel operation
         pes_energies = 0
-        for bead_vec in self.state_vec[1:-1]:
-            pes_energies += self.qc_driver.energy(bead_vec)
+        for i in range(self.beads_count)[1:-1]:
+            bead_vec = self.state_vec[i]
+            curr_energy = self.qc_driver.energy(bead_vec)
+            self.bead_pes_energies[i] = curr_energy
+            pes_energies += curr_energy
 
         return (pes_energies + spring_energies)
 
