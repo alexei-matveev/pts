@@ -6,9 +6,11 @@ import cclib
 
 numpy.set_printoptions(linewidth=180)
 
-DEFAULT_GAUSSIAN03_HEADER = "# HF/3-21G force\ncomment\n0 1\n"
+DEFAULT_GAUSSIAN03_HEADER = "# HF/3-21G force\n\ncomment\n\n0 1\n"
 DEFAULT_GAUSSIAN03_FOOTER = ""
 DEFAULT_GAUSSIAN03_QCINPUT_EXT = ".com"
+DEFAULT_GAUSSIAN03_QCOUTPUT_EXT = ".log"
+DEFAULT_GAUSSIAN03_PROGNAME = "g03"
 
 
 class MolRep:
@@ -87,6 +89,19 @@ def test_MolInterface():
     print "Testing: coordsys_trans_matrix()"
     print mi.coordsys_trans_matrix(X)
 
+    print "Testing: run_job()"
+    logfilename = mi.run_job(X)
+    print "file", logfilename, "created"
+    print mi.logfile2eg(logfilename, X)
+
+    import cclib
+    file = cclib.parser.ccopen("NH3.log")
+    data = file.parse()
+    print "SCF Energy and Gradients from direct calc on z-matrix input:"
+    print data.scfenergies[-1]
+    print data.grads
+    print data.gradvars
+
 
 class MolInterface:
     """Converts between molecule representations (i.e. internal xyz/zmat 
@@ -136,20 +151,28 @@ class MolInterface:
         else:
             self.qcinput_ext = DEFAULT_GAUSSIAN03_QCINPUT_EXT
 
+        if "qcoutput_ext" in params:
+            self.qcoutput_ext = params["qcoutput_ext"]
+        else:
+            self.qcoutput_ext = DEFAULT_GAUSSIAN03_QCOUTPUT_EXT
+
     def __str__(self):
         mystr = "format = " + self.format
         mystr += "\natoms = " + str(self.atoms)
         mystr += "\nvar_names = " + str(self.var_names)
         mystr += "\nmol1_coords = " + str(self.mol1_coords)
         mystr += "\nmol2_coords = " + str(self.mol2_coords)
-
         mystr += "\nzmt_spec:\n" + self.zmt_spec
         return mystr
 
     def coords2qcinput(self, coords, path = None):
+        """Generates an input file for a quantum chemistry program, returning
+        the contents of the file as a string. If path is given, the file is
+        written to that path."""
+
         mol_text = self.coords2moltext(coords)
 
-        str = self.qcinput_head + mol_text + self.qcinput_foot
+        str = self.qcinput_head + mol_text + self.qcinput_foot + "\n"
         if path != None:
             f = open(path, 'w')
             f.write(str)
@@ -166,10 +189,18 @@ class MolInterface:
         return c
     
     def coordsys_trans_matrix(self, coords):
+        """Generates the n*m matrix [dXi/dCj] which represents the change of
+        the cartesian coordinates Xi with respect to the optimisation 
+        coordinates Cj, i <- 1..n, j <- 1..m."""
+
         dX_on_dC = self.numdiff(self.opt_coords2cart_coords, coords)
         return dX_on_dC
 
     def coords2xyz(self, coords):
+        """Generates the xyz coordinates (both as a Gaussian z-matrix format 
+        string and as an array of floats) based on a set of input coordinates 
+        given in the optimisation coordinate system."""
+
         str = ""
         if self.format == "xyz":
             for i in range(self.natoms):
@@ -195,28 +226,50 @@ class MolInterface:
         mol = pybel.readstring("gzmat", header + str)
         str = mol.write("xyz")
         str = "\n".join(re.split(r"\n", str)[2:])
+        print str
 
         xyz_coords = re.findall(r"[+-]?\d+\.\d*", str)
         xyz_coords = [float(c) for c in xyz_coords]
 
         return (str, numpy.array(xyz_coords))
 
-    def run_job(self, coords):
-        filename = __name__ + "-" + str(self.job_counter) + self.input_ext
+    def run_job(self, coords, params = dict()):
+        import os
+        import subprocess
+        input = __name__ + "-" + str(self.job_counter) + self.qcinput_ext
+        output = __name__ + "-" + str(self.job_counter) + self.qcoutput_ext
+        
+        self.coords2qcinput(coords, input)
 
-    def logfile2eg(self, filename, coords):
+        if "command" in params:
+            command = params["command"] + " " + input
+        else:
+            command = DEFAULT_GAUSSIAN03_PROGNAME + " " + input
+
+        p = subprocess.Popen(command, shell=True)
+        sts = os.waitpid(p.pid, 0)
+
+        return output
+
+    def logfile2eg(self, logfilename, coords):
+        """Extracts the energy and gradient from logfilename. Converts the
+        gradient from cartesian coordinates to the coordinate system that the
+        optimisation is performed in (which might be either internals or 
+        cartesians)."""
+
         import cclib
-        file = cclib.parser.ccopen("MeOMe-grad.log")
+        file = cclib.parser.ccopen(logfilename)
         data = file.parse()
 
         # energy gradients in cartesian coordinates
         grads_cart = data.grads
         energy = data.scfenergies[-1]
+        print "Raw gradients in cartesian coordinates:", grads_cart
 
-        transform_matrix = coordsys_trans_matrix(coords)
+        transform_matrix = self.coordsys_trans_matrix(coords)
 
         # energy gradients in optimisation coordinates
-        grads_opt = dot(transform_matrix, grads_cart)
+        grads_opt = numpy.dot(transform_matrix, grads_cart)
         
         return (energy, grads_opt)
 
@@ -241,7 +294,7 @@ class MolInterface:
 
         for i in range(N):
 #            print "coord ", i
-            dx = 1e-2
+            dx = 1e-3
             df_on_dx = update_estim(dx, i)
             while True:
                 break # at the moment, no error control, just single quick+dirty finite diff measurement
