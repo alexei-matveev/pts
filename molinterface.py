@@ -2,10 +2,13 @@ import numpy
 import scipy
 import re
 import copy
+import cclib
 
-DEFAULT_GAUSSIAN03_HEADER = "# HF/3-21G\ncomment\n0 1\n"
+numpy.set_printoptions(linewidth=180)
 
+DEFAULT_GAUSSIAN03_HEADER = "# HF/3-21G force\ncomment\n0 1\n"
 DEFAULT_GAUSSIAN03_FOOTER = ""
+DEFAULT_GAUSSIAN03_QCINPUT_EXT = ".com"
 
 
 class MolRep:
@@ -74,7 +77,15 @@ def test_MolInterface():
     X = numpy.arange(4.0)*3.14159/4
     print mi.numdiff(numpy.sin, X)
 
+    print "Testing: coords2xyz()"
+    print mi.coords2xyz([0.97999999999999998, 1.089, 109.471, 120.0])
 
+    print "Testing: opt_coords2cart_coords()"
+    print mi.opt_coords2cart_coords(X)
+    X = numpy.array([0.97999999999999998, 1.089, 109.471, 120.0])
+
+    print "Testing: coordsys_trans_matrix()"
+    print mi.coordsys_trans_matrix(X)
 
 
 class MolInterface:
@@ -87,12 +98,16 @@ class MolInterface:
         m1 = MolRep(mol1)
         m2 = MolRep(mol2)
 
+        # used to number input files as they are created and run
+        self.job_counter = 0
+
         if m1.atoms != m2.atoms:
             raise Exception("input molecules have different atoms")
         elif m1.format != m2.format:
             raise Exception("input molecules in different formats")
         elif m1.format == "zmt" and (m1.var_names != m2.var_names):
             raise Exception("input molecules have different variable names in z-matrix")
+
 
         
         self.format = m1.format
@@ -116,6 +131,10 @@ class MolInterface:
         else:
             self.qcinput_foot = DEFAULT_GAUSSIAN03_FOOTER
 
+        if "qcinput_ext" in params:
+            self.qcinput_ext = params["qcinput_ext"]
+        else:
+            self.qcinput_ext = DEFAULT_GAUSSIAN03_QCINPUT_EXT
 
     def __str__(self):
         mystr = "format = " + self.format
@@ -139,6 +158,18 @@ class MolInterface:
         return str
 
     def coords2moltext(self, coords):
+        (s, c) = self.coords2xyz(coords)
+        return s
+
+    def opt_coords2cart_coords(self, coords):
+        (s, c) = self.coords2xyz(coords)
+        return c
+    
+    def coordsys_trans_matrix(self, coords):
+        dX_on_dC = self.numdiff(self.opt_coords2cart_coords, coords)
+        return dX_on_dC
+
+    def coords2xyz(self, coords):
         str = ""
         if self.format == "xyz":
             for i in range(self.natoms):
@@ -148,13 +179,11 @@ class MolInterface:
             for i in range(self.nvariables):
                 str += "%s=%s\n" % (self.var_names[i], coords[i])
 
-
-            print "str = ", str
             (str, coords) = self.zmt2xyz(str)
         else:
             raise Exception("Unrecognised self.mol_rep_type")
 
-        return str
+        return (str, coords)
 
     def zmt2xyz(self, str):
         """Converts a string describing a molecule using the z-matrix format
@@ -170,10 +199,28 @@ class MolInterface:
         xyz_coords = re.findall(r"[+-]?\d+\.\d*", str)
         xyz_coords = [float(c) for c in xyz_coords]
 
-        return (str, xyz_coords)
+        return (str, numpy.array(xyz_coords))
 
-    def logfile2eg(self, filename):
-        pass
+    def run_job(self, coords):
+        filename = __name__ + "-" + str(self.job_counter) + self.input_ext
+
+    def logfile2eg(self, filename, coords):
+        import cclib
+        file = cclib.parser.ccopen("MeOMe-grad.log")
+        data = file.parse()
+
+        # energy gradients in cartesian coordinates
+        grads_cart = data.grads
+        energy = data.scfenergies[-1]
+
+        transform_matrix = coordsys_trans_matrix(coords)
+
+        # energy gradients in optimisation coordinates
+        grads_opt = dot(transform_matrix, grads_cart)
+        
+        return (energy, grads_opt)
+
+
 
     def numdiff(self, f, X):
         """For function f, computes f'(X) numerically based on a finite difference approach."""
@@ -187,16 +234,24 @@ class MolInterface:
             X2 = copy.deepcopy(X)
             X1[ix] += dx
             X2[ix] -= dx
-            return (f(X1) - f(X2))/ (2*dx)
+            f1, f2 = f(X1), f(X2)
+#            print "f1 = ", f1
+#            print "f2 = ", f2
+            return (f1 - f2)/ (2*dx)
 
         for i in range(N):
-            dx = 1e-5
+#            print "coord ", i
+            dx = 1e-2
             df_on_dx = update_estim(dx, i)
             while True:
+                break # at the moment, no error control, just single quick+dirty finite diff measurement
                 prev_df_on_dx = df_on_dx
                 dx /= 2.0
                 df_on_dx = update_estim(dx, i)
-                err = numpy.linalg.norm(df_on_dx - prev_df_on_dx) / numpy.linalg.norm(prev_df_on_dx)
+                norm = numpy.linalg.norm(prev_df_on_dx)
+
+                #  Hmm, problems with this when used for z-mat conversion
+                err = self.calc_err(df_on_dx, prev_df_on_dx)
                 if numpy.isnan(err):
                     raise Exception("NaN encountered in numerical differentiation")
                 if err < num_diff_err:
@@ -206,3 +261,14 @@ class MolInterface:
 
         return numpy.array(df_on_dX)
 
+    def calc_err(self, estim1, estim2):
+        max_err = -1e200
+        diff = estim1 - estim2
+        for i in range(len(estim1)):
+            err = diff[i] / estim1[i]
+            if not numpy.isnan(err):
+                if max_err < abs(err):
+                    max_err = abs(err)
+                    print "updating err ", err
+
+        return max_err
