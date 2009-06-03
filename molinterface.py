@@ -24,11 +24,11 @@ class MolRep:
     """
     def __init__(self, mol_text):
         zmt = re.compile(r"""(\w\w?\s*
-                             (\w\w?\s+\w+\s*
-                             (\w\w?\s+\w+\s+\w+\s*
-                             (\w\w?\s+\w+\s+\w+\s+\S+\s*)*)?)?
+                             (\w\w?\s+\d+\s+\w+\s*
+                             (\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s*
+                             (\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s+\d+\s+\S+\s*)*)?)?
                              (\w+\s+[+-]?\d+\.\d*\s*)+)$""", re.X)
-        
+
         xyz = re.compile(r"""(\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+""")
 
         if zmt.match(mol_text) != None:
@@ -49,6 +49,64 @@ class MolRep:
 
         self.atoms = re.findall(r"(\w\w?).*?\n", self.zmt_spec)
         self.coords = [float(c) for c in self.coords]
+
+def test_MolInterface2():
+    f = open("CH4.zmt", "r")
+    m1 = f.read()
+    m2 = m1
+    f.close()
+
+    mi = MolInterface(m1, m2)
+    print "Testing: MolecularInterface"
+    print mi
+
+    X = numpy.array([1.0900000000000001, 109.5, 120.0])
+    print mi.opt_coords2cart_coords(X)
+
+    print "Testing: coordsys_trans_matrix()"
+    print mi.coordsys_trans_matrix(X)
+
+    print "Testing: run_job()"
+    logfilename = mi.run_job(X)
+    print "file", logfilename, "created"
+    print mi.logfile2eg(logfilename, X)
+
+    import cclib
+    file = cclib.parser.ccopen("CH4.log")
+    data = file.parse()
+    print "SCF Energy and Gradients from direct calc on z-matrix input:"
+    print data.scfenergies[-1]
+    print data.grads
+    print data.gradvars
+
+def test_MolInterface3():
+    f = open("H2O.zmt", "r")
+    m1 = f.read()
+    m2 = m1
+    f.close()
+
+    mi = MolInterface(m1, m2)
+    print "Testing: MolecularInterface"
+    print mi
+
+    X = numpy.array([1.5, 100.1])
+    print mi.opt_coords2cart_coords(X)
+
+    print "Testing: coordsys_trans_matrix()"
+    print mi.coordsys_trans_matrix(X)
+
+    print "Testing: run_job()"
+    logfilename = mi.run_job(X)
+    print "file", logfilename, "created"
+    print mi.logfile2eg(logfilename, X)
+
+    import cclib
+    file = cclib.parser.ccopen("H2O.log")
+    data = file.parse()
+    print "SCF Energy and Gradients from direct calc on z-matrix input:"
+    print data.scfenergies[-1]
+    print data.grads
+    print data.gradvars
 
 def test_MolInterface():
     f = open("NH3.zmt", "r")
@@ -83,8 +141,9 @@ def test_MolInterface():
     print mi.coords2xyz([0.97999999999999998, 1.089, 109.471, 120.0])
 
     print "Testing: opt_coords2cart_coords()"
-    print mi.opt_coords2cart_coords(X)
+
     X = numpy.array([0.97999999999999998, 1.089, 109.471, 120.0])
+    print mi.opt_coords2cart_coords(X)
 
     print "Testing: coordsys_trans_matrix()"
     print mi.coordsys_trans_matrix(X)
@@ -156,6 +215,12 @@ class MolInterface:
         else:
             self.qcoutput_ext = DEFAULT_GAUSSIAN03_QCOUTPUT_EXT
 
+        self.logfile2eg = self.logfile2eg_Gaussian
+        if "qcname" in params:
+            pass # TODO: setup alternate logfile2eg functions
+
+        self.ANGSTROMS_TO_BOHRS = 1.8897
+
     def __str__(self):
         mystr = "format = " + self.format
         mystr += "\natoms = " + str(self.atoms)
@@ -181,10 +246,14 @@ class MolInterface:
         return str
 
     def coords2moltext(self, coords):
+        """For a set of internal coordinates, returns the string describing the 
+        molecule in xyz format."""
         (s, c) = self.coords2xyz(coords)
         return s
 
     def opt_coords2cart_coords(self, coords):
+        """Returns the cartesian coordinates based on the given set of internal 
+        coordinates."""
         (s, c) = self.coords2xyz(coords)
         return c
     
@@ -251,7 +320,7 @@ class MolInterface:
 
         return output
 
-    def logfile2eg(self, logfilename, coords):
+    def logfile2eg_Gaussian(self, logfilename, coords):
         """Extracts the energy and gradient from logfilename. Converts the
         gradient from cartesian coordinates to the coordinate system that the
         optimisation is performed in (which might be either internals or 
@@ -263,6 +332,9 @@ class MolInterface:
 
         # energy gradients in cartesian coordinates
         grads_cart = data.grads
+
+        # Gaussian gives gradients in Hartrees per Bohr Radius
+        grads_cart *= self.ANGSTROMS_TO_BOHRS
         energy = data.scfenergies[-1]
         print "Raw gradients in cartesian coordinates:", grads_cart
 
@@ -280,7 +352,7 @@ class MolInterface:
 
         N = len(X)
         df_on_dX = []
-        num_diff_err = 1e-3
+        num_diff_err = 1e-3 # as fraction of derivative being measured
 
         def update_estim(dx, ix):
             X1 = copy.deepcopy(X)
@@ -288,16 +360,15 @@ class MolInterface:
             X1[ix] += dx
             X2[ix] -= dx
             f1, f2 = f(X1), f(X2)
-#            print "f1 = ", f1
-#            print "f2 = ", f2
             return (f1 - f2)/ (2*dx)
 
         for i in range(N):
-#            print "coord ", i
-            dx = 1e-3
+            print "coord ", i
+            dx = 1e-1
             df_on_dx = update_estim(dx, i)
             while True:
-                break # at the moment, no error control, just single quick+dirty finite diff measurement
+                #break # at the moment, no error control, just single quick+dirty finite diff measurement
+                print "df_on_dx =", df_on_dx
                 prev_df_on_dx = df_on_dx
                 dx /= 2.0
                 df_on_dx = update_estim(dx, i)
