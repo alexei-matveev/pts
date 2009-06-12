@@ -251,13 +251,18 @@ def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
 class NEB(ReactionPathway):
     """Implements a Nudged Elastic Band (NEB) transition state searcher."""
 
-    def __init__(self, reactants, products, f_test, base_spr_const, qc_driver, beads_count = 10):
+    def __init__(self, reagents, f_test, base_spr_const, qc_driver, beads_count = 10):
+
+        reactants, products = reagents[0], reagents[-1]
         ReactionPathway.__init__(self, reactants, products, f_test)
         self.beads_count = beads_count
         self.base_spr_const = base_spr_const
         self.qc_driver = qc_driver
         self.tangents = zeros(beads_count * self.dimension)
         self.tangents.shape = (beads_count, self.dimension)
+
+        #  TODO: generate initial path using all geoms in reagents. Must use
+        # path representation object.
         self.state_vec = vector_interpolate(reactants, products, beads_count)
 
         # Make list of spring constants for every inter-bead separation
@@ -860,7 +865,7 @@ class PiecewiseRho:
 
 class GrowingString(ReactionPathway):
     def __init__(self, reagents, qc_driver, f_test = lambda x: True, 
-        beads_count = 10, rho = lambda x: 1, growing=True):
+        beads_count = 10, rho = lambda x: 1, growing=True, parallel=False):
 
         #ReactionPathway.__init__(self, reactants, products, f_test)
         self.__qc_driver = qc_driver
@@ -893,6 +898,8 @@ class GrowingString(ReactionPathway):
 
         # dummy energy of a reactant/product
         self.__reagent_energy = 0
+
+        self.parallel = parallel
 
     def get_dims(self):
         return self.__dims
@@ -962,7 +969,7 @@ class GrowingString(ReactionPathway):
 
         # request and process parallel QC jobs
         if self.parallel:
-            for bead_vec in self.__path_rep.get_state_vec()[1:-1]
+            for bead_vec in self.__path_rep.get_state_vec()[1:-1]:
                 self.qc_driver.request_grad(bead_vec)
             self.qc_driver.proc_requests()
 
@@ -986,7 +993,7 @@ class GrowingString(ReactionPathway):
 
         # request and process parallel QC jobs
         if self.parallel:
-            for bead_vec in self.__path_rep.get_state_vec()[1:-1]
+            for bead_vec in self.__path_rep.get_state_vec()[1:-1]:
                 self.qc_driver.request_grad(bead_vec)
             self.qc_driver.proc_requests()
 
@@ -2036,7 +2043,7 @@ def test_NEB():
     from scipy.optimize import fmin_bfgs
 
     default_spr_const = 1.
-    neb = NEB(reactants, products, lambda x: True, default_spr_const,
+    neb = NEB([reactants, products], lambda x: True, default_spr_const,
         GaussianPES(), beads_count = 10)
     init_state = neb.get_state_as_array()
 

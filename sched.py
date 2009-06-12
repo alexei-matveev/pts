@@ -3,6 +3,8 @@ from thread import *
 from Queue import *
 from numpy import *
 
+from common import *
+
 # setup logging
 import logging
 print "Defining logger"
@@ -27,8 +29,8 @@ def is_same_e(e1, e2):
 class ParaJobLauncher():
     def run(self, j, ix):
         params = dict()
-        params["placement_command"] = mol_interface.placement_prog +
-                                      " " +
+        params["placement_command"] = mol_interface.placement_progam + \
+                                      " " + \
                                       mol_interface.placement_arg
         mol_interface.run_job(j.v, params)
 
@@ -139,7 +141,6 @@ def test_CalcManager():
         except Exception, err:
            lg.error(err)
 
-
 class CalcManager():
     """
     Memorizes the results of previous calculations and, depending on the 
@@ -236,43 +237,6 @@ class CalcManager():
 
         return res.g      
         
-class Job():
-    """Specifies calculations to perform on a particular geometry v."""
-    def __init__(self, v, l):
-        self.v = v
-        if not isinstance(l, list):
-            l = [l]
-        self.calc_list = l
-    
-    def __str__(self):
-        s = ""
-        for j in self.calc_list:
-            s += j.__str__()
-        return self.__class__.__name__ + " %s: %s" % (self.v, s)
-
-    def geom_is(self, v_):
-        assert len(v_) == len(self.v)
-        return is_same_v(v_, self.v)
-
-    def add_calc(self, calc):
-        if self.calc_list.count(calc) == 0:
-            self.calc_list.append(calc)
-
-    def is_energy(self):
-        return self.calc_list.count(self.E()) > 0
-    def is_gradient(self):
-        return self.calc_list.count(self.G()) > 0
-
-    class E():
-        def __eq__(self, x):
-            return isinstance(x, self.__class__) and self.__dict__ == x.__dict__
-        def __str__(self):  return "E"
-
-    class G():
-        def __eq__(self, x):
-            return isinstance(x, self.__class__) and self.__dict__ == x.__dict__
-        def __str__(self):  return "G"
-
 class ResultDict():
     """Maintains a dictionary of results i.e. energy / gradient calculations."""
     def __init__(self, parent):
@@ -310,41 +274,19 @@ class ResultDict():
             return None
        
 
-class Result():
-    def __init__(self, v, energy, gradient = None):
-        self.v = v
-        self.e = energy
-        self.g = gradient
-
-    def __eq__(self, r):
-        return (isinstance(r, self.__class__) and is_same_v(r.v, self.v)) or (r != None and is_same_v(r, self.v))
-
-    def __str__(self):
-        s = self.__class__.__name__ + ": " + str(self.v) + " E = " + str(self.e) + " G = " + str(self.g)
-        return s
-
-    def has_field(self, type):
-        return type == Job.G() and self.g != None \
-            or type == Job.E() and self.e != None
-        
-    def merge(self, res):
-        assert is_same_v(self.v, res.v)
-        assert is_same_e(self.e, res.e)
-
-        if self.g == None:
-            self.g = res.g
-        else:
-            raise Exception("Trying to add a gradient result when one already exists")
-        
+       
 class ParaSched:
-    def __init__(self, qc_driver, total_procs = 4, min_procs = 2, max_procs = 4):
+    def __init__(self, qc_driver, total_procs = 4, normal_procs = 2, max_procs = 4):
         
         self.__pending = Queue()
         self.__finished = Queue()
         self.__qc_driver = qc_driver
 
         # no of workers to start
-        self.__workers_count = int (floor (total_procs / min_procs))
+        if total_procs % normal_procs != 0:
+            raise Exception("total_procs must be a whole multiple of min_procs")
+
+        self.__workers_count = int (floor (total_procs / normal_procs))
         self.__normal_procs = normal_procs
 
     def __worker(self, pending, finished, ix):
@@ -363,8 +305,18 @@ class ParaSched:
                 lg.error("Thrown by worker: " + str(my_id) + " " + str(ex))
                 return
 
+            # setup parameter dictionary
+            params = dict()
+
+            # TODO: eventually processor ranges must become dynamic to allow 
+            # jobs to be run on variable numbers of processors. I think I will 
+            # need to implement a super-class of Queue to generate processor
+            # ranges dynamically.
+            item.processor_ix_start = self.__normal_procs * ix
+            item.processor_ix_end = self.__normal_procs * ix + self.__normal_procs - 1
+
             # call quantum chem driver
-            res = self.__qc_driver.run(item, ix, procs)
+            res = self.__qc_driver.run(item)
 
             finished.put(res)
             self.__pending.task_done()

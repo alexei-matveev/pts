@@ -4,6 +4,8 @@ import re
 import copy
 import cclib
 
+from common import *
+
 numpy.set_printoptions(linewidth=180)
 
 DEFAULT_GAUSSIAN03_HEADER = "# HF/3-21G force\n\ncomment\n\n0 1\n"
@@ -168,9 +170,11 @@ class MolInterface:
     and QC program input format.
     """
 
-    def __init__(self, mol1, mol2, params = dict()):
-        m1 = MolRep(mol1)
-        m2 = MolRep(mol2)
+    def __init__(self, mol_strings, params = dict()):
+
+        #  TODO: at present only for reagent/product
+        m1 = MolRep(mol_strings[0])
+        m2 = MolRep(mol_strings[-1])
 
         # used to number input files as they are created and run
         self.job_counter = 0
@@ -215,9 +219,24 @@ class MolInterface:
         else:
             self.qcoutput_ext = DEFAULT_GAUSSIAN03_QCOUTPUT_EXT
 
+        # setup Quantum Chemistry package info
         self.logfile2eg = self.logfile2eg_Gaussian
-        if "qcname" in params:
-            pass # TODO: setup alternate logfile2eg functions
+        # TODO: setup alternate logfile2eg function
+        self.qc_command = DEFAULT_GAUSSIAN03_PROGNAME
+        if "qc_program" in params:
+            if params["qc_program"] == "g03":
+                self.qc_command = DEFAULT_GAUSSIAN03_PROGNAME
+            else:
+                raise Exception("Use of " + params["qc_program"] + " not implemented")
+
+        # setup process placement command
+        # TODO: suport for placement commands other than dplace
+        self.gen_placement_command = None
+        if "placement_command" in params:
+            if params["placement_command"] == "dplace":
+                self.gen_placement_command = self.gen_placement_command_dplace
+            else:
+                raise Exception("Use of " + params["placement_command"] + " not implemented")
 
         self.ANGSTROMS_TO_BOHRS = 1.8897
 
@@ -302,12 +321,25 @@ class MolInterface:
 
         return (str, numpy.array(xyz_coords))
 
-    def run(self, coords, params):
-        outputfile = self.run_qc(coords, params)
-        e, g = self.logfile2eg(outputfile, coords)
-        return Result(coords,
+    def run(self, job):
+        coords = job.v
 
-    def run_qc(self, coords, params = dict()):
+        # parameters specific to the execution of the current job
+        local_params = dict()
+        p1 = job.processor_ix_start
+        p2 = job.processor_ix_end
+
+        # e.g. "dplace -c 0-4"
+        local_params["placement_command"] = self.gen_placement_command(p1, p2)
+
+        outputfile = self.run_qc(coords, local_params)
+        e, g = self.logfile2eg(outputfile, coords)
+        return Result(coords, e, g)
+
+    def gen_placement_command_dplace(self, p_low, p_high):
+        return "dplace -c %d-%d" % (p_low, p_high)
+
+    def run_qc(self, coords, local_params = dict()):
         import os
         import subprocess
         inputfile = __name__ + "-" + str(self.job_counter) + self.qcinput_ext
@@ -315,12 +347,9 @@ class MolInterface:
         
         self.coords2qcinput(coords, inputfile)
 
-        if "qc_command" in params:
-            command = params["qc_command"] + " " + inputfile
-        else:
-            command = DEFAULT_GAUSSIAN03_PROGNAME + " " + inputfile
+        command = self.qc_command + " " + inputfile
         
-        if "placement_command" in params:
+        if "placement_command" in local_params:
             command = params["placement_command"] + " " + command
 
         p = subprocess.Popen(command, shell=True)
