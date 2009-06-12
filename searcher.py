@@ -359,7 +359,15 @@ class NEB(ReactionPathway):
         force_consts_by_separations_squared = multiply(self.spr_const_vec, self.bead_separation_sqrs_sums.flatten()).transpose()
         spring_energies = 0.5 * ndarray.sum (force_consts_by_separations_squared)
 
-        # The following code block will need to be replaced for parallel operation
+        # request and process parallel QC jobs
+        if parallel:
+
+            for i in range(self.beads_count)[1:-1]:
+                bead_vec = self.state_vec[i]
+                self.qc_driver.request_grad(bead_vec)
+
+            qc_driver.proc_requests()
+        
         pes_energies = 0
         for i in range(self.beads_count)[1:-1]:
             bead_vec = self.state_vec[i]
@@ -369,12 +377,12 @@ class NEB(ReactionPathway):
 
         return (pes_energies + spring_energies)
 
-    def obj_func_grad(self, new_state_vec = []):
+    def obj_func_grad(self, new_state_vec = None):
 
         # If a state vector has been specified, return the value of the 
         # objective function for this new state and set the state of self
         # to the new state.
-        if new_state_vec != []:
+        if new_state_vec != None:
             self.state_vec = array(new_state_vec)
             self.state_vec.shape = (self.beads_count, self.dimension)
 
@@ -391,6 +399,15 @@ class NEB(ReactionPathway):
         pes_forces = array(zeros(self.beads_count * self.dimension))
         pes_forces.shape = (self.beads_count, self.dimension)
 
+        # request and process parallel QC jobs
+        if self.parallel:
+
+            for i in range(self.beads_count)[1:-1]:
+                self.qc_driver.request_grad(self.state_vec[i])
+
+            self.qc_driver.proc_requests()
+
+        # get PES forces / project out stuff
         for i in range(self.beads_count)[1:-1]:
             pes_forces[i] = -self.qc_driver.gradient(self.state_vec[i])
             pes_forces[i] = project_out(self.tangents[i], pes_forces[i])
@@ -941,11 +958,18 @@ class GrowingString(ReactionPathway):
         flab("called")
         self.update_path(new_state_vec, respace = True)
 
-        # The following code block will need to be replaced for parallel operation
         es = [self.__reagent_energy]
+
+        # request and process parallel QC jobs
+        if self.parallel:
+            for bead_vec in self.__path_rep.get_state_vec()[1:-1]
+                self.qc_driver.request_grad(bead_vec)
+            self.qc_driver.proc_requests()
+
         for bead_vec in self.__path_rep.get_state_vec()[1:-1]:
             es.append(self.__qc_driver.energy(bead_vec))
-        es.append(self.__reagent_energy)
+
+        es.append(self.__reagent_energy) # TODO: do I do something like this for NEB?
         pes_energies = sum(es)
         if individual_energies:
             return array(es)
@@ -959,6 +983,14 @@ class GrowingString(ReactionPathway):
         gradients = []
 
         ts = self.__path_rep.get_path_tangents()
+
+        # request and process parallel QC jobs
+        if self.parallel:
+            for bead_vec in self.__path_rep.get_state_vec()[1:-1]
+                self.qc_driver.request_grad(bead_vec)
+            self.qc_driver.proc_requests()
+
+        # get gradients / perform projections
         for i in range(self.__path_rep.beads_count)[1:-1]:
             g = self.__qc_driver.gradient(self.__path_rep.get_state_vec()[i])
             t = ts[i]

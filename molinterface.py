@@ -12,44 +12,6 @@ DEFAULT_GAUSSIAN03_QCINPUT_EXT = ".com"
 DEFAULT_GAUSSIAN03_QCOUTPUT_EXT = ".log"
 DEFAULT_GAUSSIAN03_PROGNAME = "g03"
 
-
-class MolRep:
-    """Object which exposes information from a molecule in a string specified 
-    in z-matrix/cartesian format. Information extracted is: 
-        format (xyz or zmt)
-        zmt_spec (atom connectivity)
-        coords (xyz or z-matrix coordinate values)
-        var_names (for z-matrix)
-        atoms (list of atom names)
-    """
-    def __init__(self, mol_text):
-        zmt = re.compile(r"""(\w\w?\s*
-                             (\w\w?\s+\d+\s+\w+\s*
-                             (\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s*
-                             (\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s+\d+\s+\S+\s*)*)?)?
-                             (\w+\s+[+-]?\d+\.\d*\s*)+)$""", re.X)
-
-        xyz = re.compile(r"""(\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+""")
-
-        if zmt.match(mol_text) != None:
-            self.format = "zmt"
-            parts = re.search(r"(.+?\n)\s*\n(.+)", mol_text, re.S)
-
-            self.zmt_spec = parts.group(1) # z-matrix text, specifies connection of atoms
-            variables_text = parts.group(2)
-            self.var_names = re.findall(r"(\w+).*?\n", variables_text)
-            self.coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
-            
-        elif xyz.match(mol_text) != None:
-            self.format = "xyz"
-            self.coords = re.findall(r"([+-]?\d+\.\d*)", mol_text)
-            self.var_names = "no variable names"
-        else:
-            raise Exception("can't understand input file")
-
-        self.atoms = re.findall(r"(\w\w?).*?\n", self.zmt_spec)
-        self.coords = [float(c) for c in self.coords]
-
 def test_MolInterface2():
     f = open("CH4.zmt", "r")
     m1 = f.read()
@@ -161,6 +123,44 @@ def test_MolInterface():
     print data.grads
     print data.gradvars
 
+############## END TEST FUNCTIONS ###############
+
+class MolRep:
+    """Object which exposes information from a molecule in a string specified 
+    in z-matrix/cartesian format. Information extracted is: 
+        format (xyz or zmt)
+        zmt_spec (atom connectivity)
+        coords (xyz or z-matrix coordinate values)
+        var_names (for z-matrix)
+        atoms (list of atom names)
+    """
+    def __init__(self, mol_text):
+        zmt = re.compile(r"""(\w\w?\s*
+                             (\w\w?\s+\d+\s+\w+\s*
+                             (\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s*
+                             (\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s+\d+\s+\S+\s*)*)?)?
+                             (\w+\s+[+-]?\d+\.\d*\s*)+)$""", re.X)
+
+        xyz = re.compile(r"""(\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+""")
+
+        if zmt.match(mol_text) != None:
+            self.format = "zmt"
+            parts = re.search(r"(.+?\n)\s*\n(.+)", mol_text, re.S)
+
+            self.zmt_spec = parts.group(1) # z-matrix text, specifies connection of atoms
+            variables_text = parts.group(2)
+            self.var_names = re.findall(r"(\w+).*?\n", variables_text)
+            self.coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
+            
+        elif xyz.match(mol_text) != None:
+            self.format = "xyz"
+            self.coords = re.findall(r"([+-]?\d+\.\d*)", mol_text)
+            self.var_names = "no variable names"
+        else:
+            raise Exception("can't understand input file")
+
+        self.atoms = re.findall(r"(\w\w?).*?\n", self.zmt_spec)
+        self.coords = [float(c) for c in self.coords]
 
 class MolInterface:
     """Converts between molecule representations (i.e. internal xyz/zmat 
@@ -302,23 +302,32 @@ class MolInterface:
 
         return (str, numpy.array(xyz_coords))
 
-    def run_job(self, coords, params = dict()):
+    def run(self, coords, params):
+        outputfile = self.run_qc(coords, params)
+        e, g = self.logfile2eg(outputfile, coords)
+        return Result(coords,
+
+    def run_qc(self, coords, params = dict()):
         import os
         import subprocess
-        input = __name__ + "-" + str(self.job_counter) + self.qcinput_ext
-        output = __name__ + "-" + str(self.job_counter) + self.qcoutput_ext
+        inputfile = __name__ + "-" + str(self.job_counter) + self.qcinput_ext
+        outputfile = __name__ + "-" + str(self.job_counter) + self.qcoutput_ext
         
-        self.coords2qcinput(coords, input)
+        self.coords2qcinput(coords, inputfile)
 
-        if "command" in params:
-            command = params["command"] + " " + input
+        if "qc_command" in params:
+            command = params["qc_command"] + " " + inputfile
         else:
-            command = DEFAULT_GAUSSIAN03_PROGNAME + " " + input
+            command = DEFAULT_GAUSSIAN03_PROGNAME + " " + inputfile
+        
+        if "placement_command" in params:
+            command = params["placement_command"] + " " + command
 
         p = subprocess.Popen(command, shell=True)
         sts = os.waitpid(p.pid, 0)
 
-        return output
+        # TODO: check whether outputfile exists before returning name
+        return outputfile
 
     def logfile2eg_Gaussian(self, logfilename, coords):
         """Extracts the energy and gradient from logfilename. Converts the
@@ -344,8 +353,6 @@ class MolInterface:
         grads_opt = numpy.dot(transform_matrix, grads_cart)
         
         return (energy, grads_opt)
-
-
 
     def numdiff(self, f, X):
         """For function f, computes f'(X) numerically based on a finite difference approach."""

@@ -24,7 +24,16 @@ def is_same_v(v1, v2):
 def is_same_e(e1, e2):
     return abs(e1 - e2) < SAMENESS_THRESH
 
+class ParaJobLauncher():
+    def run(self, j, ix):
+        params = dict()
+        params["placement_command"] = mol_interface.placement_prog +
+                                      " " +
+                                      mol_interface.placement_arg
+        mol_interface.run_job(j.v, params)
+
 class G03Launcher():
+    """Just for testing."""
     def run(self, j, ix):
         import subprocess
         import os
@@ -57,14 +66,14 @@ def test_parallel():
 
 
 class MiniQC():
-    """Mini qc driver. Just or testing"""
+    """Mini qc driver. Just for testing"""
     def run(self, j, ix):
         x = j.v[0]
         y = j.v[1]
 
         e = x + y
 
-        if j.is_grad():
+        if j.is_gradient():
             g = array((x + 1, y + 1))
             res = Result(j.v, e, g)
         else:
@@ -72,7 +81,8 @@ class MiniQC():
 
         return res
 
-def test_calcManager():
+
+def test_CalcManager():
     cm = CalcManager(MiniQC(), (4,1,2))
 
     tmp = array((0.5, 0.7))
@@ -84,7 +94,7 @@ def test_calcManager():
         if i < 4:
             cm.request_energy(inputs[i])
         if i > 3:
-            cm.request_grad(inputs[i])
+            cm.request_gradient(inputs[i])
 
     cm.proc_requests()
 
@@ -97,7 +107,7 @@ def test_calcManager():
             lg.error(err)
 
         try:
-            g = cm.grad(i)
+            g = cm.gradient(i)
             lg.info("g = %s" % g)
         except Exception, err:
            lg.error(err)
@@ -111,7 +121,7 @@ def test_calcManager():
         if i < 7:
             cm.request_energy(inputs[i])
         if i > 8:
-            cm.request_grad(inputs[i])
+            cm.request_gradient(inputs[i])
 
     cm.proc_requests()
 
@@ -124,7 +134,7 @@ def test_calcManager():
             lg.error(err)
 
         try:
-            g = cm.grad(i)
+            g = cm.gradient(i)
             lg.info("g = %s" % g)
         except Exception, err:
            lg.error(err)
@@ -163,7 +173,7 @@ class CalcManager():
     def request_energy(self, v):
         self.request_job(v, Job.E())
 
-    def request_grad(self, v):
+    def request_gradient(self, v):
         self.request_job(v, Job.G())
 
     def request_job(self, v, type):
@@ -216,13 +226,13 @@ class CalcManager():
 
         return res.e
 
-    def grad(self, v):
+    def gradient(self, v):
         """Returns the already computed gradient of vector v."""
         res = self.__result_dict.get(v)
         if res == None:
             raise Exception("No result found for vector %s." %v)
         elif res.g == None:
-            raise Exception("No gradient found for vector %s." %v)
+            raise Exception("No gradient found for vector %s, only energy." %v)
 
         return res.g      
         
@@ -250,7 +260,7 @@ class Job():
 
     def is_energy(self):
         return self.calc_list.count(self.E()) > 0
-    def is_grad(self):
+    def is_gradient(self):
         return self.calc_list.count(self.G()) > 0
 
     class E():
@@ -327,16 +337,20 @@ class Result():
             raise Exception("Trying to add a gradient result when one already exists")
         
 class ParaSched:
-    def __init__(self, qc_driver, total_procs = 4, min_job_procs = 1, max_job_procs = 2):
+    def __init__(self, qc_driver, total_procs = 4, min_procs = 2, max_procs = 4):
         
         self.__pending = Queue()
         self.__finished = Queue()
         self.__qc_driver = qc_driver
 
         # no of workers to start
-        self.__workers_count = int (floor (total_procs / min_job_procs))
+        self.__workers_count = int (floor (total_procs / min_procs))
+        self.__normal_procs = normal_procs
 
     def __worker(self, pending, finished, ix):
+        """Runs as a Python thread. "pending" and "finished" are both thread
+        safe queues of jobs to be consumed / added to by each worker. ix
+        is the index of each worker, used in node placement."""
 
         my_id = get_ident()
         lg.debug("worker starting, id = %s ix = %s" % (my_id, ix))
@@ -350,7 +364,7 @@ class ParaSched:
                 return
 
             # call quantum chem driver
-            res = self.__qc_driver.run(item, ix)
+            res = self.__qc_driver.run(item, ix, procs)
 
             finished.put(res)
             self.__pending.task_done()
