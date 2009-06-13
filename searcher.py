@@ -208,6 +208,8 @@ class QuarticPES(QCDriver):
 class ReactionPathway:
     dimension = -1
     def __init__(self, reactants, products, f_test = lambda x: True):
+        print type(reactants)
+        print type(products)
         assert type(reactants) == type(products) == ndarray
 
         self.reactants  = reactants

@@ -162,7 +162,7 @@ class MolRep:
             raise Exception("can't understand input file")
 
         self.atoms = re.findall(r"(\w\w?).*?\n", self.zmt_spec)
-        self.coords = [float(c) for c in self.coords]
+        self.coords = numpy.array([float(c) for c in self.coords])
 
 class MolInterface:
     """Converts between molecule representations (i.e. internal xyz/zmat 
@@ -172,32 +172,50 @@ class MolInterface:
 
     def __init__(self, mol_strings, params = dict()):
 
-        #  TODO: at present only for reagent/product
-        m1 = MolRep(mol_strings[0])
-        m2 = MolRep(mol_strings[-1])
+        assert len(mol_strings) > 1
+
+        molreps = []
+        for mol_str in mol_strings:
+            molreps.append(MolRep(mol_str))
 
         # used to number input files as they are created and run
         self.job_counter = 0
 
-        if m1.atoms != m2.atoms:
-            raise Exception("input molecules have different atoms")
-        elif m1.format != m2.format:
-            raise Exception("input molecules in different formats")
-        elif m1.format == "zmt" and (m1.var_names != m2.var_names):
-            raise Exception("input molecules have different variable names in z-matrix")
+        # lists of various properties for input reagents
+        atoms          = [m.atoms for m in molreps]
+        formats        = [m.format for m in molreps]
+        coord_vec_lens = [len(m.coords) for m in molreps]
 
+        def all_equal(l):
+            if len(l) <= 1:
+                return True
+            if l[0] != l[1]:
+                return False
+            return all_equal(l[2:])
 
-        
-        self.format = m1.format
-        self.atoms = m1.atoms
-        self.natoms = len(m1.atoms)
+        if not all_equal(atoms):
+            raise Exception("Input molecules do not have consistent atoms.")
+
+        elif not all_equal(formats):
+            raise Exception("Input molecules do not have consistent formats.")
+
+        elif not all_equal(coord_vec_lens):
+            raise Exception("Input molecules did not have a consistent number of variables.")
+
+        elif formats[0] == "zmt":
+            var_names = [m.var_names for m in molreps]
+            if not all_equal(var_names):
+                raise Exception("Input molecules did not have the same variable names.")
+
+        self.format = formats[0]
+        self.atoms = atoms[0]
+        self.natoms = len(atoms[0])
         if self.format == "zmt":
-            self.var_names = m1.var_names
-            self.zmt_spec = m1.zmt_spec
+            self.var_names = var_names[0]
+            self.zmt_spec = molreps[0].zmt_spec
             self.nvariables = len(self.var_names)
 
-        self.mol1_coords = m1.coords
-        self.mol2_coords = m2.coords
+        self.reagent_coords = [m.coords for m in molreps]
 
         if "qcinput_head" in params:
             self.qcinput_head = params["qcinput_head"]
@@ -244,10 +262,17 @@ class MolInterface:
         mystr = "format = " + self.format
         mystr += "\natoms = " + str(self.atoms)
         mystr += "\nvar_names = " + str(self.var_names)
-        mystr += "\nmol1_coords = " + str(self.mol1_coords)
-        mystr += "\nmol2_coords = " + str(self.mol2_coords)
+        mystr += "\nreactant coords = " + str(self.reagent_coords[0])
+        mystr += "\nproduct coords = " + str(self.reagent_coords[1])
         mystr += "\nzmt_spec:\n" + self.zmt_spec
         return mystr
+
+    def geom_checker(self, coords):
+        """Not Yet Implemented.
+        
+        Checks that coords will generate a chemically reasonable 
+        molecule, i.e. no overlap."""
+        return True
 
     def coords2qcinput(self, coords, path = None):
         """Generates an input file for a quantum chemistry program, returning
@@ -264,6 +289,8 @@ class MolInterface:
 
         return str
 
+    def get_reagent_coords(self):
+        return 
     def coords2moltext(self, coords):
         """For a set of internal coordinates, returns the string describing the 
         molecule in xyz format."""
