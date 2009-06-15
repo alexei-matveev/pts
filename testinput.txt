@@ -1,10 +1,10 @@
 [parameters]
 qc_program: g03
-processors: 8,2,1
+processors: 1,1,1
 method: neb
 spr_const: 1.0
-beads_count: 10
-optimizer: fmin_l_bfgs_b
+beads_count: 4
+optimizer: bfgs
 
 [geom0]
 file=H2O-zmt1.zmt

@@ -65,4 +65,12 @@ class Job():
             return isinstance(x, self.__class__) and self.__dict__ == x.__dict__
         def __str__(self):  return "G"
 
+SAMENESS_THRESH = 1e-6
+def is_same_v(v1, v2):
+    import numpy
+    return numpy.linalg.norm(v1 - v2) < SAMENESS_THRESH
+def is_same_e(e1, e2):
+    return abs(e1 - e2) < SAMENESS_THRESH
 
+def line():
+    print "=" * 80

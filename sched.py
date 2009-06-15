@@ -20,12 +20,6 @@ formatter = logging.Formatter("%(name)s (%(levelname)s): %(message)s")
 ch.setFormatter(formatter)
 
 
-SAMENESS_THRESH = 1e-6
-def is_same_v(v1, v2):
-    return linalg.norm(v1 - v2) < SAMENESS_THRESH
-def is_same_e(e1, e2):
-    return abs(e1 - e2) < SAMENESS_THRESH
-
 class ParaJobLauncher():
     def run(self, j, ix):
         params = dict()
@@ -316,7 +310,12 @@ class ParaSched:
             item.processor_ix_end = self.__normal_procs * ix + self.__normal_procs - 1
 
             # call quantum chem driver
-            res = self.__qc_driver.run(item)
+            try:
+                res = self.__qc_driver.run(item)
+            except Exception, inst:
+                lg.error("Worker " + str(my_id) + ": Exception thrown when calling Quantum Chem program: " + str(type(inst)) + ": " + str(inst.args))
+                self.__pending.task_done()
+                return
 
             finished.put(res)
             self.__pending.task_done()

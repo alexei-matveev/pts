@@ -3,6 +3,7 @@ import scipy
 import re
 import copy
 import cclib
+import thread
 
 from common import *
 
@@ -180,6 +181,7 @@ class MolInterface:
 
         # used to number input files as they are created and run
         self.job_counter = 0
+        self.job_counter_lock = thread.allocate_lock()
 
         # lists of various properties for input reagents
         atoms          = [m.atoms for m in molreps]
@@ -357,9 +359,13 @@ class MolInterface:
         p2 = job.processor_ix_end
 
         # e.g. "dplace -c 0-4"
-        local_params["placement_command"] = self.gen_placement_command(p1, p2)
+        if self.gen_placement_command != None:
+            local_params["placement_command"] = self.gen_placement_command(p1, p2)
 
+        # call qchem program
         outputfile = self.run_qc(coords, local_params)
+
+        # parse output file
         e, g = self.logfile2eg(outputfile, coords)
         return Result(coords, e, g)
 
@@ -369,8 +375,13 @@ class MolInterface:
     def run_qc(self, coords, local_params = dict()):
         import os
         import subprocess
+
+        # Generate id for job in thread-safe manner
+        self.job_counter_lock.acquire()
         inputfile = __name__ + "-" + str(self.job_counter) + self.qcinput_ext
         outputfile = __name__ + "-" + str(self.job_counter) + self.qcoutput_ext
+        self.job_counter += 1
+        self.job_counter_lock.release()
         
         self.coords2qcinput(coords, inputfile)
 
@@ -426,7 +437,6 @@ class MolInterface:
             return (f1 - f2)/ (2*dx)
 
         for i in range(N):
-            print "coord ", i
             dx = 1e-1
             df_on_dx = update_estim(dx, i)
             while True:
@@ -456,6 +466,6 @@ class MolInterface:
             if not numpy.isnan(err):
                 if max_err < abs(err):
                     max_err = abs(err)
-                    print "updating err ", err
+#                    print "updating err ", err
 
         return max_err

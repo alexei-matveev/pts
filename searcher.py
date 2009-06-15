@@ -253,7 +253,7 @@ def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
 class NEB(ReactionPathway):
     """Implements a Nudged Elastic Band (NEB) transition state searcher."""
 
-    def __init__(self, reagents, f_test, base_spr_const, qc_driver, beads_count = 10):
+    def __init__(self, reagents, f_test, base_spr_const, qc_driver, beads_count = 10, parallel = False):
 
         reactants, products = reagents[0], reagents[-1]
         ReactionPathway.__init__(self, reactants, products, f_test)
@@ -279,6 +279,8 @@ class NEB(ReactionPathway):
         self.bead_pes_energies[-1] = -1e10
 
         self.use_upwinding_tangent = True
+
+        self.parallel = parallel
 
 
     def special_reduce(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
@@ -367,13 +369,13 @@ class NEB(ReactionPathway):
         spring_energies = 0.5 * ndarray.sum (force_consts_by_separations_squared)
 
         # request and process parallel QC jobs
-        if parallel:
+        if self.parallel:
 
             for i in range(self.beads_count)[1:-1]:
                 bead_vec = self.state_vec[i]
-                self.qc_driver.request_grad(bead_vec)
+                self.qc_driver.request_gradient(bead_vec)
 
-            qc_driver.proc_requests()
+            self.qc_driver.proc_requests()
         
         pes_energies = 0
         for i in range(self.beads_count)[1:-1]:
@@ -410,7 +412,7 @@ class NEB(ReactionPathway):
         if self.parallel:
 
             for i in range(self.beads_count)[1:-1]:
-                self.qc_driver.request_grad(self.state_vec[i])
+                self.qc_driver.request_gradient(self.state_vec[i])
 
             self.qc_driver.proc_requests()
 
@@ -421,6 +423,7 @@ class NEB(ReactionPathway):
 
         gradients_vec = -1 * (pes_forces + spring_forces)
 
+        print "Here:", gradients_vec
         return gradients_vec.flatten()
 
 class Func():
@@ -972,7 +975,7 @@ class GrowingString(ReactionPathway):
         # request and process parallel QC jobs
         if self.parallel:
             for bead_vec in self.__path_rep.get_state_vec()[1:-1]:
-                self.qc_driver.request_grad(bead_vec)
+                self.qc_driver.request_gradient(bead_vec)
             self.qc_driver.proc_requests()
 
         for bead_vec in self.__path_rep.get_state_vec()[1:-1]:
@@ -996,7 +999,7 @@ class GrowingString(ReactionPathway):
         # request and process parallel QC jobs
         if self.parallel:
             for bead_vec in self.__path_rep.get_state_vec()[1:-1]:
-                self.qc_driver.request_grad(bead_vec)
+                self.qc_driver.request_gradient(bead_vec)
             self.qc_driver.proc_requests()
 
         # get gradients / perform projections
