@@ -45,3 +45,12 @@ Tasks / wish list
 ----------
  - need to implement: mol_interface.get_reagent_coords()
  - also convert relevant functions in mol_interface to operate on an arbitrary list of input molecules
+
+ 15/06/2009
+ ----------
+ - Program runs but seg faults (in Fortan code) when using the l_bfgs_b solver 
+   and has (normal(?)) problem when using standard bfgs solver.
+ - todo next:
+   - try using simple gradient descent
+   - try using dummy qchem driver, i.e. analytical potential
+   - check units for gradients, etc.
