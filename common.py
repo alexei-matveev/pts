@@ -1,18 +1,24 @@
 """Classes, functions and variables common to all modules."""
 
+
+PROGNAME = "searcher"
+ERROR_STR = "error"
+
 MAX_GEOMS = 3
 
 class Result():
-    def __init__(self, v, energy, gradient = None):
+    def __init__(self, v, energy, gradient = None, flags = dict()):
         self.v = v
         self.e = energy
         self.g = gradient
+        self.flags = flags
 
     def __eq__(self, r):
         return (isinstance(r, self.__class__) and is_same_v(r.v, self.v)) or (r != None and is_same_v(r, self.v))
 
     def __str__(self):
         s = self.__class__.__name__ + ": " + str(self.v) + " E = " + str(self.e) + " G = " + str(self.g)
+        s += "\nFlags: " + str(flags)
         return s
 
     def has_field(self, type):
@@ -74,3 +80,32 @@ def is_same_e(e1, e2):
 
 def line():
     print "=" * 80
+
+def opt_gd(f, x0, fprime, callback = lambda x: None):
+    """A gradient descent solver."""
+    from numpy import *
+    import copy
+    i = 0
+    x = copy.deepcopy(x0)
+    prevx = zeros(len(x))
+    while 1:
+        g = fprime(x)
+        dx = x - prevx
+        if linalg.norm(g, ord=2) < 0.05:
+            print "***CONVERGED after %d iterations" % i
+            break
+
+        i += 1
+        prevx = x
+        if callback != None:
+            x = callback(x)
+        x -= g * 0.2
+        print line()
+        print x
+        print line()
+#        raw_input('Wait...\n')
+
+    x = callback(x)
+    return x
+
+

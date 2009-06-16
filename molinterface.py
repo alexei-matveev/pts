@@ -4,8 +4,11 @@ import re
 import copy
 import cclib
 import thread
+import logging
 
 from common import *
+
+lg = logging.getLogger(PROGNAME)
 
 numpy.set_printoptions(linewidth=180)
 
@@ -37,7 +40,7 @@ def test_MolInterface2():
     print mi.logfile2eg(logfilename, X)
 
     import cclib
-    file = cclib.parser.ccopen("CH4.log")
+    file = cclib.parser.ccopen("CH4.log", loglevel=logging.ERROR)
     data = file.parse()
     print "SCF Energy and Gradients from direct calc on z-matrix input:"
     print data.scfenergies[-1]
@@ -343,7 +346,7 @@ class MolInterface:
         mol = pybel.readstring("gzmat", header + str)
         str = mol.write("xyz")
         str = "\n".join(re.split(r"\n", str)[2:])
-        print str
+#        print str
 
         xyz_coords = re.findall(r"[+-]?\d+\.\d*", str)
         xyz_coords = [float(c) for c in xyz_coords]
@@ -363,7 +366,11 @@ class MolInterface:
             local_params["placement_command"] = self.gen_placement_command(p1, p2)
 
         # call qchem program
-        outputfile = self.run_qc(coords, local_params)
+        try:
+            outputfile = self.run_qc(coords, local_params)
+        except Exception, e:
+            lg.error("Exception thrown when calling self.run_qc")
+            return
 
         # parse output file
         e, g = self.logfile2eg(outputfile, coords)
@@ -403,7 +410,7 @@ class MolInterface:
         cartesians)."""
 
         import cclib
-        file = cclib.parser.ccopen(logfilename)
+        file = cclib.parser.ccopen(logfilename, loglevel=logging.ERROR)
         data = file.parse()
 
         # energy gradients in cartesian coordinates
@@ -412,12 +419,13 @@ class MolInterface:
         # Gaussian gives gradients in Hartrees per Bohr Radius
         grads_cart *= self.ANGSTROMS_TO_BOHRS
         energy = data.scfenergies[-1]
-        print "Raw gradients in cartesian coordinates:", grads_cart
+        lg.debug("Raw gradients in cartesian coordinates: " + str(grads_cart))
 
         transform_matrix = self.coordsys_trans_matrix(coords)
 
         # energy gradients in optimisation coordinates
-        grads_opt = numpy.dot(transform_matrix, grads_cart)
+        # Gaussian returns forces, not gradients
+        grads_opt = -numpy.dot(transform_matrix, grads_cart)
         
         return (energy, grads_opt)
 
@@ -441,7 +449,7 @@ class MolInterface:
             df_on_dx = update_estim(dx, i)
             while True:
                 #break # at the moment, no error control, just single quick+dirty finite diff measurement
-                print "df_on_dx =", df_on_dx
+                lg.debug("df_on_dx = " + str(df_on_dx))
                 prev_df_on_dx = df_on_dx
                 dx /= 2.0
                 df_on_dx = update_estim(dx, i)

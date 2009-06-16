@@ -8,16 +8,16 @@ from common import *
 # setup logging
 import logging
 print "Defining logger"
-lg = logging.getLogger(__name__)
+lg = logging.getLogger(PROGNAME)
 lg.setLevel(logging.DEBUG)
 
-if not globals().has_key("ch"):
-    print "Defining stream handler"
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-    lg.addHandler(ch)
-formatter = logging.Formatter("%(name)s (%(levelname)s): %(message)s")
-ch.setFormatter(formatter)
+#if not globals().has_key("ch"):
+#    print "Defining stream handler"
+#    ch = logging.StreamHandler()
+#    ch.setLevel(logging.DEBUG)
+#    lg.addHandler(ch)
+#formatter = logging.Formatter("%(name)s (%(levelname)s): %(message)s")
+#ch.setFormatter(formatter)
 
 
 class ParaJobLauncher():
@@ -202,6 +202,8 @@ class CalcManager():
             self.__para_sched.run_all(self.__pending_jobs)
 
             for r in self.__para_sched.get_results():
+                if ERROR_STR in r.flags:
+                    raise Exception("Error encountered in computation, result was: " + r)
                 self.__result_dict.add(r.v, r)
 
         # running serially
@@ -313,9 +315,14 @@ class ParaSched:
             try:
                 res = self.__qc_driver.run(item)
             except Exception, inst:
-                lg.error("Worker " + str(my_id) + ": Exception thrown when calling Quantum Chem program: " + str(type(inst)) + ": " + str(inst.args))
-                self.__pending.task_done()
-                return
+                # this needs to be done differently, when a worker encounters 
+                # an exception it should empty the queue and then rethrow, otherwise
+                # the other jobs will continue to run
+                error_msg = "Worker " + str(my_id) + ": Exception thrown when " + \
+                    "calling self.__qc_driver.run(item): " + str(type(inst)) + ": " + \
+                    str(inst.args)
+                
+                res = Result(item.v, 0.0, flags = dict(ERROR_STR = error_msg))
 
             finished.put(res)
             self.__pending.task_done()

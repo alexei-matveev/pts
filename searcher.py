@@ -9,9 +9,9 @@ import logging
 import copy
 import pickle
 
-progname = "searcher"
+from common import *
 
-lg = logging.getLogger(progname)
+lg = logging.getLogger(PROGNAME)
 lg.setLevel(logging.DEBUG)
 modlog = lg # synonyum
 
@@ -275,12 +275,25 @@ class NEB(ReactionPathway):
         self.bead_pes_energies = zeros(beads_count)
 
         # set reactant/product energies to arbitrarily low so that upwinding tangent calculation works
-        self.bead_pes_energies[0] = -1e10
-        self.bead_pes_energies[-1] = -1e10
+        self.bead_pes_energies[0] = -1e4
+        self.bead_pes_energies[-1] = -1e4
+
+        # forces perpendicular to NEB
+        self.bead_forces = zeros(beads_count * self.dimension)
 
         self.use_upwinding_tangent = True
 
         self.parallel = parallel
+
+    def __str__(self):
+        strrep = "Bead Energies: " + str(self.bead_pes_energies) + "\n"
+        total_energy = 0
+        for i in range(len(self.bead_pes_energies))[1:-1]:
+            total_energy += self.bead_pes_energies[i]
+        strrep += "Total Band Energy: " + str(total_energy)
+        strrep += "\nBead forces: " + str(self.bead_forces)
+        strrep += "\nBead forces norm: " + str(linalg.norm(self.bead_forces))
+        return strrep
 
 
     def special_reduce(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
@@ -421,9 +434,10 @@ class NEB(ReactionPathway):
             pes_forces[i] = -self.qc_driver.gradient(self.state_vec[i])
             pes_forces[i] = project_out(self.tangents[i], pes_forces[i])
 
+        # forces perpendicular to NEB
+        self.bead_forces = copy.deepcopy(pes_forces).flatten()
         gradients_vec = -1 * (pes_forces + spring_forces)
 
-        print "Here:", gradients_vec
         return gradients_vec.flatten()
 
 class Func():
@@ -1524,28 +1538,6 @@ def test_my_bfgs():
     x = my_bfgs(f,x0, fprime)
     print x
 
-
-def opt_gd(f, x0, fprime, callback = lambda x: Nothing):
-    """A gradient descent solver."""
-    report("Grad Desc Iteration")
-    i = 0
-    x = copy.deepcopy(x0)
-    prevx = zeros(len(x))
-    while 1:
-        g = fprime(x)
-        dx = x - prevx
-        if linalg.norm(dx, ord=2) < 0.05:
-            print "***CONVERGED after %d iterations" % i
-            break
-
-        i += 1
-        prevx = x
-        x = callback(x)
-        x -= g * 0.2
-#        raw_input('Wait...\n')
-
-    x = callback(x)
-    return x
 
 class QuadraticStringMethod():
     """Quadratic String Method Functions
