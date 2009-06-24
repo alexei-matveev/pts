@@ -54,6 +54,7 @@ Tasks / wish list
    - try using simple gradient descent (DONE)
    - try using dummy qchem driver, i.e. analytical potential
    - check units for gradients, etc. (DONE [i think])
+   - look at paper for Fast Marching Method... esp. interpolation method
 
 16/06/2009
 ----------

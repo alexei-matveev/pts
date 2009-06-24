@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-from numpy import *
 from scipy import *
 from scipy import interpolate
 import Gnuplot, Gnuplot.PlotItems, Gnuplot.funcutils
@@ -23,9 +22,6 @@ if not globals().has_key("lg"):
 
 import scipy.integrate
 
-def wt():
-    raw_input("Wait...\n")
-
 def _functionId(nFramesUp):
     """ Create a string naming the function n frames up on the stack.
     """
@@ -46,23 +42,6 @@ print "\n\nBegin Program..."
 def flab(msg, tag = "", tag1 = ""):
     import sys
     lg.debug("**** " + sys._getframe(1).f_code.co_name + str(msg) + str(tag) + str(tag1))
-
-class QCDriver:
-    def __init__(self, dimension):
-        self.dimension = dimension
-        self.__g_calls = 0
-        self.__e_calls = 0
-
-    def get_calls(self):
-        return (self.__e_calls, self.__g_calls)
-
-    def gradient(self):
-        self.__g_calls += 1
-        pass
-
-    def energy(self):
-        self.__e_calls += 1
-        pass
 
 """def g(a):
     x = a[0]
@@ -131,79 +110,6 @@ class FourWellPot(QCDriver):
 
         return (dedx,dedy)
 
-def test_FourWellPot():
-    fwp = FourWellPot()
-    sp = SurfPlot(fwp)
-    sp.plot(maxx=2.5, minx=-2.5, maxy=2.5, miny=-2.5)
-
-class GaussianPES(QCDriver):
-    def __init__(self):
-        QCDriver.__init__(self,2)
-
-    def energy(self, v):
-        QCDriver.energy(self)
-
-        x = v[0]
-        y = v[1]
-        return (-exp(-(x**2 + y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*exp(-((1.5*x-1)**2 + (y-2)**2)))
-
-    def gradient(self, v):
-        QCDriver.gradient(self)
-
-        x = v[0]
-        y = v[1]
-        dfdx = 2*x*exp(-(x**2 + y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(4.5*x-3)*exp(-((1.5*x-1)**2 + (y-2)**2))
-        dfdy = 2*y*exp(-(x**2 + y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.5*(2*y-4)*exp(-((1.5*x-1)**2 + (y-2)**2))
-
-        return array((dfdx,dfdy))
-
-class GaussianPES2(QCDriver):
-    def __init__(self):
-        QCDriver.__init__(self,2)
-
-    def energy(self, v):
-        QCDriver.energy(self)
-
-        x = v[0]
-        y = v[1]
-        return (-exp(-(x**2 + 0.2*y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*exp(-((x-1.5)**2 + (y-2.5)**2)))
-
-    def gradient(self, v):
-        QCDriver.gradient(self)
-
-        x = v[0]
-        y = v[1]
-        dfdx = 2*x*exp(-(x**2 + 0.2*y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(2*x-3)*exp(-((x-1.5)**2 + (y-2.5)**2))
-        dfdy = 2*y*exp(-(x**2 + 0.2*y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.3*(2*y-5)*exp(-((x-1.5)**2 + (y-2.5)**2))
-
-        return array((dfdx,dfdy))
-
-class QuarticPES(QCDriver):
-    def __init__(self):
-        QCDriver.__init__(self,2)
-
-    def gradient(self, a):
-        QCDriver.gradient(self)
-
-        if len(a) != self.dimension:
-            raise Exception("Wrong dimension")
-
-        x = a[0]
-        y = a[1]
-        dzdx = 4*x**3 - 3*80*x**2 + 2*1616*x + 2*2*x*y**2 - 2*8*y*x - 80*y**2 
-        dzdy = 2*2*x**2*y - 8*x**2 - 2*80*x*y + 2*1616*y + 4*y**3 - 3*8*y**2
-        return array([dzdy, dzdx])
-
-    def energy(self, a):
-        QCDriver.energy(self)
-
-        if len(a) != self.dimension:
-            raise Exception("Wrong dimension")
-
-        x = a[0]
-        y = a[1]
-        z = (x**2 + y**2) * ((x - 40)**2 + (y - 4) ** 2)
-        return (z)
 
 class ReactionPathway:
     dimension = -1

@@ -1,24 +1,30 @@
 """Classes, functions and variables common to all modules."""
 
-
+from numpy import *
 PROGNAME = "searcher"
 ERROR_STR = "error"
 
 MAX_GEOMS = 3
 
+def wt():
+    raw_input("Wait...\n")
+
+
 class Result():
     def __init__(self, v, energy, gradient = None, flags = dict()):
+        print "yes"
         self.v = v
         self.e = energy
         self.g = gradient
         self.flags = flags
+        print "no"
 
     def __eq__(self, r):
         return (isinstance(r, self.__class__) and is_same_v(r.v, self.v)) or (r != None and is_same_v(r, self.v))
 
     def __str__(self):
         s = self.__class__.__name__ + ": " + str(self.v) + " E = " + str(self.e) + " G = " + str(self.g)
-        s += "\nFlags: " + str(flags)
+        s += "\nFlags: " + str(self.flags)
         return s
 
     def has_field(self, type):
@@ -108,4 +114,108 @@ def opt_gd(f, x0, fprime, callback = lambda x: None):
     x = callback(x)
     return x
 
+# tests whether all items in a list are equal or not
+def all_equal(l):
+    if len(l) <= 1:
+        return True
+    if l[0] != l[1]:
+        return False
+    return all_equal(l[1:])
+
+def test_FourWellPot():
+    fwp = FourWellPot()
+    sp = SurfPlot(fwp)
+    sp.plot(maxx=2.5, minx=-2.5, maxy=2.5, miny=-2.5)
+
+class QCDriver:
+    def __init__(self, dimension):
+        self.dimension = dimension
+        self.__g_calls = 0
+        self.__e_calls = 0
+
+    def get_calls(self):
+        return (self.__e_calls, self.__g_calls)
+
+    def gradient(self):
+        self.__g_calls += 1
+        pass
+
+    def energy(self):
+        self.__e_calls += 1
+        pass
+
+
+class GaussianPES():
+#    def __init__(self):
+#        QCDriver.__init__(self,2)
+
+    def energy(self, v):
+#        QCDriver.energy(self)
+        print "hello", type(v)
+
+        x = v[0]
+        y = v[1]
+        return (-exp(-(x**2 + y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*exp(-((1.5*x-1)**2 + (y-2)**2)))
+
+    def gradient(self, v):
+#        QCDriver.gradient(self)
+        print "hello2"
+
+        x = v[0]
+        print type(x)
+        y = v[1]
+        print "hello4"
+        dfdx = 2*x*exp(-(x**2 + y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(4.5*x-3)*exp(-((1.5*x-1)**2 + (y-2)**2))
+        dfdy = 2*y*exp(-(x**2 + y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.5*(2*y-4)*exp(-((1.5*x-1)**2 + (y-2)**2))
+
+        print "hello3"
+        return array((dfdx,dfdy))
+
+class GaussianPES2(QCDriver):
+    def __init__(self):
+        QCDriver.__init__(self,2)
+
+    def energy(self, v):
+        QCDriver.energy(self)
+
+        x = v[0]
+        y = v[1]
+        return (-exp(-(x**2 + 0.2*y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*exp(-((x-1.5)**2 + (y-2.5)**2)))
+
+    def gradient(self, v):
+        QCDriver.gradient(self)
+
+        x = v[0]
+        y = v[1]
+        dfdx = 2*x*exp(-(x**2 + 0.2*y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(2*x-3)*exp(-((x-1.5)**2 + (y-2.5)**2))
+        dfdy = 2*y*exp(-(x**2 + 0.2*y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.3*(2*y-5)*exp(-((x-1.5)**2 + (y-2.5)**2))
+
+        return array((dfdx,dfdy))
+
+class QuarticPES(QCDriver):
+    def __init__(self):
+        QCDriver.__init__(self,2)
+
+    def gradient(self, a):
+        QCDriver.gradient(self)
+
+        if len(a) != self.dimension:
+            raise Exception("Wrong dimension")
+
+        x = a[0]
+        y = a[1]
+        dzdx = 4*x**3 - 3*80*x**2 + 2*1616*x + 2*2*x*y**2 - 2*8*y*x - 80*y**2 
+        dzdy = 2*2*x**2*y - 8*x**2 - 2*80*x*y + 2*1616*y + 4*y**3 - 3*8*y**2
+        return array([dzdy, dzdx])
+
+    def energy(self, a):
+        QCDriver.energy(self)
+
+        if len(a) != self.dimension:
+            raise Exception("Wrong dimension")
+
+        x = a[0]
+        y = a[1]
+        z = (x**2 + y**2) * ((x - 40)**2 + (y - 4) ** 2)
+        return (z)
 

@@ -1,7 +1,8 @@
 from threading import *
+stack_size(10485760)
+print "ss =", stack_size()
 from thread import *
 from Queue import *
-from numpy import *
 
 from common import *
 
@@ -314,6 +315,7 @@ class ParaSched:
             # call quantum chem driver
             try:
                 res = self.__qc_driver.run(item)
+                print "done2"
             except Exception, inst:
                 # this needs to be done differently, when a worker encounters 
                 # an exception it should empty the queue and then rethrow, otherwise
@@ -324,6 +326,9 @@ class ParaSched:
                 
                 res = Result(item.v, 0.0, flags = dict(ERROR_STR = error_msg))
 
+            except:
+                print "Unknown exception:"
+                exit()
             finished.put(res)
             self.__pending.task_done()
             lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete")
