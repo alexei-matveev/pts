@@ -264,22 +264,12 @@ class MolInterface:
 
     def run_internal(self, job):
         """Used to return results from analytical potentials."""
-        print "sdfasdfasdfasdf"
-        e1 = 0.0
-        print "aaa"
-        try:
-            g1 = numpy.array([1.1,2.2])
-        except:
-            print "here"
-        print "bbb"
 
-        print "sdfas",e1,g1
         coords = job.v
+        e1 = self.analytical_pes.energy(coords)
+
         g1 = self.analytical_pes.gradient(coords)
-        print "g =", g1
-        print type(coords)
         r = Result(coords, e1, gradient=g1)
-        print "r:",type(r)
         return r
 
     def gen_placement_command_dplace(self, p_low, p_high):

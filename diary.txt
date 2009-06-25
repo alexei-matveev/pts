@@ -62,3 +62,14 @@ Tasks / wish list
  - seems to work with simple gradient descent
  - TODO:
    - see above
+
+25/06/2009
+----------
+ - for some reason:
+   - when the openbabel python module is loaded, the l_bfgs_b solver crashes 
+      with a segmentation fault.
+      TODO: test if it crashes when openbabel is loaded in my molinterface.py code
+ - l_bfgs_b cannot find as good a minimum as the gradient descent solver
+   TODO: check if this was the same when running test_NEB()
+
+ - 

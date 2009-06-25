@@ -12,12 +12,10 @@ def wt():
 
 class Result():
     def __init__(self, v, energy, gradient = None, flags = dict()):
-        print "yes"
         self.v = v
         self.e = energy
         self.g = gradient
         self.flags = flags
-        print "no"
 
     def __eq__(self, r):
         return (isinstance(r, self.__class__) and is_same_v(r.v, self.v)) or (r != None and is_same_v(r, self.v))
@@ -77,12 +75,18 @@ class Job():
             return isinstance(x, self.__class__) and self.__dict__ == x.__dict__
         def __str__(self):  return "G"
 
-SAMENESS_THRESH = 1e-6
+def fname():
+    import sys
+    return sys._getframe(1).f_code.co_name
+
+
+SAMENESS_THRESH_VECTORS = 1e-6
+SAMENESS_THRESH_ENERGIES = 1e-6
 def is_same_v(v1, v2):
     import numpy
-    return numpy.linalg.norm(v1 - v2) < SAMENESS_THRESH
+    return numpy.linalg.norm(v1 - v2) < SAMENESS_THRESH_VECTORS
 def is_same_e(e1, e2):
-    return abs(e1 - e2) < SAMENESS_THRESH
+    return abs(e1 - e2) < SAMENESS_THRESH_ENERGIES
 
 def line():
     print "=" * 80
@@ -151,7 +155,7 @@ class GaussianPES():
 
     def energy(self, v):
 #        QCDriver.energy(self)
-        print "hello", type(v)
+#        print "energy running", type(v)
 
         x = v[0]
         y = v[1]
@@ -159,17 +163,16 @@ class GaussianPES():
 
     def gradient(self, v):
 #        QCDriver.gradient(self)
-        print "hello2"
+#        print "gradient running"
 
         x = v[0]
-        print type(x)
         y = v[1]
-        print "hello4"
         dfdx = 2*x*exp(-(x**2 + y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(4.5*x-3)*exp(-((1.5*x-1)**2 + (y-2)**2))
         dfdy = 2*y*exp(-(x**2 + y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.5*(2*y-4)*exp(-((1.5*x-1)**2 + (y-2)**2))
+#        print "gradient:", dfdx
 
-        print "hello3"
-        return array((dfdx,dfdy))
+        g = array((dfdx,dfdy))
+        return g
 
 class GaussianPES2(QCDriver):
     def __init__(self):

@@ -154,7 +154,7 @@ class CalcManager():
         if sched_args != None:
             total, max, norm = sched_args
 
-            print total, norm, max, qc_driver
+            lg.info(total, norm, max, qc_driver)
             self.__para_sched = ParaSched(qc_driver, total, norm, max)
 
         self.__pending_jobs = []
@@ -173,27 +173,27 @@ class CalcManager():
         self.request_job(v, Job.G())
 
     def request_job(self, v, type):
-        """Place into queue, request for calculations of type 'type'."""
+        """Place into queue a request for calculations of type 'type'."""
 
         result = self.__result_dict.get(v)
 
         # calculation not already performed
         if result == None: 
-            # check jobs already in list
+            # check jobs already in current pending list
             for i in range(len(self.__pending_jobs)):
                 j = self.__pending_jobs[i]
                 if j.geom_is(v):
                     j.add_calc(type)
                     return
 
-            # calc is not already in list so must add
-            self.__pending_jobs.append(Job(v, type))
-            lg.info("Requesting calc for %s of type %s" % (v, type))
-
         # calculation has aleady been performed, will use cached version
         elif result.has_field(type):
             lg.info("Already have result for %s, will used cached value" % v)
             return
+
+        # calc is not already in list so must add
+        self.__pending_jobs.append(Job(v, type))
+        lg.info("Requesting calc for %s of type %s" % (v, type))
 
     def proc_requests(self):
         """Process all jobs in queue."""
@@ -245,27 +245,28 @@ class ResultDict():
         f = lambda x: is_same_v(v, x.v)
         matches_list = filter(f, self.list)
 
-        if len(matches_list) > 1:
-            raise Exception("More than 1 result for vector %s already in dictionary." % v)
+        """if len(matches_list) > 1:
+            for i in matches_list:
+                print i
+            raise Exception("More than 1 result for vector %s already in dictionary (add)." % v)"""
 
-        elif len(matches_list) == 1:
-            match_ix = self.list.index(v)
+        if len(matches_list) >= 1:
+            match_ix = self.list.index(v) #TODO: check whether I can use instance from matches_list
             self.list[match_ix].merge(res)
 
         else:
             self.list.append(res)
 
     def get(self, v):
-        """Get already calculated results for vector v from the dictionary."""
-        f = lambda x: x == v
+        """Get previously calculated results for vector v from the dictionary."""
+        f = lambda x: is_same_v(v, x.v)
         matches_list = filter (f, self.list)
 
-        if len(matches_list) > 1:
-            raise Exception("More than 1 result for vector %s already in dictionary" % v)
+        """if len(matches_list) > 1:
+            raise Exception("More than 1 result for vector %s already in dictionary (get)." % v)"""
 
-        elif len(matches_list) == 1:
-            match_ix = self.list.index(v)
-            return self.list[match_ix]
+        if len(matches_list) >= 1:
+            return matches_list[0]
 
         else:
             return None
@@ -315,7 +316,6 @@ class ParaSched:
             # call quantum chem driver
             try:
                 res = self.__qc_driver.run(item)
-                print "done2"
             except Exception, inst:
                 # this needs to be done differently, when a worker encounters 
                 # an exception it should empty the queue and then rethrow, otherwise
@@ -327,11 +327,11 @@ class ParaSched:
                 res = Result(item.v, 0.0, flags = dict(ERROR_STR = error_msg))
 
             except:
-                print "Unknown exception:"
+                lg.error("Unknown Exception in "+ fname())
                 exit()
             finished.put(res)
             self.__pending.task_done()
-            lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete")
+            lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete: " + str(res))
 
         lg.debug("worker exiting, id = %s" % my_id)
 

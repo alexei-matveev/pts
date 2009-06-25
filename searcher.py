@@ -5,7 +5,7 @@ from scipy import interpolate
 import Gnuplot, Gnuplot.PlotItems, Gnuplot.funcutils
 import tempfile, os
 import logging
-import copy
+from copy import deepcopy
 import pickle
 
 from common import *
@@ -42,6 +42,7 @@ print "\n\nBegin Program..."
 def flab(msg, tag = "", tag1 = ""):
     import sys
     lg.debug("**** " + sys._getframe(1).f_code.co_name + str(msg) + str(tag) + str(tag1))
+
 
 """def g(a):
     x = a[0]
@@ -114,8 +115,6 @@ class FourWellPot(QCDriver):
 class ReactionPathway:
     dimension = -1
     def __init__(self, reactants, products, f_test = lambda x: True):
-        print type(reactants)
-        print type(products)
         assert type(reactants) == type(products) == ndarray
 
         self.reactants  = reactants
@@ -172,17 +171,19 @@ class NEB(ReactionPathway):
         #  TODO: generate initial path using all geoms in reagents. Must use
         # path representation object.
         self.state_vec = vector_interpolate(reactants, products, beads_count)
+        print self.state_vec
 
         # Make list of spring constants for every inter-bead separation
         # For the time being, these are uniform
         self.spr_const_vec = array([self.base_spr_const for x in range(beads_count - 1)])
 
         # energy of a bead on PES, doesn't include spring energies
-        self.bead_pes_energies = zeros(beads_count)
+        self.bead_pes_energies = "Undefined"
 
         # set reactant/product energies to arbitrarily low so that upwinding tangent calculation works
-        self.bead_pes_energies[0] = -1e4
-        self.bead_pes_energies[-1] = -1e4
+        self.default_initial_bead_pes_energies = zeros(self.beads_count)
+        self.default_initial_bead_pes_energies[0] = -1e4
+        self.default_initial_bead_pes_energies[-1] = -1e4
 
         # forces perpendicular to NEB
         self.bead_forces = zeros(beads_count * self.dimension)
@@ -259,13 +260,14 @@ class NEB(ReactionPathway):
                     self.tangents[i] = tang_plus * delta_V_max + tang_minus * delta_V_min
 
                 elif Vi_plus_1 <= Vi_minus_1:
-                    self.tangents[i] = tang_minus * delta_V_min + tang_minus * delta_V_max
+                    self.tangents[i] = tang_plus * delta_V_min + tang_minus * delta_V_max
                 else:
                     raise Exception("Should never happen")
             else:
                 self.tangents[i] = ( (self.state_vec[i] - self.state_vec[i-1]) + (self.state_vec[i+1] - self.state_vec[i]) ) / 2
 
             self.tangents[i] /= linalg.norm(self.tangents[i], 2)
+
 
     def update_bead_separations(self):
         self.bead_separation_sqrs_sums = array( map (sum, self.special_reduce(self.state_vec).tolist()) )
@@ -281,12 +283,6 @@ class NEB(ReactionPathway):
             self.state_vec = array(new_state_vec)
             self.state_vec.shape = (self.beads_count, self.dimension)
 
-        self.update_tangents()
-        self.update_bead_separations()
-        
-        force_consts_by_separations_squared = multiply(self.spr_const_vec, self.bead_separation_sqrs_sums.flatten()).transpose()
-        spring_energies = 0.5 * ndarray.sum (force_consts_by_separations_squared)
-
         # request and process parallel QC jobs
         if self.parallel:
 
@@ -295,16 +291,27 @@ class NEB(ReactionPathway):
                 self.qc_driver.request_gradient(bead_vec)
 
             self.qc_driver.proc_requests()
+ 
+        # update vector of energies of individual beads`
+        self.update_bead_pes_energies()
+
+        self.update_tangents()
+        self.update_bead_separations()
         
-        pes_energies = 0
-        for i in range(self.beads_count)[1:-1]:
-            bead_vec = self.state_vec[i]
-            curr_energy = self.qc_driver.energy(bead_vec)
-            self.bead_pes_energies[i] = curr_energy
-            pes_energies += curr_energy
+        force_consts_by_separations_squared = multiply(self.spr_const_vec, self.bead_separation_sqrs_sums.flatten()).transpose()
+        spring_energies = 0.5 * ndarray.sum (force_consts_by_separations_squared)
+
+        self.bead_pes_energies = self.default_initial_bead_pes_energies
+        pes_energies = sum(self.bead_pes_energies[1:-1])
 
         return (pes_energies + spring_energies)
 
+    def update_bead_pes_energies(self):
+        self.bead_pes_energies = self.default_initial_bead_pes_energies
+        for i in range(self.beads_count)[1:-1]:
+            bead_vec = self.state_vec[i]
+            self.bead_pes_energies[i] = self.qc_driver.energy(bead_vec)
+       
     def obj_func_grad(self, new_state_vec = None):
 
         # If a state vector has been specified, return the value of the 
@@ -314,6 +321,15 @@ class NEB(ReactionPathway):
             self.state_vec = array(new_state_vec)
             self.state_vec.shape = (self.beads_count, self.dimension)
 
+         # request and process parallel QC jobs
+        if self.parallel:
+
+            for i in range(self.beads_count)[1:-1]:
+                self.qc_driver.request_gradient(self.state_vec[i])
+
+            self.qc_driver.proc_requests()
+
+        self.update_bead_pes_energies()
         self.update_bead_separations()
         self.update_tangents()
 
@@ -322,18 +338,13 @@ class NEB(ReactionPathway):
         assert len(separations_diffs) == self.beads_count - 2
 
         spring_forces = multiply(separations_diffs.flatten(), self.tangents[1:-1].transpose()).transpose()
+
+#        print "tang:",self.tangents
+#        print "spring forces:", spring_forces
         spring_forces = vstack((zeros(self.dimension), spring_forces, zeros(self.dimension)))
 
         pes_forces = array(zeros(self.beads_count * self.dimension))
         pes_forces.shape = (self.beads_count, self.dimension)
-
-        # request and process parallel QC jobs
-        if self.parallel:
-
-            for i in range(self.beads_count)[1:-1]:
-                self.qc_driver.request_gradient(self.state_vec[i])
-
-            self.qc_driver.proc_requests()
 
         # get PES forces / project out stuff
         for i in range(self.beads_count)[1:-1]:
@@ -341,7 +352,8 @@ class NEB(ReactionPathway):
             pes_forces[i] = project_out(self.tangents[i], pes_forces[i])
 
         # forces perpendicular to NEB
-        self.bead_forces = copy.deepcopy(pes_forces).flatten()
+#        print "pes_forces:", pes_forces
+        self.bead_forces = deepcopy(pes_forces).flatten()
         gradients_vec = -1 * (pes_forces + spring_forces)
 
         return gradients_vec.flatten()
@@ -1518,7 +1530,7 @@ class QuadraticStringMethod():
 
         assert len(x0) % self.__dims == 0
 
-        x = copy.deepcopy(x0)
+        x = deepcopy(x0)
         points = self.__string.get_current_beads_count()
 
         def update_eg(my_x):
@@ -1536,14 +1548,14 @@ class QuadraticStringMethod():
         H = []
         Hi = linalg.norm(g) * eye(self.__dims)
         for i in range(self.__string.get_current_beads_count()):
-            H.append(copy.deepcopy(Hi))
+            H.append(deepcopy(Hi))
         H = array(H)
 
         # optimisation of whole string to semi-global min
         k = 0
         m = e # quadratically estimated energy
         while True:
-            prev_x = copy.deepcopy(x)
+            prev_x = deepcopy(x)
 
             # optimisation of whole string on local quadratic surface
             x = self.quadratic_opt(x, g, H)
@@ -1639,10 +1651,10 @@ class QuadraticStringMethod():
             else:
                 raise Exception("vector %s inappropriate size for resizing with %d and %d" % (v, N, d))
 
-        super_vec1 = copy.deepcopy(super_vec1)
+        super_vec1 = deepcopy(super_vec1)
         set_shape(super_vec1)
 
-        super_vec2 = copy.deepcopy(super_vec2)
+        super_vec2 = deepcopy(super_vec2)
         set_shape(super_vec2)
 
         list = []
@@ -1706,12 +1718,12 @@ class QuadraticStringMethod():
         from numpy.linalg import norm
 
         dims = self.__dims
-        x = copy.deepcopy(x0)
+        x = deepcopy(x0)
         x0.shape = (-1, dims)
         x.shape = (-1, dims)
-        prev_x = copy.deepcopy(x)
+        prev_x = deepcopy(x)
         N = self.__string.get_current_beads_count()  # number of beads in string
-        g0 = copy.deepcopy(g0)
+        g0 = deepcopy(g0)
         g0.shape = (-1, dims)     # initial gradient of quadratic surface
         assert(len(H[0])) == dims # hessian of quadratic surface
 
@@ -1725,7 +1737,7 @@ class QuadraticStringMethod():
             tangents = self.calc_tangents(x)
 
             # optimize each bead in the string
-            prev_g = copy.deepcopy(g0)
+            prev_g = deepcopy(g0)
             for i in range(N):
 
 #                print "i =", i
@@ -1816,7 +1828,7 @@ class QuadraticStringMethod():
                 print "h =", h
                 print "err =", err
 
-            path.append(copy.deepcopy(x))
+            path.append(deepcopy(x))
             x_prev = x
             x += step4
             prev_srch_dir = srch_dir
@@ -1873,7 +1885,7 @@ class SurfPlot():
     def plot(self, path = None, write_contour_file=False, maxx=3.0, minx=0.0, maxy=3.0, miny=0.0):
         flab("called")
         import os
-        opt = copy.deepcopy(path)
+        opt = deepcopy(path)
 
         # Points on grid to draw PES
         ps = 20.0
@@ -1956,11 +1968,13 @@ def test_NEB():
     def mycb(x):
         flab("called")
         surf_plot.plot(path = x)
+        print "x:",x
         return x
 
     from scipy.optimize.lbfgsb import fmin_l_bfgs_b
 
 #    opt = my_fmin_bfgs(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb)
+#    print type(init_state)
     opt, energy, dict = fmin_l_bfgs_b(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb, pgtol=0.05)
     print "opt =", opt
     print dict
