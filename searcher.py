@@ -114,20 +114,19 @@ class FourWellPot(QCDriver):
 
 class ReactionPathway:
     dimension = -1
-    def __init__(self, reactants, products, f_test = lambda x: True):
-        assert type(reactants) == type(products) == ndarray
 
-        self.reactants  = reactants
-        self.products   = products
-        
-        assert len(reactants) == len(products)
-        self.dimension = len(reactants) # dimension of PES
-        
-    def obj_func():
-        pass
+    f_calls = 0
+    g_calls = 0
 
-    def obj_func_grad():
-        pass
+    def __init__(self,reagents):
+        self.dimension = len(reagents[0])
+        #TODO: check that all reagents are same length
+        
+    def obj_func(self, x):
+        self.f_calls += 1
+
+    def obj_func_grad(self, x):
+        self.g_calls += 1
 
     def dump(self):
         pass
@@ -160,8 +159,9 @@ class NEB(ReactionPathway):
 
     def __init__(self, reagents, f_test, base_spr_const, qc_driver, beads_count = 10, parallel = False):
 
+        ReactionPathway.__init__(self, reagents)
         reactants, products = reagents[0], reagents[-1]
-        ReactionPathway.__init__(self, reactants, products, f_test)
+
         self.beads_count = beads_count
         self.base_spr_const = base_spr_const
         self.qc_driver = qc_driver
@@ -200,6 +200,10 @@ class NEB(ReactionPathway):
         strrep += "Total Band Energy: " + str(total_energy)
         strrep += "\nBead forces: " + str(self.bead_forces)
         strrep += "\nBead forces norm: " + str(linalg.norm(self.bead_forces))
+        strrep += "\nFunction calls: " + str(self.f_calls)
+        strrep += "\nGradient calls: " + str(self.g_calls)
+        strrep += "\nArchive: %d\t%f\t%f" % (self.g_calls, linalg.norm(self.bead_forces), total_energy)
+
         return strrep
 
 
@@ -279,6 +283,8 @@ class NEB(ReactionPathway):
     def obj_func(self, new_state_vec = []):
         assert size(self.state_vec) == self.beads_count * self.dimension
 
+        ReactionPathway.obj_func(self, new_state_vec)
+
         if new_state_vec != []:
             self.state_vec = array(new_state_vec)
             self.state_vec.shape = (self.beads_count, self.dimension)
@@ -313,6 +319,8 @@ class NEB(ReactionPathway):
             self.bead_pes_energies[i] = self.qc_driver.energy(bead_vec)
        
     def obj_func_grad(self, new_state_vec = None):
+
+        ReactionPathway.obj_func_grad(self, new_state_vec)
 
         # If a state vector has been specified, return the value of the 
         # objective function for this new state and set the state of self
@@ -1937,7 +1945,7 @@ class SurfPlot():
             data = transpose((xs, ys, pathEnergies))
             Gnuplot.Data(data, filename=tmpPathDataFile, inline=0, binary=0)
             import os
-            wt()
+            #wt()
 
 
             # PLOT SURFACE AND PATH
@@ -1948,7 +1956,7 @@ class SurfPlot():
             # PLOT SURFACE ONLY
             g.splot(Gnuplot.File(tmpPESDataFile, binary=0))
 
-        raw_input('Press to continue...\n')
+        #wt()
 
         os.unlink(tmpPathDataFile)
         os.unlink(tmpPESDataFile)
@@ -1967,18 +1975,19 @@ def test_NEB():
     # Wrapper callback function
     def mycb(x):
         flab("called")
-        surf_plot.plot(path = x)
-        print "x:",x
+        #surf_plot.plot(path = x)
+        print neb
         return x
 
     from scipy.optimize.lbfgsb import fmin_l_bfgs_b
 
-#    opt = my_fmin_bfgs(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb)
-#    print type(init_state)
-    opt, energy, dict = fmin_l_bfgs_b(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb, pgtol=0.05)
+#    opt = fmin_bfgs(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb, gtol=0.05)
+#    opt, energy, dict = fmin_l_bfgs_b(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb, pgtol=0.05)
+    opt = opt_gd(neb.obj_func, init_state, neb.obj_func_grad, callback=mycb)
+
     print "opt =", opt
     print dict
-    wt()
+    #wt()
 
     gr = neb.obj_func_grad(opt)
     n = linalg.norm(gr)
@@ -1989,7 +1998,6 @@ def test_NEB():
         gr = neb.obj_func_grad(opt)
         n = linalg.norm(gr)
         i += 1"""
-
 
     # Points on grid to draw PES
     ps = 20.0
@@ -2003,9 +2011,11 @@ def test_NEB():
     g = Gnuplot.Gnuplot(debug=1)
     g('set data style lines')
     g('set hidden')
-    g.xlabel('x')
-    g.ylabel('y')
+    g.xlabel('Molecular Coordinate A')
+    g.ylabel('Molecular Coordinate B')
+    g.zlabel('Energy')
 
+    g('set linestyle lw 5')
     # Get some tmp filenames
     (fd, tmpPESDataFile,) = tempfile.mkstemp(text=1)
     (fd, tmpPathDataFile,) = tempfile.mkstemp(text=1)
@@ -2015,7 +2025,7 @@ def test_NEB():
     print "opt = ", opt
     pathEnergies = array (map (gpes.energy, opt.tolist()))
     print "pathEnergies = ", pathEnergies
-    pathEnergies += 0.02
+    pathEnergies += 0.05
     xs = array(opt[:,0])
     ys = array(opt[:,1])
     print "xs =",xs, "ys =",ys
@@ -2023,8 +2033,12 @@ def test_NEB():
     Gnuplot.Data(data, filename=tmpPathDataFile, inline=0, binary=0)
 
     # PLOT SURFACE AND PATH
+    g('set xrange [-0.2:3.2]')
+    g('set yrange [-0.2:3.2]')
+    g('set zrange [-1:2]')
+    print tmpPESDataFile,tmpPathDataFile
     g.splot(Gnuplot.File(tmpPESDataFile, binary=0), 
-        Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
+        Gnuplot.File(tmpPathDataFile, binary=0, with_="lines"))
     raw_input('Press to continue...\n')
 
     os.unlink(tmpPESDataFile)
@@ -2032,4 +2046,7 @@ def test_NEB():
 
     return opt
 
+
+if __name__ == '__main__':
+    test_NEB()
 
