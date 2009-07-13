@@ -79,7 +79,7 @@ Tasks / wish list
      converter in python
  TODO:
  - check again how the various optimisers are behaving for an analytical potential
-   - how is the horizontal axis generated? force? energy?
+   - how is the horizontal axis generated? force? energy? DONE
  - run qc jobs for pseudo-analytical plot
    - jobs setup and ready to run in jobs/screaning
      - lots of these have convergence issues => what to do?
@@ -92,3 +92,8 @@ Tasks / wish list
 ----------
  - started writing paragauss.py to parse gxfile and create z-matrix
  - need to find out exactly how paragauss is involed
+ - program seems to be working for rotation of ethanol
+   TODO Next:
+   ----------
+   - print energy of each bead when dumping
+

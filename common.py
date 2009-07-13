@@ -4,6 +4,8 @@ from numpy import *
 PROGNAME = "searcher"
 ERROR_STR = "error"
 
+LOGFILE_EXT = ".log"
+
 MAX_GEOMS = 3
 
 def wt():

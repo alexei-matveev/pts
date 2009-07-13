@@ -277,6 +277,12 @@ class NEB(ReactionPathway):
         self.bead_separation_sqrs_sums = array( map (sum, self.special_reduce(self.state_vec).tolist()) )
         self.bead_separation_sqrs_sums.shape = (self.beads_count - 1, 1)
 
+    def get_bead_coords(self):
+        print "here"
+        tmp = deepcopy(self.state_vec)
+        tmp.shape = (self.beads_count, self.dimension)
+        return tmp
+
     def get_state_as_array(self):
         return self.state_vec.flatten()
 

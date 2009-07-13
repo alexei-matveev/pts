@@ -1,7 +1,6 @@
 import numpy
 import scipy
 import re
-import copy
 import cclib
 import thread
 import logging
@@ -130,8 +129,7 @@ class MolInterface:
         if "qc_program" in params:
             if params["qc_program"] == "g03":
                 self.qc_command = DEFAULT_GAUSSIAN03_PROGNAME
-        if "qc_program" in params:
-            if params["qc_program"] == "analytical_GaussianPES":
+            elif params["qc_program"] == "analytical_GaussianPES":
                 self.run = self.run_internal
                 self.analytical_pes = GaussianPES()
             else:
@@ -162,6 +160,7 @@ class MolInterface:
         
         Checks that coords will generate a chemically reasonable 
         molecule, i.e. no overlap."""
+        assert False, "Not yet implemented"
         return True
 
     def coords2qcinput(self, coords, path = None):
@@ -180,7 +179,8 @@ class MolInterface:
         return str
 
     def get_reagent_coords(self):
-        return 
+        assert False, "Not yet implemented"
+
     def coords2moltext(self, coords):
         """For a set of internal coordinates, returns the string describing the 
         molecule in xyz format."""
@@ -201,10 +201,10 @@ class MolInterface:
         dX_on_dC = self.numdiff(self.opt_coords2cart_coords, coords)
         return dX_on_dC
 
-    def coords2xyz(self, coords):
-        """Generates the xyz coordinates (both as a Gaussian z-matrix format 
-        string and as an array of floats) based on a set of input coordinates 
-        given in the optimisation coordinate system."""
+    def coords2molstr(self, coords):
+        """Generates a string containing a molecule specification in Gaussian 
+        Z-matrix or Gaussian XYZ format (without method keywords, i.e. only 
+        the molecule specification) based on coords."""
 
         str = ""
         if self.format == "xyz":
@@ -214,10 +214,20 @@ class MolInterface:
             str += self.zmt_spec + "\n"
             for i in range(self.nvariables):
                 str += "%s=%s\n" % (self.var_names[i], coords[i])
-
-            (str, coords) = self.zmt2xyz(str)
         else:
             raise Exception("Unrecognised self.mol_rep_type")
+
+        return str
+
+    def coords2xyz(self, coords):
+        """Generates the xyz coordinates (both as a Gaussian z-matrix format 
+        string and as an array of floats) based on a set of input coordinates 
+        given in the optimisation coordinate system."""
+
+        str = self.coords2molstr(coords)
+
+        if self.format == "zmt":
+            (str, coords) = self.zmt2xyz(str)
 
         return (str, coords)
 
@@ -255,7 +265,7 @@ class MolInterface:
         try:
             outputfile = self.run_qc(coords, local_params)
         except Exception, e:
-            lg.error("Exception thrown when calling self.run_qc")
+            lg.error("Exception thrown when calling self.run_qc: " + str(e))
             return
 
         # parse output file
@@ -321,7 +331,9 @@ class MolInterface:
         energy = data.scfenergies[-1]
         lg.debug("Raw gradients in cartesian coordinates: " + str(grads_cart))
 
+        print "about to search m"
         transform_matrix = self.coordsys_trans_matrix(coords)
+        print "m done"
 
         # energy gradients in optimisation coordinates
         # Gaussian returns forces, not gradients
@@ -337,8 +349,9 @@ class MolInterface:
         num_diff_err = 1e-3 # as fraction of derivative being measured
 
         def update_estim(dx, ix):
-            X1 = copy.deepcopy(X)
-            X2 = copy.deepcopy(X)
+            from copy import deepcopy
+            X1 = deepcopy(X)
+            X2 = deepcopy(X)
             X1[ix] += dx
             X2[ix] -= dx
             f1, f2 = f(X1), f(X2)
@@ -443,7 +456,7 @@ def test_MolInterface():
     m2 = m1
     f.close()
 
-    mi = MolInterface(m1, m2)
+    mi = MolInterface([m1, m2])
     print "Testing: MolecularInterface"
     print mi
 
