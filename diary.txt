@@ -72,7 +72,7 @@ Tasks / wish list
  - l_bfgs_b cannot find as good a minimum as the gradient descent solver
    TODO: check if this was the same when running test_NEB()
 
-09/06/2009
+09/07/2009
 ----------
  - openbabel being loaded seems to cause the optimiser to crash
    - to work around this, have coded a new z-matrix to cartesian 
@@ -82,5 +82,13 @@ Tasks / wish list
    - how is the horizontal axis generated? force? energy?
  - run qc jobs for pseudo-analytical plot
    - jobs setup and ready to run in jobs/screaning
+     - lots of these have convergence issues => what to do?
+       - use mm?
+ - zmatrix.py works
+   - need to add function/property to return total number of atoms / 
+     variables / etc, see http://docs.python.org/library/functions.html
 
-
+13/07/2009
+----------
+ - started writing paragauss.py to parse gxfile and create z-matrix
+ - need to find out exactly how paragauss is involed
