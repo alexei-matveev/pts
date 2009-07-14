@@ -8,6 +8,12 @@ LOGFILE_EXT = ".log"
 
 MAX_GEOMS = 3
 
+DEG_TO_RAD = pi / 180.
+RAD_TO_DEG = 180. / pi
+VX = array((1.0,0.0,0.0))
+VY = array((0.0,1.0,0.0))
+VZ = array((0.0,0.0,1.0))
+
 def wt():
     raw_input("Wait...\n")
 
@@ -223,4 +229,27 @@ class QuarticPES(QCDriver):
         y = a[1]
         z = (x**2 + y**2) * ((x - 40)**2 + (y - 4) ** 2)
         return (z)
+
+def vector_angle(v1, v2):
+    """Returns the angle between two head to tail vectors in degrees."""
+    return 180. - RAD_TO_DEG * arccos(dot(v1, v2) / linalg.norm(v1) / linalg.norm(v2))
+
+def expand_newline(s):
+    """Removes all 'slash' followed by 'n' characters and replaces with new line chaaracters."""
+    s2 = ""
+    i = 0
+    while i < len(s)-2:
+        if s[i:i+2] == r"\n":
+            s2 += "\n"
+            i += 2
+        else:
+            s2 += s[i]
+            i += 1
+    if s[-2:] == r"\n":
+        s2 += "\n"
+    else:
+        s2 += s[-2:]
+
+    return s2
+
 

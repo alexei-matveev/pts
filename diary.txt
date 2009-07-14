@@ -95,5 +95,21 @@ Tasks / wish list
  - program seems to be working for rotation of ethanol
    TODO Next:
    ----------
-   - print energy of each bead when dumping
+   - print energy of each bead when dumping DONE
+   - report:
+     - Distance between beeds
+     - angle between beads. DONE
+
+14/07/2009
+----------
+ TODO
+ - test on larger example, e.g. amino acid in paper
+ - get working with Python z-matrix
+ - get working with direct z-matrix gradients from Gaussian
+ - input params class
+ - shepard interpolation
+ - paragauss parser/generator
+ - compile paragauss
+   - get mpi
+   - http://intranet.theochem.tu-muenchen.de/wiki/index.php/Building_ParaGauss
 

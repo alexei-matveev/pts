@@ -1,10 +1,6 @@
 import re
 import numpy
-
-DEG_TO_RAD = 3.14159 / 180.
-VX = numpy.array((1.0,0.0,0.0))
-VY = numpy.array((0.0,1.0,0.0))
-VZ = numpy.array((0.0,0.0,1.0))
+import common
 
 
 class Atom():

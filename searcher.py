@@ -171,7 +171,6 @@ class NEB(ReactionPathway):
         #  TODO: generate initial path using all geoms in reagents. Must use
         # path representation object.
         self.state_vec = vector_interpolate(reactants, products, beads_count)
-        print self.state_vec
 
         # Make list of spring constants for every inter-bead separation
         # For the time being, these are uniform
@@ -192,6 +191,16 @@ class NEB(ReactionPathway):
 
         self.parallel = parallel
 
+    def get_angles(self):
+        """Returns an array of angles between beed groups of 3 beads."""
+
+        angles = []
+        for i in range(len(self.state_vec))[2:]:
+            t0 = self.state_vec[i-1] - self.state_vec[i-2]
+            t1 = self.state_vec[i] - self.state_vec[i-1]
+            angles.append(vector_angle(t1, t0))
+        return array(angles)
+
     def __str__(self):
         strrep = "Bead Energies: " + str(self.bead_pes_energies) + "\n"
         total_energy = 0
@@ -203,6 +212,7 @@ class NEB(ReactionPathway):
         strrep += "\nFunction calls: " + str(self.f_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
         strrep += "\nArchive: %d\t%f\t%f" % (self.g_calls, linalg.norm(self.bead_forces), total_energy)
+        strrep += "\nAngles: %s" % str(self.get_angles())
 
         return strrep
 
@@ -274,6 +284,7 @@ class NEB(ReactionPathway):
 
 
     def update_bead_separations(self):
+        """Updates internal vector of distances between beads."""
         self.bead_separation_sqrs_sums = array( map (sum, self.special_reduce(self.state_vec).tolist()) )
         self.bead_separation_sqrs_sums.shape = (self.beads_count - 1, 1)
 
@@ -305,6 +316,7 @@ class NEB(ReactionPathway):
             self.qc_driver.proc_requests()
  
         # update vector of energies of individual beads`
+        # this is required for the tangent calculation
         self.update_bead_pes_energies()
 
         self.update_tangents()
@@ -313,7 +325,9 @@ class NEB(ReactionPathway):
         force_consts_by_separations_squared = multiply(self.spr_const_vec, self.bead_separation_sqrs_sums.flatten()).transpose()
         spring_energies = 0.5 * ndarray.sum (force_consts_by_separations_squared)
 
+        # Hmm, why do I do this?
         self.bead_pes_energies = self.default_initial_bead_pes_energies
+
         pes_energies = sum(self.bead_pes_energies[1:-1])
 
         return (pes_energies + spring_energies)

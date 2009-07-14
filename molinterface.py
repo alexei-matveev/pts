@@ -101,10 +101,13 @@ class MolInterface:
 
         self.reagent_coords = [m.coords for m in molreps]
 
+        
         if "qcinput_head" in params:
             self.qcinput_head = params["qcinput_head"]
+            self.qcinput_head = expand_newline(self.qcinput_head)
         else:
             self.qcinput_head = DEFAULT_GAUSSIAN03_HEADER
+        
 
         if "qcinput_foot" in params:
             self.qcinput_foot = params["qcinput_foot"]
@@ -324,11 +327,21 @@ class MolInterface:
         data = file.parse()
 
         # energy gradients in cartesian coordinates
-        grads_cart = data.grads
+        if hasattr(data, "grads"):
+            grads_cart = data.grads
+        else:
+            raise Exception("No gradients found in file " + logfilename)
 
         # Gaussian gives gradients in Hartrees per Bohr Radius
         grads_cart *= self.ANGSTROMS_TO_BOHRS
-        energy = data.scfenergies[-1]
+
+        if hasattr(data, "scfenergies"):
+            energy = data.scfenergies[-1]
+        elif hasattr(data, "mmenergies"):
+            energy = data.mmenergies[-1]
+        else:
+            raise Exception("No energies found in file " + logfilename)
+
         lg.debug("Raw gradients in cartesian coordinates: " + str(grads_cart))
 
         print "about to search m"
@@ -362,7 +375,7 @@ class MolInterface:
             df_on_dx = update_estim(dx, i)
             while True:
                 #break # at the moment, no error control, just single quick+dirty finite diff measurement
-                lg.debug("df_on_dx = " + str(df_on_dx))
+                #lg.debug("df_on_dx = " + str(df_on_dx))
                 prev_df_on_dx = df_on_dx
                 dx /= 2.0
                 df_on_dx = update_estim(dx, i)
