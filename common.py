@@ -100,8 +100,8 @@ def line():
     print "=" * 80
 
 def opt_gd(f, x0, fprime, callback = lambda x: None):
-    """A gradient descent solver."""
-    from numpy import *
+    """A gradient descent optimiser."""
+
     import copy
     i = 0
     x = copy.deepcopy(x0)
@@ -121,7 +121,6 @@ def opt_gd(f, x0, fprime, callback = lambda x: None):
         print line()
         print x
         print line()
-#        raw_input('Wait...\n')
 
     x = callback(x)
     return x
@@ -251,5 +250,12 @@ def expand_newline(s):
         s2 += s[-2:]
 
     return s2
+
+def file2str(f):
+    """Returns contents file with name f as a string."""
+    f = open(f, "r")
+    mystr = f.read()
+    f.close()
+    return mystr
 
 

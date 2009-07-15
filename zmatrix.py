@@ -1,6 +1,6 @@
 import re
 import numpy
-import common
+from common import *
 
 
 class Atom():
@@ -95,8 +95,8 @@ class ZMatrix():
         zmt = re.compile(r"""\s*(\w\w?\s*
                              \s*(\w\w?\s+\d+\s+\S+\s*
                              \s*(\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s*
-                             \s*(\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s+\d+\s+\S+\s*)*)?)?)
-                             ((\w+\s+[+-]?\d+\.\d*[ \t\r\f\v]*\n)+)\s*$""", re.X)
+                             ([ ]*\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s+\d+\s+\S+[ ]*\n)*)?)?)\n
+                             (([ ]*\w+\s+[+-]?\d+\.\d*[ \t\r\f\v]*\n)+)\s*$""", re.X)
 
 
         self.atoms = []
@@ -111,7 +111,7 @@ class ZMatrix():
             var_names = re.findall(r"(\w+).*?\n", variables_text)
             coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
         else:
-            raise Exception("Z-matrix not found in string")
+            raise Exception("Z-matrix not found in string:\n" + mol_text)
         
         # Create data structure of atoms. There is both an ordered list and an 
         # unordered dictionary.
@@ -139,9 +139,6 @@ class ZMatrix():
             if not var in self.vars:
                 raise Exception("Variable '" + var + "' not given in z-matrix")
 
-        print self.vars
-
-
     def __get_var(self, var):
         """If var is numeric, return it, otherwise look it's value up 
         in the dictionary of variable values."""
@@ -166,6 +163,9 @@ class ZMatrix():
 
     def xyz_str(self):
         """Returns an xyz format molecular representation in a string."""
+        if not "vector" in self.atoms[0].__dict__:
+            self.gen_cartesian()
+
         mystr = ""
         for atom in self.atoms:
             mystr += atom.name + " " + self.__pretty_vec(atom.vector) + "\n"
@@ -241,70 +241,5 @@ class ZMatrix():
         
         xyz_coords = numpy.array(xyz_coords)
         return xyz_coords
-
-
-### Just for testing ###        
-
-def test_ZMatrix():
-    input = """N
-H 1 hn
-H 1 hn 2 hnh
-H 1 hn 2 hnh 3 120.1
-
-hn 1.2
-hnh 109.5
-"""
-    
-    z = ZMatrix(input)
-    print z.gen_cartesian()
-    print z.xyz_str()
-    print z.zmt_str()
-    print z.int2cart(numpy.array((1.0,100)))
-    print z.int2cart(numpy.array((3.4,70.1)))
-
-    f = open("hexane.zmt","r")
-    hexane_zmt = f.read()
-    f.close()
-
-    z = ZMatrix(hexane_zmt)
-    z.gen_cartesian()
-    f = open("hexane.xyz", "w")
-    f.write(z.xyz_str())
-    f.close()
-
-    f = open("hexane2.zmt", "w")
-    f.write(z.zmt_str())
-    f.close()
-
-    f = open("benzyl.zmt","r")
-    benzyl_zmt = f.read()
-    f.close()
-
-    z = ZMatrix(benzyl_zmt)
-    z.gen_cartesian()
-    print z.zmt_str()
-    f = open("benzyl.xyz", "w")
-    f.write(z.xyz_str())
-    f.close()
-
-
-
-
-def test_Atom():
-    a = Atom("H")
-    print a
-    b = Atom("He 1 HHe")
-    c = Atom("C 2 CHe 1 CHeH")
-    d = Atom("F 1 abc 2 sdf 3 dih")
-    e = Atom("F 1 abc 2 sdf 3 -123.1")
-
-    print b
-    print c
-    print d
-    print e
-
-if __name__ == "__main__":
-    test_Atom()
-    test_ZMatrix()
 
 
