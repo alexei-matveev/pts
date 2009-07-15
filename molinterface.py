@@ -49,7 +49,7 @@ class MolRep:
             self.coords = re.findall(r"([+-]?\d+\.\d*)", mol_text)
             self.var_names = "no variable names"
         else:
-            raise Exception("can't understand input file")
+            raise Exception("can't understand input file:\n" + mol_text)
 
         self.atoms = re.findall(r"(\w\w?).*?\n", self.zmt_spec)
         self.coords = numpy.array([float(c) for c in self.coords])
@@ -201,7 +201,7 @@ class MolInterface:
         the cartesian coordinates Xi with respect to the optimisation 
         coordinates Cj, i <- 1..n, j <- 1..m."""
 
-        dX_on_dC = self.numdiff(self.opt_coords2cart_coords, coords)
+        dX_on_dC = numdiff(self.opt_coords2cart_coords, coords)
         return dX_on_dC
 
     def coords2molstr(self, coords):
@@ -244,7 +244,6 @@ class MolInterface:
         mol = pybel.readstring("gzmat", header + str)
         str = mol.write("xyz")
         str = "\n".join(re.split(r"\n", str)[2:])
-#        print str
 
         xyz_coords = re.findall(r"[+-]?\d+\.\d*", str)
         xyz_coords = [float(c) for c in xyz_coords]
@@ -344,9 +343,7 @@ class MolInterface:
 
         lg.debug("Raw gradients in cartesian coordinates: " + str(grads_cart))
 
-        print "about to search m"
         transform_matrix = self.coordsys_trans_matrix(coords)
-        print "m done"
 
         # energy gradients in optimisation coordinates
         # Gaussian returns forces, not gradients
@@ -354,168 +351,5 @@ class MolInterface:
         
         return (energy, grads_opt)
 
-    def numdiff(self, f, X):
-        """For function f, computes f'(X) numerically based on a finite difference approach."""
-
-        N = len(X)
-        df_on_dX = []
-        num_diff_err = 1e-3 # as fraction of derivative being measured
-
-        def update_estim(dx, ix):
-            from copy import deepcopy
-            X1 = deepcopy(X)
-            X2 = deepcopy(X)
-            X1[ix] += dx
-            X2[ix] -= dx
-            f1, f2 = f(X1), f(X2)
-            return (f1 - f2)/ (2*dx)
-
-        for i in range(N):
-            dx = 1e-1
-            df_on_dx = update_estim(dx, i)
-            while True:
-                #break # at the moment, no error control, just single quick+dirty finite diff measurement
-                #lg.debug("df_on_dx = " + str(df_on_dx))
-                prev_df_on_dx = df_on_dx
-                dx /= 2.0
-                df_on_dx = update_estim(dx, i)
-                norm = numpy.linalg.norm(prev_df_on_dx)
-
-                #  Hmm, problems with this when used for z-mat conversion
-                err = self.calc_err(df_on_dx, prev_df_on_dx)
-                if numpy.isnan(err):
-                    raise Exception("NaN encountered in numerical differentiation")
-                if err < num_diff_err:
-                    break
-
-            df_on_dX.append(df_on_dx)
-
-        return numpy.array(df_on_dX)
-
-    def calc_err(self, estim1, estim2):
-        max_err = -1e200
-        diff = estim1 - estim2
-        for i in range(len(estim1)):
-            err = diff[i] / estim1[i]
-            if not numpy.isnan(err):
-                if max_err < abs(err):
-                    max_err = abs(err)
-#                    print "updating err ", err
-
-        return max_err
-
-##################### Start Test Functions ######################
-def test_MolInterface2():
-    f = open("CH4.zmt", "r")
-    m1 = f.read()
-    m2 = m1
-    f.close()
-
-    mi = MolInterface(m1, m2)
-    print "Testing: MolecularInterface"
-    print mi
-
-    X = numpy.array([1.0900000000000001, 109.5, 120.0])
-    print mi.opt_coords2cart_coords(X)
-
-    print "Testing: coordsys_trans_matrix()"
-    print mi.coordsys_trans_matrix(X)
-
-    print "Testing: run_job()"
-    logfilename = mi.run_job(X)
-    print "file", logfilename, "created"
-    print mi.logfile2eg(logfilename, X)
-
-    import cclib
-    file = cclib.parser.ccopen("CH4.log", loglevel=logging.ERROR)
-    data = file.parse()
-    print "SCF Energy and Gradients from direct calc on z-matrix input:"
-    print data.scfenergies[-1]
-    print data.grads
-    print data.gradvars
-
-def test_MolInterface3():
-    f = open("H2O.zmt", "r")
-    m1 = f.read()
-    m2 = m1
-    f.close()
-
-    mi = MolInterface(m1, m2)
-    print "Testing: MolecularInterface"
-    print mi
-
-    X = numpy.array([1.5, 100.1])
-    print mi.opt_coords2cart_coords(X)
-
-    print "Testing: coordsys_trans_matrix()"
-    print mi.coordsys_trans_matrix(X)
-
-    print "Testing: run_job()"
-    logfilename = mi.run_job(X)
-    print "file", logfilename, "created"
-    print mi.logfile2eg(logfilename, X)
-
-    import cclib
-    file = cclib.parser.ccopen("H2O.log")
-    data = file.parse()
-    print "SCF Energy and Gradients from direct calc on z-matrix input:"
-    print data.scfenergies[-1]
-    print data.grads
-    print data.gradvars
-
-def test_MolInterface():
-    f = open("NH3.zmt", "r")
-    m1 = f.read()
-    m2 = m1
-    f.close()
-
-    mi = MolInterface([m1, m2])
-    print "Testing: MolecularInterface"
-    print mi
-
-    print "Testing: coords2moltext()"
-    print mi.coords2moltext([0.97999999999999998, 1.089, 109.471, 120.0])
-
-    print "Testing: coords2qcinput()"
-    print mi.coords2qcinput([0.97999999999999998, 1.089, 109.471, 120.0])
-    print mi.coords2qcinput([0.97999999999999998, 1.089, 129.471, 0.0])
-
-    str_zmt = """H
-    F  1  r2
-    Variables:
-    r2= 0.9000
-    """
-    
-    print "Testing: zmt2xyz()"
-    print mi.zmt2xyz(str_zmt)
-
-    X = numpy.arange(4.0)*3.14159/4
-    print mi.numdiff(numpy.sin, X)
-
-    print "Testing: coords2xyz()"
-    print mi.coords2xyz([0.97999999999999998, 1.089, 109.471, 120.0])
-
-    print "Testing: opt_coords2cart_coords()"
-
-    X = numpy.array([0.97999999999999998, 1.089, 109.471, 120.0])
-    print mi.opt_coords2cart_coords(X)
-
-    print "Testing: coordsys_trans_matrix()"
-    print mi.coordsys_trans_matrix(X)
-
-    print "Testing: run_job()"
-    logfilename = mi.run_job(X)
-    print "file", logfilename, "created"
-    print mi.logfile2eg(logfilename, X)
-
-    import cclib
-    file = cclib.parser.ccopen("NH3.log")
-    data = file.parse()
-    print "SCF Energy and Gradients from direct calc on z-matrix input:"
-    print data.scfenergies[-1]
-    print data.grads
-    print data.gradvars
-
-############## END TEST FUNCTIONS ###############
 
 

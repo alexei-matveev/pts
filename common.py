@@ -1,6 +1,6 @@
 """Classes, functions and variables common to all modules."""
 
-from numpy import *
+import numpy
 PROGNAME = "searcher"
 ERROR_STR = "error"
 
@@ -8,11 +8,11 @@ LOGFILE_EXT = ".log"
 
 MAX_GEOMS = 3
 
-DEG_TO_RAD = pi / 180.
-RAD_TO_DEG = 180. / pi
-VX = array((1.0,0.0,0.0))
-VY = array((0.0,1.0,0.0))
-VZ = array((0.0,0.0,1.0))
+DEG_TO_RAD = numpy.pi / 180.
+RAD_TO_DEG = 180. / numpy.pi
+VX = numpy.array((1.0,0.0,0.0))
+VY = numpy.array((0.0,1.0,0.0))
+VZ = numpy.array((0.0,0.0,1.0))
 
 def wt():
     raw_input("Wait...\n")
@@ -91,7 +91,6 @@ def fname():
 SAMENESS_THRESH_VECTORS = 1e-6
 SAMENESS_THRESH_ENERGIES = 1e-6
 def is_same_v(v1, v2):
-    import numpy
     return numpy.linalg.norm(v1 - v2) < SAMENESS_THRESH_VECTORS
 def is_same_e(e1, e2):
     return abs(e1 - e2) < SAMENESS_THRESH_ENERGIES
@@ -109,7 +108,7 @@ def opt_gd(f, x0, fprime, callback = lambda x: None):
     while 1:
         g = fprime(x)
         dx = x - prevx
-        if linalg.norm(g, ord=2) < 0.05:
+        if numpy.linalg.norm(g, ord=2) < 0.05:
             print "***CONVERGED after %d iterations" % i
             break
 
@@ -178,7 +177,7 @@ class GaussianPES():
         dfdy = 2*y*exp(-(x**2 + y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.5*(2*y-4)*exp(-((1.5*x-1)**2 + (y-2)**2))
 #        print "gradient:", dfdx
 
-        g = array((dfdx,dfdy))
+        g = numpy.array((dfdx,dfdy))
         return g
 
 class GaussianPES2(QCDriver):
@@ -200,7 +199,7 @@ class GaussianPES2(QCDriver):
         dfdx = 2*x*exp(-(x**2 + 0.2*y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(2*x-3)*exp(-((x-1.5)**2 + (y-2.5)**2))
         dfdy = 2*y*exp(-(x**2 + 0.2*y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.3*(2*y-5)*exp(-((x-1.5)**2 + (y-2.5)**2))
 
-        return array((dfdx,dfdy))
+        return numpy.array((dfdx,dfdy))
 
 class QuarticPES(QCDriver):
     def __init__(self):
@@ -216,7 +215,7 @@ class QuarticPES(QCDriver):
         y = a[1]
         dzdx = 4*x**3 - 3*80*x**2 + 2*1616*x + 2*2*x*y**2 - 2*8*y*x - 80*y**2 
         dzdy = 2*2*x**2*y - 8*x**2 - 2*80*x*y + 2*1616*y + 4*y**3 - 3*8*y**2
-        return array([dzdy, dzdx])
+        return numpy.array([dzdy, dzdx])
 
     def energy(self, a):
         QCDriver.energy(self)
@@ -231,7 +230,7 @@ class QuarticPES(QCDriver):
 
 def vector_angle(v1, v2):
     """Returns the angle between two head to tail vectors in degrees."""
-    return 180. - RAD_TO_DEG * arccos(dot(v1, v2) / linalg.norm(v1) / linalg.norm(v2))
+    return 180. - RAD_TO_DEG * arccos(dot(v1, v2) / numpy.linalg.norm(v1) / numpy.linalg.norm(v2))
 
 def expand_newline(s):
     """Removes all 'slash' followed by 'n' characters and replaces with new line chaaracters."""
@@ -257,5 +256,59 @@ def file2str(f):
     mystr = f.read()
     f.close()
     return mystr
+
+
+NUM_DIFF_ERR = 1e-4 # as fraction of derivative being measured
+
+def numdiff(f, X):
+    """For function f, computes f'(X) numerically based on a finite difference approach."""
+
+    # make sure we have float64s not ints, the latter will stop things from working
+    X = numpy.array([numpy.float64(i) for i in X])
+
+    N = len(X)
+    df_on_dX = []
+
+    def update_estim(dx, ix):
+        from copy import deepcopy
+        X1 = deepcopy(X)
+        X2 = deepcopy(X)
+        X1[ix] += dx
+        X2[ix] -= dx
+        f1, f2 = f(X1), f(X2)
+        estim = (f1 - f2) / (2*dx)
+        return estim
+
+    for i in range(N):
+        dx = 1e-1
+        df_on_dx = update_estim(dx, i)
+        while True:
+            prev_df_on_dx = df_on_dx
+
+            dx /= 2.0
+            df_on_dx = update_estim(dx, i)
+            norm = numpy.linalg.norm(prev_df_on_dx)
+
+            #  Hmm, problems with this when used for z-mat conversion
+            err = calc_err(df_on_dx, prev_df_on_dx)
+            if numpy.isnan(err):
+                raise Exception("NaN encountered in numerical differentiation")
+            if err < NUM_DIFF_ERR:
+                break
+
+        df_on_dX.append(df_on_dx)
+
+    return numpy.array(df_on_dX)
+
+def calc_err(estim1, estim2):
+    max_err = -1e200
+    diff = estim1 - estim2
+    for i in range(len(estim1)):
+        err = diff[i] / estim1[i]
+        if not numpy.isnan(err):
+            if max_err < numpy.abs(err):
+                max_err = numpy.abs(err)
+
+    return max_err
 
 

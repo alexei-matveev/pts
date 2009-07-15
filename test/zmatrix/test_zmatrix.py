@@ -1,7 +1,7 @@
 import unittest
 
 import sys
-sys.path.append("../")
+sys.path.append("../../")
 from zmatrix import *
 
 def file2str(f):

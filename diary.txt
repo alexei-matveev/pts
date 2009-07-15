@@ -104,7 +104,7 @@ Tasks / wish list
 ----------
  TODO
  - test on larger example, e.g. amino acid in paper
- - get working with Python z-matrix
+ - get working with Python z-matrix code => convert test functions first
  - get working with direct z-matrix gradients from Gaussian
  - input params class
  - shepard interpolation
@@ -112,4 +112,8 @@ Tasks / wish list
  - compile paragauss
    - get mpi
    - http://intranet.theochem.tu-muenchen.de/wiki/index.php/Building_ParaGauss
+
+15/07/2009
+----------
+ - some unit tests for zmatrix.py added under test/
 
