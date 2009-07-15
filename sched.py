@@ -6,6 +6,8 @@ from Queue import *
 
 from common import *
 
+from numpy import floor, zeros, array, ones, arange
+
 # setup logging
 import logging
 print "Defining logger"

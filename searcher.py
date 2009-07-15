@@ -8,6 +8,7 @@ import logging
 from copy import deepcopy
 import pickle
 
+from numpy import linalg, floor, zeros, array, ones, arange, arccos
 from common import *
 
 lg = logging.getLogger(PROGNAME)
@@ -191,6 +192,9 @@ class NEB(ReactionPathway):
 
         self.parallel = parallel
 
+        # objective function gradient
+        gradients_vec = zeros(beads_count * self.dimension)
+
     def get_angles(self):
         """Returns an array of angles between beed groups of 3 beads."""
 
@@ -207,8 +211,8 @@ class NEB(ReactionPathway):
         for i in range(len(self.bead_pes_energies))[1:-1]:
             total_energy += self.bead_pes_energies[i]
         strrep += "Total Band Energy: " + str(total_energy)
-        strrep += "\nBead forces: " + str(self.bead_forces)
-        strrep += "\nBead forces norm: " + str(linalg.norm(self.bead_forces))
+        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
+        strrep += "\nPerpendicular bead forces norm: " + str(linalg.norm(self.bead_forces))
         strrep += "\nFunction calls: " + str(self.f_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
         strrep += "\nArchive: %d\t%f\t%f" % (self.g_calls, linalg.norm(self.bead_forces), total_energy)
@@ -289,7 +293,6 @@ class NEB(ReactionPathway):
         self.bead_separation_sqrs_sums.shape = (self.beads_count - 1, 1)
 
     def get_bead_coords(self):
-        print "here"
         tmp = deepcopy(self.state_vec)
         tmp.shape = (self.beads_count, self.dimension)
         return tmp
@@ -384,6 +387,7 @@ class NEB(ReactionPathway):
         self.bead_forces = deepcopy(pes_forces).flatten()
         gradients_vec = -1 * (pes_forces + spring_forces)
 
+        self.gradients_vec = gradients_vec
         return gradients_vec.flatten()
 
 class Func():

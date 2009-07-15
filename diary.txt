@@ -116,4 +116,6 @@ Tasks / wish list
 15/07/2009
 ----------
  - some unit tests for zmatrix.py added under test/
+ - started converting to use new zmatrix conversion code
+   - NEED TO GO OVER HOW I'VE DONE THIS
 

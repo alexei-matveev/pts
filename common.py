@@ -8,6 +8,9 @@ LOGFILE_EXT = ".log"
 
 MAX_GEOMS = 3
 
+
+ANGSTROMS_TO_BOHRS = 1.8897
+
 DEG_TO_RAD = numpy.pi / 180.
 RAD_TO_DEG = 180. / numpy.pi
 VX = numpy.array((1.0,0.0,0.0))
@@ -96,7 +99,7 @@ def is_same_e(e1, e2):
     return abs(e1 - e2) < SAMENESS_THRESH_ENERGIES
 
 def line():
-    print "=" * 80
+    return "=" * 80
 
 def opt_gd(f, x0, fprime, callback = lambda x: None):
     """A gradient descent optimiser."""
@@ -104,7 +107,7 @@ def opt_gd(f, x0, fprime, callback = lambda x: None):
     import copy
     i = 0
     x = copy.deepcopy(x0)
-    prevx = zeros(len(x))
+    prevx = numpy.zeros(len(x))
     while 1:
         g = fprime(x)
         dx = x - prevx
@@ -230,7 +233,7 @@ class QuarticPES(QCDriver):
 
 def vector_angle(v1, v2):
     """Returns the angle between two head to tail vectors in degrees."""
-    return 180. - RAD_TO_DEG * arccos(dot(v1, v2) / numpy.linalg.norm(v1) / numpy.linalg.norm(v2))
+    return 180. - RAD_TO_DEG * numpy.arccos(numpy.dot(v1, v2) / numpy.linalg.norm(v1) / numpy.linalg.norm(v2))
 
 def expand_newline(s):
     """Removes all 'slash' followed by 'n' characters and replaces with new line chaaracters."""

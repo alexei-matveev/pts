@@ -4,6 +4,7 @@ import re
 import cclib
 import thread
 import logging
+import zmatrix
 
 from common import *
 
@@ -16,6 +17,8 @@ DEFAULT_GAUSSIAN03_FOOTER = ""
 DEFAULT_GAUSSIAN03_QCINPUT_EXT = ".com"
 DEFAULT_GAUSSIAN03_QCOUTPUT_EXT = ".log"
 DEFAULT_GAUSSIAN03_PROGNAME = "g03"
+
+OLD_PYBEL_CODE = False
 
 class MolRep:
     """Object which exposes information from a molecule in a string specified 
@@ -43,6 +46,7 @@ class MolRep:
             variables_text = parts.group(2)
             self.var_names = re.findall(r"(\w+).*?\n", variables_text)
             self.coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
+
             
         elif xyz.match(mol_text) != None:
             self.format = "xyz"
@@ -99,6 +103,10 @@ class MolInterface:
             self.zmt_spec = molreps[0].zmt_spec
             self.nvariables = len(self.var_names)
 
+            if not OLD_PYBEL_CODE:
+                self.zmatrix = zmatrix.ZMatrix(mol_strings[0])
+
+
         self.reagent_coords = [m.coords for m in molreps]
 
         
@@ -146,8 +154,6 @@ class MolInterface:
                 self.gen_placement_command = self.gen_placement_command_dplace
             else:
                 raise Exception("Use of " + params["placement_command"] + " not implemented")
-
-        self.ANGSTROMS_TO_BOHRS = 1.8897
 
     def __str__(self):
         mystr = "format = " + self.format
@@ -227,10 +233,14 @@ class MolInterface:
         string and as an array of floats) based on a set of input coordinates 
         given in the optimisation coordinate system."""
 
-        str = self.coords2molstr(coords)
-
-        if self.format == "zmt":
-            (str, coords) = self.zmt2xyz(str)
+        if OLD_PYBEL_CODE:
+            str = self.coords2molstr(coords)
+    
+            if self.format == "zmt":
+                (str, coords) = self.zmt2xyz(str)
+        else:
+            coords = self.zmatrix.int2cart(coords)
+            str = self.zmatrix.xyz_str()
 
         return (str, coords)
 
@@ -332,7 +342,7 @@ class MolInterface:
             raise Exception("No gradients found in file " + logfilename)
 
         # Gaussian gives gradients in Hartrees per Bohr Radius
-        grads_cart *= self.ANGSTROMS_TO_BOHRS
+        grads_cart *= ANGSTROMS_TO_BOHRS
 
         if hasattr(data, "scfenergies"):
             energy = data.scfenergies[-1]
