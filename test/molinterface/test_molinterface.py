@@ -34,6 +34,20 @@ class TestMolInterface(unittest.TestCase):
         for g1, g2 in zip(array([  3.85224119e-02,   8.29947922e-06,  -2.61589395e-07]), g):
             self.assertAlmostEqual(g1,g2)
 
+    def assertMatches(self, s1, s2):
+        import re
+        s1_toks = s1.lower().split()
+        s2_toks = s2.lower().split()
+        def proc(s):
+            if re.match(r"[+-]?\d+(\.\d*)?", s):
+                return round(float(s), 4)
+            else:
+                return s
+        s1_h = [proc(i) for i in s1_toks]
+        s2_h = [proc(i) for i in s2_toks]
+        print s1_h, s2_h
+        self.assert_(s2_h == s1_h)
+        
     def test_MolInterface3(self):
         return
         f = open("H2O.zmt", "r")
@@ -76,11 +90,11 @@ H     1.3429960463   0.0000000000   1.0267204441
 H     1.3429960463  -0.8891659872  -0.5133602221
 H     1.3429960463   0.8891659872  -0.5133602221
 """
-        self.assertEqual(mi.coords2moltext([0.97999999999999998, 1.089, 109.471, 120.0]), output)
+        self.assertMatches(mi.coords2moltext(numpy.array([0.97999999999999998, 1.089, 109.471, 120.0])), output)
 
         print "Testing: coords2qcinput()"
-        print mi.coords2qcinput([0.97999999999999998, 1.089, 109.471, 120.0])
-        print mi.coords2qcinput([0.97999999999999998, 1.089, 129.471, 0.0])
+        print mi.coords2qcinput(numpy.array([0.97999999999999998, 1.089, 109.471, 120.0]))
+        print mi.coords2qcinput(numpy.array([0.97999999999999998, 1.089, 129.471, 0.0]))
 
         str_zmt = """H
         F  1  r2
@@ -105,6 +119,8 @@ H     1.3429960463   0.8891659872  -0.5133602221
         self.assertAlmostEqualVec(matrix, matrix_correct)
 
     def assertAlmostEqualVec(self, v1, v2):
+        print v1
+        print v2
         diff = numpy.linalg.norm(v1 - v2)
         self.assertAlmostEqual(0.0, diff)
 

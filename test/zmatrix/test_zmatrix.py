@@ -31,14 +31,18 @@ hnh 109.5
         hexane_zmt = file2str("hexane.zmt")
 
         z = ZMatrix(hexane_zmt)
+        print "Testing hexane.zmt -> xyz"
         self.assertEqual(z.xyz_str(), file2str("hexane.xyz"))
 
+        print "Testing hexane2.zmt -> zmt"
         self.assertEqual(z.zmt_str(), file2str("hexane2.zmt"))
 
         z = ZMatrix(file2str("benzyl.zmt"))
+        print "Testing benzyl.zmt -> xyz"
         self.assertEqual(file2str("benzyl.xyz"), z.xyz_str())
 
     def test_ZMatrix_BigComplex(self):
+        print "Testing bigComplex.zmt -> xyz, view in molden"
         z = ZMatrix(file2str("bigComplex.zmt"))
         f = open("bigComplex.xyz", "w")
         f.write("49\n\n" + z.xyz_str())

@@ -18,7 +18,7 @@ DEFAULT_GAUSSIAN03_QCINPUT_EXT = ".com"
 DEFAULT_GAUSSIAN03_QCOUTPUT_EXT = ".log"
 DEFAULT_GAUSSIAN03_PROGNAME = "g03"
 
-OLD_PYBEL_CODE = False
+OLD_PYBEL_CODE = True
 
 class MolRep:
     """Object which exposes information from a molecule in a string specified 
@@ -30,24 +30,28 @@ class MolRep:
         atoms (list of atom names)
     """
     def __init__(self, mol_text):
-        zmt = re.compile(r"""(\w\w?\s*
-                             (\w\w?\s+\d+\s+\w+\s*
-                             (\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s*
-                             (\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s+\d+\s+\S+\s*)*)?)?
-                             (\w+\s+[+-]?\d+\.\d*\s*)+)$""", re.X)
 
         xyz = re.compile(r"""(\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+""")
 
-        if zmt.match(mol_text) != None:
+        if zmatrix.ZMatrix.matches(mol_text):
             self.format = "zmt"
-            parts = re.search(r"(.+?\n)\s*\n(.+)", mol_text, re.S)
 
-            self.zmt_spec = parts.group(1) # z-matrix text, specifies connection of atoms
-            variables_text = parts.group(2)
-            self.var_names = re.findall(r"(\w+).*?\n", variables_text)
-            self.coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
+            if OLD_PYBEL_CODE:
+                parts = re.search(r"(.+?\n)\s*\n(.+)", mol_text, re.S)
+                self.zmt_spec = parts.group(1) # z-matrix text, specifies connection of atoms
+                variables_text = parts.group(2)
+                self.var_names = re.findall(r"(\w+).*?\n", variables_text)
+                self.coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
 
-            
+                self.atoms = re.findall(r"(\w\w?).*?\n", self.zmt_spec)
+                self.coords = numpy.array([float(c) for c in self.coords])
+
+            else:
+                self.zmatrix = zmatrix.ZMatrix(mol_text)
+                self.var_names = self.zmatrix.var_names
+                self.coords = self.zmatrix.coords
+                self.atoms = [a.name for a in self.zmatrix.atoms]
+
         elif xyz.match(mol_text) != None:
             self.format = "xyz"
             self.coords = re.findall(r"([+-]?\d+\.\d*)", mol_text)
@@ -55,8 +59,6 @@ class MolRep:
         else:
             raise Exception("can't understand input file:\n" + mol_text)
 
-        self.atoms = re.findall(r"(\w\w?).*?\n", self.zmt_spec)
-        self.coords = numpy.array([float(c) for c in self.coords])
 
 class MolInterface:
     """Converts between molecule representations (i.e. internal xyz/zmat 
@@ -100,10 +102,11 @@ class MolInterface:
         self.natoms = len(atoms_lists[0])
         if self.format == "zmt":
             self.var_names = var_names[0]
-            self.zmt_spec = molreps[0].zmt_spec
             self.nvariables = len(self.var_names)
 
-            if not OLD_PYBEL_CODE:
+            if OLD_PYBEL_CODE:
+                self.zmt_spec = molreps[0].zmt_spec
+            else:
                 self.zmatrix = zmatrix.ZMatrix(mol_strings[0])
 
 
@@ -161,7 +164,8 @@ class MolInterface:
         mystr += "\nvar_names = " + str(self.var_names)
         mystr += "\nreactant coords = " + str(self.reagent_coords[0])
         mystr += "\nproduct coords = " + str(self.reagent_coords[1])
-        mystr += "\nzmt_spec:\n" + self.zmt_spec
+        if OLD_PYBEL_CODE:
+            mystr += "\nzmt_spec:\n" + self.zmt_spec
         return mystr
 
     def geom_checker(self, coords):
@@ -220,9 +224,12 @@ class MolInterface:
             for i in range(self.natoms):
                 str += "%s\t%s\t%s\t%s" % (self.atom_symbols[i], coords[3*i], coords[3*i+1], coords[3*i+2])
         elif self.format == "zmt":
-            str += self.zmt_spec + "\n"
-            for i in range(self.nvariables):
-                str += "%s=%s\n" % (self.var_names[i], coords[i])
+            if OLD_PYBEL_CODE:
+                str += self.zmt_spec + "\n"
+                for i in range(self.nvariables):
+                    str += "%s=%s\n" % (self.var_names[i], coords[i])
+            else:
+                str = self.zmatrix.zmt_str()
         else:
             raise Exception("Unrecognised self.mol_rep_type")
 

@@ -22,6 +22,7 @@ class Atom():
                 groups_count = len(groups)
                 if groups_count >= 1:
                     self.name = groups[0]
+                    self.name = self.name[0].upper() + self.name[1:]
                 if groups_count >= 3:
                     self.a = int(groups[1])
                     self.dst = self.__process(groups[2])
@@ -38,6 +39,8 @@ class Atom():
 
         self.ix = ix
     
+    def not_dummy(self):
+        return self.name.lower() != "x" and self.name.lower() != "xx"
     def all_vars(self):
         """Return a list of all variables associated with this atom."""
         potentials_list = [self.dst, self.ang, self.dih]
@@ -76,45 +79,34 @@ def chomp(str):
     pass
 
 class ZMatrix():
-    def __init__(self, mol_text):
-
-        # TODO: clean the following up
-        zmt1 = re.compile(r"""[ \t]*(\w\w?[ \t\r\f\v]*\n
-                             [ \t]*(\w\w?\s+\d+\s+\w+[ \t\r\f\v]*\n
-                             [ \t]*(\w\w?\s+\d+\s+\w+\s+\d+\s+\w+[ \t\r\f\v]*\n
-                             [ \t]*(\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s+\d+\s+\S+[ \t]*\n)*)?)?)
-                             [ \t]*\n
-                             ((\w+\s+[+-]?\d+\.\d*[ \t\r\f\v]*\n)+)\s*$""", re.X)
-
-        zmt2 = re.compile(r"""(\w\w?\s*
-                             (\w\w?\s+\d+\s+\w+\s*
-                             (\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s*
-                             (\w\w?\s+\d+\s+\w+\s+\d+\s+\w+\s+\d+\s+\S+\s*)*)?)?
-                             (\w+\s+[+-]?\d+\.\d*\s*)+)$""", re.X)
-
+    @staticmethod
+    def matches(mol_text):
         zmt = re.compile(r"""\s*(\w\w?\s*
                              \s*(\w\w?\s+\d+\s+\S+\s*
                              \s*(\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s*
-                             ([ ]*\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s+\d+\s+\S+[ ]*\n)*)?)?)\n
+                             ([ ]*\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s+\d+\s+\S+[ ]*\n)*)?)?)[ \t]*\n
                              (([ ]*\w+\s+[+-]?\d+\.\d*[ \t\r\f\v]*\n)+)\s*$""", re.X)
+        return (zmt.match(mol_text) != None)
 
+    def __init__(self, mol_text):
 
         self.atoms = []
         self.vars = dict()
         self.atoms_dict = dict()
 
-        if zmt.match(mol_text) != None:
+        if self.matches(mol_text):
             parts = re.search(r"(?P<zmt>.+?)\n\s*\n(?P<vars>.+)", mol_text, re.S)
 
-            zmt_spec = parts.group("zmt") # z-matrix text, specifies connection of atoms
+            # z-matrix text, specifies connection of atoms
+            zmt_spec = parts.group("zmt")
             variables_text = parts.group("vars")
-            var_names = re.findall(r"(\w+).*?\n", variables_text)
-            coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
+            self.var_names = re.findall(r"(\w+).*?\n", variables_text)
+            self.coords = numpy.array(re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text))
         else:
             raise Exception("Z-matrix not found in string:\n" + mol_text)
         
         # Create data structure of atoms. There is both an ordered list and an 
-        # unordered dictionary.
+        # unordered dictionary with atom index as the key.
         lines = zmt_spec.split("\n")
         ixs = range(len(lines) + 1)[1:]
         for line, ix in zip(lines, ixs):
@@ -122,14 +114,14 @@ class ZMatrix():
             self.atoms.append(a)
             self.atoms_dict[ix] = a
         
+        # TODO: check that z-matrix is ok, e.g. A, B 1 ab, etc...
+
         # Create dictionary of variable values (unordered) and an 
         # ordered list of variable names.
-        self.var_names = []
-        for i in range(len(var_names)):
-            key = var_names[i]
-            val = coords[i]
+        for i in range(len(self.var_names)):
+            key = self.var_names[i]
+            val = self.coords[i]
             self.vars[key] = float(val)
-            self.var_names.append(key)
 
         # check that z-matrix is fully specified
         required_vars = []
@@ -152,7 +144,7 @@ class ZMatrix():
             return var
 
     def zmt_str(self):
-        """Returns an zmatrix format molecular representation in a string."""
+        """Returns a z-matrix format molecular representation in a string."""
         mystr = ""
         for atom in self.atoms:
             mystr += str(atom) + "\n"
@@ -168,7 +160,8 @@ class ZMatrix():
 
         mystr = ""
         for atom in self.atoms:
-            mystr += atom.name + " " + self.__pretty_vec(atom.vector) + "\n"
+            if atom.name[0].lower() != "x":
+                mystr += atom.name + " " + self.__pretty_vec(atom.vector) + "\n"
         return mystr
 
     def __pretty_vec(self, x):
@@ -176,7 +169,7 @@ class ZMatrix():
         return "%f\t%f\t%f" % (x[0], x[1], x[2])
 
     def set_internals(self, internals):
-        ilist = internals.tolist()
+        ilist = internals #.tolist()
         for i, var in zip( ilist, self.var_names ):
             self.vars[var] = i
 
@@ -198,7 +191,8 @@ class ZMatrix():
         for atom in self.atoms:
             if atom.a == None:
                 atom.vector = numpy.zeros(3)
-                xyz_coords.append(atom.vector)
+                if atom.not_dummy():
+                    xyz_coords.append(atom.vector)
                 continue
             else:
                 avec = self.atoms_dict[atom.a].vector
@@ -206,7 +200,8 @@ class ZMatrix():
 
             if atom.b == None:
                 atom.vector = numpy.array((dst, 0.0, 0.0))
-                xyz_coords.append(atom.vector)
+                if atom.not_dummy():
+                    xyz_coords.append(atom.vector)
                 continue
             else:
                 bvec = self.atoms_dict[atom.b].vector
@@ -237,7 +232,9 @@ class ZMatrix():
             v2 = avec + v3 - v1
 
             atom.vector = v2
-            xyz_coords.append(atom.vector)
+
+            if atom.not_dummy():
+                xyz_coords.append(atom.vector)
         
         xyz_coords = numpy.array(xyz_coords)
         return xyz_coords
