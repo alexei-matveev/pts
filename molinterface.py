@@ -18,7 +18,7 @@ DEFAULT_GAUSSIAN03_QCINPUT_EXT = ".com"
 DEFAULT_GAUSSIAN03_QCOUTPUT_EXT = ".log"
 DEFAULT_GAUSSIAN03_PROGNAME = "g03"
 
-OLD_PYBEL_CODE = True
+OLD_PYBEL_CODE = False
 
 class MolRep:
     """Object which exposes information from a molecule in a string specified 
@@ -77,6 +77,7 @@ class MolInterface:
         # used to number input files as they are created and run
         self.job_counter = 0
         self.job_counter_lock = thread.allocate_lock()
+        self.logfile2eg_lock = thread.allocate_lock()
 
         # lists of various properties for input reagents
         atoms_lists    = [m.atoms for m in molreps]
@@ -287,8 +288,11 @@ class MolInterface:
             lg.error("Exception thrown when calling self.run_qc: " + str(e))
             return
 
-        # parse output file
+        # parse output file in thread-safe manner
+        self.logfile2eg_lock.acquire()
         e, g = self.logfile2eg(outputfile, coords)
+        self.logfile2eg_lock.release()
+
         return Result(coords, e, g)
 
     def run_internal(self, job):
@@ -358,14 +362,22 @@ class MolInterface:
         else:
             raise Exception("No energies found in file " + logfilename)
 
-        lg.debug("Raw gradients in cartesian coordinates: " + str(grads_cart))
+        lg.debug(logfilename + ": Raw gradients in cartesian coordinates: " + str(grads_cart))
 
         transform_matrix = self.coordsys_trans_matrix(coords)
+        if numpy.linalg.norm(transform_matrix) > 10:
+            lg.error(line() + "Enormous coordinate system derivatives" + line())
+            lg.debug(logfilename + ": transform matrix: " + str(transform_matrix))
+
 
         # energy gradients in optimisation coordinates
         # Gaussian returns forces, not gradients
         grads_opt = -numpy.dot(transform_matrix, grads_cart)
-        
+        if numpy.linalg.norm(grads_opt) > 10:
+            lg.error(line() + "Enormous gradients" + line())
+            lg.debug(logfilename + ": ZMat gradients: " + str(grads_opt))
+            lg.debug(logfilename + ": transform matrix: " + str(transform_matrix))
+
         return (energy, grads_opt)
 
 

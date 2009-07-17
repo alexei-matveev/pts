@@ -121,13 +121,16 @@ class ReactionPathway:
 
     def __init__(self,reagents):
         self.dimension = len(reagents[0])
+        self.history = []
         #TODO: check that all reagents are same length
         
     def obj_func(self, x):
         self.f_calls += 1
+        self.history.append(deepcopy(x))
 
     def obj_func_grad(self, x):
         self.g_calls += 1
+        self.history.append(deepcopy(x))
 
     def dump(self):
         pass
@@ -211,7 +214,7 @@ class NEB(ReactionPathway):
         for i in range(len(self.bead_pes_energies))[1:-1]:
             total_energy += self.bead_pes_energies[i]
         strrep += "Total Band Energy: " + str(total_energy)
-        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
+#        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
         strrep += "\nPerpendicular bead forces norm: " + str(linalg.norm(self.bead_forces))
         strrep += "\nFunction calls: " + str(self.f_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
@@ -300,12 +303,12 @@ class NEB(ReactionPathway):
     def get_state_as_array(self):
         return self.state_vec.flatten()
 
-    def obj_func(self, new_state_vec = []):
+    def obj_func(self, new_state_vec = None):
         assert size(self.state_vec) == self.beads_count * self.dimension
 
         ReactionPathway.obj_func(self, new_state_vec)
 
-        if new_state_vec != []:
+        if new_state_vec != None:
             self.state_vec = array(new_state_vec)
             self.state_vec.shape = (self.beads_count, self.dimension)
 

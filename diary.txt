@@ -119,3 +119,9 @@ Tasks / wish list
  - started converting to use new zmatrix conversion code
    - NEED TO GO OVER HOW I'VE DONE THIS
 
+16-17/07/2009
+-------------
+ - finished conversion to new zmatrix code
+ - fixed thread safety bug in molinterface.py
+ - got prog to record step sizes and print at the end
+
