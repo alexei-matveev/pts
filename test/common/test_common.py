@@ -2,11 +2,14 @@ import unittest
 
 import sys
 sys.path.append("../../")
+sys.path.append("../")
+import testing
+
 from molinterface import *
 
 from common import *
 
-class TestCommon(unittest.TestCase):
+class TestCommon(testing.MyTestCase):
     def test_numdiff_small(self):
         from numpy import sin, cos, exp, array, linalg
 
@@ -42,6 +45,6 @@ class TestCommon(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    testing.main()
 
 

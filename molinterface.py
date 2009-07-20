@@ -67,6 +67,8 @@ class MolInterface:
     """
 
     def __init__(self, mol_strings, params = dict()):
+        """mol_strings: list of strings describing a molecule, format can be 
+        z-matrix or xyz foramt, but formats must be consistent."""
 
         assert len(mol_strings) > 1
 
@@ -201,7 +203,7 @@ class MolInterface:
         (s, c) = self.coords2xyz(coords)
         return s
 
-    def opt_coords2cart_coords(self, coords):
+    def __opt_coords2cart_coords(self, coords):
         """Returns the cartesian coordinates based on the given set of internal 
         coordinates."""
         (s, c) = self.coords2xyz(coords)
@@ -212,7 +214,13 @@ class MolInterface:
         the cartesian coordinates Xi with respect to the optimisation 
         coordinates Cj, i <- 1..n, j <- 1..m."""
 
-        dX_on_dC = numdiff(self.opt_coords2cart_coords, coords)
+        if OLD_PYBEL_CODE:
+            nd = NumDiff()
+            dX_on_dC, err = nd.numdiff(self.__opt_coords2cart_coords, coords)
+            lg.debug("Errors in numerical differentiation were " + str(err))
+        else:
+            dX_on_dC = self.zmatrix.dcart_on_dint(coords)
+
         return dX_on_dC
 
     def coords2molstr(self, coords):
@@ -238,21 +246,21 @@ class MolInterface:
 
     def coords2xyz(self, coords):
         """Generates the xyz coordinates (both as a Gaussian z-matrix format 
-        string and as an array of floats) based on a set of input coordinates 
+        string and as a numpy array) based on a set of input coordinates 
         given in the optimisation coordinate system."""
 
         if OLD_PYBEL_CODE:
             str = self.coords2molstr(coords)
     
             if self.format == "zmt":
-                (str, coords) = self.zmt2xyz(str)
+                (str, coords) = self.__zmt2xyz(str)
         else:
             coords = self.zmatrix.int2cart(coords)
             str = self.zmatrix.xyz_str()
 
         return (str, coords)
 
-    def zmt2xyz(self, str):
+    def __zmt2xyz(self, str):
         """Converts a string describing a molecule using the z-matrix format
         to it's cartesian coordinates representation. Returns a duple of the
         xyz format representation and an vector of floats."""
@@ -267,6 +275,11 @@ class MolInterface:
         xyz_coords = [float(c) for c in xyz_coords]
 
         return (str, numpy.array(xyz_coords))
+
+    def run(self, job):
+        """Assigned by constructor to one of run_internal() or run_external(), 
+        depending on input parameters."""
+        assert False
 
     def run_external(self, job):
         """Runs an external program to generate gradient and energy."""

@@ -6,11 +6,17 @@ from common import *
 class Atom():
     def __init__(self, astr=None, ix=None):
 
+        # define patterns to match various atoms
         # first atom
         a1 = re.compile(r"\s*(\w\w?)\s*")
+
         # second atom
         a2 = re.compile(r"\s*(\w\w?)\s+(\d+)\s+(\S+)\s*")
+
+        # 3rd atom
         a3 = re.compile(r"\s*(\w\w?)\s+(\d+)\s+(\S+)\s+(\d+)\s+(\S+)\s*")
+
+        # remaining atoms
         aRest = re.compile(r"\s*(\w\w?)\s+(\d+)\s+(\S+)\s+(\d+)\s+(\S+)\s+(\d+)\s+(\S+)\s*")
 
         self.a = self.b = self.c = self.dst = self.ang = self.dih = self.name = None
@@ -40,7 +46,9 @@ class Atom():
         self.ix = ix
     
     def not_dummy(self):
+        """Returns true if and only if the atom is not a dummy atom."""
         return self.name.lower() != "x" and self.name.lower() != "xx"
+
     def all_vars(self):
         """Return a list of all variables associated with this atom."""
         potentials_list = [self.dst, self.ang, self.dih]
@@ -75,12 +83,11 @@ def normalise(x):
     x = x / numpy.linalg.norm(x)
     return x
 
-def chomp(str):
-    pass
-
 class ZMatrix():
     @staticmethod
     def matches(mol_text):
+        """Returns True if and only if mol_text matches a z-matrix. There must be at least one
+        variable in the variable list."""
         zmt = re.compile(r"""\s*(\w\w?\s*
                              \s*(\w\w?\s+\d+\s+\S+\s*
                              \s*(\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s*
@@ -108,7 +115,7 @@ class ZMatrix():
         # Create data structure of atoms. There is both an ordered list and an 
         # unordered dictionary with atom index as the key.
         lines = zmt_spec.split("\n")
-        ixs = range(len(lines) + 1)[1:]
+        ixs = range(1, len(lines) + 1)
         for line, ix in zip(lines, ixs):
             a = Atom(line, ix)
             self.atoms.append(a)
@@ -169,9 +176,18 @@ class ZMatrix():
         return "%f\t%f\t%f" % (x[0], x[1], x[2])
 
     def set_internals(self, internals):
-        ilist = internals #.tolist()
-        for i, var in zip( ilist, self.var_names ):
+        """Update stored list of variable values."""
+        for i, var in zip( internals, self.var_names ):
             self.vars[var] = i
+
+    def get_internals(self):
+        """Return the current set of internals."""
+
+        curr = []
+        for var in self.var_names:
+            curr.append(self.vars[var])
+
+        return numpy.array(curr)
 
     def int2cart(self, x):
         """Based on a vector x of new internal coordinates, returns a 
@@ -181,8 +197,16 @@ class ZMatrix():
         y = self.gen_cartesian()
         return y.flatten()
 
+    def dcart_on_dint(self, x):
+        """Returns the matrix of derivatives dCi/dIj where Ci is the ith cartesian coordinate
+        and Ij is the jth internal coordinate."""
+
+        nd = NumDiff()
+        return nd.numdiff(self.int2cart, x)
+
     def gen_cartesian(self):
-        """Generates cartesian coordinates from z-matrix and the current set of internal coordinates."""
+        """Generates cartesian coordinates from z-matrix and the current set of 
+        internal coordinates. Based on code in OpenBabel."""
         
         r = numpy.float64(0)
         sum = numpy.float64(0)

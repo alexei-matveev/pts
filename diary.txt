@@ -91,8 +91,8 @@ Tasks / wish list
 13/07/2009
 ----------
  - started writing paragauss.py to parse gxfile and create z-matrix
- - need to find out exactly how paragauss is involed
- - program seems to be working for rotation of ethanol
+ - need to find out exactly how paragauss is invoked
+ - program seems to be working for rotation of ethane
    TODO Next:
    ----------
    - print energy of each bead when dumping DONE
@@ -124,4 +124,8 @@ Tasks / wish list
  - finished conversion to new zmatrix code
  - fixed thread safety bug in molinterface.py
  - got prog to record step sizes and print at the end
+
+ TODO
+  - look at ase/optimize/gxfile.py
+  - it contains gradient extraction code
 

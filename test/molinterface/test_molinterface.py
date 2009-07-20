@@ -1,10 +1,12 @@
-import unittest
-
 import sys
 sys.path.append("../../")
+sys.path.append("../")
+
+import testing
+
 from molinterface import *
 
-class TestMolInterface(unittest.TestCase):
+class TestMolInterface(testing.MyTestCase):
     def test_MolInterface2(self):
         return
         m1 = file2str("CH4.zmt")
@@ -34,20 +36,6 @@ class TestMolInterface(unittest.TestCase):
         for g1, g2 in zip(array([  3.85224119e-02,   8.29947922e-06,  -2.61589395e-07]), g):
             self.assertAlmostEqual(g1,g2)
 
-    def assertMatches(self, s1, s2):
-        import re
-        s1_toks = s1.lower().split()
-        s2_toks = s2.lower().split()
-        def proc(s):
-            if re.match(r"[+-]?\d+(\.\d*)?", s):
-                return round(float(s), 4)
-            else:
-                return s
-        s1_h = [proc(i) for i in s1_toks]
-        s2_h = [proc(i) for i in s2_toks]
-        print s1_h, s2_h
-        self.assert_(s2_h == s1_h)
-        
     def test_MolInterface3(self):
         return
         f = open("H2O.zmt", "r")
@@ -116,15 +104,32 @@ H     1.3429960463   0.8891659872  -0.5133602221
         print "Testing: coordsys_trans_matrix()"
         matrix_correct = numpy.array([ 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0.3333297, 0., 0.94281032, 0.3333297, -0.81649769, -0.47140516, 0.3333297, 0.81649769, -0.47140516, 0., 0., 0., 0.01791965, 0., -0.00633548, 0.01791965, 0.00548668, 0.00316774, 0.01791965, -0.00548668, 0.00316774, 0., 0., 0., 0., 0., 0., 0., 0.00895983, -0.01551887, 0., -0.00895983, -0.01551887])
         matrix = mi.coordsys_trans_matrix(X).flatten()
+
+        print matrix
+        print matrix_correct
         self.assertAlmostEqualVec(matrix, matrix_correct)
 
-    def assertAlmostEqualVec(self, v1, v2):
+    """def assertAlmostEqualVec(self, v1, v2):
         print v1
         print v2
         diff = numpy.linalg.norm(v1 - v2)
-        self.assertAlmostEqual(0.0, diff)
+        self.assertAlmostEqual(0.0, diff)"""
+
+    def test_MolInterface(self):
+        m1 = file2str("almost_straight.zmt")
+        m2 = m1
+
+        mi = MolInterface([m1, m2])
+        zmt_coords = numpy.array([180.])
+        str, coords = mi.coords2xyz(zmt_coords)
+        f = open("almost_straight.xyz", "w")
+        f.write("3\n\n" + str)
+        f.close()
+
+        print mi.coordsys_trans_matrix(zmt_coords)
+
 
 if __name__ == "__main__":
-    unittest.main()
+    testing.main()
 
 
