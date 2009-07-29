@@ -1,8 +1,12 @@
 from threading import *
-stack_size(10485760)
+
+import threading # TODO: change this double importation
+
+#stack_size(10485760)
 print "ss =", stack_size()
 from thread import *
 from Queue import *
+import time
 
 from common import *
 
@@ -222,12 +226,12 @@ class CalcManager():
         """Returns the already computed energy of vector v."""
         res = self.__result_dict.get(v)
         if res == None:
-            raise Exception("No result found for vector %s." %v)
+            raise Exception("No result found for vector %s (energy requested)." %v)
 
         return res.e
 
     def gradient(self, v):
-        """Returns the already computed gradient of vector v."""
+        """Returns the already computed gradient of vector v (gradient requested)."""
         res = self.__result_dict.get(v)
         if res == None:
             raise Exception("No result found for vector %s." %v)
@@ -295,7 +299,9 @@ class ParaSched:
         is the index of each worker, used in node placement."""
 
         my_id = get_ident()
+
         lg.debug("worker starting, id = %s ix = %s" % (my_id, ix))
+
         while not pending.empty():
 
             try:
@@ -304,6 +310,11 @@ class ParaSched:
             except Queue.Empty, ex:
                 lg.error("Thrown by worker: " + str(my_id) + " " + str(ex))
                 return
+
+            # just for testing what happens when a worker thread experiences an exception
+            if ix % 2 == 0:
+                raise Exception("Dummy")
+
 
             # setup parameter dictionary
             params = dict()
@@ -330,7 +341,6 @@ class ParaSched:
 
             except:
                 lg.error("Unknown Exception in "+ fname())
-                exit()
             finished.put(res)
             self.__pending.task_done()
             lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete: " + str(res))
@@ -348,9 +358,17 @@ class ParaSched:
         lg.info("%s spawning %d worker threads" % (self.__class__.__name__, self.__workers_count))
         for i in range(self.__workers_count):
             t = Thread(target=self.__worker, args=(self.__pending, self.__finished, i))
+            t.daemon = True
             t.start()
 
-        self.__pending.join()
+        while threading.activeCount() > 1: # this is a bit crude, can it be done better?
+            print "ac", threading.activeCount()
+            time.sleep(0.3333)
+
+        lg.debug("All worker threads exited")
+
+        if not self.__pending.empty():
+            lg.error("pending quue not empty but threads exited")
 
     def get_results(self):
         results = []

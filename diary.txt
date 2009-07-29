@@ -109,7 +109,7 @@ Tasks / wish list
  - input params class
  - shepard interpolation
  - paragauss parser/generator
- - compile paragauss
+ - compile paragauss (NO, NOT ANY MORE)
    - get mpi
    - http://intranet.theochem.tu-muenchen.de/wiki/index.php/Building_ParaGauss
 
@@ -128,4 +128,82 @@ Tasks / wish list
  TODO
   - look at ase/optimize/gxfile.py
   - it contains gradient extraction code
+
+20/07/2009
+----------
+ - setup modules correctly, e.g. have __init__.py
+   - read http://mail.python.org/pipermail/python-list/2005-July/330237.html
+ - setup top level testing module
+ - check units of energy: cclib returns units in electron volts
+
+29/07/2009
+----------
+ - script to run paragauss
+
+input=$1
+
+# user configurable options
+output=$input.log
+template_directory=/users/hugh/pgjobs/original
+isodir=isolate-$input
+runpg_path="~alexei/bin/runpg"
+exe_path="~alexei/exe/openmpi/mainscf_V3.1.4b8-64"
+opt_file=opt_file_path
+cleanup=1 # uncomment if undesired
+
+copy -r $template_directory $isodir
+copy $input $isodir/gxfile
+cd $isodir
+
+# this line runs the program
+$runpg_path $exe_path $opt_file_path
+
+cd ..
+cp $isodir/gxfile $output
+if [ $cleanup ]; then
+    optional rm -r $isodir
+fi
+
+--------
+
+ - improved the response when a control break/exception is thrown
+ - did some thinking about how when one thread experiences an exception, the 
+   others should be stopped
+ - 2 levels:
+   - when one thread dies, no further threads should be started
+   - when one thread dies, all running threads should be actively stopped
+ - perhaps use the event() method (see example below)
+ - might need to kill qchem processes also
+
+import thread
+import time
+from threading import *
+
+
+def event_set(event):
+
+    time.sleep(2)
+
+    while 1 :
+        
+        #we wait for the flag to be set.
+        while not event.isSet():
+            event.wait()
+
+        print currentThread(),"...Woken Up"
+        event.clear()
+
+
+
+if __name__=="__main__":
+
+    event=Event()
+    
+    thread.start_new_thread(event_set,(event,))
+
+    while 1:
+
+        event.set()
+        print event," Has been set"
+        time.sleep(2)
 

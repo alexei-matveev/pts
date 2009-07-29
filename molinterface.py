@@ -115,13 +115,11 @@ class MolInterface:
 
         self.reagent_coords = [m.coords for m in molreps]
 
-        
         if "qcinput_head" in params:
             self.qcinput_head = params["qcinput_head"]
             self.qcinput_head = expand_newline(self.qcinput_head)
         else:
             self.qcinput_head = DEFAULT_GAUSSIAN03_HEADER
-        
 
         if "qcinput_foot" in params:
             self.qcinput_foot = params["qcinput_foot"]
@@ -200,12 +198,15 @@ class MolInterface:
     def coords2moltext(self, coords):
         """For a set of internal coordinates, returns the string describing the 
         molecule in xyz format."""
+        #TODO: remove this function and one below?
         (s, c) = self.coords2xyz(coords)
         return s
 
     def __opt_coords2cart_coords(self, coords):
         """Returns the cartesian coordinates based on the given set of internal 
-        coordinates."""
+        coordinates.
+        
+        Only used by OLD_PYBEL_CODE"""
         (s, c) = self.coords2xyz(coords)
         return c
     
@@ -219,14 +220,16 @@ class MolInterface:
             dX_on_dC, err = nd.numdiff(self.__opt_coords2cart_coords, coords)
             lg.debug("Errors in numerical differentiation were " + str(err))
         else:
-            dX_on_dC = self.zmatrix.dcart_on_dint(coords)
+            dX_on_dC, err = self.zmatrix.dcart_on_dint(coords)
 
         return dX_on_dC
 
     def coords2molstr(self, coords):
         """Generates a string containing a molecule specification in Gaussian 
         Z-matrix or Gaussian XYZ format (without method keywords, i.e. only 
-        the molecule specification) based on coords."""
+        the molecule specification) based on coords.
+        
+        Only use by OLD_PYBEL_CODE?"""
 
         str = ""
         if self.format == "xyz":
@@ -245,7 +248,7 @@ class MolInterface:
         return str
 
     def coords2xyz(self, coords):
-        """Generates the xyz coordinates (both as a Gaussian z-matrix format 
+        """Generates the xyz coordinates (both as a Gaussian format molecule
         string and as a numpy array) based on a set of input coordinates 
         given in the optimisation coordinate system."""
 
@@ -355,9 +358,10 @@ class MolInterface:
         optimisation is performed in (which might be either internals or 
         cartesians)."""
 
-        import cclib
+        print "5"
         file = cclib.parser.ccopen(logfilename, loglevel=logging.ERROR)
         data = file.parse()
+        print "6"
 
         # energy gradients in cartesian coordinates
         if hasattr(data, "grads"):
@@ -366,12 +370,12 @@ class MolInterface:
             raise Exception("No gradients found in file " + logfilename)
 
         # Gaussian gives gradients in Hartrees per Bohr Radius
-        grads_cart *= ANGSTROMS_TO_BOHRS
+        grads_cart *= ANGSTROMS_TO_BOHRS # conversion is temporary, will eventually change when cclib has gradients code
 
         if hasattr(data, "scfenergies"):
-            energy = data.scfenergies[-1]
+            energy = data.scfenergies[-1] / HARTREE_TO_ELECTRON_VOLTS # conversion is temporary, will eventually change when cclib has gradients code
         elif hasattr(data, "mmenergies"):
-            energy = data.mmenergies[-1]
+            energy = data.mmenergies[-1] / HARTREE_TO_ELECTRON_VOLTS # conversion is temporary, will eventually change when cclib has gradients code
         else:
             raise Exception("No energies found in file " + logfilename)
 

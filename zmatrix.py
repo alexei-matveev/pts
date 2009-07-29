@@ -1,6 +1,7 @@
 import re
 import numpy
 from common import *
+import numerical
 
 
 class Atom():
@@ -201,7 +202,7 @@ class ZMatrix():
         """Returns the matrix of derivatives dCi/dIj where Ci is the ith cartesian coordinate
         and Ij is the jth internal coordinate."""
 
-        nd = NumDiff()
+        nd = numerical.NumDiff()
         return nd.numdiff(self.int2cart, x)
 
     def gen_cartesian(self):
