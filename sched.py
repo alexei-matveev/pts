@@ -312,8 +312,8 @@ class ParaSched:
                 return
 
             # just for testing what happens when a worker thread experiences an exception
-            if ix % 2 == 0:
-                raise Exception("Dummy")
+#            if ix % 2 == 0:
+#                raise Exception("Dummy")
 
 
             # setup parameter dictionary
@@ -361,8 +361,9 @@ class ParaSched:
             t.daemon = True
             t.start()
 
+        # The normal method would be to join() the thread, but if one of the 
+        # threads dies then we get deadlock.
         while threading.activeCount() > 1: # this is a bit crude, can it be done better?
-            print "ac", threading.activeCount()
             time.sleep(0.3333)
 
         lg.debug("All worker threads exited")

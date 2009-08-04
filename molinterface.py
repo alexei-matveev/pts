@@ -67,14 +67,12 @@ class MolInterface:
     """
 
     def __init__(self, mol_strings, params = dict()):
-        """mol_strings: list of strings describing a molecule, format can be 
-        z-matrix or xyz foramt, but formats must be consistent."""
+        """mol_strings: list of strings, each of which describes a molecule, 
+        format can be z-matrix or xyz format, but formats must be consistent."""
 
         assert len(mol_strings) > 1
 
-        molreps = []
-        for mol_str in mol_strings:
-            molreps.append(MolRep(mol_str))
+        molreps = [MolRep(mol_str) for mol_str in mol_strings]
 
         # used to number input files as they are created and run
         self.job_counter = 0
@@ -137,13 +135,19 @@ class MolInterface:
             self.qcoutput_ext = DEFAULT_GAUSSIAN03_QCOUTPUT_EXT
 
         # setup Quantum Chemistry package info
-        self.logfile2eg = self.logfile2eg_Gaussian
-        # TODO: setup alternate logfile2eg function
         self.qc_command = DEFAULT_GAUSSIAN03_PROGNAME
         self.run = self.run_external
         if "qc_program" in params:
             if params["qc_program"] == "g03":
                 self.qc_command = DEFAULT_GAUSSIAN03_PROGNAME
+                self.coords2moltext = self.coords2moltext_Gaussian
+                self.logfile2eg = self.logfile2eg_Gaussian
+
+            elif params["qc_program"] == "paragauss":
+                self.qc_command = "pgwrap" # temporary
+                self.coords2moltext = self.coords2moltext_ParaGauss
+                self.logfile2eg = self.logfile2eg_ParaGauss
+
             elif params["qc_program"] == "analytical_GaussianPES":
                 self.run = self.run_internal
                 self.analytical_pes = GaussianPES()
@@ -196,6 +200,26 @@ class MolInterface:
         assert False, "Not yet implemented"
 
     def coords2moltext(self, coords):
+        assert False, "Should never be called"
+
+    def coords2moltext_ParaGauss(self, coords):
+        import gxfile
+
+        assert False, "Not Yet Implemented"
+
+        (s, c) = self.coords2xyz(coords)
+
+        atnums = get_atnums(s)
+        positions = get_positions(s) # or maybe use c?
+        isyms = get_positions(s)
+        inums = get_inums(s)
+        iconns = get_iconns(s)
+        ivars = get_ivars(s)
+
+        gxfile.gxwrite() atnums, positions, isyms, inums, iconns, ivars = 1
+
+
+    def coords2moltext_Gaussian(self, coords):
         """For a set of internal coordinates, returns the string describing the 
         molecule in xyz format."""
         #TODO: remove this function and one below?
@@ -254,7 +278,7 @@ class MolInterface:
 
         if OLD_PYBEL_CODE:
             str = self.coords2molstr(coords)
-    
+
             if self.format == "zmt":
                 (str, coords) = self.__zmt2xyz(str)
         else:
@@ -334,11 +358,11 @@ class MolInterface:
 
         # Generate id for job in thread-safe manner
         self.job_counter_lock.acquire()
-        inputfile = __name__ + "-" + str(self.job_counter) + self.qcinput_ext
+        inputfile  = __name__ + "-" + str(self.job_counter) + self.qcinput_ext
         outputfile = __name__ + "-" + str(self.job_counter) + self.qcoutput_ext
         self.job_counter += 1
         self.job_counter_lock.release()
-        
+
         self.coords2qcinput(coords, inputfile)
 
         command = self.qc_command + " " + inputfile
@@ -352,16 +376,31 @@ class MolInterface:
         # TODO: check whether outputfile exists before returning name
         return outputfile
 
-    def logfile2eg_Gaussian(self, logfilename, coords):
+    def logfile2eg(self, logfilename, coords):
         """Extracts the energy and gradient from logfilename. Converts the
         gradient from cartesian coordinates to the coordinate system that the
         optimisation is performed in (which might be either internals or 
         cartesians)."""
 
-        print "5"
+        raise False, "Should never be called."
+
+    def logfile2eg_ParaGauss(self, logfilename, coords):
+        """ParaGauss logfile parser. See comment for logfile2eg() for general 
+        information."""
+
+        import gxfile
+        atnums, xyz, isyms, inums, iconns, ivars, grads, energy = gxfile.gxread(logfilename)
+
+        grads_opt = self.__transform(self, grads, coords)
+
+        return (energy, grads_opt)
+
+    def logfile2eg_Gaussian(self, logfilename, coords):
+        """Gaussian logfile parser. See comment for logfile2eg() for general 
+        information."""
+
         file = cclib.parser.ccopen(logfilename, loglevel=logging.ERROR)
         data = file.parse()
-        print "6"
 
         # energy gradients in cartesian coordinates
         if hasattr(data, "grads"):
@@ -381,11 +420,20 @@ class MolInterface:
 
         lg.debug(logfilename + ": Raw gradients in cartesian coordinates: " + str(grads_cart))
 
+        # Transform the gradients from cartesian coordinates to the 
+        # optimisation (e.g. z-matrix) coordinate system.
+        grads_opt = self.__transform(grads_cart, coords)
+
+        return (energy, grads_opt)
+
+    def __transform(self, grads_cart, coords):
+        """Transforms the gradients from the cartesian coordinate system to the
+        coordinate system of the optimisation."""
+
         transform_matrix = self.coordsys_trans_matrix(coords)
         if numpy.linalg.norm(transform_matrix) > 10:
             lg.error(line() + "Enormous coordinate system derivatives" + line())
             lg.debug(logfilename + ": transform matrix: " + str(transform_matrix))
-
 
         # energy gradients in optimisation coordinates
         # Gaussian returns forces, not gradients
@@ -394,8 +442,5 @@ class MolInterface:
             lg.error(line() + "Enormous gradients" + line())
             lg.debug(logfilename + ": ZMat gradients: " + str(grads_opt))
             lg.debug(logfilename + ": transform matrix: " + str(transform_matrix))
-
-        return (energy, grads_opt)
-
 
 
