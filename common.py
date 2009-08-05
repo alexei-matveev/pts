@@ -6,14 +6,20 @@ ERROR_STR = "error"
 
 LOGFILE_EXT = ".log"
 
+# Max no. of allowed geometries given to the optimiser to form the initial guess 
+# for the reaction pathway. Includes the reactant/product.
 MAX_GEOMS = 3
 
+# default max iterations for optimiser
+DEFAULT_MAX_ITERATIONS = 20
 
+# unit conversions
 ANGSTROMS_TO_BOHRS = 1.8897
 HARTREE_TO_ELECTRON_VOLTS = 27.2113845
-
 DEG_TO_RAD = numpy.pi / 180.
 RAD_TO_DEG = 180. / numpy.pi
+
+# unit vectors
 VX = numpy.array((1.0,0.0,0.0))
 VY = numpy.array((0.0,1.0,0.0))
 VZ = numpy.array((0.0,0.0,1.0))
@@ -48,8 +54,9 @@ class Result():
         if self.g == None:
             self.g = res.g
         else:
-            raise Exception("Trying to add a gradient result when one already exists")
- 
+            raise ResultException("Trying to add a gradient result when one already exists")
+
+
 class Job():
     """Specifies calculations to perform on a particular geometry v."""
     def __init__(self, v, l):
@@ -169,7 +176,7 @@ class GaussianPES():
 
         x = v[0]
         y = v[1]
-        return (-exp(-(x**2 + y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*exp(-((1.5*x-1)**2 + (y-2)**2)))
+        return (-numpy.exp(-(x**2 + y**2)) - numpy.exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*numpy.exp(-((1.5*x-1)**2 + (y-2)**2)))
 
     def gradient(self, v):
 #        QCDriver.gradient(self)
@@ -177,8 +184,8 @@ class GaussianPES():
 
         x = v[0]
         y = v[1]
-        dfdx = 2*x*exp(-(x**2 + y**2)) + (2*x - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(4.5*x-3)*exp(-((1.5*x-1)**2 + (y-2)**2))
-        dfdy = 2*y*exp(-(x**2 + y**2)) + (2*y - 6)*exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.5*(2*y-4)*exp(-((1.5*x-1)**2 + (y-2)**2))
+        dfdx = 2*x*numpy.exp(-(x**2 + y**2)) + (2*x - 6)*numpy.exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(4.5*x-3)*numpy.exp(-((1.5*x-1)**2 + (y-2)**2))
+        dfdy = 2*y*numpy.exp(-(x**2 + y**2)) + (2*y - 6)*numpy.exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.5*(2*y-4)*numpy.exp(-((1.5*x-1)**2 + (y-2)**2))
 #        print "gradient:", dfdx
 
         g = numpy.array((dfdx,dfdy))
@@ -234,6 +241,7 @@ class GaussianPES2(QCDriver):
 
         return numpy.array((dfdx,dfdy))
 
+
 class QuarticPES(QCDriver):
     def __init__(self):
         QCDriver.__init__(self,2)
@@ -242,7 +250,7 @@ class QuarticPES(QCDriver):
         QCDriver.gradient(self)
 
         if len(a) != self.dimension:
-            raise Exception("Wrong dimension")
+            raise QCDriverException("Wrong dimension")
 
         x = a[0]
         y = a[1]
@@ -289,4 +297,18 @@ def file2str(f):
     mystr = f.read()
     f.close()
     return mystr
+
+#### Exceptions ####
+class ResultException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self, msg):
+        return self.msg
+   
+class QCDriverException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self, msg):
+        return self.msg
+
 

@@ -4,7 +4,7 @@ processors: 1,1,1
 method: neb
 spr_const: 1.0
 beads_count: 10
-optimizer: l_bfgs_b
+optimizer: grad_descent
 
 [geom0]
 file=react_GaussianPES.txt

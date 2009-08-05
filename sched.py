@@ -329,7 +329,7 @@ class ParaSched:
             # call quantum chem driver
             try:
                 res = self.__qc_driver.run(item)
-            except Exception, inst:
+            except QCDriverException, inst:
                 # this needs to be done differently, when a worker encounters 
                 # an exception it should empty the queue and then rethrow, otherwise
                 # the other jobs will continue to run
@@ -339,8 +339,7 @@ class ParaSched:
                 
                 res = Result(item.v, 0.0, flags = dict(ERROR_STR = error_msg))
 
-            except:
-                lg.error("Unknown Exception in "+ fname())
+
             finished.put(res)
             self.__pending.task_done()
             lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete: " + str(res))

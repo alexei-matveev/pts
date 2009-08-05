@@ -216,7 +216,7 @@ class MolInterface:
         iconns = get_iconns(s)
         ivars = get_ivars(s)
 
-        gxfile.gxwrite() atnums, positions, isyms, inums, iconns, ivars = 1
+        #gxfile.gxwrite() atnums, positions, isyms, inums, iconns, ivars = 1
 
 
     def coords2moltext_Gaussian(self, coords):
@@ -306,7 +306,7 @@ class MolInterface:
     def run(self, job):
         """Assigned by constructor to one of run_internal() or run_external(), 
         depending on input parameters."""
-        assert False
+        assert False, "This should never run directly."
 
     def run_external(self, job):
         """Runs an external program to generate gradient and energy."""
