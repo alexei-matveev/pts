@@ -204,7 +204,7 @@ if __name__=="__main__":
     while 1:
 
         event.set()
-        print event," Has been set"
+        print event, " Has been set"
         time.sleep(2)
 
 04/08/2009
@@ -214,6 +214,10 @@ if __name__=="__main__":
    molinterface.py
  - need to hack gxfile.gxwrite so that it returns a string
 
-OTHER THOUGHTS
---------------
+OTHER THOUGHTS / TODO
+---------------------
  - think of 3D analytical potential?
+ - add test for when input geoms are almost identical
+ - need to deal with situation when |dih1 - dih2| > 180.
+ - punch for restart
+ - need to extract forces from other part of gaussian file, due to ****** when forces are high

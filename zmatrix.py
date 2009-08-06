@@ -2,6 +2,8 @@ import re
 import numpy
 from common import *
 import numerical
+import sys
+import getopt
 
 
 class Atom():
@@ -132,14 +134,15 @@ class ZMatrix():
             self.vars[key] = float(val)
 
         # check that z-matrix is fully specified
-        required_vars = []
+        self.zmt_ordered_vars = []
         for atom in self.atoms:
-            required_vars += atom.all_vars()
-        for var in required_vars:
+            self.zmt_ordered_vars += atom.all_vars()
+        for var in self.zmt_ordered_vars:
             if not var in self.vars:
                 raise Exception("Variable '" + var + "' not given in z-matrix")
 
-    def __get_var(self, var):
+
+    def get_var(self, var):
         """If var is numeric, return it, otherwise look it's value up 
         in the dictionary of variable values."""
 
@@ -221,7 +224,7 @@ class ZMatrix():
                 continue
             else:
                 avec = self.atoms_dict[atom.a].vector
-                dst = self.__get_var(atom.dst)
+                dst = self.get_var(atom.dst)
 
             if atom.b == None:
                 atom.vector = numpy.array((dst, 0.0, 0.0))
@@ -230,14 +233,14 @@ class ZMatrix():
                 continue
             else:
                 bvec = self.atoms_dict[atom.b].vector
-                ang = self.__get_var(atom.ang) * DEG_TO_RAD
+                ang = self.get_var(atom.ang) * DEG_TO_RAD
 
             if atom.c == None:
                 cvec = VY
                 dih = 90. * DEG_TO_RAD
             else:
                 cvec = self.atoms_dict[atom.c].vector
-                dih = self.__get_var(atom.dih) * DEG_TO_RAD
+                dih = self.get_var(atom.dih) * DEG_TO_RAD
 
             v1 = avec - bvec
             v2 = avec - cvec
@@ -263,5 +266,47 @@ class ZMatrix():
         
         xyz_coords = numpy.array(xyz_coords)
         return xyz_coords
+
+class Usage(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self, msg):
+        return self.msg
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    try:
+        try:
+            opts, args = getopt.getopt(argv[1:], "h", ["help"])
+        except getopt.error, msg:
+             raise Usage(msg)
+
+        print "argv =", argv
+        if len(argv) != 1:
+            raise Usage("Exactly 1 input file must be specified.")
+        inputfile = argv[0]
+
+    except Usage, err:
+        print >>sys.stderr, err.msg
+        print >>sys.stderr, "for help use --help"
+        return 2
+    
+    f = open(inputfile, "r")
+    zmt_txt = f.read()
+    f.close()
+    zmt = ZMatrix(zmt_txt)
+    for var in zmt.zmt_ordered_vars:
+        print zmt.get_var(var)
+
+    
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt, e:
+        print e
+    sys.exit()
 
 

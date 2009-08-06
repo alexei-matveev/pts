@@ -1,10 +1,12 @@
-import numpy
+#import numpy
 import scipy
 import re
 import cclib
 import thread
 import logging
 import zmatrix
+import string
+from copy import deepcopy
 
 from common import *
 
@@ -55,11 +57,19 @@ class MolRep:
         elif xyz.match(mol_text) != None:
             self.format = "xyz"
             self.coords = re.findall(r"([+-]?\d+\.\d*)", mol_text)
+
+            self.atoms = re.findall(r"(\w\w?).+?\n", mol_text)
+            self.coords = numpy.array([float(c) for c in self.coords])
             self.var_names = "no variable names"
         else:
-            raise Exception("can't understand input file:\n" + mol_text)
+            raise MolRepException("can't understand input file:\n" + mol_text)
 
-
+class MolRepException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self, msg):
+        return self.msg
+   
 class MolInterface:
     """Converts between molecule representations (i.e. internal xyz/zmat 
     representation), optimisation coordinates, Quantum Chemistry logfile format
@@ -218,7 +228,20 @@ class MolInterface:
 
         #gxfile.gxwrite() atnums, positions, isyms, inums, iconns, ivars = 1
 
+    def coords2opt_mol_text(self, coords):
+        """Returns a string describing the molecule in terms of the coordinate
+        system that the optimisation is being done in, e.g. in xyz-format
+        (cartesians) or z-matrix format."""
 
+        if self.format == "zmt":
+            self.zmatrix.set_internals(coords)
+            return self.zmatrix.zmt_str()
+        elif self.format == "xyz":
+            s, c = self.coords2xyz(coords)
+            return s
+        else:
+            assert False, "Should never happen"
+            
     def coords2moltext_Gaussian(self, coords):
         """For a set of internal coordinates, returns the string describing the 
         molecule in xyz format."""
@@ -239,12 +262,21 @@ class MolInterface:
         the cartesian coordinates Xi with respect to the optimisation 
         coordinates Cj, i <- 1..n, j <- 1..m."""
 
-        if OLD_PYBEL_CODE:
-            nd = NumDiff()
-            dX_on_dC, err = nd.numdiff(self.__opt_coords2cart_coords, coords)
-            lg.debug("Errors in numerical differentiation were " + str(err))
+        if self.format == "zmt":
+            if OLD_PYBEL_CODE:
+                nd = NumDiff()
+                dX_on_dC, err = nd.numdiff(self.__opt_coords2cart_coords, coords)
+                lg.debug("Errors in numerical differentiation were " + str(err))
+            else:
+                dX_on_dC, err = self.zmatrix.dcart_on_dint(coords)
+
+        elif self.format == "xyz":
+
+            # transforming cartesians to cartesians => no transformation at all
+            dX_on_dC = numpy.eye(len(coords))
+
         else:
-            dX_on_dC, err = self.zmatrix.dcart_on_dint(coords)
+            assert False, "Should never happen."
 
         return dX_on_dC
 
@@ -281,9 +313,24 @@ class MolInterface:
 
             if self.format == "zmt":
                 (str, coords) = self.__zmt2xyz(str)
+            else:
+                assert False, "OLD_PYBEL_CODE and not zmt"
         else:
-            coords = self.zmatrix.int2cart(coords)
-            str = self.zmatrix.xyz_str()
+            if self.format == "zmt":
+                coords = self.zmatrix.int2cart(coords)
+                str = self.zmatrix.xyz_str()
+
+            elif self.format == "xyz":
+                assert len(coords) % 3 == 0
+
+                coord_tuples = deepcopy(coords)
+                coord_tuples.shape = (-1,3)
+                coord_strs = ["%f\t%f\t%f" % (x,y,z) for (x,y,z) in coord_tuples]
+                str = string.join([a + "\t" + c for (a,c) in zip(self.atoms, coord_strs)], "\n")
+                str += "\n"
+
+            else:
+                assert False, "Unsuported format, should never happen"
 
         return (str, coords)
 
@@ -422,11 +469,11 @@ class MolInterface:
 
         # Transform the gradients from cartesian coordinates to the 
         # optimisation (e.g. z-matrix) coordinate system.
-        grads_opt = self.__transform(grads_cart, coords)
+        grads_opt = self.__transform(grads_cart, coords, logfilename)
 
         return (energy, grads_opt)
 
-    def __transform(self, grads_cart, coords):
+    def __transform(self, grads_cart, coords, logfilename):
         """Transforms the gradients from the cartesian coordinate system to the
         coordinate system of the optimisation."""
 
@@ -437,10 +484,17 @@ class MolInterface:
 
         # energy gradients in optimisation coordinates
         # Gaussian returns forces, not gradients
+        print "transform_matrix"
+        print transform_matrix
+        print transform_matrix.shape
+        print "grads_cart"
+        print grads_cart
+        print grads_cart.shape
+
         grads_opt = -numpy.dot(transform_matrix, grads_cart)
         if numpy.linalg.norm(grads_opt) > 10:
             lg.error(line() + "Enormous gradients" + line())
             lg.debug(logfilename + ": ZMat gradients: " + str(grads_opt))
             lg.debug(logfilename + ": transform matrix: " + str(transform_matrix))
 
-
+        return grads_opt

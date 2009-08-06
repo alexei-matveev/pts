@@ -199,7 +199,7 @@ class CalcManager():
 
         # calc is not already in list so must add
         self.__pending_jobs.append(Job(v, type))
-        lg.info("Requesting calc for %s of type %s" % (v, type))
+#        lg.info("Requesting calc for %s of type %s" % (v, type))
 
     def proc_requests(self):
         """Process all jobs in queue."""
@@ -342,7 +342,7 @@ class ParaSched:
 
             finished.put(res)
             self.__pending.task_done()
-            lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete: " + str(res))
+#            lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete: " + str(res))
 
         lg.debug("worker exiting, id = %s" % my_id)
 
@@ -390,14 +390,14 @@ def test_threads():
             sts = os.waitpid(p.pid, 0)
 
             my_id = get_ident()
-            print "thread " + str(my_id) + ": item " + item + " complete"
+###            print "thread " + str(my_id) + ": item " + item + " complete"
             q.task_done()
 
     queue = Queue()
     
     items = ["j1.com", "j2.com", "j3.com", "j4.com", "j5.com", "j6.com", "j7.com"]
     for item in items:
-        print "Adding ", item
+#        print "Adding ", item
         queue.put(item)
 
     no_of_workers = 3
