@@ -180,13 +180,14 @@ class NEB(ReactionPathway):
         # For the time being, these are uniform
         self.spr_const_vec = array([self.base_spr_const for x in range(beads_count - 1)])
 
-        # energy of a bead on PES, doesn't include spring energies
-        self.bead_pes_energies = "Undefined"
 
         # set reactant/product energies to arbitrarily low so that upwinding tangent calculation works
         self.default_initial_bead_pes_energies = zeros(self.beads_count)
         self.default_initial_bead_pes_energies[0] = -1e4
         self.default_initial_bead_pes_energies[-1] = -1e4
+
+        # energy of a bead on PES, doesn't include spring energies
+        self.bead_pes_energies = deepcopy(self.default_initial_bead_pes_energies)
 
         # forces perpendicular to NEB
         self.bead_forces = zeros(beads_count * self.dimension)
@@ -1029,6 +1030,7 @@ def vector_interpolate(start, end, beads_count):
     assert type(start) == ndarray
     assert beads_count > 2
 
+    # do I still need these lines?
     start = array(start, dtype=float64)
     end = array(end, dtype=float64)
 

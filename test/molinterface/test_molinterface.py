@@ -8,7 +8,7 @@ from molinterface import *
 
 class TestMolInterface(testing.MyTestCase):
     def test_MolInterface2(self):
-        return
+#        return
         m1 = file2str("CH4.zmt")
         m2 = m1
 
@@ -19,11 +19,14 @@ class TestMolInterface(testing.MyTestCase):
         self.assertEqual(mi.atoms, ['C', 'H', 'H', 'H', 'H'])
         self.assertEqual(mi.var_names, ['ch', 'hch', 'hchh'])
         print mi.reagent_coords[0]
+        print numpy.array(mi.reagent_coords[0])
+        print numpy.array([1.09, 109.5, 120.])
+        print numpy.array(mi.reagent_coords[0]) == numpy.array([1.09, 109.5, 120.])
         self.assert_((numpy.array(mi.reagent_coords[0]) == numpy.array([1.09, 109.5, 120.])).all())
 
 
         X = numpy.array([1.0900000000000001, 109.5, 120.0])
-        print mi.opt_coords2cart_coords(X)
+#        print mi.opt_coords2cart_coords(X)
 
         print "Testing: coordsys_trans_matrix()"
         print mi.coordsys_trans_matrix(X)
@@ -32,9 +35,9 @@ class TestMolInterface(testing.MyTestCase):
         logfilename = mi.run_qc(X)
         print "file", logfilename, "created"
         (e, g) = mi.logfile2eg(logfilename, X)
-        self.assertAlmostEqual(e, -1087.8230597121312)
-        for g1, g2 in zip(array([  3.85224119e-02,   8.29947922e-06,  -2.61589395e-07]), g):
-            self.assertAlmostEqual(g1,g2)
+        self.assertAlmostEqual(e*HARTREE_TO_ELECTRON_VOLTS, -1087.8230597121312, 3)
+        for g1, g2 in zip(numpy.array([  3.85224119e-02,   8.29947922e-06,  -2.61589395e-07]), g):
+            self.assertAlmostEqual(g1,g2,3)
 
     def test_MolInterface3(self):
         return

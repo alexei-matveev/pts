@@ -123,6 +123,17 @@ class MolInterface:
 
         self.reagent_coords = [m.coords for m in molreps]
 
+        if len(self.reagent_coords) == 2:
+            react = self.reagent_coords[0]
+            prod  = self.reagent_coords[1]
+            for i in range(len(react)):
+                if abs(react[i] - prod[i]) > 180.0:
+                    if react[i] > prod[i]:
+                        prod[i] += 360.0
+                    else:
+                        react[i] += 360.0
+
+
         if "qcinput_head" in params:
             self.qcinput_head = params["qcinput_head"]
             self.qcinput_head = expand_newline(self.qcinput_head)
@@ -147,6 +158,9 @@ class MolInterface:
         # setup Quantum Chemistry package info
         self.qc_command = DEFAULT_GAUSSIAN03_PROGNAME
         self.run = self.run_external
+        self.coords2moltext = self.coords2moltext_Gaussian
+        self.logfile2eg = self.logfile2eg_Gaussian
+
         if "qc_program" in params:
             if params["qc_program"] == "g03":
                 self.qc_command = DEFAULT_GAUSSIAN03_PROGNAME
@@ -451,7 +465,7 @@ class MolInterface:
 
         # energy gradients in cartesian coordinates
         if hasattr(data, "grads"):
-            grads_cart = data.grads
+            grads_cart = data.grads[-1].flatten()
         else:
             raise Exception("No gradients found in file " + logfilename)
 

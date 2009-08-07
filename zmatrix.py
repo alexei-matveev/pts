@@ -52,6 +52,17 @@ class Atom():
         """Returns true if and only if the atom is not a dummy atom."""
         return self.name.lower() != "x" and self.name.lower() != "xx"
 
+    def dih_var(self):
+        """Returns the name of the dihedral variable."""
+
+        if isinstance(self.dih, str):
+            if self.dih[0] == "-":
+                return self.dih[1:]
+            else:
+                return self.dih
+        else:
+            return None
+
     def all_vars(self):
         """Return a list of all variables associated with this atom."""
         potentials_list = [self.dst, self.ang, self.dih]
@@ -111,7 +122,9 @@ class ZMatrix():
             zmt_spec = parts.group("zmt")
             variables_text = parts.group("vars")
             self.var_names = re.findall(r"(\w+).*?\n", variables_text)
-            self.coords = numpy.array(re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text))
+            self.no_vars = len(self.var_names)
+            self.coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
+            self.coords = numpy.array([float(c) for c in self.coords])
         else:
             raise Exception("Z-matrix not found in string:\n" + mol_text)
         
@@ -124,14 +137,35 @@ class ZMatrix():
             self.atoms.append(a)
             self.atoms_dict[ix] = a
         
+        # Dictionary of dihdral angles
+        self.dih_vars = dict()
+        for atom in self.atoms:
+            if atom.dih_var() != None:
+                self.dih_vars[atom.dih_var()] = 1
+
+        # flags = True/False indicating whether variables are dihedrals or not
+        self.dih_flags = numpy.array([(var in self.dih_vars) for var in self.var_names])
+
         # TODO: check that z-matrix is ok, e.g. A, B 1 ab, etc...
 
         # Create dictionary of variable values (unordered) and an 
         # ordered list of variable names.
+
+        print "Molecule"
         for i in range(len(self.var_names)):
             key = self.var_names[i]
-            val = self.coords[i]
-            self.vars[key] = float(val)
+            val = float(self.coords[i])
+
+            # move all dihedrals into domain [0,360)
+            """if key in self.dih_vars:
+                if val >= 0.0:
+                    print "not changing", key, "from", val
+                else: #if val < 0.0:
+                    print "changing", key, "from", val,
+                    val += 360.0
+                    print "to",val"""
+
+            self.vars[key] = val
 
         # check that z-matrix is fully specified
         self.zmt_ordered_vars = []
