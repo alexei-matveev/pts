@@ -4,6 +4,7 @@ from common import *
 import numerical
 import sys
 import getopt
+import thread
 
 
 class Atom():
@@ -137,7 +138,7 @@ class ZMatrix():
             self.atoms.append(a)
             self.atoms_dict[ix] = a
         
-        # Dictionary of dihdral angles
+        # Dictionary of dihedral angles
         self.dih_vars = dict()
         for atom in self.atoms:
             if atom.dih_var() != None:
@@ -174,6 +175,8 @@ class ZMatrix():
         for var in self.zmt_ordered_vars:
             if not var in self.vars:
                 raise Exception("Variable '" + var + "' not given in z-matrix")
+
+        self.state_mod_lock = thread.allocate_lock()
 
 
     def get_var(self, var):
@@ -231,8 +234,14 @@ class ZMatrix():
         """Based on a vector x of new internal coordinates, returns a 
         vector of cartesian coordinates. The internal dictionary of coordinates 
         is updated."""
+
+        self.state_mod_lock.acquire()
+
         self.set_internals(x)
         y = self.gen_cartesian()
+
+        self.state_mod_lock.release()
+
         return y.flatten()
 
     def dcart_on_dint(self, x):
@@ -240,7 +249,9 @@ class ZMatrix():
         and Ij is the jth internal coordinate."""
 
         nd = numerical.NumDiff()
-        return nd.numdiff(self.int2cart, x)
+        mat = nd.numdiff(self.int2cart, x)
+        print "mat", mat
+        return mat
 
     def gen_cartesian(self):
         """Generates cartesian coordinates from z-matrix and the current set of 

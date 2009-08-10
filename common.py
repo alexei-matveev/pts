@@ -1,5 +1,6 @@
 """Classes, functions and variables common to all modules."""
 
+import copy
 import numpy
 PROGNAME = "searcher"
 ERROR_STR = "error"
@@ -112,7 +113,6 @@ def line():
 def opt_gd(f, x0, fprime, callback = lambda x: None):
     """A gradient descent optimiser."""
 
-    import copy
     i = 0
     x = copy.deepcopy(x0)
     prevx = numpy.zeros(len(x))
@@ -128,9 +128,13 @@ def opt_gd(f, x0, fprime, callback = lambda x: None):
         if callback != None:
             x = callback(x)
         x -= g * 0.2
-        print line()
-        print x
-        print line()
+
+        # DON't DELETE
+        if False:
+            print line()
+            print "x = ", x
+            print "g =", g
+            print line()
 
     x = callback(x)
     return x
@@ -269,9 +273,37 @@ class QuarticPES(QCDriver):
         z = (x**2 + y**2) * ((x - 40)**2 + (y - 4) ** 2)
         return (z)
 
+def vecmaxs(v, n=3):
+    """Prints the largest n elements of a vector or matrix."""
+
+    maxs = numpy.ones(n) * numpy.finfo(numpy.float64).min
+    for i in copy.deepcopy(v).flatten():
+        diffs = maxs - i
+
+#        print "d",diffs
+#        print "m", maxs
+#        print "i",i
+#        print "--"
+        smallest = diffs.min()
+        if i > smallest:
+            for k in range(n):
+                if diffs[k] == smallest:
+                    maxs[k] = i
+                    break
+    return maxs
+
 def vector_angle(v1, v2):
     """Returns the angle between two head to tail vectors in degrees."""
-    return 180. - RAD_TO_DEG * numpy.arccos(numpy.dot(v1, v2) / numpy.linalg.norm(v1) / numpy.linalg.norm(v2))
+    fraction = numpy.dot(v1, v2) / numpy.linalg.norm(v1) / numpy.linalg.norm(v2)
+
+
+    # Occasionally, due to precision errors, 'fraction' is slightly above 1 and
+    # arccos(x) where x > 1 gives NaN.
+    if fraction > 0.9999999999999:
+        return 180.0
+
+    result = 180. - RAD_TO_DEG * numpy.arccos(fraction)
+    return result
 
 def expand_newline(s):
     """Removes all 'slash' followed by 'n' characters and replaces with new line chaaracters."""

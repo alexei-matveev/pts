@@ -52,6 +52,7 @@ class MolRep:
                 self.zmatrix = zmatrix.ZMatrix(mol_text)
                 self.var_names = self.zmatrix.var_names
                 self.coords = self.zmatrix.coords
+                self.dih_vars = self.zmatrix.dih_vars
                 self.atoms = [a.name for a in self.zmatrix.atoms]
 
         elif xyz.match(mol_text) != None:
@@ -120,19 +121,25 @@ class MolInterface:
             else:
                 self.zmatrix = zmatrix.ZMatrix(mol_strings[0])
 
-
         self.reagent_coords = [m.coords for m in molreps]
 
-        if len(self.reagent_coords) == 2:
-            react = self.reagent_coords[0]
-            prod  = self.reagent_coords[1]
-            for i in range(len(react)):
-                if abs(react[i] - prod[i]) > 180.0:
-                    if react[i] > prod[i]:
-                        prod[i] += 360.0
-                    else:
-                        react[i] += 360.0
+        if self.format == "zmt":
+            # Make sure that when interpolating between the dihedral angles of reactants 
+            # and reagents, that this is done using the shortest possible arc length
+            # around a circle. This only needs to be done for dihedrals, but this is
+            # implicitely asserted by the inequality tested for below (I think).
 
+            # it's not done if a transition state is specified
+            if len(self.reagent_coords) == 2:
+                react = self.reagent_coords[0]
+                prod  = self.reagent_coords[1]
+                for i in range(len(react)):
+                    if abs(react[i] - prod[i]) > 180.0:
+                        assert self.var_names[i] in self.zmatrix.dih_vars
+                        if react[i] > prod[i]:
+                            prod[i] += 360.0
+                        else:
+                            react[i] += 360.0
 
         if "qcinput_head" in params:
             self.qcinput_head = params["qcinput_head"]
@@ -331,8 +338,14 @@ class MolInterface:
                 assert False, "OLD_PYBEL_CODE and not zmt"
         else:
             if self.format == "zmt":
-                coords = self.zmatrix.int2cart(coords)
+#                coords = self.zmatrix.int2cart(coords)
+                self.zmatrix.state_mod_lock.acquire()
+
+                self.zmatrix.set_internals(coords)
+                self.zmatrix.gen_cartesian()
                 str = self.zmatrix.xyz_str()
+
+                self.zmatrix.state_mod_lock.release()
 
             elif self.format == "xyz":
                 assert len(coords) % 3 == 0
@@ -493,22 +506,24 @@ class MolInterface:
 
         transform_matrix = self.coordsys_trans_matrix(coords)
         if numpy.linalg.norm(transform_matrix) > 10:
-            lg.error(line() + "Enormous coordinate system derivatives" + line())
-            lg.debug(logfilename + ": transform matrix: " + str(transform_matrix))
+            lg.warning(line() + "Enormous coordinate system derivatives" + line())
+            lg.warning(logfilename + ": largest elts of trans matrix: " + str(vecmaxs(abs(transform_matrix))))
 
         # energy gradients in optimisation coordinates
         # Gaussian returns forces, not gradients
-        print "transform_matrix"
+        """print "transform_matrix"
         print transform_matrix
         print transform_matrix.shape
         print "grads_cart"
         print grads_cart
-        print grads_cart.shape
+        print grads_cart.shape"""
 
         grads_opt = -numpy.dot(transform_matrix, grads_cart)
-        if numpy.linalg.norm(grads_opt) > 10:
-            lg.error(line() + "Enormous gradients" + line())
-            lg.debug(logfilename + ": ZMat gradients: " + str(grads_opt))
-            lg.debug(logfilename + ": transform matrix: " + str(transform_matrix))
+        if numpy.linalg.norm(grads_opt) > 10 or numpy.linalg.norm(grads_cart) > 10:
+            lg.warning(line() + "Enormous gradients" + line())
+            lg.warning(logfilename + ": Largest ZMat gradients: " + str(vecmaxs(abs(grads_opt))))
+            lg.warning(logfilename + ": Largest Cartesian gradients: " + str(vecmaxs(abs(grads_cart))))
+            lg.warning(logfilename + ": Largest elts of trans matrix: " + str(vecmaxs(abs(transform_matrix))))
 
         return grads_opt
+

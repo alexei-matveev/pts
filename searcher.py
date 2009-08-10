@@ -316,7 +316,7 @@ class NEB(ReactionPathway):
         # request and process parallel QC jobs
         if self.parallel:
 
-            for i in range(self.beads_count)[1:-1]:
+            for i in range(self.beads_count): # [1:-1]:
                 bead_vec = self.state_vec[i]
                 self.qc_driver.request_gradient(bead_vec)
 
@@ -340,8 +340,9 @@ class NEB(ReactionPathway):
         return (pes_energies + spring_energies)
 
     def update_bead_pes_energies(self):
+        """"""
         self.bead_pes_energies = self.default_initial_bead_pes_energies
-        for i in range(self.beads_count)[1:-1]:
+        for i in range(self.beads_count): # [1:-1]:
             bead_vec = self.state_vec[i]
             self.bead_pes_energies[i] = self.qc_driver.energy(bead_vec)
        
@@ -359,7 +360,7 @@ class NEB(ReactionPathway):
          # request and process parallel QC jobs
         if self.parallel:
 
-            for i in range(self.beads_count)[1:-1]:
+            for i in range(self.beads_count): #[1:-1]:
                 self.qc_driver.request_gradient(self.state_vec[i])
 
             self.qc_driver.proc_requests()
@@ -382,7 +383,7 @@ class NEB(ReactionPathway):
         pes_forces.shape = (self.beads_count, self.dimension)
 
         # get PES forces / project out stuff
-        for i in range(self.beads_count)[1:-1]:
+        for i in range(self.beads_count)[1:-1]: # don't include end beads, leave their gradients as zero
             pes_forces[i] = -self.qc_driver.gradient(self.state_vec[i])
             pes_forces[i] = project_out(self.tangents[i], pes_forces[i])
 

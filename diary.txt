@@ -218,6 +218,19 @@ OTHER THOUGHTS / TODO
 ---------------------
  - think of 3D analytical potential?
  - add test for when input geoms are almost identical
- - need to deal with situation when |dih1 - dih2| > 180.
+ - need to deal with situation when |dih1 - dih2| > 180. (DONE)
  - punch for restart
- - need to extract forces from other part of gaussian file, due to ****** when forces are high
+ - need to extract forces from other part of gaussian file, due to ****** when forces are high (DONE)
+
+
+10/08/2009
+----------
+ - discovered concurrency issue when converting from z-matrix to cartesians
+ - fixed by providing locks in the interface to ZMatrix which must be aquired before performing 
+   activities which modify an instance's state
+
+   THOUGHTS:
+    - maybe this is not the best way to do this? Maybe I should only provide stateless functions?
+      - need to think about this...
+
+
