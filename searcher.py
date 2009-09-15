@@ -114,6 +114,7 @@ class FourWellPot(QCDriver):
 
 
 class ReactionPathway:
+    """Abstract object for chain-of-state reaction pathway."""
     dimension = -1
 
     f_calls = 0
@@ -982,7 +983,7 @@ class GrowingString(ReactionPathway):
         gradients = [react_gradients] + gradients + [prod_gradients]
         
         gradients = array(gradients).flatten()
-        return (array(gradients).flatten())
+        return gradients
 
     def update_path(self, state_vec = [], respace = True):
         """After each iteration of the optimiser this function must be called.

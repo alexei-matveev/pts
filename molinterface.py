@@ -4,11 +4,12 @@ import re
 import cclib
 import thread
 import logging
-import zmatrix
 import string
+import os
 from copy import deepcopy
 
 from common import *
+import zmatrix
 
 lg = logging.getLogger(PROGNAME)
 
@@ -179,6 +180,12 @@ class MolInterface:
                 self.coords2moltext = self.coords2moltext_ParaGauss
                 self.logfile2eg = self.logfile2eg_ParaGauss
 
+            elif params["qc_program"] == "ase_emt":
+                self.qc_command == None
+                self.run = self.run_ase
+                self.logfile2eg = None
+                self.coords2moltext = None
+
             elif params["qc_program"] == "analytical_GaussianPES":
                 self.run = self.run_internal
                 self.analytical_pes = GaussianPES()
@@ -264,7 +271,7 @@ class MolInterface:
             assert False, "Should never happen"
             
     def coords2moltext_Gaussian(self, coords):
-        """For a set of internal coordinates, returns the string describing the 
+        """For a set of molecular coordinates, returns the string describing the 
         molecule in xyz format."""
         #TODO: remove this function and one below?
         (s, c) = self.coords2xyz(coords)
@@ -342,24 +349,25 @@ class MolInterface:
                 self.zmatrix.state_mod_lock.acquire()
 
                 self.zmatrix.set_internals(coords)
-                self.zmatrix.gen_cartesian()
+                cart_coords = self.zmatrix.gen_cartesian()
                 str = self.zmatrix.xyz_str()
+                cart_coords.shape = (-1,3)
 
                 self.zmatrix.state_mod_lock.release()
 
             elif self.format == "xyz":
                 assert len(coords) % 3 == 0
 
-                coord_tuples = deepcopy(coords)
-                coord_tuples.shape = (-1,3)
-                coord_strs = ["%f\t%f\t%f" % (x,y,z) for (x,y,z) in coord_tuples]
+                cart_coords = deepcopy(coords)
+                cart_coords.shape = (-1,3)
+                coord_strs = ["%f\t%f\t%f" % (x,y,z) for (x,y,z) in cart_coords]
                 str = string.join([a + "\t" + c for (a,c) in zip(self.atoms, coord_strs)], "\n")
                 str += "\n"
 
             else:
                 assert False, "Unsuported format, should never happen"
 
-        return (str, coords)
+        return (str, cart_coords)
 
     def __zmt2xyz(self, str):
         """Converts a string describing a molecule using the z-matrix format
@@ -381,6 +389,53 @@ class MolInterface:
         """Assigned by constructor to one of run_internal() or run_external(), 
         depending on input parameters."""
         assert False, "This should never run directly."
+
+    def run_ase(self, job):
+        from ase import Atom, Atoms, Vasp, LennardJones
+
+        print "run_ase running"
+        (_, cart_coords) = self.coords2xyz(job.v)
+        print cart_coords
+        raw_list = [Atom(a, c) for (a,c) in zip(self.atoms, cart_coords)]
+        atoms = Atoms(raw_list,
+                cell=[ ( 5.6362,  0.000,   0.000),
+                ( 2.8181,  4.881,   0.000),
+                ( 0.0000,  0.000,  10.000) ],
+                pbc=(True, True, True)
+           )
+
+        """calc = Vasp( ismear = '1'
+             , sigma  = '0.15'
+             , xc     = 'VWN'
+             , isif   = '2'
+             , enmax  = '300'
+             , idipol = '3'
+             , enaug  = '300'
+             , ediffg = '-0.02'
+             , voskown= '1'
+             , istart = '1'
+             , icharg = '1'
+             , nelmdl = '0'
+             , kpts   = [1,1,1]
+             )"""
+        atoms.set_calculator(LennardJones())
+        #atoms.set_calculator(calc)
+
+        # record current dir and change to a new one to isolate calculation
+        isolation_dir = "iso_vasp" + str(self.__get_job_counter())
+        old_dir = os.getcwd()
+        os.mkdir(isolation_dir)
+        os.chdir(isolation_dir)
+
+        # run job using ASE calculator
+        e = atoms.get_potential_energy()
+        g = atoms.get_forces()
+        
+        os.chdir(old_dir)
+
+        return Result(coords, e, g)
+
+
 
     def run_external(self, job):
         """Runs an external program to generate gradient and energy."""
@@ -424,6 +479,16 @@ class MolInterface:
         processors p_low to p_high."""
         return "dplace -c %d-%d" % (p_low, p_high)
 
+    def __get_job_counter(self):
+        """Get unique numeric id for a job. Must be threadsafe."""
+
+        self.job_counter_lock.acquire()
+        counter = self.job_counter
+        self.job_counter += 1
+        self.job_counter_lock.release()
+
+        return counter
+
     def run_qc(self, coords, local_params = dict()):
         """Launches a quantum chemistry code, blocks until it has finished, 
         then returns output filename."""
@@ -431,11 +496,12 @@ class MolInterface:
         import subprocess
 
         # Generate id for job in thread-safe manner
-        self.job_counter_lock.acquire()
-        inputfile  = __name__ + "-" + str(self.job_counter) + self.qcinput_ext
-        outputfile = __name__ + "-" + str(self.job_counter) + self.qcoutput_ext
-        self.job_counter += 1
-        self.job_counter_lock.release()
+        #self.job_counter_lock.acquire()
+        counter = self.__get_job_counter()
+        inputfile  = __name__ + "-" + str(counter) + self.qcinput_ext
+        outputfile = __name__ + "-" + str(counter) + self.qcoutput_ext
+#        self.job_counter += 1
+#        self.job_counter_lock.release()
 
         self.coords2qcinput(coords, inputfile)
 
