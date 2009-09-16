@@ -154,7 +154,6 @@ class ReactionPathway:
         self.tangents = zeros(beads_count * self.dimension)
         self.tangents.shape = (beads_count, self.dimension)
 
-
         # objective function gradient
         self.gradients_vec = zeros(beads_count * self.dimension)
 
@@ -207,7 +206,7 @@ def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
 class NEB(ReactionPathway):
     """Implements a Nudged Elastic Band (NEB) transition state searcher."""
 
-    def __init__(self, reagents, f_test, base_spr_const, qc_driver, beads_count = 10, parallel = False):
+    def __init__(self, reagents, f_test, qc_driver, base_spr_const, beads_count = 10, parallel = False):
 
         ReactionPathway.__init__(self, reagents, beads_count, qc_driver, parallel)
 
@@ -404,7 +403,8 @@ class NEB(ReactionPathway):
 
         # forces perpendicular to NEB
 #        print "pes_forces:", pes_forces
-        self.bead_forces = deepcopy(pes_forces).flatten()
+        # at this point, perp component has been projected out
+        self.bead_forces = deepcopy(pes_forces).flatten() 
         gradients_vec = -1 * (pes_forces + spring_forces)
 
         self.gradients_vec = gradients_vec
@@ -422,11 +422,10 @@ class LinFunc():
         self.grad = (ys[1] - ys[0]) / (xs[1] - xs[0])
 
     def f(self, x):
-        return self.fs(x)[0]
+        return self.fs(x) #[0]
 
     def fprime(self, x):
         return self.grad
-
 
 class QuadFunc(Func):
     def __init__(self, coefficients):
@@ -671,7 +670,6 @@ class PathRepresentation():
             bead_vectors.append(self.__get_bead_coords(str_pos))
             bead_tangents.append(self.__get_tangent(str_pos))
 
-
         reactants = self.__state_vec[0]
         products = self.__state_vec[-1]
         bead_vectors = [reactants] + bead_vectors + [products]
@@ -853,10 +851,9 @@ class PiecewiseRho:
             self.lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 class GrowingString(ReactionPathway):
-    def __init__(self, reagents, qc_driver, f_test = lambda x: True, 
-        beads_count = 10, rho = lambda x: 1, growing=True, parallel=False):
+    def __init__(self, reagents, f_test, qc_driver, beads_count = 10, rho = lambda x: 1, growing=True, parallel=False):
 
-        #ReactionPathway.__init__(self, reactants, products, f_test)
+        ReactionPathway.__init__(self, reagents, beads_count, qc_driver, parallel)
         self.__qc_driver = qc_driver
 
         self.__final_beads_count = beads_count
@@ -866,6 +863,7 @@ class GrowingString(ReactionPathway):
             initial_beads_count = self.__final_beads_count
 
         # create PathRepresentation object
+        print "reagents", reagents
         self.__path_rep = PathRepresentation(reagents, 
             initial_beads_count, rho)
 
@@ -890,6 +888,11 @@ class GrowingString(ReactionPathway):
 
         self.parallel = parallel
 
+    @property
+    def state_vec(self):
+        return deepcopy(self.__path_rep.get_state_vec)
+
+    #  TODO: remove this and dependencies
     def get_dims(self):
         return self.__dims
 
@@ -900,8 +903,11 @@ class GrowingString(ReactionPathway):
         return self.__path_rep.beads_count
 
     def grow_string(self):
-        """Adds 2, 1 or 0 beads to string (such that the total number of 
-        beads is less than or equal to self.__final_beads_count)."""
+        """
+        Adds 2, 1 or 0 beads to string (such that the total number of 
+        beads is less than or equal to self.__final_beads_count).
+        """
+
         assert self.get_current_beads_count() <= self.__final_beads_count
         flab("called")
 
@@ -923,6 +929,7 @@ class GrowingString(ReactionPathway):
     def update_rho(self):
         """Update the density function so that it will deliver beads spaced
         as for a growing (or grown) string."""
+
         flab("called")
         assert self.get_current_beads_count() <= self.__final_beads_count
 
@@ -1070,6 +1077,7 @@ def test_path_rep():
         else:
             return -4*x + 4
 
+    print "r",r
     x = PathRepresentation(r, 5)
 
     # Build linear, quadratic or spline representation of the path,
@@ -1644,7 +1652,6 @@ class QuadraticStringMethod():
             
     def update_H(self, deltas, gammas, Hs, use_tricky_update = True):
         """Damped BFGS Hessian Update Scheme as described in Ref. [QSM]., equations 14, 16, 18, 19."""
-
 
         deltas.shape = (-1, self.__dims)
         gammas.shape = (-1, self.__dims)

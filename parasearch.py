@@ -151,8 +151,67 @@ def setup_and_run(mol_strings, params):
 
     if params["method"] == "neb":
         neb_calc(mol_interface, calc_man, reagent_coords, params)
+    if params["method"] == "string":
+        string_calc(mol_interface, calc_man, reagent_coords, params)
     else:
         raise ParseError("Unknown method: " + params["method"])
+
+# callback function
+def generic_callback(x, mol_interface, cos_obj, params):
+    print line()
+#                logging.info("Current path: %s" % str(x))
+    print cos_obj
+#            print neb.gradients_vec
+#            print numpy.linalg.norm(neb.gradients_vec)
+    dump_beads(mol_interface, cos_obj, params)
+    dump_steps(cos_obj)
+    print line()
+    return x
+
+
+
+def string_calc(mol_interface, calc_man, reagent_coords, params):
+    """Setup String object, optimiser, etc."""
+
+    max_iterations = DEFAULT_MAX_ITERATIONS
+    if "max_iterations" in params:
+        max_iterations = int(params["max_iterations"])
+
+    #  TODO: string micro-iterations when growing???
+
+    beads_count = int(params["beads_count"])
+    string = searcher.GrowingString(reagent_coords,
+                                    mol_interface.geom_checker,
+                                    calc_man,
+                                    beads_count,
+                                    rho = lambda x: 1,
+                                    growing=False,
+                                    parallel=True)
+
+    # initial path
+    dump_beads(mol_interface, string, params)
+    dump_steps(string)
+
+    mycb = lambda x: generic_callback(x, mol_interface, string, params)
+
+    print "Launching optimiser..."
+    if params["optimizer"] == "l_bfgs_b":
+
+        import cosopt.lbfgsb as so
+
+        opt, energy, dict = so.fmin_l_bfgs_b(string.obj_func,
+                                          string.get_state_as_array(),
+                                          fprime=string.obj_func_grad,
+                                          callback=mycb,
+                                          pgtol=0.005,
+                                          maxfun=max_iterations)
+        print opt
+        print energy
+        print dict
+    else:
+         raise ParseError("Unknown optimizer: " + params["optimizer"])
+       
+
 
 def neb_calc(mol_interface, calc_man, reagent_coords, params):
     """Setup NEB object, optimiser, etc."""
@@ -166,27 +225,15 @@ def neb_calc(mol_interface, calc_man, reagent_coords, params):
     beads_count = int(params["beads_count"])
     neb = searcher.NEB(reagent_coords, 
               mol_interface.geom_checker, 
-              spr_const, 
               calc_man, 
+              spr_const, 
               beads_count,
               parallel=True)
     # initial path
     dump_beads(mol_interface, neb, params)
     dump_steps(neb)
 
-
-    # callback function
-    def mycb(x):
-        print line()
-#                logging.info("Current path: %s" % str(x))
-        print neb
-#            print neb.gradients_vec
-#            print numpy.linalg.norm(neb.gradients_vec)
-        dump_beads(mol_interface, neb, params)
-        dump_steps(neb)
-        print line()
-        return x
-
+    mycb = lambda x: generic_callback(x, mol_interface, neb, params)
 
     print "Launching optimiser..."
     if params["optimizer"] == "l_bfgs_b":
