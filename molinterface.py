@@ -1,7 +1,7 @@
 #import numpy
 import scipy
 import re
-import cclib
+#import cclib
 import thread
 import logging
 import string
@@ -530,6 +530,7 @@ class MolInterface:
         """Gaussian logfile parser. See comment for logfile2eg() for general 
         information."""
 
+        import cclib
         file = cclib.parser.ccopen(logfilename, loglevel=logging.ERROR)
         data = file.parse()
 
