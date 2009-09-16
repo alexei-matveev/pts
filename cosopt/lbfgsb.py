@@ -27,7 +27,8 @@
 ## Modifications by Travis Oliphant and Enthought, Inc.  for inclusion in SciPy
 
 from numpy import zeros, float64, array, int32
-import _lbfgsb
+
+import scipy.optimize._lbfgsb as _lbfgsb
 import scipy.optimize as optimize
 
 approx_fprime = optimize.approx_fprime
