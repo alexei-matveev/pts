@@ -2,7 +2,11 @@
 
 from scipy import *
 from scipy import interpolate
-import Gnuplot, Gnuplot.PlotItems, Gnuplot.funcutils
+try:
+    import Gnuplot, Gnuplot.PlotItems, Gnuplot.funcutils
+except:
+    print "Warning, couldn't import Python GNU Plot interface"
+
 import tempfile, os
 import logging
 from copy import deepcopy
