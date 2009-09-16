@@ -233,4 +233,10 @@ OTHER THOUGHTS / TODO
     - maybe this is not the best way to do this? Maybe I should only provide stateless functions?
       - need to think about this...
 
+16/09/1009
+----------
+ - To set addinity of process 11044 to processor 0:
+   $ taskset -cp 0 11044
+ - monitor disk activity
+   $ iostat -m -d 4
 

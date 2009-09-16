@@ -391,49 +391,40 @@ class MolInterface:
         assert False, "This should never run directly."
 
     def run_ase(self, job):
-        from ase import Atom, Atoms, Vasp, LennardJones
+        from ase import Atom, Atoms
 
         print "run_ase running"
         (_, cart_coords) = self.coords2xyz(job.v)
-        print cart_coords
         raw_list = [Atom(a, c) for (a,c) in zip(self.atoms, cart_coords)]
-        atoms = Atoms(raw_list,
-                cell=[ ( 5.6362,  0.000,   0.000),
-                ( 2.8181,  4.881,   0.000),
-                ( 0.0000,  0.000,  10.000) ],
-                pbc=(True, True, True)
-           )
+        print "raw_list",raw_list
 
-        """calc = Vasp( ismear = '1'
-             , sigma  = '0.15'
-             , xc     = 'VWN'
-             , isif   = '2'
-             , enmax  = '300'
-             , idipol = '3'
-             , enaug  = '300'
-             , ediffg = '-0.02'
-             , voskown= '1'
-             , istart = '1'
-             , icharg = '1'
-             , nelmdl = '0'
-             , kpts   = [1,1,1]
-             )"""
-        atoms.set_calculator(LennardJones())
-        #atoms.set_calculator(calc)
+        # import job specific settings
+        # these set up mycell, mypbc and mycalc
+        exec open("asejobsettings.py").read()
+
+        print mycell
+        atoms = Atoms(raw_list, mycell, mypbc)
+
+        #atoms.set_calculator(emt.EMT())
+        atoms.set_calculator(mycalc)
+        print "atoms",atoms
 
         # record current dir and change to a new one to isolate calculation
         isolation_dir = "iso_vasp" + str(self.__get_job_counter())
         old_dir = os.getcwd()
-        os.mkdir(isolation_dir)
+        if not os.path.exists(isolation_dir):
+            os.mkdir(isolation_dir)
         os.chdir(isolation_dir)
 
         # run job using ASE calculator
         e = atoms.get_potential_energy()
-        g = atoms.get_forces()
+        g = atoms.get_forces().flatten()
         
         os.chdir(old_dir)
+        print "g",g
+        grads_opt = self.__transform(g, job.v, "dummy")
 
-        return Result(coords, e, g)
+        return Result(job.v, e, grads_opt)
 
 
 

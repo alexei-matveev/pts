@@ -250,7 +250,7 @@ class ZMatrix():
 
         nd = numerical.NumDiff()
         mat = nd.numdiff(self.int2cart, x)
-        print "mat", mat
+        #print "mat", mat
         return mat
 
     def gen_cartesian(self):

@@ -385,6 +385,8 @@ class NEB(ReactionPathway):
 
         # get PES forces / project out stuff
         for i in range(self.beads_count)[1:-1]: # don't include end beads, leave their gradients as zero
+            #print "here", len(pes_forces[i])
+            #print "here2", len(self.qc_driver.gradient(self.state_vec[i]))
             pes_forces[i] = -self.qc_driver.gradient(self.state_vec[i])
             pes_forces[i] = project_out(self.tangents[i], pes_forces[i])
 

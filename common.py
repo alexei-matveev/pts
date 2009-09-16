@@ -127,7 +127,7 @@ def opt_gd(f, x0, fprime, callback = lambda x: None):
         prevx = x
         if callback != None:
             x = callback(x)
-        x -= g * 0.2
+        x -= g * 0.002
 
         # DON't DELETE
         if False:
