@@ -402,12 +402,13 @@ class MolInterface:
         # these set up mycell, mypbc and mycalc
         exec open("asejobsettings.py").read()
 
-        print mycell
-        atoms = Atoms(raw_list, mycell, mypbc)
+        atoms = Atoms(raw_list)
+        atoms.set_cell(mycell)
+        atoms.set_pbc(mypbc)
 
         #atoms.set_calculator(emt.EMT())
         atoms.set_calculator(mycalc)
-        print "atoms",atoms
+        print "atoms", atoms
 
         # record current dir and change to a new one to isolate calculation
         isolation_dir = "iso_vasp" + str(self.__get_job_counter())

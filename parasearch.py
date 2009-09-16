@@ -200,7 +200,7 @@ def setup_and_run(mol_strings, params):
             from scipy.optimize.lbfgsb import fmin_l_bfgs_b
             opt, energy, dict = fmin_l_bfgs_b(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb, pgtol=0.05)"""
 
-            import scipy.optimize.lbfgsb as so
+            import cosopt.lbfgsb as so
 
             opt, energy, dict = so.fmin_l_bfgs_b(neb.obj_func,
                                               neb.get_state_as_array(),
