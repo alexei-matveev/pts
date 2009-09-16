@@ -197,53 +197,53 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
     n_function_evals = 0
     while 1:
 #        x, f, g, wa, iwa, task, csave, lsave, isave, dsave = \
-        print "About to do opt iteration" # by HCM
-        print m
-        print x
-        print low_bnd
-        print upper_bnd
-        print nbd
-        print factr
-        print pgtol
-        print wa
-        print iwa
-        print task
-        print iprint
-        print csave
-        print lsave
-        print isave
-        print dsave
-        print "f =", f
-        print "g =", g
-        print type(m)
-        print type(x)
-        print type(low_bnd)
-        print type(upper_bnd)
-        print type(nbd)
-        print type(factr)
-        print type(pgtol)
-        print type(wa)
-        print type(iwa)
-        print type(task)
-        print type(iprint)
-        print type(csave)
-        print type(lsave)
-        print type(isave)
-        print type(dsave)
-        print "f =", type(f)
-        print "g =", type(g)
+#        print "About to do opt iteration" # by HCM
+#        print m
+#        print x
+#        print low_bnd
+#        print upper_bnd
+#        print nbd
+#        print factr
+#        print pgtol
+#        print wa
+#        print iwa
+#        print task
+#        print iprint
+#        print csave
+#        print lsave
+#        print isave
+#        print dsave
+#        print "f =", f
+#        print "g =", g
+#        print type(m)
+#        print type(x)
+#        print type(low_bnd)
+#        print type(upper_bnd)
+#        print type(nbd)
+#        print type(factr)
+#        print type(pgtol)
+#        print type(wa)
+#        print type(iwa)
+#        print type(task)
+#        print type(iprint)
+#        print type(csave)
+#        print type(lsave)
+#        print type(isave)
+#        print type(dsave)
+#        print "f =", type(f)
+#        print "g =", type(g)
 
         _lbfgsb.setulb(m, x, low_bnd, upper_bnd, nbd, f, g, factr,
                        pgtol, wa, iwa, task, iprint, csave, lsave,
                        isave, dsave)
-        print "Opt Iteration Done" # by HCM
+#        print "Opt Iteration Done" # by HCM
         task_str = task.tostring()
         if task_str.startswith('FG'):
             # minimization routine wants f and g at the current x
             n_function_evals += 1
             # Overwrite f and g:
             f, g = func_and_grad(x)
-            print "g_norm =", scipy.linalg.norm(g)
+#            print "g_norm =", scipy.linalg.norm(g)
         elif task_str.startswith('NEW_X'):
             # new iteration
             if n_function_evals > maxfun:

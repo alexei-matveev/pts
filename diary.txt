@@ -80,7 +80,7 @@ Tasks / wish list
  TODO:
  - check again how the various optimisers are behaving for an analytical potential
    - how is the horizontal axis generated? force? energy? DONE
- - run qc jobs for pseudo-analytical plot
+ - run qc jobs for pseudo-analytical plot (DONE)
    - jobs setup and ready to run in jobs/screaning
      - lots of these have convergence issues => what to do?
        - use mm?
@@ -103,7 +103,7 @@ Tasks / wish list
 14/07/2009
 ----------
  TODO
- - test on larger example, e.g. amino acid in paper
+ - test on larger example, e.g. amino acid in paper (DONE)
  - get working with Python z-matrix code => convert test functions first
  - get working with direct z-matrix gradients from Gaussian
  - input params class
@@ -239,4 +239,19 @@ OTHER THOUGHTS / TODO
    $ taskset -cp 0 11044
  - monitor disk activity
    $ iostat -m -d 4
+
+ - Need to unify interface for all path_rep objects.
+   - attributes:
+       history
+       beads_count
+       bead_forces
+       bead_pes_energies
+       state_vec
+
+   - functions
+       get_bead_coords()
+       obj_func()
+       get_state_as_array()
+       obj_func_grad()
+
 

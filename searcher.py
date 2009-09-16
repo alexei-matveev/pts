@@ -124,11 +124,52 @@ class ReactionPathway:
     f_calls = 0
     g_calls = 0
 
-    def __init__(self,reagents):
+    def __init__(self, reagents, beads_count, qc_driver, parallel):
+
+        self.parallel = parallel
+        self.qc_driver = qc_driver
+        self.beads_count = beads_count
+
         self.dimension = len(reagents[0])
         self.history = []
         #TODO: check that all reagents are same length
+
+        # forces perpendicular to pathway
+        self.bead_forces = zeros(beads_count * self.dimension)
+
+        #  TODO: generate initial path using all geoms in reagents. Must use
+        # path representation object.
+        reactants, products = reagents[0], reagents[-1]
+        self.state_vec = vector_interpolate(reactants, products, beads_count)
+
+        # set reactant/product energies to arbitrarily low so that upwinding tangent calculation works
+        self.default_initial_bead_pes_energies = zeros(self.beads_count)
+        self.default_initial_bead_pes_energies[0] = -1e4
+        self.default_initial_bead_pes_energies[-1] = -1e4
+
+        # energy of a bead on PES, doesn't include spring energies for NEB
+        # do I really need a deep copy?
+        self.bead_pes_energies = deepcopy(self.default_initial_bead_pes_energies)
+
+        self.tangents = zeros(beads_count * self.dimension)
+        self.tangents.shape = (beads_count, self.dimension)
+
+
+        # objective function gradient
+        self.gradients_vec = zeros(beads_count * self.dimension)
+
+    def get_state_as_array(self):
+        """Returns copy of state as flattened array."""
         
+        #Do I really need this as well as the one below?
+        return deepcopy(self.state_vec).flatten()
+
+    def get_bead_coords(self):
+        """Return copy of state_vec as 2D array."""
+        tmp = deepcopy(self.state_vec)
+        tmp.shape = (self.beads_count, self.dimension)
+        return tmp
+
     def obj_func(self, x):
         self.f_calls += 1
         self.history.append(deepcopy(x))
@@ -168,41 +209,16 @@ class NEB(ReactionPathway):
 
     def __init__(self, reagents, f_test, base_spr_const, qc_driver, beads_count = 10, parallel = False):
 
-        ReactionPathway.__init__(self, reagents)
-        reactants, products = reagents[0], reagents[-1]
+        ReactionPathway.__init__(self, reagents, beads_count, qc_driver, parallel)
 
-        self.beads_count = beads_count
         self.base_spr_const = base_spr_const
-        self.qc_driver = qc_driver
-        self.tangents = zeros(beads_count * self.dimension)
-        self.tangents.shape = (beads_count, self.dimension)
-
-        #  TODO: generate initial path using all geoms in reagents. Must use
-        # path representation object.
-        self.state_vec = vector_interpolate(reactants, products, beads_count)
 
         # Make list of spring constants for every inter-bead separation
         # For the time being, these are uniform
         self.spr_const_vec = array([self.base_spr_const for x in range(beads_count - 1)])
 
-
-        # set reactant/product energies to arbitrarily low so that upwinding tangent calculation works
-        self.default_initial_bead_pes_energies = zeros(self.beads_count)
-        self.default_initial_bead_pes_energies[0] = -1e4
-        self.default_initial_bead_pes_energies[-1] = -1e4
-
-        # energy of a bead on PES, doesn't include spring energies
-        self.bead_pes_energies = deepcopy(self.default_initial_bead_pes_energies)
-
-        # forces perpendicular to NEB
-        self.bead_forces = zeros(beads_count * self.dimension)
-
         self.use_upwinding_tangent = True
 
-        self.parallel = parallel
-
-        # objective function gradient
-        gradients_vec = zeros(beads_count * self.dimension)
 
     def get_angles(self):
         """Returns an array of angles between beed groups of 3 beads."""
@@ -300,14 +316,6 @@ class NEB(ReactionPathway):
         """Updates internal vector of distances between beads."""
         self.bead_separation_sqrs_sums = array( map (sum, self.special_reduce(self.state_vec).tolist()) )
         self.bead_separation_sqrs_sums.shape = (self.beads_count - 1, 1)
-
-    def get_bead_coords(self):
-        tmp = deepcopy(self.state_vec)
-        tmp.shape = (self.beads_count, self.dimension)
-        return tmp
-
-    def get_state_as_array(self):
-        return self.state_vec.flatten()
 
     def obj_func(self, new_state_vec = None):
         assert size(self.state_vec) == self.beads_count * self.dimension
@@ -723,7 +731,7 @@ class PathRepresentation():
 
     def __get_str_positions(self):
         """Based on the provided density function self.__rho(x) and 
-        self.bead_count, generates the fractional positions along the string 
+        self.beads_count, generates the fractional positions along the string 
         at which beads should occur."""
         flab("called")
 

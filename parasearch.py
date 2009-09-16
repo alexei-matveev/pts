@@ -147,89 +147,78 @@ def setup_and_run(mol_strings, params):
 
     # SETUP / RUN SEARCHER
     reagent_coords = mol_interface.reagent_coords
-    print ("Initial state of path: %s" % reagent_coords)
+    print ("Reagent coordinates: %s" % reagent_coords)
+
+    if params["method"] == "neb":
+        neb_calc(mol_interface, calc_man, reagent_coords, params)
+    else:
+        raise ParseError("Unknown method: " + params["method"])
+
+def neb_calc(mol_interface, calc_man, reagent_coords, params):
+    """Setup NEB object, optimiser, etc."""
 
     max_iterations = DEFAULT_MAX_ITERATIONS
     if "max_iterations" in params:
         max_iterations = int(params["max_iterations"])
 
-    if params["method"] == "neb":
-        spr_const = float(params["spr_const"])
-        beads_count = int(params["beads_count"])
-        neb = searcher.NEB(reagent_coords, 
-                  mol_interface.geom_checker, 
-                  spr_const, 
-                  calc_man, 
-                  beads_count,
-                  parallel=True)
-        # initial path
-        dump_beads(mol_interface, neb, params)
-        dump_steps(neb)
+
+    spr_const = float(params["spr_const"])
+    beads_count = int(params["beads_count"])
+    neb = searcher.NEB(reagent_coords, 
+              mol_interface.geom_checker, 
+              spr_const, 
+              calc_man, 
+              beads_count,
+              parallel=True)
+    # initial path
+    dump_beads(mol_interface, neb, params)
+    dump_steps(neb)
 
 
-        # callback function
-        def mycb(x):
-            print line()
+    # callback function
+    def mycb(x):
+        print line()
 #                logging.info("Current path: %s" % str(x))
-            print neb
+        print neb
 #            print neb.gradients_vec
 #            print numpy.linalg.norm(neb.gradients_vec)
-            dump_beads(mol_interface, neb, params)
-            dump_steps(neb)
-            print line()
-            return x
+        dump_beads(mol_interface, neb, params)
+        dump_steps(neb)
+        print line()
+        return x
 
 
-        print "Launching optimiser..."
-        if params["optimizer"] == "l_bfgs_b":
-            """default_spr_const = 1.
-            reactants = array([0,0])
-            products = array([3,3])
+    print "Launching optimiser..."
+    if params["optimizer"] == "l_bfgs_b":
 
-            from searcher import NEB
-            neb = NEB([reactants, products], lambda x: True, default_spr_const,
-                GaussianPES(), beads_count = 10)
-            init_state = neb.get_state_as_array()
+        import cosopt.lbfgsb as so
 
+        opt, energy, dict = so.fmin_l_bfgs_b(neb.obj_func,
+                                          neb.get_state_as_array(),
+                                          fprime=neb.obj_func_grad,
+                                          callback=mycb,
+                                          pgtol=0.005,
+                                          maxfun=max_iterations)
+        print opt
+        print energy
+        print dict
+    elif params["optimizer"] == "bfgs":
+        from scipy.optimize import fmin_bfgs
+        opt = fmin_bfgs(neb.obj_func, 
+              neb.get_state_as_array(), 
+              fprime=neb.obj_func_grad, 
+              callback=mycb,
+              maxiter=max_iterations)
 
-            # Wrapper callback function
-            def mycb(x):
-                print "x:",x
-                return x
-
-            from scipy.optimize.lbfgsb import fmin_l_bfgs_b
-            opt, energy, dict = fmin_l_bfgs_b(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb, pgtol=0.05)"""
-
-            import cosopt.lbfgsb as so
-
-            opt, energy, dict = so.fmin_l_bfgs_b(neb.obj_func,
-                                              neb.get_state_as_array(),
-                                              fprime=neb.obj_func_grad,
-                                              callback=mycb,
-                                              pgtol=0.005,
-                                              maxfun=max_iterations)
-            print opt
-            print energy
-            print dict
-        elif params["optimizer"] == "bfgs":
-            from scipy.optimize import fmin_bfgs
-            opt = fmin_bfgs(neb.obj_func, 
-                neb.get_state_as_array(), 
-                fprime=neb.obj_func_grad, 
-                callback=mycb,
-                maxiter=max_iterations)
-
-        elif params["optimizer"] == "grad_descent":
-            opt = opt_gd(neb.obj_func, 
-                neb.get_state_as_array(), 
-                fprime=neb.obj_func_grad, 
-                callback=mycb)
-
-        else:
-            raise ParseError("Unknown optimizer: " + params["optimizer"])
+    elif params["optimizer"] == "grad_descent":
+        opt = opt_gd(neb.obj_func, 
+            neb.get_state_as_array(), 
+            fprime=neb.obj_func_grad, 
+            callback=mycb)
 
     else:
-        raise ParseError("Unknown method: " + params["method"])
+        raise ParseError("Unknown optimizer: " + params["optimizer"])
+
 
     # PRODUCE OUTPUT
     print "Finished"
