@@ -204,7 +204,8 @@ class MolInterface:
     def __str__(self):
         mystr = "format = " + self.format
         mystr += "\natoms = " + str(self.atoms)
-        mystr += "\nvar_names = " + str(self.var_names)
+        if self.format == "zmt":
+            mystr += "\nvar_names = " + str(self.var_names)
         mystr += "\nreactant coords = " + str(self.reagent_coords[0])
         mystr += "\nproduct coords = " + str(self.reagent_coords[1])
         if OLD_PYBEL_CODE:

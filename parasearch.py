@@ -30,8 +30,6 @@ if not globals().has_key("ch"):
 formatter = logging.Formatter("%(name)s (%(levelname)s): %(message)s")
 ch.setFormatter(formatter)
 
-
-
 class Usage(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -44,9 +42,8 @@ class ParseError(Exception):
     def __str__(self):
         return self.msg
 
-
 def main(argv=None):
-    """Not Yet Implemented
+    """
         1. read input file containing
            a. method to use, number of processors, etc.
            b. reactant, transition state(s), product, in that order
@@ -146,8 +143,9 @@ def setup_and_run(mol_strings, params):
                            params["processors"]) # TODO: check (earlier) that this param is a tuple / correct format
 
     # SETUP / RUN SEARCHER
+    print "Molecule Interface..."
+    print mol_interface
     reagent_coords = mol_interface.reagent_coords
-    print ("Reagent coordinates: %s" % reagent_coords)
 
     if params["method"] == "neb":
         neb_calc(mol_interface, calc_man, reagent_coords, params)
@@ -208,6 +206,12 @@ def string_calc(mol_interface, calc_man, reagent_coords, params):
         print opt
         print energy
         print dict
+
+    elif params["optimizer"] == "quadratic_string":
+        qs = searcher.QuadraticStringMethod(string, callback = mycb, update_trust_rads = True)
+        opt = qs.opt()
+        print opt
+
     else:
          raise ParseError("Unknown optimizer: " + params["optimizer"])
        
@@ -277,7 +281,7 @@ def neb_calc(mol_interface, calc_man, reagent_coords, params):
     dump_steps(neb)
 
 
-def dump_beads(mol_interface, path_rep, params):
+def dump_beads(mol_interface, chain_of_states, params):
     """Writes the states along the reaction path to a file in a form that can
     be read by a molecule viewing program."""
 
@@ -286,14 +290,17 @@ def dump_beads(mol_interface, path_rep, params):
     global file_dump_count
     file_dump_count += 1
 
-    local_bead_forces = deepcopy(path_rep.bead_forces)
-    local_bead_forces.shape = (path_rep.beads_count, -1)
+    local_bead_forces = deepcopy(chain_of_states.bead_forces)
+    local_bead_forces.shape = (chain_of_states.beads_count, -1)
 
     mystr = ""
-    print path_rep.bead_pes_energies
-    for bead, i in zip(path_rep.get_bead_coords(), range(path_rep.beads_count)):
+#    print chain_of_states.bead_pes_energies
+#    print chain_of_states.get_bead_coords()
+#    print chain_of_states.beads_count
+#    print chain_of_states.bead_pes_energies
+    for i, bead in enumerate(chain_of_states.get_bead_coords()):
         mystr += str(mol_interface.natoms)
-        mystr += "\nBead " + str(i) + ": Energy = " + str(path_rep.bead_pes_energies[i]) + "\n"
+        mystr += "\nBead " + str(i) + ": Energy = " + str(chain_of_states.bead_pes_energies[i]) + "\n"
 #        mystr += "Gradients = " + str(local_bead_forces[i])
         molstr, coords = mol_interface.coords2xyz(bead)
         mystr += molstr
@@ -305,20 +312,25 @@ def dump_beads(mol_interface, path_rep, params):
     f.write(mystr)
     f.close()
 
-def dump_steps(path_rep):
+def dump_steps(chain_of_states):
     """Prints the steps taken during the optimisation."""
 
-    print "Steps taken during the optimisation"
+    print "Steps taken during the optimisation..."
 
-    for i in range(len(path_rep.history))[1:]:
-        prev = path_rep.history[i-1]
-        curr = path_rep.history[i]
+    for i in range(len(chain_of_states.history))[1:]:
+        prev = chain_of_states.history[i-1]
+        curr = chain_of_states.history[i]
 
         diff = curr - prev
 
-        diff.shape = (path_rep.beads_count, -1)
+        diff.shape = (chain_of_states.beads_count, -1)
         diff = [numpy.linalg.norm(i) for i in diff]
         print diff
+
+    print "Chain energy history..."
+    for e in chain_of_states.energy_history:
+        print e, " ",
+    print
 
 if __name__ == "__main__":
     try:

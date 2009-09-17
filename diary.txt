@@ -235,7 +235,7 @@ OTHER THOUGHTS / TODO
 
 16/09/1009
 ----------
- - To set addinity of process 11044 to processor 0:
+ - To set affinity of process 11044 to processor 0:
    $ taskset -cp 0 11044
  - monitor disk activity
    $ iostat -m -d 4
@@ -254,4 +254,7 @@ OTHER THOUGHTS / TODO
        get_state_as_array()
        obj_func_grad()
 
-
+TODO
+----
+ - check that the above functions are implemented in GrowingString
+ - write __str__ function for GrowingString to help test if string is really working

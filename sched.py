@@ -276,9 +276,7 @@ class ResultDict():
 
         else:
             return None
-       
 
-       
 class ParaSched:
     def __init__(self, qc_driver, total_procs = 4, normal_procs = 2, max_procs = 4):
         

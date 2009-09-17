@@ -39,9 +39,10 @@ class Result():
     def __eq__(self, r):
         return (isinstance(r, self.__class__) and is_same_v(r.v, self.v)) or (r != None and is_same_v(r, self.v))
 
-    def __str__(self):
-        s = self.__class__.__name__ + ": " + str(self.v) + " E = " + str(self.e) + " G = " + str(self.g)
-        s += "\nFlags: " + str(self.flags)
+    def __repr__(self):
+        s = self.__class__.__name__ + "( " + str(self.v) 
+        s += ", " + str(self.e) + ", " + str(self.g)
+        s += ", " + str(self.flags) + ")"
         return s
 
     def has_field(self, type):
@@ -103,7 +104,7 @@ def fname():
 SAMENESS_THRESH_VECTORS = 1e-6
 SAMENESS_THRESH_ENERGIES = 1e-6
 def is_same_v(v1, v2):
-    return numpy.linalg.norm(v1 - v2) < SAMENESS_THRESH_VECTORS
+    return numpy.linalg.norm(v1 - v2, ord=numpy.inf) < SAMENESS_THRESH_VECTORS
 def is_same_e(e1, e2):
     return abs(e1 - e2) < SAMENESS_THRESH_ENERGIES
 
@@ -127,7 +128,7 @@ def opt_gd(f, x0, fprime, callback = lambda x: None):
         prevx = x
         if callback != None:
             x = callback(x)
-        x -= g * 0.002
+        x -= g * 0.2
 
         # DON't DELETE
         if False:
