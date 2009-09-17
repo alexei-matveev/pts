@@ -944,7 +944,7 @@ class GrowingString(ReactionPathway):
         beads is less than or equal to self.__final_beads_count).
         """
 
-        assert self.get_current_beads_count() <= self.__final_beads_count
+        assert self.beads_count <= self.__final_beads_count
         flab("called")
 
         current_beads_count = self.beads_count
@@ -1635,14 +1635,13 @@ class QuadraticStringMethod():
 
         x0 = self.__string.get_state_vec()
 
-        assert len(x0) % self.__dims == 0
+        assert len(x0[0]) == self.__dims
 
         x = deepcopy(x0)
-        points = self.__string.get_current_beads_count()
+        N = self.__string.beads_count
 
         def update_eg(my_x):
             """Returns energy and gradient for state vector my_x."""
-            my_x.flatten()
             e = self.__string.obj_func(my_x, individual_energies = True)
             g = self.__string.obj_func_grad(my_x).flatten()
 #            g.shape = (-1, self.__dims)
@@ -1651,10 +1650,10 @@ class QuadraticStringMethod():
 
         # initial parameters for optimisation
         e, g = update_eg(x)
-        trust_rad = ones(points) * self.__init_trust_rad # ???
+        trust_rad = ones(N) * self.__init_trust_rad # ???
         H = []
         Hi = linalg.norm(g) * eye(self.__dims)
-        for i in range(self.__string.get_current_beads_count()):
+        for i in range(N):
             H.append(deepcopy(Hi))
         H = array(H)
 
@@ -1667,9 +1666,14 @@ class QuadraticStringMethod():
             # optimisation of whole string on local quadratic surface
             x = self.quadratic_opt(x, g, H)
 
-            # redistribute, update tangents, etc
+            # respace, recalculate splines
+            self.__string.update_path(x, respace=True)
+
+            # callback. Note, in previous versions, self.update_path was called by callback function
             x = self.__callback(x)
 
+#            print "x",x
+#            print "prev_x",prev_x
             delta = x - prev_x
 
             # update quadratic estimate of new energy
@@ -1696,6 +1700,10 @@ class QuadraticStringMethod():
 
         return x
             
+    def opt(self):
+        """Convenience wrapper for main optimisation function."""
+        return self.opt_global_local_wrap()
+
     def update_H(self, deltas, gammas, Hs, use_tricky_update = True):
         """Damped BFGS Hessian Update Scheme as described in Ref. [QSM]., equations 14, 16, 18, 19."""
 
@@ -1703,7 +1711,7 @@ class QuadraticStringMethod():
         gammas.shape = (-1, self.__dims)
 
         Hs_new = []
-        for i in range(self.__string.get_current_beads_count()):
+        for i in range(self.__string.beads_count):
             H = Hs[i]
             delta = deltas[i]
             gamma = gammas[i]
@@ -1746,7 +1754,7 @@ class QuadraticStringMethod():
     def mydot(self, super_vec1, super_vec2):
         """Performs element wise dot multiplication of vectors of 
         vectors/matrices (super vectors/matrices) with each other."""
-        N = self.__string.get_current_beads_count()
+        N = self.__string.beads_count
         d = self.__dims
 
         def set_shape(v):
@@ -1778,7 +1786,7 @@ class QuadraticStringMethod():
         
         s = (-1, self.__dims)
         dx.shape = s
-        N = self.__string.get_current_beads_count()  # number of beads in string
+        N = self.__string.beads_count
 
         new_trust_rads = []
 
@@ -1795,11 +1803,11 @@ class QuadraticStringMethod():
             # hence the denominator is zero
             if isnan(rho):
                 rho = 1
-            self.lg.debug("rho = " + str(rho))
+            self.lg.info("rho = " + str(rho))
 
             rad = prev_trust_rads[i]
             if rho > 0.75 and 1.25 * linalg.norm(dx[i]) > rad:
-                rad = 2 * rho
+                rad = 2 * rad # was 2*rho
 
             elif rho < 0.25:
                 rad = 0.25 * linalg.norm(dx[i])
@@ -1807,13 +1815,13 @@ class QuadraticStringMethod():
             new_trust_rads.append(rad)
 
         self.lg.info("new trust radii = " + str(new_trust_rads))
-        wt()
+        #wt()
         return new_trust_rads
 
     def calc_tangents(self, state_vec):
         """Based on a path represented by state_vec, returns its unit tangents."""
 
-        path_rep = PathRepresentation(state_vec, self.__string.get_current_beads_count())
+        path_rep = PathRepresentation(state_vec, self.__string.beads_count)
         path_rep.regen_path_func()
         tangents = path_rep.recalc_path_tangents()
         return tangents
@@ -1828,7 +1836,7 @@ class QuadraticStringMethod():
         x0.shape = (-1, dims)
         x.shape = (-1, dims)
         prev_x = deepcopy(x)
-        N = self.__string.get_current_beads_count()  # number of beads in string
+        N = self.__string.beads_count
         g0 = deepcopy(g0)
         g0.shape = (-1, dims)     # initial gradient of quadratic surface
         assert(len(H[0])) == dims # hessian of quadratic surface
@@ -1879,9 +1887,9 @@ class QuadraticStringMethod():
 
                 if True:
                     # adaptive step size
-                    print "Step size for point", i, "scaled from", h[i],
+                    #print "Step size for point", i, "scaled from", h[i],
                     h[i] = h[i] * abs(self.__max_step_err / err)**(1./5.)
-                    print "to", h[i], ". Error =", err
+                    #print "to", h[i], ". Error =", err
 
 
                 prev_g[i] = g
@@ -1889,11 +1897,11 @@ class QuadraticStringMethod():
             k += 1
 
             if k > self.__MAX_QUAD_ITERATIONS or flag != 0:
-                print "flag = ",flag, "k =", k
-                raw_input("Wait...\n")
+                #print "flag = ",flag, "k =", k
+                #raw_input("Wait...\n")
                 break
 
-        x = x.flatten()
+        #x = x.flatten()
         return x 
 
     def dx_on_dt_general(self, x0, x, g0, H, tangent):
@@ -1979,7 +1987,7 @@ class QuadraticStringMethod():
         step4 = 25./216.*k1 + 1408./2565.*k3 + 2197./4104.*k4 - 1./5.*k5
         step5 = 16./135.*k1 + 6656./12825.*k3 + 28561./56430.*k4 - 9./50.*k5 + 2./55.*k6
 
-        print "*******STEP", x, h, step4
+        #print "*******STEP", x, h, step4
         return step4, step5
 
 class SurfPlot():
