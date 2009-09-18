@@ -233,14 +233,14 @@ OTHER THOUGHTS / TODO
     - maybe this is not the best way to do this? Maybe I should only provide stateless functions?
       - need to think about this...
 
-16/09/1009
+16/09/2009
 ----------
  - To set affinity of process 11044 to processor 0:
    $ taskset -cp 0 11044
  - monitor disk activity
    $ iostat -m -d 4
 
- - Need to unify interface for all path_rep objects.
+ - Need to unify interface for all path_rep objects. (DONE)
    - attributes:
        history
        beads_count
@@ -256,5 +256,13 @@ OTHER THOUGHTS / TODO
 
 TODO
 ----
- - check that the above functions are implemented in GrowingString
- - write __str__ function for GrowingString to help test if string is really working
+ - check that the above functions are implemented in GrowingString (DONE)
+ - write __str__ function for GrowingString to help test if string is really working (DONE)
+
+18/09/2009
+----------
+ - Qs for Alexei / Vasp users
+   - how do you want to specify your input?
+   - must you specify all the parameters all the time? 
+
+ - there is a long list (comprehensive?) in ASE VASP interfave of input keys
