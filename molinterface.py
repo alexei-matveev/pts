@@ -392,6 +392,9 @@ class MolInterface:
         assert False, "This should never run directly."
 
     def run_ase(self, job):
+        
+
+    def run_ase_old(self, job):
         from ase import Atom, Atoms
 
         print "run_ase running"

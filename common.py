@@ -7,6 +7,8 @@ ERROR_STR = "error"
 
 LOGFILE_EXT = ".log"
 
+TMP_DIR_ENV_VAR = "AOE_TMP"
+
 # Max no. of allowed geometries given to the optimiser to form the initial guess 
 # for the reaction pathway. Includes the reactant/product.
 MAX_GEOMS = 3
