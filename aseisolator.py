@@ -37,7 +37,7 @@ def main(argv=None):
             raise ASEIsolatorException("Exactly two input files must be given.")
 
         ase_job_settings = os.path.abspath(args[0])
-        molecule = args[1]
+        molecule = os.path.abspath(args[1])
 
 
         # create atoms object based on molecular geometry in file
@@ -46,21 +46,17 @@ def main(argv=None):
         jobname =  os.path.splitext(molecule)[0]
 
         # setup directories, filenames
-        isolation_dir = "iso_" + jobname
+        isolation_dir = "isolate_" + jobname
 
         old_dir = os.getcwd()
 
 
         # if a tmp directory is specified, then use it
-        if common.TMP_DIR_ENV_VAR in os.environ:
-            tmp_dir = os.environ['common.TMP_DIR_ENV_VAR']
-            abs_tmp_dir = os.path.abspath(tmp_dir)
-            if not os.path.exists(abs_tmp_dir):
-                os.mkdir(abs_tmp_dir)
-            os.chdir(abs_tmp_dir)
-        else:
-            abs_tmp_dir = os.path.abspath(old_dir)
+        tmp_dir = common.get_tmp_dir()
+        os.chdir(tmp_dir)
 
+        # Create/change into isolation directory. This directory holds temporary files
+        # specific to a computation, not including input and output files.
         if not os.path.exists(isolation_dir):
             os.mkdir(isolation_dir)
         os.chdir(isolation_dir)
@@ -81,7 +77,7 @@ def main(argv=None):
         os.chdir(old_dir)
 
         result = (e, g)
-        result_file = os.path.join(abs_tmp_dir, jobname + common.LOGFILE_EXT)
+        result_file = os.path.join(tmp_dir, jobname + common.LOGFILE_EXT)
 
         pickle.dump(result, open(result_file, "w"))
 

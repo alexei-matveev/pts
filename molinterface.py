@@ -180,11 +180,17 @@ class MolInterface:
                 self.coords2moltext = self.coords2moltext_ParaGauss
                 self.logfile2eg = self.logfile2eg_ParaGauss
 
-            elif params["qc_program"] == "ase_emt":
+            elif params["qc_program"] == "ase":
                 self.qc_command == None
                 self.run = self.run_ase
                 self.logfile2eg = None
                 self.coords2moltext = None
+
+                if not "ase_settings_file" in params:
+                    raise ParseError("ase_settings_file parameter not specified in input file.")
+
+                self.ase_settings_file = params["ase_settings_file"]
+
 
             elif params["qc_program"] == "analytical_GaussianPES":
                 self.run = self.run_internal
@@ -392,7 +398,33 @@ class MolInterface:
         assert False, "This should never run directly."
 
     def run_ase(self, job):
-        
+        (str, _) = self.coords2xyz(job.v)
+
+        tmp_dir = common.get_tmp_dir()
+
+        job_base_name = "asejob" + str(self.__get_job_counter())
+        mol_geom_file = os.path.join(tmp_dir, job_base_name + ".xyz")
+        ase_stdout_file = os.path.join(tmp_dir, job_base_name + ".stdout")
+        results_file = os.path.join(tmp_dir, job_base_name + common.LOGFILE_EXT)
+
+        # write input file as xyz format
+        f = open(input_file, "w")
+        f.write(str)
+        f.close()
+
+        p = Popen(["./aseisolator.py", self.ase_settings_file, mol_geom_file], stdout=open(ase_stdout_file))
+        ret_val = os.waitpid(p.pid, 0)
+        if ret_val != 0:
+            assert(False)
+
+        # load results from file
+        (e, g) = pickle.load(open(results_file, "r"))
+
+        grads_opt = self.__transform(g, job.v, "dummy")
+
+        return Result(job.v, e, grads_opt)
+
+
 
     def run_ase_old(self, job):
         from ase import Atom, Atoms

@@ -10,7 +10,8 @@ import molinterface
 import sched
 import os
 
-from common import *
+from common import * # TODO: must unify
+import common
 
 import searcher
 
@@ -34,12 +35,6 @@ class Usage(Exception):
     def __init__(self, msg):
         self.msg = msg
     def __str__(self, msg):
-        return self.msg
-
-class ParseError(Exception):
-    def __init__(self, msg):
-        self.msg = "Parse Error: " + msg
-    def __str__(self):
         return self.msg
 
 def main(argv=None):

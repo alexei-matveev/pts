@@ -8,6 +8,17 @@ ERROR_STR = "error"
 LOGFILE_EXT = ".log"
 
 TMP_DIR_ENV_VAR = "AOE_TMP"
+def get_tmp_dir()
+    if TMP_DIR_ENV_VAR in os.environ:
+        tmp_dir = os.path.abspath(os.environ[common.TMP_DIR_ENV_VAR])
+    else:
+        tmp_dir = os.path.abspath(os.getcwd())
+
+    if not os.path.exists(tmp_dir):
+        os.mkdir(tmp_dir)
+
+    return tmp_dir
+
 
 # Max no. of allowed geometries given to the optimiser to form the initial guess 
 # for the reaction pathway. Includes the reactant/product.
@@ -344,6 +355,12 @@ class QCDriverException(Exception):
     def __init__(self, msg):
         self.msg = msg
     def __str__(self, msg):
+        return self.msg
+
+class ParseError(Exception):
+    def __init__(self, msg):
+        self.msg = "Parse Error: " + msg
+    def __str__(self):
         return self.msg
 
 
