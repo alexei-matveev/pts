@@ -1,11 +1,11 @@
 from ase.calculators import emt
 from ase import Vasp, LennardJones
 
-"""mycell = [ ( 5.6362,  0.000,   0.000),
+mycell = [ ( 5.6362,  0.000,   0.000),
                 ( 2.8181,  4.881,   0.000),
-                ( 0.0000,  0.000,  10.000) ]"""
+                ( 0.0000,  0.000,  10.000) ]
 
-mycell = [10,10,10]
+#mycell = [10,10,10]
 mypbc = (True, True, True)
 
 """mycalc = Vasp( ismear = '1'

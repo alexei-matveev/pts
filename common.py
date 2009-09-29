@@ -2,15 +2,17 @@
 
 import copy
 import numpy
+import os
+
 PROGNAME = "searcher"
 ERROR_STR = "error"
 
 LOGFILE_EXT = ".log"
 
 TMP_DIR_ENV_VAR = "AOE_TMP"
-def get_tmp_dir()
+def get_tmp_dir():
     if TMP_DIR_ENV_VAR in os.environ:
-        tmp_dir = os.path.abspath(os.environ[common.TMP_DIR_ENV_VAR])
+        tmp_dir = os.path.abspath(os.environ[TMP_DIR_ENV_VAR])
     else:
         tmp_dir = os.path.abspath(os.getcwd())
 

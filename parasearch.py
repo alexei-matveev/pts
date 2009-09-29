@@ -144,7 +144,7 @@ def setup_and_run(mol_strings, params):
 
     if params["method"] == "neb":
         neb_calc(mol_interface, calc_man, reagent_coords, params)
-    if params["method"] == "string":
+    elif params["method"] == "string":
         string_calc(mol_interface, calc_man, reagent_coords, params)
     else:
         raise ParseError("Unknown method: " + params["method"])

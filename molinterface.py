@@ -7,11 +7,16 @@ import logging
 import string
 import os
 from copy import deepcopy
+from subprocess import Popen
+import pickle
 
-from common import *
+import numpy
+
+#from common import *
+import common
 import zmatrix
 
-lg = logging.getLogger(PROGNAME)
+lg = logging.getLogger(common.PROGNAME)
 
 numpy.set_printoptions(linewidth=180)
 
@@ -34,7 +39,7 @@ class MolRep:
     """
     def __init__(self, mol_text):
 
-        xyz = re.compile(r"""(\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+""")
+        xyz = re.compile(r"""(\d+\s+)?(\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+""")
 
         if zmatrix.ZMatrix.matches(mol_text):
             self.format = "zmt"
@@ -64,6 +69,7 @@ class MolRep:
             self.coords = numpy.array([float(c) for c in self.coords])
             self.var_names = "no variable names"
         else:
+            print mol_text
             raise MolRepException("can't understand input file:\n" + mol_text)
 
 class MolRepException(Exception):
@@ -96,18 +102,18 @@ class MolInterface:
         formats        = [m.format for m in molreps]
         coord_vec_lens = [len(m.coords) for m in molreps]
 
-        if not all_equal(atoms_lists):
+        if not common.all_equal(atoms_lists):
             raise Exception("Input molecules do not have consistent atoms.")
 
-        elif not all_equal(formats):
+        elif not common.all_equal(formats):
             raise Exception("Input molecules do not have consistent formats.")
 
-        elif not all_equal(coord_vec_lens):
+        elif not common.all_equal(coord_vec_lens):
             raise Exception("Input molecules did not have a consistent number of variables.")
 
         elif formats[0] == "zmt":
             var_names = [m.var_names for m in molreps]
-            if not all_equal(var_names):
+            if not common.all_equal(var_names):
                 raise Exception("Input molecules did not have the same variable names.")
 
         self.format = formats[0]
@@ -398,7 +404,7 @@ class MolInterface:
         assert False, "This should never run directly."
 
     def run_ase(self, job):
-        (str, _) = self.coords2xyz(job.v)
+        (mystr, _) = self.coords2xyz(job.v)
 
         tmp_dir = common.get_tmp_dir()
 
@@ -408,13 +414,14 @@ class MolInterface:
         results_file = os.path.join(tmp_dir, job_base_name + common.LOGFILE_EXT)
 
         # write input file as xyz format
-        f = open(input_file, "w")
-        f.write(str)
+        f = open(mol_geom_file, "w")
+        f.write(mystr)
         f.close()
 
-        p = Popen(["./aseisolator.py", self.ase_settings_file, mol_geom_file], stdout=open(ase_stdout_file))
-        ret_val = os.waitpid(p.pid, 0)
+        p = Popen(["./aseisolator.py", self.ase_settings_file, mol_geom_file]) #, stdout=open(ase_stdout_file, "w"))
+        (_, ret_val) = os.waitpid(p.pid, 0)
         if ret_val != 0:
+            print ret_val
             assert(False)
 
         # load results from file
@@ -422,7 +429,7 @@ class MolInterface:
 
         grads_opt = self.__transform(g, job.v, "dummy")
 
-        return Result(job.v, e, grads_opt)
+        return common.Result(job.v, e, grads_opt)
 
 
 
@@ -461,7 +468,7 @@ class MolInterface:
         print "g",g
         grads_opt = self.__transform(g, job.v, "dummy")
 
-        return Result(job.v, e, grads_opt)
+        return common.Result(job.v, e, grads_opt)
 
 
 
@@ -490,7 +497,7 @@ class MolInterface:
         e, g = self.logfile2eg(outputfile, coords)
         self.logfile2eg_lock.release()
 
-        return Result(coords, e, g)
+        return common.Result(coords, e, g)
 
     def run_internal(self, job):
         """Used to return results from analytical potentials."""
@@ -499,7 +506,7 @@ class MolInterface:
         e1 = self.analytical_pes.energy(coords)
 
         g1 = self.analytical_pes.gradient(coords)
-        r = Result(coords, e1, gradient=g1)
+        r = common.Result(coords, e1, gradient=g1)
         return r
 
     def gen_placement_command_dplace(self, p_low, p_high):
@@ -601,8 +608,8 @@ class MolInterface:
 
         transform_matrix = self.coordsys_trans_matrix(coords)
         if numpy.linalg.norm(transform_matrix) > 10:
-            lg.warning(line() + "Enormous coordinate system derivatives" + line())
-            lg.warning(logfilename + ": largest elts of trans matrix: " + str(vecmaxs(abs(transform_matrix))))
+            lg.warning(common.line() + "Enormous coordinate system derivatives" + common.line())
+            lg.warning(logfilename + ": largest elts of trans matrix: " + str(common.vecmaxs(abs(transform_matrix))))
 
         # energy gradients in optimisation coordinates
         # Gaussian returns forces, not gradients
@@ -615,10 +622,10 @@ class MolInterface:
 
         grads_opt = -numpy.dot(transform_matrix, grads_cart)
         if numpy.linalg.norm(grads_opt) > 10 or numpy.linalg.norm(grads_cart) > 10:
-            lg.warning(line() + "Enormous gradients" + line())
-            lg.warning(logfilename + ": Largest ZMat gradients: " + str(vecmaxs(abs(grads_opt))))
-            lg.warning(logfilename + ": Largest Cartesian gradients: " + str(vecmaxs(abs(grads_cart))))
-            lg.warning(logfilename + ": Largest elts of trans matrix: " + str(vecmaxs(abs(transform_matrix))))
+            lg.warning(common.line() + "Enormous gradients" + common.line())
+            lg.warning(logfilename + ": Largest ZMat gradients: " + str(common.vecmaxs(abs(grads_opt))))
+            lg.warning(logfilename + ": Largest Cartesian gradients: " + str(common.vecmaxs(abs(grads_cart))))
+            lg.warning(logfilename + ": Largest elts of trans matrix: " + str(common.vecmaxs(abs(transform_matrix))))
 
         return grads_opt
 

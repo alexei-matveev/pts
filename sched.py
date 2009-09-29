@@ -366,7 +366,7 @@ class ParaSched:
         lg.debug("All worker threads exited")
 
         if not self.__pending.empty():
-            lg.error("pending quue not empty but threads exited")
+            lg.error("pending queue not empty but threads exited")
 
     def get_results(self):
         results = []
