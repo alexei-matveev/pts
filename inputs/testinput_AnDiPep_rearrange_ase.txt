@@ -1,0 +1,16 @@
+[parameters]
+qc_program: ase_emt
+qcinput_head: # HF/3-21G force\n\ncomment\n\n0 1\n
+processors: 1,1,1
+method: neb
+spr_const: 1.0
+beads_count: 4
+optimizer: grad_descent
+max_iterations: 30
+
+[geom0]
+file=jobs/molecules/alaninedipeptide/alanine-dipeptide-321G-optimised-conf1.zmt
+
+[geom1]
+file=jobs/molecules/alaninedipeptide/alanine-dipeptide-321G-optimised-conf2.zmt
+

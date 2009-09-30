@@ -1,0 +1,16 @@
+[parameters]
+qc_program: g03
+qcinput_head: # HF/STO-3G force\n\ncomment\n\n0 1\n
+processors: 2,2,1
+method: string
+spr_const: 1.0
+beads_count: 8
+optimizer: l_bfgs_b
+max_iterations: 30
+
+[geom0]
+file=jobs/molecules/VA-AA/acetaldehyde.xyz
+
+[geom1]
+file=jobs/molecules/VA-AA/vinyl_alcohol.xyz
+

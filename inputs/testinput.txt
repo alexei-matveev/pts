@@ -1,0 +1,13 @@
+[parameters]
+qc_program: g03
+processors: 1,1,1
+method: neb
+spr_const: 1.0
+beads_count: 4
+optimizer: grad_descent
+
+[geom0]
+file=H2O-zmt1.zmt
+
+[geom1]
+file=H2O-zmt2.zmt

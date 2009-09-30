@@ -1,0 +1,15 @@
+[parameters]
+qc_program: ase_emt
+qcinput_head: # HF/3-21g force\n\ncomment\n\n0 1\n
+processors: 1,1,1
+method: neb
+spr_const: 5.0
+beads_count: 8
+optimizer: l_bfgs_b
+max_iterations: 4
+
+[geom0]
+file=ethane-1.zmt
+
+[geom1]
+file=ethane-2.zmt

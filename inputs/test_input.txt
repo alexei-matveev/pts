@@ -1,0 +1,10 @@
+[parameters]
+program = Gaussian
+placement = none
+
+[geom0]
+file=water0.zmt
+
+[geom1]
+file=water1.zmt
+

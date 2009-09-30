@@ -1,0 +1,7 @@
+H
+O 1 oh
+H 2 oh 1 hoh
+
+oh  0.0
+hoh 0.0
+

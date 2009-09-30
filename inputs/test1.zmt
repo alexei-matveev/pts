@@ -1,0 +1,10 @@
+#Put Keywords Here, check Charge and Multiplicity.
+
+ j4.log
+
+0  1
+H
+F  1  r2
+Variables:
+r2= 0.9000
+
