@@ -44,7 +44,7 @@ def main(argv=None):
 
 
         # create atoms object based on molecular geometry in file
-        atoms = ase.read(molecule, format="xyz")
+        atoms = ase.read(molecule)
 
         jobname =  os.path.splitext(molecule)[0]
 
@@ -70,8 +70,14 @@ def main(argv=None):
 
         # Based on what was found in ase_job_settings, perform further
         # setup for 'atoms'
-        atoms.set_cell(mycell)
-        atoms.set_pbc(mypbc)
+        if 'mycell' in locals():
+            atoms.set_cell(mycell)
+        if 'mypbc' in locals():
+            atoms.set_pbc(mypbc)
+
+        if not 'mycalc' in locals():
+            raise ASEIsolatorException("'mycalc' not defined in " + ase_job_settings)
+
         atoms.set_calculator(mycalc)
 
         result_file = os.path.join(tmp_dir, jobname + common.LOGFILE_EXT)
