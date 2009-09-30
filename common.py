@@ -11,6 +11,9 @@ LOGFILE_EXT = ".log"
 
 TMP_DIR_ENV_VAR = "AOE_TMP"
 def get_tmp_dir():
+    """Returns the absolute path to a temporary directory. If the environment
+    variable AOE_TMP is specified (can be relative or absolute), then this is
+    used. Otherwise the current working directory is used."""
     if TMP_DIR_ENV_VAR in os.environ:
         tmp_dir = os.path.abspath(os.environ[TMP_DIR_ENV_VAR])
     else:

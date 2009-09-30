@@ -89,7 +89,7 @@ def main(argv=None):
             proc_spec = (int(total), int(max), int(norm))
             params["processors"] = proc_spec
         else:
-            raise ParseError("Couldn't parse processor configuration")
+            raise ParseError("Couldn't parse processor configuration.")
         
 
         for geom_ix in range(MAX_GEOMS):
