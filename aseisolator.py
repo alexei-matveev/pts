@@ -49,7 +49,7 @@ def main(argv=None):
         jobname =  os.path.splitext(molecule)[0]
 
         # setup directories, filenames
-        isolation_dir = os.path.join(os.path.dirname(jobname), "isolation_" + os.path.basename(jobname))
+        isolation_dir = os.path.join("isolation_" + os.path.basename(jobname))
         print isolation_dir
 
         old_dir = os.getcwd()
@@ -97,11 +97,11 @@ def main(argv=None):
             print pickle.load(open(result_file, "r"))
 
         elif mode == "optimise":
-            optim = ase.BFGS(atoms)
+            optim = ase.BFGS(atoms, trajectory='opt.traj')
             optim.run()
             os.chdir(old_dir)
 
-            ase.write(result_file, atoms, format="xyz")
+            ase.write(result_file, atoms, format="traj")
         else:
             raise ASEIsolatorException("Unrecognised mode: " + mode)
 

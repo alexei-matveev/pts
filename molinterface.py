@@ -418,7 +418,7 @@ class MolInterface:
         f.write(mystr)
         f.close()
 
-        p = Popen(["./aseisolator.py", self.ase_settings_file, mol_geom_file]) #, stdout=open(ase_stdout_file, "w"))
+        p = Popen(["./aseisolator.py", self.ase_settings_file, mol_geom_file], stdout=open(ase_stdout_file, "w"))
         (_, ret_val) = os.waitpid(p.pid, 0)
         if ret_val != 0:
             print ret_val
