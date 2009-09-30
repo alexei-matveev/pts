@@ -59,6 +59,7 @@ def main(argv=None):
         if len(argv) != 1:
             raise Usage("Exactly 1 input file must be specified.")
         inputfile = argv[0]
+        inputfile_dir = os.path.dirname(inputfile)
 
     except Usage, err:
         print >>sys.stderr, err.msg
@@ -114,14 +115,20 @@ def main(argv=None):
 
     mol_strings = []
     try:
+        # open files describing input molecules
         for file in mol_files:
-            f = open(file, "r")
+            if os.path.exists(file):
+                f = open(file, "r")
+            elif os.path.exists(os.path.join(inputfile_dir, file)):
+                f = open(os.path.join(inputfile_dir, file), "r")
+            else:
+                raise IOError("Cannot find " + file)
             mystr = f.read()
             f.close()
             mol_strings.append(mystr)
 
-    except Exception, e:
-        print "Exception:", str(e)
+    except IOError, e:
+        print "IOError", str(e)
         return 1
 
     setup_and_run(mol_strings, params)
