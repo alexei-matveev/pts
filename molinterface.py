@@ -75,9 +75,15 @@ class MolRep:
 class MolRepException(Exception):
     def __init__(self, msg):
         self.msg = msg
-    def __str__(self, msg):
+    def __str__(self):
         return self.msg
    
+class MolInterfaceException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self):
+        return self.msg
+ 
 class MolInterface:
     """Converts between molecule representations (i.e. internal xyz/zmat 
     representation), optimisation coordinates, Quantum Chemistry logfile format
@@ -421,8 +427,9 @@ class MolInterface:
         p = Popen(["./aseisolator.py", self.ase_settings_file, mol_geom_file], stdout=open(ase_stdout_file, "w"))
         (_, ret_val) = os.waitpid(p.pid, 0)
         if ret_val != 0:
-            print ret_val
-            assert(False)
+            raise MolInterfaceException("aseisolator.py returned with " + 
+                str(ret_val) + " when attempting: " + "./aseisolator.py " + 
+                self.ase_settings_file + " " +  mol_geom_file)
 
         # load results from file
         (e, g) = pickle.load(open(results_file, "r"))
@@ -585,12 +592,12 @@ class MolInterface:
             raise Exception("No gradients found in file " + logfilename)
 
         # Gaussian gives gradients in Hartrees per Bohr Radius
-        grads_cart *= ANGSTROMS_TO_BOHRS # conversion is temporary, will eventually change when cclib has gradients code
+        grads_cart *= common.ANGSTROMS_TO_BOHRS # conversion is temporary, will eventually change when cclib has gradients code
 
         if hasattr(data, "scfenergies"):
-            energy = data.scfenergies[-1] / HARTREE_TO_ELECTRON_VOLTS # conversion is temporary, will eventually change when cclib has gradients code
+            energy = data.scfenergies[-1] / common.HARTREE_TO_ELECTRON_VOLTS # conversion is temporary, will eventually change when cclib has gradients code
         elif hasattr(data, "mmenergies"):
-            energy = data.mmenergies[-1] / HARTREE_TO_ELECTRON_VOLTS # conversion is temporary, will eventually change when cclib has gradients code
+            energy = data.mmenergies[-1] / common.HARTREE_TO_ELECTRON_VOLTS # conversion is temporary, will eventually change when cclib has gradients code
         else:
             raise Exception("No energies found in file " + logfilename)
 
@@ -628,4 +635,5 @@ class MolInterface:
             lg.warning(logfilename + ": Largest elts of trans matrix: " + str(common.vecmaxs(abs(transform_matrix))))
 
         return grads_opt
+
 

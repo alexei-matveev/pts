@@ -34,7 +34,7 @@ ch.setFormatter(formatter)
 class Usage(Exception):
     def __init__(self, msg):
         self.msg = msg
-    def __str__(self, msg):
+    def __str__(self):
         return self.msg
 
 def main(argv=None):
@@ -310,6 +310,7 @@ def dump_beads(mol_interface, chain_of_states, params):
 
     path = os.path.splitext(params["inputfile"])[0] + str(file_dump_count) + LOGFILE_EXT
 
+    print "path", path
     f = open(path, "w")
     f.write(mystr)
     f.close()
@@ -340,7 +341,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt, e:
         print e
     import threading
-    print "active threads were..."
+    print "Active threads upon exit were..."
     print threading.enumerate()
     sys.exit()
 

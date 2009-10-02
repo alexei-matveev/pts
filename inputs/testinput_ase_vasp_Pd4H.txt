@@ -7,9 +7,9 @@ qc_program: ase
 # specified operation of parallel scheduler
 #  - first number is the TOTAL number of processors available
 #  - second number is the MAXIMUM number of processors per QC job 
-#    (currently unsupported)
+#    (currently ignored)
 #  - third number is the NORMAL number of processors per QC job
-processors: 1,1,1
+processors: 2,1,1
 
 # options: neb, string
 method: neb
@@ -27,16 +27,16 @@ optimizer: l_bfgs_b
 
 # Python file containing ASE calculator setup and (optionally) the periodic 
 # boundary condition and unit cell size.
-ase_settings_file: asejobsettings-emt.py
+ase_settings_file: asejobsettings-vasp-Pd4H.py
 
 # Maximum number of iterations that optimizer will perform.
-max_iterations: 4
+max_iterations: 5
 
 # Files specifying input geometries in either xyz or z-matrix format.
 # At least geom0 and geom1 must be given. If geom2 is given, the middle
 # one is used as a transition state estimate.
 [geom0]
-file=emttest1.xyz
+file=Pd4H-react.xyz
 
 [geom1]
-file=emttest2.xyz
+file=Pd4H-prod.xyz

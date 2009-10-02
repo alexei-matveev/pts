@@ -1,0 +1,51 @@
+ c
+ c   1 cc2     
+ c   2 cc3        1 ccc3      
+ c   3 cc4        2 ccc4         1 dih4   
+ h   3 hc5        2 hcc5         1 dih5   
+ h   3 hc6        2 hcc6         1 dih6   
+ h   2 hc7        3 hcc7         4 dih7   
+ h   2 hc8        3 hcc8         4 dih8   
+ h   1 hc9        2 hcc9         3 dih9   
+ h   1 hc10       2 hcc10        3 dih10  
+ h   1 hc11       2 hcc11        3 dih11  
+ h   4 hc12       3 hcc12        2 dih12  
+ h   4 hc13       3 hcc13        2 dih13  
+ h   4 hc14       3 hcc14        2 dih14  
+
+cc2         1.541544
+cc3         1.543156
+ccc3        113.125
+cc4         1.541544
+ccc4        113.125
+dih4        -67.249
+hc5         1.085941
+hcc5        109.152
+dih5         55.044
+hc6         1.085634
+hcc6        108.885
+dih6       -188.340
+hc7         1.085941
+hcc7        109.152
+dih7         55.044
+hc8         1.085634
+hcc8        108.885
+dih8       -188.340
+hc9         1.083190
+hcc9        111.352
+dih9         63.249
+hc10        1.084651
+hcc10       110.700
+dih10       183.246
+hc11        1.085171
+hcc11       110.413
+dih11       -57.077
+hc12        1.084651
+hcc12       110.700
+dih12       183.246
+hc13        1.085171
+hcc13       110.413
+dih13       -57.076
+hc14        1.083190
+hcc14       111.352
+dih14        63.249

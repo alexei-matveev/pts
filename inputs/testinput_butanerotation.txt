@@ -1,14 +1,14 @@
 [parameters]
 qc_program: g03
 processors: 2,1,1
-method: neb
+method: string
 spr_const: 1.0
 beads_count: 8
-optimizer: l_bfgs_b
+optimizer: quadratic_string
 max_iterations: 10
 
 [geom0]
-file=ethane-1.zmt
+file=butane1.zmt
 
 [geom1]
-file=ethane-2.zmt
+file=butane2.zmt

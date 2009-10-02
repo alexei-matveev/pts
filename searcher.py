@@ -189,7 +189,7 @@ class ReactionPathway:
         parallel mode).
         """
         bead_pes_energies = []
-        print "self.state_vec:", self.state_vec
+#        print "self.state_vec:", self.state_vec
         for bead_vec in self.state_vec:
             e = self.qc_driver.energy(bead_vec)
             bead_pes_energies.append(e)

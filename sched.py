@@ -328,7 +328,7 @@ class ParaSched:
             try:
                 res = self.__qc_driver.run(item)
             except QCDriverException, inst:
-                # this needs to be done differently, when a worker encounters 
+                # TODO: this needs to be done differently, when a worker encounters 
                 # an exception it should empty the queue and then rethrow, otherwise
                 # the other jobs will continue to run
                 error_msg = "Worker " + str(my_id) + ": Exception thrown when " + \
@@ -339,10 +339,11 @@ class ParaSched:
 
 
             finished.put(res)
+            lg.info("Worker %s finished a job." % my_id)
             self.__pending.task_done()
 #            lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete: " + str(res))
 
-        lg.debug("worker exiting, id = %s" % my_id)
+        lg.info("Queue empty, worker %s exiting." % my_id)
 
     def run_all(self, jobs_list):
         """Start threads to process jobs in queue."""

@@ -8,9 +8,9 @@ import pickle
 
 import ase
 
-
 def usage():
-    print "Usage: " + sys.argv[0] + " ase_settings.py atoms.xyz"
+    print "Usage: " + sys.argv[0] + " [options] ase_settings.py atoms.xyz"
+    print "       -o: optimise"
 
 class ASEIsolatorException(Exception):
     def __init__(self, msg):
