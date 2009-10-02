@@ -37,6 +37,11 @@ class Usage(Exception):
     def __str__(self):
         return self.msg
 
+def usage():
+    print "Usage: " + sys.argv[0] + " [options] input.file"
+    print "Options:"
+    print "  -h, --help: display this message"
+
 def main(argv=None):
     """
         1. read input file containing
@@ -51,11 +56,20 @@ def main(argv=None):
         argv = sys.argv[1:]
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "h", ["help"])
+            opts, args = getopt.getopt(argv, "h", ["help"])
         except getopt.error, msg:
              raise Usage(msg)
 
-        print "argv =", argv
+        # process comamnd line options
+        for o, a in opts:
+            if o in ("-h", "--help"):
+                usage()
+                return 0
+            else:
+                raise Exception("FIXME: Option " + o + " incorrectly implemented")
+                return -1
+
+
         if len(argv) != 1:
             raise Usage("Exactly 1 input file must be specified.")
         inputfile = argv[0]
@@ -165,6 +179,7 @@ def generic_callback(x, mol_interface, cos_obj, params):
 #            print numpy.linalg.norm(neb.gradients_vec)
     dump_beads(mol_interface, cos_obj, params)
     dump_steps(cos_obj)
+    #cos_obj.plot()
     print line()
     return x
 
@@ -341,8 +356,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt, e:
         print e
     import threading
-    print "Active threads upon exit were..."
-    print threading.enumerate()
+#    print "Active threads upon exit were..."
+#    print threading.enumerate()
     sys.exit()
 
 

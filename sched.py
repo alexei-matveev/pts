@@ -3,7 +3,7 @@ from threading import *
 import threading # TODO: change this double importation
 
 #stack_size(10485760)
-print "ss =", stack_size()
+#print "ss =", stack_size()
 from thread import *
 from Queue import *
 import time

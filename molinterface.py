@@ -206,7 +206,7 @@ class MolInterface:
 
             elif params["qc_program"] == "analytical_GaussianPES":
                 self.run = self.run_internal
-                self.analytical_pes = GaussianPES()
+                self.analytical_pes = common.GaussianPES()
             else:
                 raise Exception("Use of " + params["qc_program"] + " not implemented")
 
