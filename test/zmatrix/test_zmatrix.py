@@ -1,9 +1,9 @@
 import sys
-sys.path.append("../../")
-sys.path.append("../")
+import unittest
+import os
 
-from zmatrix import *
-import testing
+import aof
+from aof.zmatrix import *
 
 def file2str(f):
     f = open(f, "r")
@@ -11,11 +11,17 @@ def file2str(f):
     f.close()
     return mystr
 
+print "__file__", __file__
 
-class TestZMatrixAndAtom(testing.MyTestCase):
+class TestZMatrixAndAtom(aof.test.MyTestCase):
 
     def setUp(self):
-        pass
+        self.original_dir = os.getcwd()
+        os.chdir(os.path.dirname(__file__))
+
+    
+    def tearDown(self):
+        os.chdir(self.original_dir)
 
     def test_ZMatrix(self):
         input = """N
@@ -140,7 +146,10 @@ hn 1.2
 
 
 
+def suite():
+    return unittest.TestLoader().loadTestsFromTestCase(TestZMatrixAndAtom)
+
 if __name__ == "__main__":
-    testing.main()
+    unittest.TextTestRunner(verbosity=2).run(suite())
 
 

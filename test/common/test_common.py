@@ -1,15 +1,12 @@
 import unittest
 
 import sys
-sys.path.append("../../")
-sys.path.append("../")
-import testing
+import aof.test
 
-from molinterface import *
+from aof.molinterface import *
+from aof.common import *
 
-from common import *
-
-class TestCommon(testing.MyTestCase):
+class TestCommon(aof.test.MyTestCase):
     def test_numdiff_small(self):
         from numpy import sin, cos, exp, array, linalg
 
@@ -43,8 +40,10 @@ class TestCommon(testing.MyTestCase):
         diff = linalg.norm(estim - exact)
         self.assert_(diff < NUM_DIFF_ERR)
 
+def suite():
+    return unittest.TestLoader().loadTestsFromTestCase(TestCommon)
 
 if __name__ == "__main__":
-    testing.main()
+    unittest.TextTestRunner(verbosity=2).run(suite())
 
 

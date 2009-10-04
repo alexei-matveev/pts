@@ -2,7 +2,6 @@ import unittest
 import numpy
 
 import sys
-sys.path.append("../../")
 
 main = unittest.main
 
