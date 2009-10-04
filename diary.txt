@@ -266,3 +266,7 @@ TODO
    - must you specify all the parameters all the time? 
 
  - there is a long list (comprehensive?) in ASE VASP interfave of input keys
+
+TODO:
+
+ - refactor code to import common not import * from common
