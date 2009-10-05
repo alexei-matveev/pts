@@ -156,7 +156,7 @@ class MolInterface:
 
         if "qcinput_head" in params:
             self.qcinput_head = params["qcinput_head"]
-            self.qcinput_head = expand_newline(self.qcinput_head)
+            self.qcinput_head = common.expand_newline(self.qcinput_head)
         else:
             self.qcinput_head = DEFAULT_GAUSSIAN03_HEADER
 

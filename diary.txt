@@ -267,6 +267,48 @@ TODO
 
  - there is a long list (comprehensive?) in ASE VASP interfave of input keys
 
+04/10/2009
+----------
 TODO:
-
  - refactor code to import common not import * from common
+
+05/10/2009
+----------
+ - observations related to scheduling:
+   - For a test system that ran on a single processor with real 1m58.555s
+   - A 2 proc gaussian job confined to a single processor takes about twice as 
+     long as a 1 proc gaussian job confined to 1 processor. (test sys = real   4m12.287s)
+   - A 2 proc gaussian job on 2 procs scales well (if big enough of course) 
+     compared to a 1 proc. (test sys = real 1m3.944s)
+   - two 1 proc gaussian jobs confined to the same core run in about twice the 
+     time, i.e. they don't harm each other too much: test sys = real    3m53.077s
+
+
+# While there are sufficient jobs waiting in the queue to saturate the 
+# available processors, even when using the numinal processors number.
+while queue.items * nominal_job_procs > total_procs:
+    if slot_manager.largest_free_slot < nominal_job_procs:
+        wait()
+    else:
+        launch_worker(slot_manager, nominal_job_procs)
+
+join threads
+
+# then continue with different scheduling strategy
+
+OR...
+
+workers get job and cpu allocation from queue simultaneously
+
+JobQueue(Threads.queue):
+    def __init__(self, cpus_groups)
+    def set_cpu_status(self, cpu_group, status)
+    def get_item(self):
+        if self.items * nominal_job_procs > total_procs:
+            return job, largest_free_cpu_set
+        else:
+            while self.largest_free_slot <= self.nominal_job_procs:
+                wait()
+
+            return job, largest_free_cpu_set
+
