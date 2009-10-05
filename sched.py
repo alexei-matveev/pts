@@ -1,11 +1,13 @@
-from threading import *
+#from threading import *
+
 
 import threading # TODO: change this double importation
 
 #stack_size(10485760)
 #print "ss =", stack_size()
-from thread import *
-from Queue import *
+#from thread import *
+import thread
+from Queue import Queue
 import time
 
 from common import *
@@ -160,7 +162,7 @@ class CalcManager():
         if sched_args != None:
             total, max, norm = sched_args
 
-            lg.info(total, norm, max, qc_driver)
+            lg.info("%d %d %d %s", total, norm, max, qc_driver)
             self.__para_sched = ParaSched(qc_driver, total, norm, max)
 
         self.__pending_jobs = []

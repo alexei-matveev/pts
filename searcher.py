@@ -12,7 +12,7 @@ import logging
 from copy import deepcopy
 import pickle
 
-from numpy import linalg, floor, zeros, array, ones, arange, arccos
+from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil
 from common import *
 
 lg = logging.getLogger(PROGNAME)
@@ -330,10 +330,31 @@ class NEB(ReactionPathway):
             self.tangents[i] /= linalg.norm(self.tangents[i], 2)
 
 
+    def __len__(self):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
+        return int(ceil((self.beads_count * self.dimension / 3.)))
+
     def update_bead_separations(self):
         """Updates internal vector of distances between beads."""
         self.bead_separation_sqrs_sums = array( map (sum, self.special_reduce(self.state_vec).tolist()) )
         self.bead_separation_sqrs_sums.shape = (self.beads_count - 1, 1)
+
+    def set_positions(self, x):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
+        self.state_vec = x.flatten()[0:self.beads_count * self.dimension]
+        self.state_vec.shape = (self.beads_count, -1)
+
+    def get_positions(self):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates.""" 
+        return make_like_atoms(self.state_vec.copy())
+
+    def get_forces(self):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
+        return -make_like_atoms(self.obj_func_grad())
+
+    def get_potential_energy(self):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
+        return self.obj_func()
 
     def obj_func(self, new_state_vec = None):
         assert size(self.state_vec) == self.beads_count * self.dimension
@@ -1109,6 +1130,7 @@ def vector_interpolate(start, end, beads_count):
     return array(output)
 
 
+# delete after setup of auto tests
 reactants = array([0,0])
 products = array([3,3])
 
@@ -2067,13 +2089,21 @@ class SurfPlot():
         os.unlink(tmpPathDataFile)
         os.unlink(tmpPESDataFile)
 
+def make_like_atoms(x):
+    x_ = x.copy().reshape(-1,)
+    extras = 3 - len(x_) % 3
+    if extras != 3:
+        padding = numpy.zeros(extras)
+        x_ = numpy.hstack([x_, padding])
+        x_.shape = (-1,3)
+    return x_
+
 
 def test_NEB():
     from scipy.optimize import fmin_bfgs
 
     default_spr_const = 1.
-    neb = NEB([reactants, products], lambda x: True, default_spr_const,
-        GaussianPES(), beads_count = 10)
+    neb = NEB([reactants, products], lambda x: True, GaussianPES(), default_spr_const, beads_count = 10)
     init_state = neb.get_state_as_array()
 
     surf_plot = SurfPlot(GaussianPES())
@@ -2089,7 +2119,12 @@ def test_NEB():
 
 #    opt = fmin_bfgs(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb, gtol=0.05)
 #    opt, energy, dict = fmin_l_bfgs_b(neb.obj_func, init_state, fprime=neb.obj_func_grad, callback=mycb, pgtol=0.05)
-    opt = opt_gd(neb.obj_func, init_state, neb.obj_func_grad, callback=mycb)
+#    opt = opt_gd(neb.obj_func, init_state, neb.obj_func_grad, callback=mycb)
+
+    import ase
+    optimizer = ase.LBFGS(neb)
+    optimizer.run(fmax=0.04)
+    opt = neb.state_vec
 
     print "opt =", opt
     print dict

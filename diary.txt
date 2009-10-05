@@ -271,6 +271,9 @@ TODO
 ----------
 TODO:
  - refactor code to import common not import * from common
+   - import common
+     filter(lambda x: x[0] != '_', dir(common))
+ - what is a reasonable value for rho?
 
 05/10/2009
 ----------
@@ -283,6 +286,11 @@ TODO:
    - two 1 proc gaussian jobs confined to the same core run in about twice the 
      time, i.e. they don't harm each other too much: test sys = real    3m53.077s
 
+ - hacked NEB to export functions that ASE uses, i.e. get_forces, get_positions, 
+   so NEB needs to pretend that it has 3N spatial coordinates, i.e. like atoms.
+
+PLANNING FOR BETTER SCHEDULER
+-----------------------------
 
 # While there are sufficient jobs waiting in the queue to saturate the 
 # available processors, even when using the numinal processors number.

@@ -1,4 +1,3 @@
-#import numpy
 import scipy
 import re
 #import cclib
@@ -12,11 +11,10 @@ import pickle
 
 import numpy
 
-#from common import *
 import common
 import zmatrix
 
-lg = logging.getLogger(common.PROGNAME)
+lg = logging.getLogger('mylogger') #common.PROGNAME)
 
 numpy.set_printoptions(linewidth=180)
 
@@ -230,6 +228,8 @@ class MolInterface:
             mystr += "\nzmt_spec:\n" + self.zmt_spec
         return mystr
 
+    def __repr__(self):
+        return "MolInterface: Writeme: __repr__()"
     def geom_checker(self, coords):
         """Not Yet Implemented.
         

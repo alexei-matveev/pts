@@ -107,6 +107,7 @@ def main(argv=None):
             raise ParseError("Couldn't parse processor configuration.")
         
 
+        print "Parsing geometries"
         for geom_ix in range(MAX_GEOMS):
             section_name = "geom" + str(geom_ix)
             if config.has_section(section_name):

@@ -193,6 +193,9 @@ class GaussianPES():
 #    def __init__(self):
 #        QCDriver.__init__(self,2)
 
+    def __str__(self):
+        return "GaussianPES"
+
     def energy(self, v):
 #        QCDriver.energy(self)
 #        print "energy running", type(v)
@@ -348,6 +351,11 @@ def file2str(f):
     mystr = f.read()
     f.close()
     return mystr
+
+def normalise(x):
+    x = x / numpy.linalg.norm(x)
+    return x
+
 
 #### Exceptions ####
 class ResultException(Exception):

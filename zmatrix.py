@@ -94,10 +94,6 @@ class Atom():
                     mystr += " " + str(self.c) + " " + str(self.dih)
         return mystr
 
-def normalise(x):
-    x = x / numpy.linalg.norm(x)
-    return x
-
 class ZMatrix():
     @staticmethod
     def matches(mol_text):
