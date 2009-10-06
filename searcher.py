@@ -336,8 +336,17 @@ class NEB(ReactionPathway):
 
     def update_bead_separations(self):
         """Updates internal vector of distances between beads."""
-        self.bead_separation_sqrs_sums = array( map (sum, self.special_reduce(self.state_vec).tolist()) )
-        self.bead_separation_sqrs_sums.shape = (self.beads_count - 1, 1)
+#        self.bead_separation_sqrs_sums = array( map (sum, self.special_reduce(self.state_vec).tolist()) )
+
+        v = self.state_vec.copy()
+        l = []
+        for i in range(1,len(v)):
+            l.append(linalg.norm(v[i] - v[i-1], 2))
+        l = array(l)
+        self.bead_separation_sqrs_sums.shape = l**2
+
+#        print self.bead_separation_sqrs_sums
+#        self.bead_separation_sqrs_sums.shape = (self.beads_count - 1, 1)
 
     def set_positions(self, x):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -354,6 +363,7 @@ class NEB(ReactionPathway):
 
     def get_potential_energy(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
+        print "self.obj_func",self.obj_func()
         return self.obj_func()
 
     def obj_func(self, new_state_vec = None):
@@ -383,6 +393,8 @@ class NEB(ReactionPathway):
         
         force_consts_by_separations_squared = multiply(self.spr_const_vec, self.bead_separation_sqrs_sums.flatten()).transpose()
         spring_energies = 0.5 * ndarray.sum (force_consts_by_separations_squared)
+        print "spring_energies", spring_energies
+        print "self.bead_separation_sqrs_sums", self.bead_separation_sqrs_sums
 
         # Hmm, why do I do this? WRONG???
         #self.bead_pes_energies = self.default_initial_bead_pes_energies
@@ -2092,7 +2104,7 @@ class SurfPlot():
 def make_like_atoms(x):
     x_ = x.copy().reshape(-1,)
     extras = 3 - len(x_) % 3
-    if extras != 3:
+    if extras != 0:
         padding = numpy.zeros(extras)
         x_ = numpy.hstack([x_, padding])
         x_.shape = (-1,3)

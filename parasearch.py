@@ -279,6 +279,13 @@ def neb_calc(mol_interface, calc_man, reagent_coords, params):
               callback=mycb,
               maxiter=max_iterations)
 
+    elif params["optimizer"] == "ase_lbfgs":
+        import ase
+        optimizer = ase.LBFGS(neb)
+        optimizer.run(fmax=0.04)
+        opt = neb.state_vec
+
+       
     elif params["optimizer"] == "grad_descent":
         opt = opt_gd(neb.obj_func, 
             neb.get_state_as_array(), 

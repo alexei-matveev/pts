@@ -1,21 +1,13 @@
-#from threading import *
-
-
-import threading # TODO: change this double importation
-
-#stack_size(10485760)
-#print "ss =", stack_size()
-#from thread import *
+import threading
 import thread
 from Queue import Queue
 import time
+import logging
+from numpy import floor, zeros, array, ones, arange
 
 from common import *
 
-from numpy import floor, zeros, array, ones, arange
-
 # setup logging
-import logging
 print "Defining logger"
 lg = logging.getLogger(PROGNAME)
 lg.setLevel(logging.DEBUG)
@@ -298,7 +290,7 @@ class ParaSched:
         safe queues of jobs to be consumed / added to by each worker. ix
         is the index of each worker, used in node placement."""
 
-        my_id = get_ident()
+        my_id = thread.get_ident()
 
         lg.debug("worker starting, id = %s ix = %s" % (my_id, ix))
 
@@ -357,7 +349,7 @@ class ParaSched:
         # start workers
         lg.info("%s spawning %d worker threads" % (self.__class__.__name__, self.__workers_count))
         for i in range(self.__workers_count):
-            t = Thread(target=self.__worker, args=(self.__pending, self.__finished, i))
+            t = threading.Thread(target=self.__worker, args=(self.__pending, self.__finished, i))
             t.daemon = True
             t.start()
 
