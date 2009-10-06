@@ -264,7 +264,7 @@ class NEB(ReactionPathway):
         return strrep
 
 
-    def special_reduce(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
+    def special_reduce_old(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
         """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
         returns a list of length N-1 where each element of the output array is 
         f2(f1(k_i * x_i, k_i+1 * x_i+1)) ."""
@@ -339,13 +339,14 @@ class NEB(ReactionPathway):
 #        self.bead_separation_sqrs_sums = array( map (sum, self.special_reduce(self.state_vec).tolist()) )
 
         v = self.state_vec.copy()
-        l = []
+        seps = []
         for i in range(1,len(v)):
-            l.append(linalg.norm(v[i] - v[i-1], 2))
-        l = array(l)
-        self.bead_separation_sqrs_sums.shape = l**2
+            dv = v[i] - v[i-1]
+            seps.append(dot(dv,dv))
 
-#        print self.bead_separation_sqrs_sums
+        self.bead_separations = array(seps)**0.5
+
+        print self.bead_separations
 #        self.bead_separation_sqrs_sums.shape = (self.beads_count - 1, 1)
 
     def set_positions(self, x):
@@ -391,10 +392,9 @@ class NEB(ReactionPathway):
         self.update_tangents()
         self.update_bead_separations()
         
-        force_consts_by_separations_squared = multiply(self.spr_const_vec, self.bead_separation_sqrs_sums.flatten()).transpose()
-        spring_energies = 0.5 * ndarray.sum (force_consts_by_separations_squared)
-        print "spring_energies", spring_energies
-        print "self.bead_separation_sqrs_sums", self.bead_separation_sqrs_sums
+        spring_energies = self.base_spr_const * self.bead_separations**2
+        spring_energies = 0.5 * numpy.sum (spring_energies)
+#        print "spring_energies", spring_energies
 
         # Hmm, why do I do this? WRONG???
         #self.bead_pes_energies = self.default_initial_bead_pes_energies
@@ -427,34 +427,37 @@ class NEB(ReactionPathway):
         self.update_bead_separations()
         self.update_tangents()
 
-        separations_vec = self.bead_separation_sqrs_sums ** 0.5
-        separations_diffs = self.special_reduce(separations_vec, self.spr_const_vec, f2 = lambda x: x)
+        """separations_diffs = self.special_reduce(separations_vec, self.spr_const_vec, f2 = lambda x: x)
         assert len(separations_diffs) == self.beads_count - 2
 
         spring_forces = multiply(separations_diffs.flatten(), self.tangents[1:-1].transpose()).transpose()
 
-#        print "tang:",self.tangents
-#        print "spring forces:", spring_forces
-        spring_forces = vstack((zeros(self.dimension), spring_forces, zeros(self.dimension)))
+        spring_forces = vstack((zeros(self.dimension), spring_forces, zeros(self.dimension)))"""
 
-        pes_forces = array(zeros(self.beads_count * self.dimension))
-        pes_forces.shape = (self.beads_count, self.dimension)
+        bead_forces = []
 
         # get PES forces / project out stuff
         for i in range(self.beads_count)[1:-1]: # don't include end beads, leave their gradients as zero
-            #print "here", len(pes_forces[i])
-            #print "here2", len(self.qc_driver.gradient(self.state_vec[i]))
-            pes_forces[i] = -self.qc_driver.gradient(self.state_vec[i])
-            pes_forces[i] = project_out(self.tangents[i], pes_forces[i])
+            pes_force = -self.qc_driver.gradient(self.state_vec[i])
+            pes_force = project_out(self.tangents[i], pes_force)
+
+            spring_force = (self.base_spr_const * 
+                            (self.bead_separations[i] - self.bead_separations[i-1]) * 
+                            self.tangents[i])
+
+            total = pes_force + spring_force
+
+            bead_forces.append(total)
 
         # at this point, parallel component has been projected out
-        self.bead_forces = deepcopy(pes_forces).flatten() 
-        gradients_vec = -1 * (pes_forces + spring_forces)
+        bead_forces = array(bead_forces)
+        z = zeros(self.dimension)
+        self.bead_forces = vstack([z, bead_forces, z])
 
         if new_state_vec != None:
             self.record_energy()
 
-        return gradients_vec.flatten()
+        return -self.bead_forces.flatten()
 
 class Func():
     def f():
@@ -2115,7 +2118,7 @@ def test_NEB():
     from scipy.optimize import fmin_bfgs
 
     default_spr_const = 1.
-    neb = NEB([reactants, products], lambda x: True, GaussianPES(), default_spr_const, beads_count = 10)
+    neb = NEB([reactants, products], lambda x: True, GaussianPES(), default_spr_const, beads_count = 12)
     init_state = neb.get_state_as_array()
 
     surf_plot = SurfPlot(GaussianPES())
