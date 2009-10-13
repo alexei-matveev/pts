@@ -1,6 +1,6 @@
 import re
 import numpy
-from common import *
+import common
 import numerical
 import sys
 import getopt
@@ -38,10 +38,10 @@ class Atom():
                     self.dst = self.__process(groups[2])
                 if groups_count >= 5:
                     self.b = int(groups[3])
-                    self.ang = self.__process(groups[4])
+                    self.ang = self.__process(groups[4], isangle=True)
                 if groups_count == 7:
                     self.c = int(groups[5])
-                    self.dih = self.__process(groups[6])
+                    self.dih = self.__process(groups[6], isangle=True)
 
                 break
         if self.name == None:
@@ -56,7 +56,7 @@ class Atom():
     def dih_var(self):
         """Returns the name of the dihedral variable."""
 
-        if isinstance(self.dih, str):
+        if isinstance(self.dih, basestring):
             if self.dih[0] == "-":
                 return self.dih[1:]
             else:
@@ -71,17 +71,20 @@ class Atom():
         for var in potentials_list:
             if isinstance(var, str):
                 if var[0] == "-":
-                    vars_list.append(var[1:])
+                    vars_list.append(var[1:]) 
                 else:
                     vars_list.append(var)
         return vars_list
 
-    def __process(self, varstr):
+    def __process(self, varstr, isangle=False):
         """Converts str to float if it matches, otherwise returns str, since it must
         therefore be a variable name."""
 
         if re.match(r"[+-]?\d+(\.\d+)?", varstr) != None:
-            return float(varstr)
+            if isangle:
+                return float(varstr) * common.DEG_TO_RAD
+            else:
+                return float(varstr)
         return varstr
 
     def __str__(self):
@@ -89,10 +92,21 @@ class Atom():
         if self.a != None:
             mystr += " " + str(self.a) + " " + str(self.dst)
             if self.b != None:
-                mystr += " " + str(self.b) + " " + str(self.ang)
+                ang = self.ang
+                if not isinstance(ang, basestring):
+                    ang *= common.RAD_TO_DEG
+                mystr += " " + str(self.b) + " " + str(ang)
                 if self.c != None:
-                    mystr += " " + str(self.c) + " " + str(self.dih)
+                    dih = self.dih
+                    if not isinstance(dih, basestring):
+                        dih *= common.RAD_TO_DEG
+                    mystr += " " + str(self.c) + " " + str(dih)
+
         return mystr
+
+def myenumerate(list, start=0):
+    ixs = range(start, len(list) + start)
+    return zip (ixs, list)
 
 class ZMatrix():
     @staticmethod
@@ -123,34 +137,40 @@ class ZMatrix():
             self.coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
             self.coords = numpy.array([float(c) for c in self.coords])
         else:
-            raise Exception("Z-matrix not found in string:\n" + mol_text)
+            raise ZMatrixException("Z-matrix not found in string:\n" + mol_text)
         
         # Create data structure of atoms. There is both an ordered list and an 
         # unordered dictionary with atom index as the key.
         lines = zmt_spec.split("\n")
-        ixs = range(1, len(lines) + 1)
-        for line, ix in zip(lines, ixs):
+        for ix, line in myenumerate(lines, start=1):
             a = Atom(line, ix)
             self.atoms.append(a)
             self.atoms_dict[ix] = a
         
-        # Dictionary of dihedral angles
+        # Dictionaries of (a) dihedral angles and (b) angles
         self.dih_vars = dict()
+        self.angles = dict()
         for atom in self.atoms:
             if atom.dih_var() != None:
                 self.dih_vars[atom.dih_var()] = 1
+                self.angles[atom.dih_var()] = 1
+            if atom.ang != None:
+                self.angles[atom.ang] = 1
 
+        print "self.dih_vars",self.dih_vars
         # flags = True/False indicating whether variables are dihedrals or not
-        self.dih_flags = numpy.array([(var in self.dih_vars) for var in self.var_names])
+        # DO I NEED THIS?
+        #self.dih_flags = numpy.array([(var in self.dih_vars) for var in self.var_names])
 
         # TODO: check that z-matrix is ok, e.g. A, B 1 ab, etc...
 
         # Create dictionary of variable values (unordered) and an 
         # ordered list of variable names.
-
         print "Molecule"
         for i in range(len(self.var_names)):
             key = self.var_names[i]
+            if key in self.angles:
+                self.coords[i] *= common.DEG_TO_RAD
             val = float(self.coords[i])
 
             # move all dihedrals into domain [0,360)
@@ -170,7 +190,7 @@ class ZMatrix():
             self.zmt_ordered_vars += atom.all_vars()
         for var in self.zmt_ordered_vars:
             if not var in self.vars:
-                raise Exception("Variable '" + var + "' not given in z-matrix")
+                raise ZMatrixException("Variable '" + var + "' not given in z-matrix")
 
         self.state_mod_lock = thread.allocate_lock()
 
@@ -194,7 +214,10 @@ class ZMatrix():
             mystr += str(atom) + "\n"
         mystr += "\n"
         for var in self.var_names:
-            mystr += var + "\t" + str(self.vars[var]) + "\n"
+            if var in self.angles:
+                mystr += var + "\t" + str(self.vars[var] * common.RAD_TO_DEG) + "\n"
+            else:
+                mystr += var + "\t" + str(self.vars[var]) + "\n"
         return mystr
 
     def xyz_str(self):
@@ -274,29 +297,29 @@ class ZMatrix():
                 continue
             else:
                 bvec = self.atoms_dict[atom.b].vector
-                ang = self.get_var(atom.ang) * DEG_TO_RAD
+                ang = self.get_var(atom.ang) # * DEG_TO_RAD
 
             if atom.c == None:
-                cvec = VY
-                dih = 90. * DEG_TO_RAD
+                cvec = common.VY
+                dih = 90. * common.DEG_TO_RAD
             else:
                 cvec = self.atoms_dict[atom.c].vector
-                dih = self.get_var(atom.dih) * DEG_TO_RAD
+                dih = self.get_var(atom.dih) # * DEG_TO_RAD
 
             v1 = avec - bvec
             v2 = avec - cvec
 
             n = numpy.cross(v1,v2)
             nn = numpy.cross(v1,n)
-            n = normalise(n)
-            nn = normalise(nn)
+            n = common.normalise(n)
+            nn = common.normalise(nn)
 
             n *= -numpy.sin(dih)
             nn *= numpy.cos(dih)
             v3 = n + nn
-            v3 = normalise(v3)
+            v3 = common.normalise(v3)
             v3 *= dst * numpy.sin(ang)
-            v1 = normalise(v1)
+            v1 = common.normalise(v1)
             v1 *= dst * numpy.cos(ang)
             v2 = avec + v3 - v1
 
@@ -308,12 +331,17 @@ class ZMatrix():
         xyz_coords = numpy.array(xyz_coords)
         return xyz_coords
 
-class Usage(Exception):
+class ZMatrixException(Exception):
     def __init__(self, msg):
         self.msg = msg
     def __str__(self, msg):
         return self.msg
 
+class Usage(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self, msg):
+        return self.msg
 
 def main(argv=None):
     if argv is None:

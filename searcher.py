@@ -13,7 +13,9 @@ from copy import deepcopy
 import pickle
 
 from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil
-from common import *
+
+from common import * # TODO: must unify
+import common
 
 lg = logging.getLogger(PROGNAME)
 lg.setLevel(logging.INFO)
@@ -255,10 +257,10 @@ class NEB(ReactionPathway):
             total_energy += self.bead_pes_energies[i]
         strrep += "Total Band Energy: " + str(total_energy)
 #        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
-        strrep += "\nPerpendicular bead forces norm: " + str(linalg.norm(self.bead_forces))
+        strrep += "\nRMS Perpendicular bead forces: " + str(common.rms(self.bead_forces))
         strrep += "\nFunction calls: " + str(self.f_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
-        strrep += "\nArchive: %d\t%f\t%f" % (self.g_calls, linalg.norm(self.bead_forces), total_energy)
+        strrep += "\nArchive: %d\t%f\t%f" % (self.g_calls, common.rms(self.bead_forces), total_energy)
         strrep += "\nAngles: %s" % str(self.get_angles())
 
         return strrep

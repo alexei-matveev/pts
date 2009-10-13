@@ -144,6 +144,7 @@ def main(argv=None):
 
     except IOError, e:
         print "IOError", str(e)
+        print "Tried " + file + " and " + os.path.join(inputfile_dir, file)
         return 1
 
     setup_and_run(mol_strings, params)

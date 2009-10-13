@@ -118,8 +118,10 @@ hn 1.2
         z = ZMatrix(file2str("benzyl.zmt"))
         m, e = z.dcart_on_dint(z.get_internals())
 
-        print "Testing that the numerical diff errors are small"
-        self.assert_(numpy.linalg.norm(e) < 1e-8)
+        print "Testing numerical differentiation"
+        max_rms_err = 1e-8
+        err_msg = "Numerical differentiation RMS error should be less than " + str(max_rms_err) + " but errors were: " + str(e)
+        self.assert_(numpy.linalg.norm(e) / len(e) < max_rms_err, err_msg)
 
         print "Testing generation of forces coordinate system transform matrix"
 
@@ -137,7 +139,7 @@ hn 1.2
         (ANGSTROMS_TO_BOHRS * RAD_TO_DEG). That's what the following two lines 
         are for."""
         for i in [2,4,6,7,8,9,11,12,13,15,16,18]:
-            calculated_zmt_grads[i] *= (ANGSTROMS_TO_BOHRS * RAD_TO_DEG)
+            calculated_zmt_grads[i] *= (ANGSTROMS_TO_BOHRS)
 
         self.assertAlmostEqualVec(calculated_zmt_grads, zmt_grads_from_benzyl_log, 1e-3)
 #        print "xyz_grads_from_benzyl_log:", xyz_grads_from_benzyl_xyz_log

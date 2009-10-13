@@ -5,6 +5,7 @@ import thread
 import logging
 import string
 import os
+import sys
 from copy import deepcopy
 from subprocess import Popen
 import pickle
@@ -145,12 +146,13 @@ class MolInterface:
                 react = self.reagent_coords[0]
                 prod  = self.reagent_coords[1]
                 for i in range(len(react)):
-                    if abs(react[i] - prod[i]) > 180.0:
-                        assert self.var_names[i] in self.zmatrix.dih_vars
-                        if react[i] > prod[i]:
-                            prod[i] += 360.0
-                        else:
-                            react[i] += 360.0
+                    if self.var_names[i] in self.zmatrix.dih_vars:
+                        if abs(react[i] - prod[i]) > 180.0 * common.DEG_TO_RAD:
+                            assert self.var_names[i] in self.zmatrix.dih_vars
+                            if react[i] > prod[i]:
+                                prod[i] += 360.0 * common.DEG_TO_RAD
+                            else:
+                                react[i] += 360.0 * common.DEG_TO_RAD
 
         if "qcinput_head" in params:
             self.qcinput_head = params["qcinput_head"]
@@ -424,12 +426,19 @@ class MolInterface:
         f.write(mystr)
         f.close()
 
-        p = Popen(["./aseisolator.py", self.ase_settings_file, mol_geom_file], stdout=open(ase_stdout_file, "w"))
+#        p = Popen(["./aseisolator.py", self.ase_settings_file, mol_geom_file], stdout=open(ase_stdout_file, "w"))
+        cmd = ["python", "-m", "aseisolator", self.ase_settings_file, mol_geom_file]
+        p = Popen(cmd, stdout=open(ase_stdout_file, "w"))
+
         (_, ret_val) = os.waitpid(p.pid, 0)
         if ret_val != 0:
-            raise MolInterfaceException("aseisolator.py returned with " + 
-                str(ret_val) + " when attempting: " + "./aseisolator.py " + 
-                self.ase_settings_file + " " +  mol_geom_file)
+#            raise MolInterfaceException("aseisolator.py returned with " + 
+#                str(ret_val) + " when attempting: " + "./aseisolator.py " + 
+#                self.ase_settings_file + " " +  mol_geom_file)
+            os.system("echo $PYTHONPATH")
+            raise MolInterfaceException("aseisolator.py returned with " + str(ret_val)
+                + "\nwhen attempting to run " + ' '.join(cmd)
+                + "\nMake sure $PYTHONPATH contains " + sys.path[0] )
 
         # load results from file
         (e, g) = pickle.load(open(results_file, "r"))

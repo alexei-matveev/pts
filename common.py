@@ -356,6 +356,8 @@ def normalise(x):
     x = x / numpy.linalg.norm(x)
     return x
 
+def rms(x):
+    return numpy.sqrt(numpy.mean(x**2))
 
 #### Exceptions ####
 class ResultException(Exception):
