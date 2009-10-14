@@ -69,7 +69,12 @@ class MolRep:
             self.var_names = "no variable names"
         else:
             print mol_text
-            raise MolRepException("can't understand input file:\n" + mol_text)
+            raise MolRepException("Can't understand input file, cleanup \
+                leading/trailing spaces?\n" + mol_text)
+    def __str__(self):
+        list = [self.format, self.coords, self.atoms, self.var_names]
+        list = [str(i) for i in list]
+        return " ".join(list)
 
 class MolRepException(Exception):
     def __init__(self, msg):
@@ -334,7 +339,7 @@ class MolInterface:
         Z-matrix or Gaussian XYZ format (without method keywords, i.e. only 
         the molecule specification) based on coords.
         
-        Only use by OLD_PYBEL_CODE?"""
+        Only used by OLD_PYBEL_CODE?"""
 
         str = ""
         if self.format == "xyz":
@@ -435,7 +440,8 @@ class MolInterface:
 #            raise MolInterfaceException("aseisolator.py returned with " + 
 #                str(ret_val) + " when attempting: " + "./aseisolator.py " + 
 #                self.ase_settings_file + " " +  mol_geom_file)
-            os.system("echo $PYTHONPATH")
+
+            # additions from Alexei
             raise MolInterfaceException("aseisolator.py returned with " + str(ret_val)
                 + "\nwhen attempting to run " + ' '.join(cmd)
                 + "\nMake sure $PYTHONPATH contains " + sys.path[0] )

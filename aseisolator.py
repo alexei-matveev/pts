@@ -97,7 +97,7 @@ def main(argv=None):
             print pickle.load(open(result_file, "r"))
 
         elif mode == "optimise":
-            optim = ase.BFGS(atoms, trajectory='opt.traj')
+            optim = ase.LBFGS(atoms, trajectory='opt.traj')
             optim.run()
             os.chdir(old_dir)
 

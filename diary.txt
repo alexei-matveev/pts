@@ -320,3 +320,6 @@ JobQueue(Threads.queue):
 
             return job, largest_free_cpu_set
 
+13/10/2009
+----------
+ - got z-matrix optimisations to use radians not degrees

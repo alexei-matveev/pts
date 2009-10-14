@@ -240,6 +240,7 @@ class NEB(ReactionPathway):
         reactants, products = reagents[0], reagents[-1]
         self.state_vec = vector_interpolate(reactants, products, beads_count)
 
+    # TODO: move this to ReactionPathway?
     def get_angles(self):
         """Returns an array of angles between beed groups of 3 beads."""
 
@@ -366,7 +367,6 @@ class NEB(ReactionPathway):
 
     def get_potential_energy(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
-        print "self.obj_func",self.obj_func()
         return self.obj_func()
 
     def obj_func(self, new_state_vec = None):
