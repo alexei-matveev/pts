@@ -4,13 +4,12 @@ from ase import Atoms
 import numpy
 import common
 
-
-class CoordSys(Atoms, object):
+class CoordSys(object):
     """Abstract coordinate system. Sits on top of an ASE Atoms object."""
     def __init__(self, atom_symbols, atom_xyzs, abstract_coords):
 
         self._dims = len(abstract_coords)
-        Atoms.__init__(self, symbols=atom_symbols, positions=atom_xyzs)
+        self._atoms = Atoms(symbols=atom_symbols, positions=atom_xyzs)
 
     @property
     def dims(self):
@@ -19,6 +18,10 @@ class CoordSys(Atoms, object):
     def get_positions(self):
         """ASE style interface function"""
         return common.make_like_atoms(self._coords)
+
+    @property
+    def get_chemical_symbols(self):
+        return self._atoms.get_chemical_symbols()
 
     def set_positions(self, x):
         assert x.shape[1] == 3
@@ -32,7 +35,7 @@ class CoordSys(Atoms, object):
         self._coords = x
         carts = common.make_like_atoms(self.get_cartesians())
 
-        Atoms.set_positions(carts)
+        self._atoms.set_positions(carts)
 
     def get_cartesians(self):
         assert False, "Abstract function"
@@ -41,9 +44,9 @@ class CoordSys(Atoms, object):
         return self._coords.copy()
 
     def get_forces(self, coord_sys_forces=False):
-        Atoms.set_positions(self.get_positions)
+        self._atoms.set_positions(self.get_positions)
 
-        forces_cartesian = Atoms.get_forces().flatten()
+        forces_cartesian = self._atoms.get_forces().flatten()
         transform_matrix = self.get_transform_matrix(self.internals)
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
 
@@ -55,10 +58,11 @@ class CoordSys(Atoms, object):
     def copy(self, new_coords=None):
         assert False, "Abstract function"
 
-    def expose_atoms(self):
-        return super(Atoms)
+    @property
+    def atoms(self):
+        return self._atoms
     def set_atoms(self, atoms):
-        Atoms = atoms
+        self._atoms = atoms
 
     #TODO: use ASE.Atoms method?
     def xyz_str(self):
@@ -72,6 +76,26 @@ class CoordSys(Atoms, object):
 
     def native_str(self):
         pass
+
+    def get_transform_matrix(self, x):
+        """Returns the matrix of derivatives dCi/dIj where Ci is the ith cartesian coordinate
+        and Ij is the jth internal coordinate."""
+
+        nd = numerical.NumDiff()
+        mat = nd.numdiff(self.int2cart, x)
+        return mat
+
+    def int2cart(self, x):
+        """Based on a vector x of new internal coordinates, returns a 
+        vector of cartesian coordinates. The internal dictionary of coordinates 
+        is updated."""
+
+        with self._state_lock:
+            self.set_internals(x)
+            y = self.get_cartesians()
+
+        return y.flatten()
+
 
 class ZMTAtom():
     def __init__(self, astr=None, ix=None):
@@ -242,15 +266,6 @@ class ZMatrix(CoordSys):
                 self._coords[i] *= common.DEG_TO_RAD
             val = float(self._coords[i])
 
-            # move all dihedrals into domain [0,360)
-            """if key in self.dih_vars:
-                if val >= 0.0:
-                    print "not changing", key, "from", val
-                else: #if val < 0.0:
-                    print "changing", key, "from", val,
-                    val += 360.0
-                    print "to",val"""
-
             self.vars[key] = val
 
         # check that z-matrix is fully specified
@@ -266,7 +281,7 @@ class ZMatrix(CoordSys):
         print self.zmtatoms
         symbols = [a.name for a in self.zmtatoms]
         CoordSys.__init__(self, symbols, 
-            self.gen_cartesians().reshape(-1,3), 
+            self.get_cartesians().reshape(-1,3), 
             self._coords)
 
     def get_var(self, var):
@@ -301,34 +316,13 @@ class ZMatrix(CoordSys):
     def set_internals(self, internals):
         """Update stored list of variable values."""
 
-        CoordSys.set_internals()
+        internals = numpy.array(internals)
+        CoordSys.set_internals(self, internals)
 
         for i, var in zip( internals, self.var_names ):
             self.vars[var] = i
 
-    def int2cart(self, x):
-        """Based on a vector x of new internal coordinates, returns a 
-        vector of cartesian coordinates. The internal dictionary of coordinates 
-        is updated."""
-
-        #self.state_mod_lock.acquire()
-
-        self.set_internals(x)
-        y = self.gen_cartesian()
-
-        #self.state_mod_lock.release()
-
-        return y.flatten()
-
-    def get_transform_matrix(self, x):
-        """Returns the matrix of derivatives dCi/dIj where Ci is the ith cartesian coordinate
-        and Ij is the jth internal coordinate."""
-
-        nd = numerical.NumDiff()
-        mat = nd.numdiff(self.int2cart, x)
-        return mat
-
-    def gen_cartesians(self):
+    def get_cartesians(self):
         """Generates cartesian coordinates from z-matrix and the current set of 
         internal coordinates. Based on code in OpenBabel."""
         
@@ -387,8 +381,36 @@ class ZMatrix(CoordSys):
         xyz_coords = numpy.array(xyz_coords)
         return xyz_coords
 
+class ComplexCoordSys(CoordSys):
 
-class XYZ(CoordSys, object):
+    def __init__(self, parts):
+        self._parts = parts
+
+        for part in parts:
+            atom_symbols.append(part.get_chemical_symbols)
+
+        CoordSys.__init__(self, atom_symbols, 
+            self._coords.reshape(-1,3), 
+            self._coords)
+
+    def get_internals(self):
+        ilist = [p.get_internals() for p in self._parts]
+        return numpy.hstack(ilist)
+
+    def set_internals(self, x):
+        i = 0
+        for p in self._parts:
+            p.set_internals(x[i:i + p.dims])
+            i += p.dims
+
+    def get_cartesians(self):
+        carts = [p.get_cartesians() for p in self._parts]
+        return numpy.vstack(carts)
+ 
+
+
+
+class XYZ(CoordSys):
 
     __pattern = re.compile(r'(\d+\s+)?(\s*\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+')
 
@@ -415,7 +437,7 @@ class XYZ(CoordSys, object):
 
     def copy(self, new_coords=None):
         new = deepcopy(self)
-        new.set_atoms(Atoms.copy())
+        new.set_atoms(self._atoms.copy())
         if new_coords != None:
             new.set_internals(new_coords)
 
