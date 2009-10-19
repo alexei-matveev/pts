@@ -359,11 +359,11 @@ class NEB(ReactionPathway):
 
     def get_positions(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates.""" 
-        return make_like_atoms(self.state_vec.copy())
+        return common.make_like_atoms(self.state_vec.copy())
 
     def get_forces(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
-        return -make_like_atoms(self.obj_func_grad())
+        return -common.make_like_atoms(self.obj_func_grad())
 
     def get_potential_energy(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -2105,16 +2105,6 @@ class SurfPlot():
 
         os.unlink(tmpPathDataFile)
         os.unlink(tmpPESDataFile)
-
-def make_like_atoms(x):
-    x_ = x.copy().reshape(-1,)
-    extras = 3 - len(x_) % 3
-    if extras != 0:
-        padding = numpy.zeros(extras)
-        x_ = numpy.hstack([x_, padding])
-        x_.shape = (-1,3)
-    return x_
-
 
 def test_NEB():
     from scipy.optimize import fmin_bfgs

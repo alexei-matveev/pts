@@ -378,4 +378,45 @@ class ParseError(Exception):
     def __str__(self):
         return self.msg
 
+def make_like_atoms(x):
+    """Convert a vector to one with a shape reflecting cartesian coordinates,
+    i.e. with a shape of (-1,3), padding with zeros if necessary.
+
+    >>> from numpy import arange
+    >>> make_like_atoms(arange(6))
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4.,  5.]])
+    >>> make_like_atoms(arange(7))
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4.,  5.],
+           [ 6.,  0.,  0.]])
+    >>> make_like_atoms(arange(8))
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4.,  5.],
+           [ 6.,  7.,  0.]])
+    >>> make_like_atoms(arange(9))
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4.,  5.],
+           [ 6.,  7.,  8.]])
+    >>> make_like_atoms(arange(10))
+    array([[ 0.,  1.,  2.],
+           [ 3.,  4.,  5.],
+           [ 6.,  7.,  8.],
+           [ 9.,  0.,  0.]])
+
+    """
+    x_ = x.copy().reshape(-1,)
+    extras = len(x_) % 3
+    if extras != 0:
+        padding = numpy.zeros(3 - extras)
+    else:
+        # coerces type to be that of a numpy.zeros object
+        padding = numpy.zeros(0)
+    x_ = numpy.hstack([x_, padding])
+    x_.shape = (-1,3)
+    return x_
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
 
