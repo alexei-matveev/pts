@@ -381,23 +381,65 @@ class ZMatrix(CoordSys):
         xyz_coords = numpy.array(xyz_coords)
         return xyz_coords
 
+class Anchor():
+    def reposition():
+        assert False, "Abstract function"
+
+class Dummy(Anchor):
+    def __init__(parent):
+        Anchor.__init__(self)
+
+    def reposition(self, shift, x):
+        return x
+
+class RotAndTrans(Anchor):
+    def __init__(parent = None):
+        Anchor.__init__(self)
+        self._parent = parent
+
+    def reposition(self, shift, x):
+        """Based on a quaternion and a translation, transforms a set of 
+        cartesion positions x."""
+
+        assert len(shift) == 6
+
+        quaternion = shift[0:3]
+        trans_vec  = shift[3:]
+
+        rot_mat = self.quaternion2rot_mat(quaternion)
+
+        parent_centroid = numpy.zeros(3)
+        if self._parent != None:
+            parent_centroid = self._parent.get_centroid()
+
+        transform = lambda vec3d: dot(rot_mat, vec3d) + trans_vec
+        res = numpy.array(map(transform, x))
+
+        return res
+
+
 class ComplexCoordSys(CoordSys):
+    """Object to support the combining of multiple CoordSys objects into one."""
 
-    def __init__(self, parts):
-        self._parts = parts
+    def __init__(self, sub_parts):
+        self._parts = sub_parts
 
-        for part in parts:
+        atom_symbols = []
+        for part in self._parts:
             atom_symbols.append(part.get_chemical_symbols)
 
         CoordSys.__init__(self, atom_symbols, 
             self._coords.reshape(-1,3), 
             self._coords)
 
-    def get_internals(self):
+    """def get_internals(self):
         ilist = [p.get_internals() for p in self._parts]
-        return numpy.hstack(ilist)
+        return numpy.hstack(ilist)"""
 
     def set_internals(self, x):
+
+        CoordSys.set_internals(self, internals)
+
         i = 0
         for p in self._parts:
             p.set_internals(x[i:i + p.dims])
@@ -407,8 +449,6 @@ class ComplexCoordSys(CoordSys):
         carts = [p.get_cartesians() for p in self._parts]
         return numpy.vstack(carts)
  
-
-
 
 class XYZ(CoordSys):
 
