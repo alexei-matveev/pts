@@ -35,15 +35,16 @@ class CoordSys(object):
         assert x.shape[1] == 3
         #assert x.shape[0] == self._dims
 
-        self._coords = x.flatten()[0:self._dims]
+        self.set_internals(x.flatten()[0:self._dims])
+        #print "set_positions: self._coords", self._coords
         assert len(self._coords) >= self._dims
 
     def set_internals(self, x):
         assert len(x) == len(self._coords)
         self._coords = x
-        carts = common.make_like_atoms(self.get_cartesians())
+        #carts = common.make_like_atoms(self.get_cartesians())
 
-        self._atoms.set_positions(carts)
+        #self._atoms.set_positions(carts)
 
     def get_cartesians(self):
         assert False, "Abstract function"
@@ -53,21 +54,30 @@ class CoordSys(object):
 
     def get_forces(self, flat=False):
         cart_pos = common.make_like_atoms(self.get_cartesians())
+        #print "cart_pos", cart_pos
         self._atoms.set_positions(cart_pos)
 
         forces_cartesian = self._atoms.get_forces().flatten()
+        #print "forces_cartesian", forces_cartesian
         transform_matrix, errors = self.get_transform_matrix(self._coords)
+        #print "transform_matrix", transform_matrix,
+        #print "errors", errors
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
+        #print "forces_coord_sys", forces_coord_sys
 
+        #print "get_forces:", self.atoms.positions
         if flat:
             return forces_coord_sys
         else:
             return common.make_like_atoms(forces_coord_sys)
     
     def get_potential_energy(self):
+
         cart_pos = common.make_like_atoms(self.get_cartesians())
+        #print "get_potential_energy:", cart_pos
         self._atoms.set_positions(cart_pos)
 
+        #print "get_potential_energy:", self._atoms.positions, self._atoms.get_potential_energy()
         return self._atoms.get_potential_energy()
        
 
@@ -107,10 +117,14 @@ class CoordSys(object):
         is updated."""
 
         with self._state_lock:
+            old_x = self._coords.copy()
+
             self.set_internals(x)
             y = self.get_cartesians()
 
-        return y.flatten()
+            self.set_internals(old_x)
+
+            return y.flatten()
 
     def __pretty_vec(self, x):
         """Returns a pretty string rep of a (3D) vector."""
@@ -249,6 +263,7 @@ class ZMatrix(CoordSys):
         self.var_names = re.findall(r"(\w+).*?\n", variables_text)
         coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
         self._coords = numpy.array([float(c) for c in coords])
+        #print "self._coords", self._coords
     
         # Create data structure of atoms. There is both an ordered list and an 
         # unordered dictionary with atom index as the key.
@@ -257,8 +272,6 @@ class ZMatrix(CoordSys):
             a = ZMTAtom(line, ix)
             self.zmtatoms.append(a)
             self.zmtatoms_dict[ix] = a
-
-
 
         # Dictionaries of (a) dihedral angles and (b) angles
         self.dih_vars = dict()
@@ -270,7 +283,7 @@ class ZMatrix(CoordSys):
             if atom.ang != None:
                 self.angles[atom.ang] = 1
 
-        print "self.dih_vars",self.dih_vars
+        #print "self.dih_vars", self.dih_vars
         # flags = True/False indicating whether variables are dihedrals or not
         # DO I NEED THIS?
         #self.dih_flags = numpy.array([(var in self.dih_vars) for var in self.var_names])
@@ -279,7 +292,7 @@ class ZMatrix(CoordSys):
 
         # Create dictionary of variable values (unordered) and an 
         # ordered list of variable names.
-        print "Molecule"
+        #print "Molecule"
         for i in range(len(self.var_names)):
             key = self.var_names[i]
             if key in self.angles:
@@ -298,7 +311,7 @@ class ZMatrix(CoordSys):
 
         #self.state_mod_lock = thread.allocate_lock()
 
-        print self.zmtatoms
+        #print self.zmtatoms
         symbols = [a.name for a in self.zmtatoms]
         CoordSys.__init__(self, symbols, 
             self.get_cartesians().reshape(-1,3), 
@@ -395,6 +408,7 @@ class ZMatrix(CoordSys):
                 xyz_coords.append(atom.vector)
         
         xyz_coords = numpy.array(xyz_coords)
+#        print "get_carts:", self._coords, xyz_coords
         return xyz_coords
 
 class Anchor():
