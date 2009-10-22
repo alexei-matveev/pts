@@ -1,8 +1,11 @@
+from __future__ import with_statement
 import re
 import ase
 from ase import Atoms
 import numpy
 import common
+import threading
+import numerical
 
 class CoordSys(object):
     """Abstract coordinate system. Sits on top of an ASE Atoms object."""
@@ -10,6 +13,8 @@ class CoordSys(object):
 
         self._dims = len(abstract_coords)
         self._atoms = Atoms(symbols=atom_symbols, positions=atom_xyzs)
+        self._state_lock = threading.RLock()
+
 
     @property
     def dims(self):
@@ -23,12 +28,15 @@ class CoordSys(object):
     def get_chemical_symbols(self):
         return self._atoms.get_chemical_symbols()
 
+    def set_calculator(self, calc):
+        return self._atoms.set_calculator(calc)
+
     def set_positions(self, x):
         assert x.shape[1] == 3
-        assert x.shape[0] == self.__dims
+        #assert x.shape[0] == self._dims
 
-        self._coords = x.flatten()[0:self.__dims]
-        assert len(self._coords) >= self.__dims
+        self._coords = x.flatten()[0:self._dims]
+        assert len(self._coords) >= self._dims
 
     def set_internals(self, x):
         assert len(x) == len(self._coords)
@@ -43,17 +51,25 @@ class CoordSys(object):
     def get_internals(self):
         return self._coords.copy()
 
-    def get_forces(self, coord_sys_forces=False):
-        self._atoms.set_positions(self.get_positions)
+    def get_forces(self, flat=False):
+        cart_pos = common.make_like_atoms(self.get_cartesians())
+        self._atoms.set_positions(cart_pos)
 
         forces_cartesian = self._atoms.get_forces().flatten()
-        transform_matrix = self.get_transform_matrix(self.internals)
+        transform_matrix, errors = self.get_transform_matrix(self._coords)
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
 
-        if coord_sys_forces:
-            return self.forces_coord_sys
+        if flat:
+            return forces_coord_sys
         else:
-            return common.make_like_atoms(self.forces_coord_sys)
+            return common.make_like_atoms(forces_coord_sys)
+    
+    def get_potential_energy(self):
+        cart_pos = common.make_like_atoms(self.get_cartesians())
+        self._atoms.set_positions(cart_pos)
+
+        return self._atoms.get_potential_energy()
+       
 
     def copy(self, new_coords=None):
         assert False, "Abstract function"
@@ -95,6 +111,10 @@ class CoordSys(object):
             y = self.get_cartesians()
 
         return y.flatten()
+
+    def __pretty_vec(self, x):
+        """Returns a pretty string rep of a (3D) vector."""
+        return "%f\t%f\t%f" % (x[0], x[1], x[2])
 
 
 class ZMTAtom():
@@ -309,10 +329,6 @@ class ZMatrix(CoordSys):
                 mystr += var + "\t" + str(self.vars[var]) + "\n"
         return mystr
 
-    def __pretty_vec(self, x):
-        """Returns a pretty string rep of a (3D) vector."""
-        return "%f\t%f\t%f" % (x[0], x[1], x[2])
-
     def set_internals(self, internals):
         """Update stored list of variable values."""
 
@@ -470,7 +486,7 @@ class XYZ(CoordSys):
             self._coords)
 
     def get_transform_matrix(self, x):
-        return numpy.eye(self.__dims)
+        return numpy.eye(self._dims)
 
     def get_cartesians(self):
         return self._coords
