@@ -15,10 +15,11 @@ class CoordSys(object):
         self._atoms = Atoms(symbols=atom_symbols, positions=atom_xyzs)
         self._state_lock = threading.RLock()
 
+        self._anchor = Dummy()
 
     @property
     def dims(self):
-        return self._dims
+        return self._dims + self._anchor.dims
 
     def get_positions(self):
         """ASE style interface function"""
@@ -27,6 +28,17 @@ class CoordSys(object):
     @property
     def get_chemical_symbols(self):
         return self._atoms.get_chemical_symbols()
+
+    def get_centroid(self):
+        c = numpy.zeros(3)
+        carts = sommon.make_like_atoms(self.get_cartesians:())
+        for v in carts:
+            c += v
+        c = c / len(carts)
+        return c
+
+    def set_anchor(self, a):
+        self._anchor = a
 
     def set_calculator(self, calc):
         return self._atoms.set_calculator(calc)
@@ -42,11 +54,16 @@ class CoordSys(object):
     def set_internals(self, x):
         assert len(x) == len(self._coords)
         self._coords = x
-        #carts = common.make_like_atoms(self.get_cartesians())
 
-        #self._atoms.set_positions(carts)
+        anchor_coords = x[self._dims:]
+
+        assert anchor_coords == self._anchor.dims
+
+        self._anchor.set(anchor_coords)
+
 
     def get_cartesians(self):
+        """Returns Cartesians as a flat array."""
         assert False, "Abstract function"
 
     def get_internals(self):
@@ -338,10 +355,10 @@ class ZMatrix(CoordSys):
     def set_internals(self, internals):
         """Update stored list of variable values."""
 
-        internals = numpy.array(internals)
+        internals = numpy.array(internals[0:self._dims])
         CoordSys.set_internals(self, internals)
 
-        for i, var in zip( internals, self.var_names ):
+        for i, var in zip( internals[0:self._dims], self.var_names ):
             self.vars[var] = i
 
     def get_cartesians(self):
@@ -401,45 +418,58 @@ class ZMatrix(CoordSys):
                 xyz_coords.append(atom.vector)
         
         xyz_coords = numpy.array(xyz_coords)
-#        print "get_carts:", self._coords, xyz_coords
+
+        if self._anchor != None:
+            self._anchor.reposition(self._trans, xyz_coords)
+
         return xyz_coords
 
 class Anchor():
-    def reposition():
+    def reposition(self, *args):
         assert False, "Abstract function"
 
 class Dummy(Anchor):
+    dims = 0
     def __init__(parent):
         Anchor.__init__(self)
 
-    def reposition(self, shift, x):
+    def reposition(self, t, x):
         return x
 
 class RotAndTrans(Anchor):
+    dims = 7
+
     def __init__(parent = None):
         Anchor.__init__(self)
         self._parent = parent
 
-    def reposition(self, shift, x):
+    def set(self, t):
+        self._t = t
+
+    def quaternion2rot_mat(self, quaternion):
+        pass
+
+    def reposition(self, x):
         """Based on a quaternion and a translation, transforms a set of 
         cartesion positions x."""
 
-        assert len(shift) == 6
+        assert len(t) == self.dims
 
-        quaternion = shift[0:3]
-        trans_vec  = shift[3:]
+        quaternion = self._t[0:4]
+        trans_vec  = self._t[4:]
 
         rot_mat = self.quaternion2rot_mat(quaternion)
-
-        parent_centroid = numpy.zeros(3)
-        if self._parent != None:
-            parent_centroid = self._parent.get_centroid()
 
         transform = lambda vec3d: dot(rot_mat, vec3d) + trans_vec
         res = numpy.array(map(transform, x))
 
+        if self._parent != None:
+            res += self._parent.get_centroid()
+
         return res
 
+    def something(self):
+        pass
 
 class ComplexCoordSys(CoordSys):
     """Object to support the combining of multiple CoordSys objects into one."""
@@ -455,9 +485,9 @@ class ComplexCoordSys(CoordSys):
             self._coords.reshape(-1,3), 
             self._coords)
 
-    """def get_internals(self):
+    def get_internals(self):
         ilist = [p.get_internals() for p in self._parts]
-        return numpy.hstack(ilist)"""
+        return numpy.hstack(ilist)
 
     def set_internals(self, x):
 
