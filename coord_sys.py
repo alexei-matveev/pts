@@ -54,18 +54,12 @@ class CoordSys(object):
 
     def get_forces(self, flat=False):
         cart_pos = common.make_like_atoms(self.get_cartesians())
-        #print "cart_pos", cart_pos
         self._atoms.set_positions(cart_pos)
 
         forces_cartesian = self._atoms.get_forces().flatten()
-        #print "forces_cartesian", forces_cartesian
         transform_matrix, errors = self.get_transform_matrix(self._coords)
-        #print "transform_matrix", transform_matrix,
-        #print "errors", errors
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
-        #print "forces_coord_sys", forces_coord_sys
 
-        #print "get_forces:", self.atoms.positions
         if flat:
             return forces_coord_sys
         else:
@@ -74,10 +68,8 @@ class CoordSys(object):
     def get_potential_energy(self):
 
         cart_pos = common.make_like_atoms(self.get_cartesians())
-        #print "get_potential_energy:", cart_pos
         self._atoms.set_positions(cart_pos)
 
-        #print "get_potential_energy:", self._atoms.positions, self._atoms.get_potential_energy()
         return self._atoms.get_potential_energy()
        
 
@@ -94,18 +86,19 @@ class CoordSys(object):
     def xyz_str(self):
         """Returns an xyz format molecular representation in a string."""
 
-        mystr = ''
-        for atom in self.zmtatoms:
-            if atom.name[0].lower() != 'x':
-                mystr += atom.name + ' ' + self.__pretty_vec(atom.vector) + '\n'
-        return mystr
+        cart_coords = self.get_cartesians()
+        self._atoms.set_positions(cart_coords.reshape(-1,3))
+        list = ['%-2s %22.15f %22.15f %22.15f' % (s, x, y, z) for s, (x, y, z) in zip(self._atoms.get_chemical_symbols(), self._atoms.get_positions())]
+        geom_str = '\n'.join(list) + '\n\n'
+
+        return geom_str
 
     def native_str(self):
         pass
 
     def get_transform_matrix(self, x):
         """Returns the matrix of derivatives dCi/dIj where Ci is the ith cartesian coordinate
-        and Ij is the jth internal coordinate."""
+        and Ij is the jth internal coordinate, and the error."""
 
         nd = numerical.NumDiff()
         mat = nd.numdiff(self.int2cart, x)
@@ -500,7 +493,7 @@ class XYZ(CoordSys):
             self._coords)
 
     def get_transform_matrix(self, x):
-        return numpy.eye(self._dims)
+        return numpy.eye(self._dims), 0
 
     def get_cartesians(self):
         return self._coords
