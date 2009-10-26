@@ -7,15 +7,89 @@ import common
 import threading
 import numerical
 
+class Anchor(object):
+    def __init__(self, initial):
+        if self.dims != len(initial):
+            raise ComplexCoordSysException("initial value did not match required number of dimensions: " + str(initial))
+    def reposition(self, *args):
+        assert False, "Abstract function"
+
+    def set(self, t):
+        assert len(t) == self.dims
+        self._coords = t
+
+    def get(self):
+        return self._coords
+
+    coords = property(get, set)
+
+class Dummy(Anchor):
+    dims = 0
+    def __init__(self, initial=numpy.array([])):
+        Anchor.__init__(self, initial)
+        self._coords = numpy.array([])
+
+    def reposition(self, x):
+        return x
+
+class RotAndTrans(Anchor):
+    dims = 7
+
+    def __init__(self, initial, parent = None):
+        Anchor.__init__(self, initial)
+        self._parent = parent
+
+        quaternion = initial[:4]
+        n = numpy.linalg.norm(quaternion)
+        if abs(n - 1.0) > 0.001:
+            msg = "Initial value for quaternion was " + str(quaternion) + ", norm was " + str(n)
+            raise ComplexCoordSysException()
+
+        self._coords = initial
+
+    def quaternion2rot_mat(self, quaternion):
+        """See http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation"""
+        a,b,c,d = quaternion
+
+        m = numpy.array([[ a*a + b*b - c*c - d*d , 2*b*c + 2*a*d,         2*b*d - 2*a*c  ],
+                         [ 2*b*c - 2*a*d         , a*a - b*b + c*c - d*d, 2*c*d + 2*a*b  ],
+                         [ 2*b*d + 2*a*c         , 2*c*d - 2*a*b        , a*a - b*b - c*c + d*d  ]])
+
+        return m
+
+    def reposition(self, carts):
+        """Based on a quaternion and a translation, transforms a set of 
+        cartesion positions x."""
+
+        quaternion = self.coords[0:4]
+        trans_vec  = self.coords[4:]
+
+        rot_mat = self.quaternion2rot_mat(quaternion)
+
+        print "rot_mat",rot_mat
+        transform = lambda vec3d: numpy.dot(rot_mat, vec3d) + trans_vec
+        res = numpy.array(map(transform, carts))
+        print "res", res
+
+        if self._parent != None:
+            res += self._parent.get_centroid()
+
+        return res
+
+    def something(self):
+        pass
+
 class CoordSys(object):
     """Abstract coordinate system. Sits on top of an ASE Atoms object."""
-    def __init__(self, atom_symbols, atom_xyzs, abstract_coords):
+
+    def __init__(self, atom_symbols, atom_xyzs, abstract_coords, anchor=Dummy()):
 
         self._dims = len(abstract_coords)
         self._atoms = Atoms(symbols=atom_symbols, positions=atom_xyzs)
         self._state_lock = threading.RLock()
 
-        self._anchor = Dummy()
+        self._anchor=anchor
+
 
     @property
     def dims(self):
@@ -25,20 +99,16 @@ class CoordSys(object):
         """ASE style interface function"""
         return common.make_like_atoms(self._coords)
 
-    @property
     def get_chemical_symbols(self):
         return self._atoms.get_chemical_symbols()
 
     def get_centroid(self):
         c = numpy.zeros(3)
-        carts = sommon.make_like_atoms(self.get_cartesians:())
+        carts = self.get_cartesians()
         for v in carts:
             c += v
         c = c / len(carts)
         return c
-
-    def set_anchor(self, a):
-        self._anchor = a
 
     def set_calculator(self, calc):
         return self._atoms.set_calculator(calc)
@@ -47,30 +117,30 @@ class CoordSys(object):
         assert x.shape[1] == 3
         #assert x.shape[0] == self._dims
 
-        self.set_internals(x.flatten()[0:self._dims])
+        self.set_internals(x.flatten()[0:self.dims])
         #print "set_positions: self._coords", self._coords
         assert len(self._coords) >= self._dims
 
     def set_internals(self, x):
-        assert len(x) == len(self._coords)
-        self._coords = x
+        assert len(x) == self.dims
+        self._coords = x[:self._dims]
 
         anchor_coords = x[self._dims:]
+        self._anchor.coords = anchor_coords
 
-        assert anchor_coords == self._anchor.dims
-
-        self._anchor.set(anchor_coords)
-
+    def needs_anchor(self):
+        """Returns True if object cannot be placed in cartesian space without an anchor. """
+        assert False, "Abstract function"
 
     def get_cartesians(self):
         """Returns Cartesians as a flat array."""
         assert False, "Abstract function"
 
     def get_internals(self):
-        return self._coords.copy()
+        return numpy.hstack([self._coords.copy(), self._anchor.coords])
 
     def get_forces(self, flat=False):
-        cart_pos = common.make_like_atoms(self.get_cartesians())
+        cart_pos = self.get_cartesians()
         self._atoms.set_positions(cart_pos)
 
         forces_cartesian = self._atoms.get_forces().flatten()
@@ -84,7 +154,7 @@ class CoordSys(object):
     
     def get_potential_energy(self):
 
-        cart_pos = common.make_like_atoms(self.get_cartesians())
+        cart_pos = self.get_cartesians()
         self._atoms.set_positions(cart_pos)
 
         return self._atoms.get_potential_energy()
@@ -95,16 +165,17 @@ class CoordSys(object):
 
     @property
     def atoms(self):
+        self._atoms.positions = self.get_cartesians()
         return self._atoms
-    def set_atoms(self, atoms):
-        self._atoms = atoms
 
-    #TODO: use ASE.Atoms method?
+    #def set_atoms(self, atoms):
+    #    self._atoms = atoms
+
     def xyz_str(self):
         """Returns an xyz format molecular representation in a string."""
 
         cart_coords = self.get_cartesians()
-        self._atoms.set_positions(cart_coords.reshape(-1,3))
+        self._atoms.set_positions(cart_coords)
         list = ['%-2s %22.15f %22.15f %22.15f' % (s, x, y, z) for s, (x, y, z) in zip(self._atoms.get_chemical_symbols(), self._atoms.get_positions())]
         geom_str = '\n'.join(list) + '\n\n'
 
@@ -254,11 +325,12 @@ class ZMatrix(CoordSys):
                              (([ ]*\w+\s+[+-]?\d+\.\d*[ \t\r\f\v]*\n)+)\s*$""", re.X)
         return (zmt.match(mol_text) != None)
 
-    def __init__(self, mol_text):
+    def __init__(self, mol_text, anchor=Dummy()):
 
         self.zmtatoms = []
         self.vars = dict()
         self.zmtatoms_dict = dict()
+        self._anchor = anchor
 
         if not self.matches(mol_text):
             raise ZMatrixException("Z-matrix not found in string:\n" + mol_text)
@@ -324,8 +396,12 @@ class ZMatrix(CoordSys):
         #print self.zmtatoms
         symbols = [a.name for a in self.zmtatoms]
         CoordSys.__init__(self, symbols, 
-            self.get_cartesians().reshape(-1,3), 
-            self._coords)
+            self.get_cartesians(), 
+            self._coords,
+            anchor)
+
+    def wants_anchor(self):
+        return True
 
     def get_var(self, var):
         """If var is numeric, return it, otherwise look it's value up 
@@ -418,58 +494,12 @@ class ZMatrix(CoordSys):
                 xyz_coords.append(atom.vector)
         
         xyz_coords = numpy.array(xyz_coords)
+        xyz_coords.shape = (-1,3)
 
         if self._anchor != None:
-            self._anchor.reposition(self._trans, xyz_coords)
+            xyz_coords = self._anchor.reposition(xyz_coords)
 
         return xyz_coords
-
-class Anchor():
-    def reposition(self, *args):
-        assert False, "Abstract function"
-
-class Dummy(Anchor):
-    dims = 0
-    def __init__(parent):
-        Anchor.__init__(self)
-
-    def reposition(self, t, x):
-        return x
-
-class RotAndTrans(Anchor):
-    dims = 7
-
-    def __init__(parent = None):
-        Anchor.__init__(self)
-        self._parent = parent
-
-    def set(self, t):
-        self._t = t
-
-    def quaternion2rot_mat(self, quaternion):
-        pass
-
-    def reposition(self, x):
-        """Based on a quaternion and a translation, transforms a set of 
-        cartesion positions x."""
-
-        assert len(t) == self.dims
-
-        quaternion = self._t[0:4]
-        trans_vec  = self._t[4:]
-
-        rot_mat = self.quaternion2rot_mat(quaternion)
-
-        transform = lambda vec3d: dot(rot_mat, vec3d) + trans_vec
-        res = numpy.array(map(transform, x))
-
-        if self._parent != None:
-            res += self._parent.get_centroid()
-
-        return res
-
-    def something(self):
-        pass
 
 class ComplexCoordSys(CoordSys):
     """Object to support the combining of multiple CoordSys objects into one."""
@@ -477,13 +507,20 @@ class ComplexCoordSys(CoordSys):
     def __init__(self, sub_parts):
         self._parts = sub_parts
 
-        atom_symbols = []
-        for part in self._parts:
-            atom_symbols.append(part.get_chemical_symbols)
+        parents = numpy.array([p._anchor != None for p in self._parts])
+        anchors = numpy.array([p.wants_anchor != None for p in self._parts])
+        if not (parents & anchors):
+            raise ComplexCoordSysException("Not all objects that need one have an anchor, and/or some that don't need one have one.")
 
-        CoordSys.__init__(self, atom_symbols, 
-            self._coords.reshape(-1,3), 
-            self._coords)
+        atom_symbols = [p.get_chemical_symbols() for p in self._parts]
+
+        cart_coords = self.get_cartesians()
+        abstract_coords = numpy.hstack([p.get_internals() for p in self._parts])
+
+        CoordSys.__init__(self, 
+            atom_symbols, 
+            cart_coords, 
+            abstract_coords)
 
     def get_internals(self):
         ilist = [p.get_internals() for p in self._parts]
@@ -522,11 +559,13 @@ class XYZ(CoordSys):
             self._coords.reshape(-1,3), 
             self._coords)
 
+    def wants_anchor(self):
+        return False
     def get_transform_matrix(self, x):
         return numpy.eye(self._dims), 0
 
     def get_cartesians(self):
-        return self._coords
+        return self._coords.reshape(-1,3)
 
     def copy(self, new_coords=None):
         new = deepcopy(self)
@@ -545,7 +584,14 @@ class CoordSysException(Exception):
         self.msg = msg
     def __str__(self):
         return self.msg
+
+class ComplexCoordSysException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    def __str__(self):
+        return self.msg
  
+
 class ZMatrixException(Exception):
     def __init__(self, msg):
         self.msg = msg
