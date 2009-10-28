@@ -66,10 +66,10 @@ class RotAndTrans(Anchor):
 
         rot_mat = self.quaternion2rot_mat(quaternion)
 
-        print "rot_mat",rot_mat
+#        print "rot_mat",rot_mat
         transform = lambda vec3d: numpy.dot(rot_mat, vec3d) + trans_vec
         res = numpy.array(map(transform, carts))
-        print "res", res
+#        print "res", res
 
         if self._parent != None:
             res += self._parent.get_centroid()
@@ -89,6 +89,9 @@ class CoordSys(object):
         self._state_lock = threading.RLock()
 
         self._anchor=anchor
+
+        # TODO: recently added, watch that this is ok
+        self._coords = abstract_coords.copy()
 
 
     @property
@@ -122,6 +125,7 @@ class CoordSys(object):
         assert len(self._coords) >= self._dims
 
     def set_internals(self, x):
+
         assert len(x) == self.dims
         self._coords = x[:self._dims]
 
@@ -431,7 +435,7 @@ class ZMatrix(CoordSys):
     def set_internals(self, internals):
         """Update stored list of variable values."""
 
-        internals = numpy.array(internals[0:self._dims])
+        #internals = numpy.array(internals[0:self._dims])
         CoordSys.set_internals(self, internals)
 
         for i, var in zip( internals[0:self._dims], self.var_names ):
@@ -502,17 +506,18 @@ class ZMatrix(CoordSys):
         return xyz_coords
 
 class ComplexCoordSys(CoordSys):
-    """Object to support the combining of multiple CoordSys objects into one."""
+    """Object to support the combination of multiple CoordSys objects into one."""
 
     def __init__(self, sub_parts):
         self._parts = sub_parts
 
         parents = numpy.array([p._anchor != None for p in self._parts])
         anchors = numpy.array([p.wants_anchor != None for p in self._parts])
-        if not (parents & anchors):
+        if not (parents & anchors).all():
             raise ComplexCoordSysException("Not all objects that need one have an anchor, and/or some that don't need one have one.")
 
-        atom_symbols = [p.get_chemical_symbols() for p in self._parts]
+        l_join = lambda a, b: a + b
+        atom_symbols = reduce(l_join, [p.get_chemical_symbols() for p in self._parts])
 
         cart_coords = self.get_cartesians()
         abstract_coords = numpy.hstack([p.get_internals() for p in self._parts])
@@ -528,7 +533,7 @@ class ComplexCoordSys(CoordSys):
 
     def set_internals(self, x):
 
-        CoordSys.set_internals(self, internals)
+        CoordSys.set_internals(self, x)
 
         i = 0
         for p in self._parts:
@@ -595,7 +600,7 @@ class ComplexCoordSysException(Exception):
 class ZMatrixException(Exception):
     def __init__(self, msg):
         self.msg = msg
-    def __str__(self, msg):
+    def __str__(self):
         return self.msg
 
 
