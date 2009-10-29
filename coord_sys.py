@@ -3,9 +3,12 @@ import re
 import ase
 from ase import Atoms
 import numpy
-import common
 import threading
 import numerical
+import os
+
+
+import common
 
 class Anchor(object):
     def __init__(self, initial):
@@ -64,28 +67,29 @@ class RotAndTrans(Anchor):
         quaternion = self.coords[0:4]
         trans_vec  = self.coords[4:]
 
+        # TODO: need to normalise?
         rot_mat = self.quaternion2rot_mat(quaternion)
 
-#        print "rot_mat",rot_mat
         transform = lambda vec3d: numpy.dot(rot_mat, vec3d) + trans_vec
         res = numpy.array(map(transform, carts))
-#        print "res", res
 
         if self._parent != None:
             res += self._parent.get_centroid()
 
         return res
 
-    def something(self):
-        pass
-
 class CoordSys(object):
     """Abstract coordinate system. Sits on top of an ASE Atoms object."""
 
-    def __init__(self, atom_symbols, atom_xyzs, abstract_coords, anchor=Dummy()):
+    def __init__(self, atom_symbols, atom_xyzs, abstract_coords, anchor=Dummy(), cell=None, pbc=None):
 
         self._dims = len(abstract_coords)
         self._atoms = Atoms(symbols=atom_symbols, positions=atom_xyzs)
+        if cell:
+            self._atoms.set_cell(cell)
+        if pbc:
+            self._atoms.set_pbc(pbc)
+
         self._state_lock = threading.RLock()
 
         self._anchor=anchor
@@ -97,6 +101,32 @@ class CoordSys(object):
     @property
     def dims(self):
         return self._dims + self._anchor.dims
+
+    def __getstate__(self):
+        odict = self.__dict__.copy()
+        del odict["_atoms"]
+        del odict["_state_lock"]
+
+        # create a string representing the atoms object using the ASE io functionality
+        tmp = os.tmpnam()
+        ase.write(tmp, self._atoms, format="traj")
+        f = open(tmp, "rb")
+        odict["pickled_atoms"] = f.read()
+        f.close()
+
+        return odict
+
+    def __setstate__(self, idict):
+        pickled_atoms = idict.pop("pickled_atoms")
+
+        self.__dict__.update(idict)
+
+        tmp = os.tmpnam()
+        f = open(tmp, mode="wb")
+        f.write(pickled_atoms)
+        f.close()
+        self._atoms = ase.read(tmp, format="traj")
+        self._state_lock = threading.RLock()
 
     def get_positions(self):
         """ASE style interface function"""
@@ -143,13 +173,19 @@ class CoordSys(object):
     def get_internals(self):
         return numpy.hstack([self._coords.copy(), self._anchor.coords])
 
+    def apply_constraint(self, vec):
+        return vec
+
     def get_forces(self, flat=False):
         cart_pos = self.get_cartesians()
         self._atoms.set_positions(cart_pos)
 
         forces_cartesian = self._atoms.get_forces().flatten()
         transform_matrix, errors = self.get_transform_matrix(self._coords)
+        #TODO: test magnitude of errors
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
+        
+        forces_coord_sys = self.apply_constraint(forces_coord_sys)
 
         if flat:
             return forces_coord_sys

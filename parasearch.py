@@ -256,6 +256,7 @@ def neb_calc(mol_interface, calc_man, reagent_coords, params):
     dump_beads(mol_interface, neb, params)
     dump_steps(neb)
 
+    # callback function
     mycb = lambda x: generic_callback(x, mol_interface, neb, params)
 
     print "Launching optimiser..."

@@ -1,6 +1,7 @@
 import sys
 import unittest
 import os
+import pickle
 
 import numpy
 import ase
@@ -179,7 +180,7 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
 
     def test_ComplexCoordSys(self):
 
-        x    = cs.XYZ(file2str("H2.xyz"))
+        x = cs.XYZ(file2str("H2.xyz"))
 
         a_h2o1 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,3.,1.,1.]), parent=x)
         a_h2o2 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,1.,1.]), parent=x)
@@ -228,6 +229,65 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
 
         ase.view(list)
 
+    def test_CoordSys_pickling(self):
+
+        print "Creating a Z-matrix, pickling it, then performing an dientical"
+        print "optimisation on each one, then checking that the forces are identical."
+        calc = ase.EMT()
+
+        z1 = cs.ZMatrix(file2str("butane1.zmt"))
+
+        s = pickle.dumps(z1)
+        z1.set_calculator(calc)
+        opt = ase.LBFGS(z1)
+        opt.run(steps=4)
+
+        forces1 = z1.get_forces()
+
+        z2 = pickle.loads(s)
+        z2.set_calculator(calc)
+
+        opt = ase.LBFGS(z2)
+        opt.run(steps=4)
+
+        forces2 = z2.get_forces()
+        self.assert_((forces1 == forces2).all())
+
+    def test_ComplexCoordSys_pickling(self):
+      
+        calc = ase.EMT()
+
+        x = cs.XYZ(file2str("H2.xyz"))
+        a = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,3.,1.,1.]), parent=x)
+        z = cs.ZMatrix(file2str("butane1.zmt"), anchor=a)
+
+        parts = [x, z]
+
+        ccs = cs.ComplexCoordSys(parts)
+        ccs.set_calculator(calc)
+        forces0 = ccs.get_forces()
+
+        ccs_pickled = pickle.loads(pickle.dumps(ccs))
+        ccs_pickled.set_calculator(calc)
+
+        forces_pickled0 = ccs.get_forces()
+
+        dyn = ase.LBFGS(ccs_pickled)
+        dyn.run(steps=3)
+
+        forces_pickled1 = ccs_pickled.get_forces()
+
+        dyn = ase.LBFGS(ccs)
+        dyn.run(steps=3)
+
+        forces1 = ccs.get_forces()
+
+        self.assert_((forces0 == forces_pickled0).all())
+        self.assert_((forces1 == forces_pickled1).all())
+        self.assert_((forces0 != forces1).any())
+
+
+
     def test_to_xyz_conversion(self):
         pass
 
@@ -235,6 +295,6 @@ def suite():
     return unittest.TestLoader().loadTestsFromTestCase(TestZMatrixAndAtom)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestZMatrixAndAtom("test_ComplexCoordSys")]))
+    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestZMatrixAndAtom("test_ComplexCoordSys_pickling")]))
 
 
