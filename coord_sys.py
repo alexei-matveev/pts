@@ -208,9 +208,9 @@ class CoordSys(object):
 
     def set_internals(self, x):
 
-        print len(x)
+        """print len(x)
         print self._exclusions_count
-        print self.dims
+        print self.dims"""
             
         assert len(x) == self.dims
         x = self._demask(x)
@@ -230,8 +230,8 @@ class CoordSys(object):
 
     def get_internals(self):
         raw = numpy.hstack([self._coords.copy(), self._anchor.coords])
-
         masked = self._mask(raw)
+        return masked
 
     def apply_constraints(self, vec):
         return vec

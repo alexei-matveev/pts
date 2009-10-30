@@ -193,7 +193,7 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
         parts = [x, h2o1, h2o2, ch4]
 
         ccs = cs.ComplexCoordSys(parts)
-        ccs.set_calculator(ase.EMT()) #aof.ase_gau.Gaussian())
+        ccs.set_calculator(aof.ase_gau.Gaussian())
 
         dyn = ase.LBFGS(ccs)
 
