@@ -193,7 +193,7 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
         parts = [x, h2o1, h2o2, ch4]
 
         ccs = cs.ComplexCoordSys(parts)
-        ccs.set_calculator(aof.ase_gau.Gaussian())
+        ccs.set_calculator(ase.EMT()) #aof.ase_gau.Gaussian())
 
         dyn = ase.LBFGS(ccs)
 
@@ -201,6 +201,7 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
         for i in range(20):
             list.append(ccs.atoms.copy())
             dyn.run(steps=1,fmax=0.01)
+            print "Quaternion norms:", a_h2o1.qnorm, a_h2o2.qnorm, a_ch4.qnorm
 
         list.append(ccs.atoms.copy())
 
@@ -295,6 +296,6 @@ def suite():
     return unittest.TestLoader().loadTestsFromTestCase(TestZMatrixAndAtom)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestZMatrixAndAtom("test_ComplexCoordSys_pickling")]))
+    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestZMatrixAndAtom("test_ComplexCoordSys")]))
 
 

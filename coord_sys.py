@@ -50,6 +50,10 @@ class RotAndTrans(Anchor):
 
         self._coords = initial
 
+    @property
+    def qnorm(self):
+        return numpy.linalg.norm(self.coords[0:4])
+
     def quaternion2rot_mat(self, quaternion):
         """See http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation"""
         a,b,c,d = quaternion
@@ -97,11 +101,13 @@ class CoordSys(object):
         # TODO: recently added, watch that this is ok
         self._coords = abstract_coords.copy()
 
+        self._var_mask = None
+        self._exclusions_count = 0
 
-    @property
-    def dims(self):
-        return self._dims + self._anchor.dims
+    def get_dims(self):
+        return self._dims + self._anchor.dims - self._exclusions_count
 
+    dims = property(get_dims)
     def __getstate__(self):
         odict = self.__dict__.copy()
         del odict["_atoms"]
@@ -128,12 +134,16 @@ class CoordSys(object):
         self._atoms = ase.read(tmp, format="traj")
         self._state_lock = threading.RLock()
 
+    def __getattr__(self, a):
+        """Properties not available in this object are brought through from the Atoms object."""
+        """if a in self.__dict__:
+            return self.__dict__[a]
+        else:"""
+        return self._atoms.__getattribute__(a)
+
     def get_positions(self):
         """ASE style interface function"""
         return common.make_like_atoms(self._coords)
-
-    def get_chemical_symbols(self):
-        return self._atoms.get_chemical_symbols()
 
     def get_centroid(self):
         c = numpy.zeros(3)
@@ -148,15 +158,63 @@ class CoordSys(object):
 
     def set_positions(self, x):
         assert x.shape[1] == 3
-        #assert x.shape[0] == self._dims
 
         self.set_internals(x.flatten()[0:self.dims])
-        #print "set_positions: self._coords", self._coords
         assert len(self._coords) >= self._dims
+
+    def set_var_mask(self, mask):
+        """Sets a variable exclusion mask. Only include variables that are True."""
+
+        assert type(mask) == numpy.ndarray
+        assert mask.dtype == bool
+        assert len(mask) == len(self._coords)
+
+        self._exclusions_count = len(mask) - sum(mask)
+        self._var_mask = mask.copy()
+
+
+    def _demask(self, x):
+        """Builds a vector to replace the current internal state vector, that 
+        will only update those elements which specified by the mask."""
+        if not self._var_mask:
+            return x
+
+        newx = self._coords.copy()
+        j = 0
+        for m, xi in zip (self._var_mask, x):
+            if m:
+                newx[j] = xi
+                j += 1
+
+        assert j == len(x)
+        return newx
+        
+    def _mask(self, x):
+        """Builds a vector of internal variables by only including those that 
+        are specified."""
+        if not self._var_mask:
+            return x
+
+        j = 0
+        output = numpy.zeros(self._dims - self._exclusions_count)
+        for m, xi in zip (self._var_mask, x):
+            if m:
+                output[j] = xi
+                j += 1
+
+        assert j == self._dims - self._exclusions_count
+
+        return output
 
     def set_internals(self, x):
 
+        print len(x)
+        print self._exclusions_count
+        print self.dims
+            
         assert len(x) == self.dims
+        x = self._demask(x)
+
         self._coords = x[:self._dims]
 
         anchor_coords = x[self._dims:]
@@ -171,9 +229,11 @@ class CoordSys(object):
         assert False, "Abstract function"
 
     def get_internals(self):
-        return numpy.hstack([self._coords.copy(), self._anchor.coords])
+        raw = numpy.hstack([self._coords.copy(), self._anchor.coords])
 
-    def apply_constraint(self, vec):
+        masked = self._mask(raw)
+
+    def apply_constraints(self, vec):
         return vec
 
     def get_forces(self, flat=False):
@@ -185,7 +245,7 @@ class CoordSys(object):
         #TODO: test magnitude of errors
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
         
-        forces_coord_sys = self.apply_constraint(forces_coord_sys)
+        forces_coord_sys = self.apply_constraints(forces_coord_sys)
 
         if flat:
             return forces_coord_sys
