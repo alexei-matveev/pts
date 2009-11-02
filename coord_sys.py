@@ -24,10 +24,14 @@ class Anchor(object):
     def get(self):
         return self._coords
 
+    def get_dims(self):
+        return self._dims
+    dims = property(get_dims)
+
     coords = property(get, set)
 
 class Dummy(Anchor):
-    dims = 0
+    _dims = 0
     def __init__(self, initial=numpy.array([])):
         Anchor.__init__(self, initial)
         self._coords = numpy.array([])
@@ -36,7 +40,7 @@ class Dummy(Anchor):
         return x
 
 class RotAndTrans(Anchor):
-    dims = 7
+    _dims = 7
 
     def __init__(self, initial, parent = None):
         Anchor.__init__(self, initial)
@@ -143,7 +147,7 @@ class CoordSys(object):
 
     def get_positions(self):
         """ASE style interface function"""
-        return common.make_like_atoms(self._coords)
+        return common.make_like_atoms(self._mask(self._coords))
 
     def get_centroid(self):
         c = numpy.zeros(3)
@@ -159,6 +163,8 @@ class CoordSys(object):
     def set_positions(self, x):
         assert x.shape[1] == 3
 
+        #demasked = self._demask(x.flatten()[0:)
+
         self.set_internals(x.flatten()[0:self.dims])
         assert len(self._coords) >= self._dims
 
@@ -167,7 +173,8 @@ class CoordSys(object):
 
         assert type(mask) == numpy.ndarray
         assert mask.dtype == bool
-        assert len(mask) == len(self._coords)
+        print len(mask), self.dims
+        assert len(mask) == self.dims
 
         self._exclusions_count = len(mask) - sum(mask)
         self._var_mask = mask.copy()
@@ -176,47 +183,51 @@ class CoordSys(object):
     def _demask(self, x):
         """Builds a vector to replace the current internal state vector, that 
         will only update those elements which specified by the mask."""
-        if not self._var_mask:
+        if self._var_mask == None:
             return x
 
-        newx = self._coords.copy()
+        newx = numpy.hstack([self._coords.copy(), self._anchor.coords])
         j = 0
-        for m, xi in zip (self._var_mask, x):
+        assert len(self._var_mask,) == len(newx)
+        for m, xi in zip (self._var_mask, newx):
             if m:
                 newx[j] = xi
                 j += 1
 
+        print "a",j, len(x)
         assert j == len(x)
         return newx
         
     def _mask(self, x):
         """Builds a vector of internal variables by only including those that 
         are specified."""
-        if not self._var_mask:
+        if self._var_mask == None:
             return x
 
         j = 0
-        output = numpy.zeros(self._dims - self._exclusions_count)
+        output = numpy.zeros(self.dims)
+        print "self._var_mask, x", self._var_mask, x
+        assert len(self._var_mask) == len(x)
         for m, xi in zip (self._var_mask, x):
             if m:
                 output[j] = xi
                 j += 1
 
-        assert j == self._dims - self._exclusions_count
+        assert j == self.dims
 
         return output
 
     def set_internals(self, x):
 
-        """print len(x)
-        print self._exclusions_count
-        print self.dims"""
+        #print len(x)
+        #print self._exclusions_count
+        #print self.dims
             
         assert len(x) == self.dims
+        print x
         x = self._demask(x)
 
         self._coords = x[:self._dims]
-
         anchor_coords = x[self._dims:]
         self._anchor.coords = anchor_coords
 
@@ -241,16 +252,20 @@ class CoordSys(object):
         self._atoms.set_positions(cart_pos)
 
         forces_cartesian = self._atoms.get_forces().flatten()
-        transform_matrix, errors = self.get_transform_matrix(self._coords)
+        print "self._mask(self._coords)", self._mask(self._coords)
+        print "self._coords",self._coords
+        transform_matrix, errors = self.get_transform_matrix(self._mask(self._coords))
         #TODO: test magnitude of errors
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
         
         forces_coord_sys = self.apply_constraints(forces_coord_sys)
 
+        forces_masked = forces_coord_sys#self._mask(forces_coord_sys)
+
         if flat:
-            return forces_coord_sys
+            return forces_masked
         else:
-            return common.make_like_atoms(forces_coord_sys)
+            return common.make_like_atoms(forces_masked)
     
     def get_potential_energy(self):
 
@@ -298,7 +313,7 @@ class CoordSys(object):
         is updated."""
 
         with self._state_lock:
-            old_x = self._coords.copy()
+            old_x = self._mask(self._coords)
 
             self.set_internals(x)
             y = self.get_cartesians()
@@ -445,7 +460,6 @@ class ZMatrix(CoordSys):
         self.var_names = re.findall(r"(\w+).*?\n", variables_text)
         coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
         self._coords = numpy.array([float(c) for c in coords])
-        #print "self._coords", self._coords
     
         # Create data structure of atoms. There is both an ordered list and an 
         # unordered dictionary with atom index as the key.
@@ -627,14 +641,29 @@ class ComplexCoordSys(CoordSys):
         ilist = [p.get_internals() for p in self._parts]
         return numpy.hstack(ilist)
 
+    def set_var_mask(self, m):
+        CoordSys.set_var_mask(self, m)
+
+        i = 0
+        for p in self._parts:
+            #print "p.dims:",p.dims
+            p_old_dims = p.dims
+            p.set_var_mask(m[i:i + p_old_dims])
+            i += p_old_dims
+
+        assert i == len(m)
+
     def set_internals(self, x):
 
         CoordSys.set_internals(self, x)
 
         i = 0
         for p in self._parts:
+            #print "p.dims:",p.dims
             p.set_internals(x[i:i + p.dims])
             i += p.dims
+
+        assert i == self.dims
 
     def get_cartesians(self):
         carts = [p.get_cartesians() for p in self._parts]

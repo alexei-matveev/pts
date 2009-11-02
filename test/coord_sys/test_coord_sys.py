@@ -207,6 +207,61 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
 
         ase.view(list)
 
+    def form_ccs(self):
+        """Forms a complex coordinate system object from a few bits and pieces."""
+        x = cs.XYZ(file2str("H2.xyz"))
+
+        a_h2o1 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,3.,1.,1.]), parent=x)
+        a_h2o2 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,1.,1.]), parent=x)
+        a_ch4  = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,-1.,1.]), parent=x)
+
+        h2o1 = cs.ZMatrix(file2str("H2O.zmt"), anchor=a_h2o1)
+        h2o2 = cs.ZMatrix(file2str("H2O.zmt"), anchor=a_h2o2)
+        ch4  = cs.ZMatrix(file2str("CH4.zmt"), anchor=a_ch4)
+
+        parts = [x, h2o1, h2o2, ch4]
+
+        ccs = cs.ComplexCoordSys(parts)
+
+        return ccs, x, h2o1, h2o2, ch4, a_h2o1, a_h2o2, a_ch4
+
+    def test_ComplexCoordSys_var_mask(self):
+
+        print "Running tests with masking of variables"
+
+        #ch4  = cs.ZMatrix(file2str("CH4.zmt"))
+        ccs, x, h2o1, h2o2, ch4, a_h2o1, a_h2o2, a_ch4 = self.form_ccs()
+
+        ccs.set_calculator(aof.ase_gau.Gaussian())
+
+        m = [True for i in range(0)] + [True for i in range(ccs.dims)]
+        parts = [x, h2o1, a_h2o1, h2o2, a_h2o2, ch4, a_ch4]
+        dims = [p._dims for p in parts]
+        print dims
+        torf = lambda d, f: [f for i in range(d)]
+        fs = [False, True, True, True, False, False, False]
+        m1 = [torf(d,f) for d,f in zip(dims, fs)]
+
+        print m1
+        m = [m_ for d,f in zip(dims, fs) for m_ in torf(d,f)]
+
+        print m
+        
+        mask = numpy.array(m)
+        ccs.set_var_mask(mask)
+
+        dyn = ase.LBFGS(ccs)
+
+        list = []
+        for i in range(20):
+            list.append(ccs.atoms.copy())
+            dyn.run(steps=1,fmax=0.01)
+            print "Quaternion norms:", a_h2o1.qnorm, a_h2o2.qnorm, a_ch4.qnorm
+
+        list.append(ccs.atoms.copy())
+
+        ase.view(list)
+
     def test_ComplexCoordSys2(self):
 
         x = cs.XYZ(file2str("H2.xyz"))
@@ -296,6 +351,6 @@ def suite():
     return unittest.TestLoader().loadTestsFromTestCase(TestZMatrixAndAtom)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestZMatrixAndAtom("test_ComplexCoordSys")]))
+    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestZMatrixAndAtom("test_ComplexCoordSys_var_mask")]))
 
 
