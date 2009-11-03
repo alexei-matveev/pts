@@ -207,7 +207,25 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
 
         ase.view(list)
 
-    def form_ccs(self):
+    def form_ccs1(self):
+        """Forms a complex coordinate system object from a few bits and pieces."""
+        x = cs.XYZ(file2str("H2.xyz"))
+
+        a_h2o1 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,3.,1.,1.]), parent=x)
+#        a_h2o2 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,1.,1.]), parent=x)
+#        a_ch4  = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,-1.,1.]), parent=x)
+
+        h2o1 = cs.ZMatrix(file2str("H2O.zmt"), anchor=a_h2o1)
+#        h2o2 = cs.ZMatrix(file2str("H2O.zmt"), anchor=a_h2o2)
+#        ch4  = cs.ZMatrix(file2str("CH4.zmt"), anchor=a_ch4)
+
+        parts = [x, h2o1] #, h2o2, ch4]
+
+        ccs = cs.ComplexCoordSys(parts)
+
+        return ccs, x, h2o1, a_h2o1#, h2o2, ch4, a_h2o2, a_ch4
+
+    def form_ccs2(self):
         """Forms a complex coordinate system object from a few bits and pieces."""
         x = cs.XYZ(file2str("H2.xyz"))
 
@@ -219,27 +237,133 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
         h2o2 = cs.ZMatrix(file2str("H2O.zmt"), anchor=a_h2o2)
         ch4  = cs.ZMatrix(file2str("CH4.zmt"), anchor=a_ch4)
 
-        parts = [x, h2o1, h2o2, ch4]
+        parts = [x, h2o1] #, h2o2, ch4]
 
         ccs = cs.ComplexCoordSys(parts)
 
-        return ccs, x, h2o1, h2o2, ch4, a_h2o1, a_h2o2, a_ch4
+        return ccs, x, h2o1, a_h2o1, h2o2, ch4, a_h2o2, a_ch4
 
-    def test_ComplexCoordSys_var_mask(self):
+    def form_ccs_waters(self, n):
+        """Forms a ComplexCoordSys object with n water molecules with random orientations."""
+
+        from random import random
+
+        r = numpy.arange(numpy.ceil(n**0.333))
+        water_positions = [numpy.array([x,y,z]) for x in r for y in r for z in r]
+        water_positions = water_positions[:n]
+        print water_positions
+        
+        parts   = []
+        var_types = ""
+        for pos in water_positions:
+            rs = [random() for i in range(4)]
+            quat = numpy.array(rs)
+            quat = quat / numpy.linalg.norm(quat)
+            gps = numpy.hstack([quat, pos*3])
+            a = cs.RotAndTrans(gps)
+            h2o = cs.ZMatrix(file2str("H2O.zmt"), anchor=a)
+
+            parts.append(h2o)
+
+            # setup mask to identify nature of variables later
+            var_types += "".join(["i" for j in range(h2o._dims)])
+            var_types += "rrrrppp"
+
+        ccs = cs.ComplexCoordSys(parts)
+
+        return ccs, var_types
+
+
+    def test_var_mask_big_water_opt(self):
+
+        print "Running optimisation tests with masking of variables:"
+        print "    Lots of water molecules with internal and rotational coordinates frozen."
+
+        ccs, var_types = self.form_ccs_waters(16)
+
+        def gen_mask(c):
+            if c == 'i':
+                return False
+            elif c == 'r':
+                return False
+            elif c == 'p':
+                return True
+            else:
+                raise False
+
+        mask = map(gen_mask, var_types)
+        ccs.set_var_mask(mask)
+        ccs.set_calculator(ase.EMT()) #aof.ase_gau.Gaussian(nprocs=2))
+#        ccs.set_calculator(aof.ase_gau.Gaussian(nprocs=2))
+
+        opt = ase.LBFGS(ccs)
+        list = []
+        for i in range(8):
+            opt.run(steps=1,fmax=0.0)
+            list.append(ccs.atoms.copy())
+
+        ase.view(list)
+
+
+    def test_var_mask_basic(self):
+
+        print "Running basic tests with masking of variables"
+
+        ccs1, _, _, _ = self.form_ccs1()
+        ccs2, _, _, _, _, _, _, _ = self.form_ccs2()
+        benzyl = cs.ZMatrix(file2str("benzyl.zmt"))
+
+        sys_list = [ccs1, ccs2, benzyl]
+
+        tf = lambda i: i % 2 == 0
+        for sys in sys_list:
+            mask = map(tf, range(sys.dims))
+
+            sys.set_var_mask(mask)
+
+            # check that computed dimensionality is correct
+            self.assert_(sum(sys._var_mask) == sys.dims)
+
+            # check that masking/demasking is ok
+            self.assert_((sys._coords == sys._demask(sys.get_internals())).all())
+            should_be = sys._demask(sys._mask(sys._coords))
+            self.assert_((sys._coords == should_be).all())
+
+            # check that state is not altered by a few function calls
+            before = sys._coords.copy()
+            sys.int2cart(sys.get_internals())
+            after = sys._coords.copy()
+            self.assert_((before == after).all())
+
+            # play with state, check that forces don't change
+            sys.set_calculator(ase.EMT())
+            f1 = sys.get_forces()
+            before = sys.get_internals()
+            sys.set_internals(before*1.2)
+
+            sys.get_forces()
+
+            sys.set_internals(before)
+            f2 = sys.get_forces()
+
+            self.assert_((f1 == f2).all())
+
+
+    def test_ComplexCoordSys_var_mask_opt(self):
 
         print "Running tests with masking of variables"
 
         #ch4  = cs.ZMatrix(file2str("CH4.zmt"))
-        ccs, x, h2o1, h2o2, ch4, a_h2o1, a_h2o2, a_ch4 = self.form_ccs()
+        ccs, x, h2o1, a_h2o1 = self.form_ccs1()#, h2o2, ch4, a_h2o2, a_ch4 = self.form_ccs()
 
-        ccs.set_calculator(aof.ase_gau.Gaussian())
+        ccs.set_calculator(aof.ase_gau.Gaussian(nprocs=2))
 
-        m = [True for i in range(0)] + [True for i in range(ccs.dims)]
-        parts = [x, h2o1, a_h2o1, h2o2, a_h2o2, ch4, a_ch4]
+        #m = [True for i in range(0)] + [True for i in range(ccs.dims)]
+        parts = [x, h2o1, a_h2o1]#, h2o2, a_h2o2, ch4, a_ch4]
         dims = [p._dims for p in parts]
         print dims
         torf = lambda d, f: [f for i in range(d)]
-        fs = [False, True, True, True, False, False, False]
+        fs = [False, False, True]#, True, False, False, False]
         m1 = [torf(d,f) for d,f in zip(dims, fs)]
 
         print m1
@@ -250,13 +374,31 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
         mask = numpy.array(m)
         ccs.set_var_mask(mask)
 
+        self.assert_(sum(ccs._var_mask) == ccs.dims)
+
+        self.assertAlmostEqualVec(ccs._coords, ccs._demask(ccs.get_internals()))
+
+        before = ccs._coords.copy()
+        print ccs.int2cart(ccs.get_internals())
+        after = ccs._coords.copy()
+        self.assert_((before == after).all())
+
+        print "_coords", ccs._coords
+
+        ase.view(ccs.atoms)
+        print "_coords", ccs._coords
+
+        print ccs.get_internals()
+
+        ase.view(ccs.atoms)
+
         dyn = ase.LBFGS(ccs)
 
         list = []
         for i in range(20):
             list.append(ccs.atoms.copy())
             dyn.run(steps=1,fmax=0.01)
-            print "Quaternion norms:", a_h2o1.qnorm, a_h2o2.qnorm, a_ch4.qnorm
+#            print "Quaternion norms:", a_h2o1.qnorm, a_h2o2.qnorm, a_ch4.qnorm
 
         list.append(ccs.atoms.copy())
 
@@ -351,6 +493,6 @@ def suite():
     return unittest.TestLoader().loadTestsFromTestCase(TestZMatrixAndAtom)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestZMatrixAndAtom("test_ComplexCoordSys_var_mask")]))
+    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestZMatrixAndAtom("test_var_mask_big_water_opt")]))
 
 

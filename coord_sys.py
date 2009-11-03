@@ -46,11 +46,13 @@ class RotAndTrans(Anchor):
         Anchor.__init__(self, initial)
         self._parent = parent
 
+        initial = numpy.array(initial)
+
         quaternion = initial[:4]
         n = numpy.linalg.norm(quaternion)
-        if abs(n - 1.0) > 0.001:
+        if abs(n - 1.0) > 0.01:
             msg = "Initial value for quaternion was " + str(quaternion) + ", norm was " + str(n)
-            raise ComplexCoordSysException()
+            raise ComplexCoordSysException(msg)
 
         self._coords = initial
 
@@ -107,6 +109,10 @@ class CoordSys(object):
 
         self._var_mask = None
         self._exclusions_count = 0
+
+    def __str__(self):
+        s = '\n'.join([self.__class__.__name__, str(self._coords), str(self._var_mask)])
+        return s
 
     def get_dims(self):
         return self._dims + self._anchor.dims - self._exclusions_count
@@ -171,14 +177,12 @@ class CoordSys(object):
     def set_var_mask(self, mask):
         """Sets a variable exclusion mask. Only include variables that are True."""
 
-        assert type(mask) == numpy.ndarray
+        mask = numpy.array(mask)
         assert mask.dtype == bool
-        print len(mask), self.dims
         assert len(mask) == self.dims
 
         self._exclusions_count = len(mask) - sum(mask)
         self._var_mask = mask.copy()
-
 
     def _demask(self, x):
         """Builds a vector to replace the current internal state vector, that 
@@ -189,12 +193,11 @@ class CoordSys(object):
         newx = numpy.hstack([self._coords.copy(), self._anchor.coords])
         j = 0
         assert len(self._var_mask,) == len(newx)
-        for m, xi in zip (self._var_mask, newx):
+        for i, m in enumerate(self._var_mask):
             if m:
-                newx[j] = xi
+                newx[i] = x[j]
                 j += 1
 
-        print "a",j, len(x)
         assert j == len(x)
         return newx
         
@@ -205,8 +208,7 @@ class CoordSys(object):
             return x
 
         j = 0
-        output = numpy.zeros(self.dims)
-        print "self._var_mask, x", self._var_mask, x
+        output = numpy.zeros(self.dims) * numpy.nan
         assert len(self._var_mask) == len(x)
         for m, xi in zip (self._var_mask, x):
             if m:
@@ -214,17 +216,15 @@ class CoordSys(object):
                 j += 1
 
         assert j == self.dims
+        assert not numpy.isnan(output).any()
 
         return output
 
     def set_internals(self, x):
 
-        #print len(x)
-        #print self._exclusions_count
-        #print self.dims
-            
+        assert not numpy.isnan(x).any()
+
         assert len(x) == self.dims
-        print x
         x = self._demask(x)
 
         self._coords = x[:self._dims]
@@ -252,10 +252,9 @@ class CoordSys(object):
         self._atoms.set_positions(cart_pos)
 
         forces_cartesian = self._atoms.get_forces().flatten()
-        print "self._mask(self._coords)", self._mask(self._coords)
-        print "self._coords",self._coords
         transform_matrix, errors = self.get_transform_matrix(self._mask(self._coords))
         #TODO: test magnitude of errors
+        #print "transform_matrix", transform_matrix
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
         
         forces_coord_sys = self.apply_constraints(forces_coord_sys)
@@ -282,9 +281,6 @@ class CoordSys(object):
     def atoms(self):
         self._atoms.positions = self.get_cartesians()
         return self._atoms
-
-    #def set_atoms(self, atoms):
-    #    self._atoms = atoms
 
     def xyz_str(self):
         """Returns an xyz format molecular representation in a string."""
@@ -407,7 +403,7 @@ class ZMTAtom():
                 return float(varstr)
         return varstr
 
-    def __str__(self):
+    def __repr__(self):
         mystr = self.name
         if self.a != None:
             mystr += " " + str(self.a) + " " + str(self.dst)
@@ -639,9 +635,11 @@ class ComplexCoordSys(CoordSys):
 
     def get_internals(self):
         ilist = [p.get_internals() for p in self._parts]
-        return numpy.hstack(ilist)
+        iarray = numpy.hstack(ilist)
 
-    def set_var_mask(self, m):
+        return self._mask(iarray)
+
+    """def set_var_mask(self, m):
         CoordSys.set_var_mask(self, m)
 
         i = 0
@@ -651,19 +649,20 @@ class ComplexCoordSys(CoordSys):
             p.set_var_mask(m[i:i + p_old_dims])
             i += p_old_dims
 
-        assert i == len(m)
+        assert i == len(m)"""
 
     def set_internals(self, x):
+        
 
         CoordSys.set_internals(self, x)
+        x = self._demask(x)
 
         i = 0
         for p in self._parts:
-            #print "p.dims:",p.dims
             p.set_internals(x[i:i + p.dims])
             i += p.dims
 
-        assert i == self.dims
+        assert i == self.dims + self._exclusions_count
 
     def get_cartesians(self):
         carts = [p.get_cartesians() for p in self._parts]
