@@ -633,6 +633,16 @@ class ComplexCoordSys(CoordSys):
             cart_coords, 
             abstract_coords)
 
+        # list of names of all constituent vars
+        list = [p.var_names for p in self._parts]
+        self.var_names = [n for ns in list for n in ns]
+
+        # list of all dihedral vars
+        addicts = lambda x,y: x.entend(y)
+        list = [p.dih_vars for p in self._parts]
+        self.dih_vars = reduce(addicts, list)
+
+
     def get_internals(self):
         ilist = [p.get_internals() for p in self._parts]
         iarray = numpy.hstack(ilist)
@@ -688,10 +698,16 @@ class XYZ(CoordSys):
             self._coords.reshape(-1,3), 
             self._coords)
 
+        self.dih_vars = dict()
+
     def wants_anchor(self):
         return False
     def get_transform_matrix(self, x):
         return numpy.eye(self._dims), 0
+
+    def get_var_names(self):
+        return ["<cart>" for i in range(self.dims)]]
+    var_names = property(get_var_names)
 
     def get_cartesians(self):
         return self._coords.reshape(-1,3)
