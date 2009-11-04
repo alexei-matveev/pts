@@ -11,7 +11,17 @@ import aof.coord_sys as cs
 import aof.common as common
 from aof.common import file2str
 
-print "__file__", __file__
+# whether to perform tests quickly
+quick = True
+
+# whether to perform visual tests, requiring user interaction
+visual = False
+
+def test_calc(**kwargs):
+    if quick:
+        return ase.EMT()
+    else:
+        return aof.aof.ase_gau.Gaussian(**kwargs)
 
 def geom_str_summ(s,n=2):
     """Summarises a string containing a molecular geometry so that very similar 
@@ -29,13 +39,13 @@ def geom_str_summ(s,n=2):
     return summary
 
 
-class TestZMatrixAndAtom(aof.test.MyTestCase):
+class TestComplexCoordSys(aof.test.MyTestCase):
 
     def setUp(self):
         self.original_dir = os.getcwd()
         new_dir = os.path.dirname(__file__)
         if new_dir != '':
-            os.chdir()
+            os.chdir(new_dir)
 
     
     def tearDown(self):
@@ -138,18 +148,24 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
 
         string_rep = z.xyz_str()
 
-        z.set_calculator(ase.EMT())
+        z.set_calculator(test_calc())
         dyn = ase.LBFGS(z)
 
         print "Running z-matrix optimisation"
         dyn.run(steps=5)
 
+        e1 = z.get_potential_energy()
+
         xyz = cs.XYZ(string_rep)
-        xyz.set_calculator(ase.EMT())
+        xyz.set_calculator(test_calc())
         dyn = ase.LBFGS(xyz)
 
         print "Running cartesian optimisation"
         dyn.run(steps=5)
+
+        e2 = xyz.get_potential_energy()
+
+        self.assert_(e1 < e2)
 
     def test_Anchoring(self):
 
@@ -176,7 +192,8 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
             a.set(numpy.hstack([q,v]))
             geoms_list.append(z.atoms.copy())
 
-        ase.view(geoms_list)
+        if visual:
+            ase.view(geoms_list)
 
     def test_ComplexCoordSys(self):
 
@@ -193,19 +210,20 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
         parts = [x, h2o1, h2o2, ch4]
 
         ccs = cs.ComplexCoordSys(parts)
-        ccs.set_calculator(aof.ase_gau.Gaussian())
+        ccs.set_calculator(test_calc())
 
         dyn = ase.LBFGS(ccs)
 
         list = []
-        for i in range(20):
+        for i in range(8):
             list.append(ccs.atoms.copy())
             dyn.run(steps=1,fmax=0.01)
             print "Quaternion norms:", a_h2o1.qnorm, a_h2o2.qnorm, a_ch4.qnorm
 
         list.append(ccs.atoms.copy())
 
-        ase.view(list)
+        if visual:
+            ase.view(list)
 
     def form_ccs1(self):
         """Forms a complex coordinate system object from a few bits and pieces."""
@@ -293,8 +311,7 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
 
         mask = map(gen_mask, var_types)
         ccs.set_var_mask(mask)
-        ccs.set_calculator(ase.EMT()) #aof.ase_gau.Gaussian(nprocs=2))
-#        ccs.set_calculator(aof.ase_gau.Gaussian(nprocs=2))
+        ccs.set_calculator(test_calc())
 
         opt = ase.LBFGS(ccs)
         list = []
@@ -302,7 +319,8 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
             opt.run(steps=1,fmax=0.0)
             list.append(ccs.atoms.copy())
 
-        ase.view(list)
+        if visual:
+            ase.view(list)
 
 
     def test_var_mask_basic(self):
@@ -336,7 +354,7 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
             self.assert_((before == after).all())
 
             # play with state, check that forces don't change
-            sys.set_calculator(ase.EMT())
+            sys.set_calculator(test_calc())
             f1 = sys.get_forces()
             before = sys.get_internals()
             sys.set_internals(before*1.2)
@@ -356,7 +374,7 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
         #ch4  = cs.ZMatrix(file2str("CH4.zmt"))
         ccs, x, h2o1, a_h2o1 = self.form_ccs1()#, h2o2, ch4, a_h2o2, a_ch4 = self.form_ccs()
 
-        ccs.set_calculator(aof.ase_gau.Gaussian(nprocs=2))
+        ccs.set_calculator(test_calc())
 
         #m = [True for i in range(0)] + [True for i in range(ccs.dims)]
         parts = [x, h2o1, a_h2o1]#, h2o2, a_h2o2, ch4, a_ch4]
@@ -385,24 +403,27 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
 
         print "_coords", ccs._coords
 
-        ase.view(ccs.atoms)
+        if visual:
+            ase.view(ccs.atoms)
         print "_coords", ccs._coords
 
         print ccs.get_internals()
 
-        ase.view(ccs.atoms)
+        if visual:
+            ase.view(ccs.atoms)
 
         dyn = ase.LBFGS(ccs)
 
         list = []
-        for i in range(20):
+        for i in range(8):
             list.append(ccs.atoms.copy())
             dyn.run(steps=1,fmax=0.01)
 #            print "Quaternion norms:", a_h2o1.qnorm, a_h2o2.qnorm, a_ch4.qnorm
 
         list.append(ccs.atoms.copy())
 
-        ase.view(list)
+        if visual:
+            ase.view(list)
 
     def test_ComplexCoordSys2(self):
 
@@ -413,7 +434,7 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
         parts = [x, z]
 
         ccs = cs.ComplexCoordSys(parts)
-        ccs.set_calculator(aof.ase_gau.Gaussian())
+        ccs.set_calculator(test_calc())
 
         print ccs.get_potential_energy()
         print ccs.get_forces()
@@ -421,29 +442,29 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
         dyn = ase.LBFGS(ccs)
 
         list = []
-        for i in range(40):
+        for i in range(8):
             dyn.run(steps=1,fmax=0.01)
             list.append(ccs.atoms.copy())
 
-        ase.view(list)
+        if visual:
+            ase.view(list)
 
     def test_CoordSys_pickling(self):
 
         print "Creating a Z-matrix, pickling it, then performing an dientical"
         print "optimisation on each one, then checking that the forces are identical."
-        calc = ase.EMT()
 
         z1 = cs.ZMatrix(file2str("butane1.zmt"))
 
         s = pickle.dumps(z1)
-        z1.set_calculator(calc)
+        z1.set_calculator(test_calc())
         opt = ase.LBFGS(z1)
         opt.run(steps=4)
 
         forces1 = z1.get_forces()
 
         z2 = pickle.loads(s)
-        z2.set_calculator(calc)
+        z2.set_calculator(test_calc())
 
         opt = ase.LBFGS(z2)
         opt.run(steps=4)
@@ -486,13 +507,12 @@ class TestZMatrixAndAtom(aof.test.MyTestCase):
 
 
 
-    def test_to_xyz_conversion(self):
-        pass
-
 def suite():
-    return unittest.TestLoader().loadTestsFromTestCase(TestZMatrixAndAtom)
+    return unittest.TestLoader().loadTestsFromTestCase(TestComplexCoordSys)
 
 if __name__ == "__main__":
+    visual = True
+    quick = False
     unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestZMatrixAndAtom("test_var_mask_big_water_opt")]))
 
 
