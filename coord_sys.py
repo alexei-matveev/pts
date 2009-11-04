@@ -128,12 +128,14 @@ class CoordSys(object):
         ase.write(tmp, self._atoms, format="traj")
         f = open(tmp, "rb")
         odict["pickled_atoms"] = f.read()
+        odict["pickled_calc"] = self._atoms.calc
         f.close()
 
         return odict
 
     def __setstate__(self, idict):
         pickled_atoms = idict.pop("pickled_atoms")
+        pickled_calc = idict.pop("pickled_calc")
 
         self.__dict__.update(idict)
 
@@ -142,6 +144,7 @@ class CoordSys(object):
         f.write(pickled_atoms)
         f.close()
         self._atoms = ase.read(tmp, format="traj")
+        self.set_calculator(pickled_calc)
         self._state_lock = threading.RLock()
 
     def __getattr__(self, a):

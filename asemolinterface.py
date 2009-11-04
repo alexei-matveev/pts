@@ -35,6 +35,7 @@ class MolInterface:
         format can be z-matrix or xyz format, but formats must be consistent."""
 
         assert len(mol_strings) > 1
+        assert "calculator" in params
 
         first = mol_strings[0]
         if csys.ZMatrix.matches(first):
@@ -67,18 +68,6 @@ class MolInterface:
         if not common.all_equal(var_names):
             raise MolInterfaceException("Input molecules did not have the same variable names.")
 
-#        self.format = formats[0]
-#        self.atoms = atoms_lists[0]
-#        self.natoms = len(atoms_lists[0])
-        """if self.format == "zmt":
-            self.var_names = var_names[0]
-            self.nvariables = len(self.var_names)
-
-            if OLD_PYBEL_CODE:
-                self.zmt_spec = molreps[0].zmt_spec
-            else:
-                self.zmatrix = zmatrix.ZMatrix(mol_strings[0])"""
-
         self.reagent_coords = [m.coords for m in molreps]
 
         # Make sure that when interpolating between the dihedral angles of reactants 
@@ -108,6 +97,9 @@ class MolInterface:
                 self.gen_placement_command = self.gen_placement_command_dplace
             else:
                 raise Exception("Use of " + params["placement_command"] + " not implemented")
+
+        self.calculator = params["calculator"]
+        self.
 
     def __str__(self):
         mystr = "format = " + self.format
@@ -140,9 +132,10 @@ class MolInterface:
 
         tmp_dir = common.get_tmp_dir()
 
-        job_base_name = "asejob" + str(self.__get_job_counter())
-        mol_pickled = os.path.join(tmp_dir, job_base_name + ".pickle")
+        job_name = "asejob" + str(self.__get_job_counter())
+        mol_pickled = os.path.join(tmp_dir, job_name + common.INPICKLE)
         ase_stdout_file = os.path.join(tmp_dir, job_base_name + ".stdout")
+        results_file = job_base_name + common.OUTPICKLE
 
         # write input file as xyz format
         coord_sys_obj = self.build_coord_sys(job.v)
@@ -150,12 +143,12 @@ class MolInterface:
         pickle.dump(coord_sys_obj, f)
         f.close()
 
-        cmd = ["python", "-m", "pickle_runner", calc_pickle, mol_pickled]
+        cmd = ["python", "-m", "pickle_runner.py", self.calc_pickle_name, job_name]
         p = Popen(cmd, stdout=open(ase_stdout_file, "w"))
 
         (pid, ret_val) = os.waitpid(p.pid, 0)
         if ret_val != 0:
-            raise MolInterfaceException("pickle_runner returned with " + str(ret_val)
+            raise MolInterfaceException("pickle_runner.py returned with " + str(ret_val)
                 + "\nwhen attempting to run " + ' '.join(cmd)
                 + "\nMake sure $PYTHONPATH contains " + sys.path[0] )
 

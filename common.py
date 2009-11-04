@@ -8,6 +8,8 @@ PROGNAME = "searcher"
 ERROR_STR = "error"
 
 LOGFILE_EXT = ".log"
+INPICKLE = ".in.pickle"
+OUTPICKLE = ".out.pickle"
 
 TMP_DIR_ENV_VAR = "AOE_TMP"
 def get_tmp_dir():
