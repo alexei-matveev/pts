@@ -709,7 +709,7 @@ class XYZ(CoordSys):
         return numpy.eye(self._dims), 0
 
     def get_var_names(self):
-        return ["<cart>" for i in range(self.dims)]]
+        return ["<cart>" for i in range(self.dims)]
     var_names = property(get_var_names)
 
     def get_cartesians(self):

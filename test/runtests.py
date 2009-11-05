@@ -7,13 +7,15 @@ import aof.test.numerical as numerical
 import aof.test.zmatrix as zmatrix
 import aof.test.searcher as searcher
 import aof.test.coord_sys as coord_sys
+import aof.test.gaussian as gaussian
 
 print "here"
 test_suites = {
-    'numerical':   numerical.suite(),
+    'numerical':    numerical.suite(),
 #    'zmatrix':  zmatrix.suite(), # superseded by coord_sys
-    'neb':      searcher.suite_neb(),
-    'coord_sys':coord_sys.suite()
+    'neb':          searcher.suite_neb(),
+    'coord_sys':    coord_sys.suite(),
+    'gaussian':     gaussian.suite()
     }
 
 
