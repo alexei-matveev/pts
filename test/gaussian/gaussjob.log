@@ -2,8 +2,8 @@
  Input=gaussjob.com
  Output=gaussjob.log
  Initial command:
- /usr/local/g03/l1.exe /scratch/Gau-29311.inp -scrdir=/scratch/
- Entering Link 1 = /usr/local/g03/l1.exe PID=     29312.
+ /usr/local/g03/l1.exe /scratch/Gau-29435.inp -scrdir=/scratch/
+ Entering Link 1 = /usr/local/g03/l1.exe PID=     29436.
   
  Copyright (c) 1988,1990,1992,1993,1995,1998,2003,2004, Gaussian, Inc.
                   All Rights Reserved.
@@ -368,10 +368,10 @@
  H2)]\\@
 
 
- "ANNA, YOU MUSN'T SPEAK OF OXIDIZED MURIATIC ACID
- ANYMORE, FROM NOW ON YOU MUST SAY CHLORINE."
-   -- JENS JACOB BERZELIUS, IN 1820, TO HIS COOK, WHO HAD
- COMPLAINED OF THE SMELL OF THE FLASK SHE WAS CLEANING.
+ A HARD FALL SHOULD MEAN A HIGH BOUNCE 
+ IF ONE IS MADE OF THE RIGHT MATERIAL.
+
+                -- THE CHEMIST ANALYST, MARCH 1950
  Job cpu time:  0 days  0 hours  0 minutes  5.6 seconds.
  File lengths (MBytes):  RWF=     13 Int=      0 D2E=      0 Chk=      7 Scr=      1
- Normal termination of Gaussian 03 at Thu Nov  5 15:04:47 2009.
+ Normal termination of Gaussian 03 at Thu Nov  5 15:28:19 2009.

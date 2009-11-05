@@ -50,6 +50,9 @@ class Gaussian:
         self.basis = basis
         self.charge = charge
         self.mult = mult
+
+        if os.system("which " + gau_command) != 0:
+            raise GaussDriverError("Executable " + gau_command + " not found in path.")
         self.gau_command = gau_command
         self.nprocs = nprocs
         assert nprocs > 0
