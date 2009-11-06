@@ -8,10 +8,10 @@ PROGNAME = "searcher"
 ERROR_STR = "error"
 
 LOGFILE_EXT = ".log"
-INPICKLE = ".in.pickle"
-OUTPICKLE = ".out.pickle"
+INPICKLE_EXT = ".in.pickle"
+OUTPICKLE_EXT = ".out.pickle"
 
-TMP_DIR_ENV_VAR = "AOE_TMP"
+TMP_DIR_ENV_VAR = "AOF_TMP"
 def get_tmp_dir():
     """Returns the absolute path to a temporary directory. If the environment
     variable AOE_TMP is specified (can be relative or absolute), then this is

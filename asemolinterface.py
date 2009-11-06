@@ -51,13 +51,13 @@ class MolInterface:
         # used to number input files as they are created and run
         self.job_counter = 0
         self.job_counter_lock = thread.allocate_lock()
-        self.logfile2eg_lock = thread.allocate_lock()
 
         # lists of various properties for input reagents
         atoms_lists    = [m.get_chemical_symbols() for m in mols]
-        coord_vec_lens = [len(m.get_internals()) for m in molreps]
+        coord_vec_lens = [len(m.get_internals()) for m in mols]
 
-        var_names = [m.var_names for m in mols]
+        all_var_names = [m.var_names for m in mols]
+        all_dih_vars = [m.dih_vars for m in mols]
 
         if not common.all_equal(atoms_lists):
             raise MolInterfaceException("Input molecules do not have consistent atoms.")
@@ -65,22 +65,29 @@ class MolInterface:
         elif not common.all_equal(coord_vec_lens):
             raise MolInterfaceException("Input molecules did not have a consistent number of variables.")
 
-        if not common.all_equal(var_names):
+        if not common.all_equal(all_var_names):
             raise MolInterfaceException("Input molecules did not have the same variable names.")
+        
+        if not common.all_equal(all_dih_vars):
+            raise MolInterfaceException("Input molecules did not have the same dihedral variables.")
 
-        self.reagent_coords = [m.coords for m in molreps]
+        self.var_names = all_var_names[0]
+
+        self.reagent_coords = [m.get_internals() for m in mols]
 
         # Make sure that when interpolating between the dihedral angles of reactants 
         # and reagents, that this is done using the shortest possible arc length
         # around a circle. This only needs to be done for dihedrals, but this is
         # implicitely asserted by the inequality tested for below (I think).
 
-        # it's not done if a transition state is specified
+        # It's not done if a transition state is specified, since in this case,
+        # we don't want to interpolate via the shortest arc on the circle but 
+        # rather via the given TS.
         if len(self.reagent_coords) == 2:
             react = self.reagent_coords[0]
             prod  = self.reagent_coords[1]
             for i in range(len(react)):
-                if self.var_names[i] in self.mols.dih_vars:
+                if self.var_names[i] in mols[0].dih_vars:
                     if abs(react[i] - prod[i]) > 180.0 * common.DEG_TO_RAD:
                         assert self.var_names[i] in self.mols.dih_vars
                         if react[i] > prod[i]:
@@ -98,18 +105,19 @@ class MolInterface:
             else:
                 raise Exception("Use of " + params["placement_command"] + " not implemented")
 
-        self.calculator = params["calculator"]
-        self.
+        constructor, args, kwargs = params["calculator"]
+        if not callable(constructor):
+            raise MolInterfaceException("Supplied ASE calculator constructor was not callable")
+        self.get_calc = lambda: constructor(*args, **kwargs)
+
+        self.mol = mols[0]
 
     def __str__(self):
-        mystr = "format = " + self.format
-        mystr += "\natoms = " + str(self.atoms)
-        if self.format == "zmt":
-            mystr += "\nvar_names = " + str(self.var_names)
+        mystr = "format = " + self.mol.__class__.__name__
+        mystr += "\natoms = " + str(self.mol.get_chemical_symbols())
+        mystr += "\nvar_names = " + str(self.var_names)
         mystr += "\nreactant coords = " + str(self.reagent_coords[0])
         mystr += "\nproduct coords = " + str(self.reagent_coords[1])
-        if OLD_PYBEL_CODE:
-            mystr += "\nzmt_spec:\n" + self.zmt_spec
         return mystr
 
     def __repr__(self):
@@ -122,20 +130,21 @@ class MolInterface:
         assert False, "Not yet implemented"
         return True
 
-   def run(self, job):
-        """Assigned by constructor to one of run_internal() or run_external(), 
-        depending on input parameters."""
-        assert False, "This should never run directly."
+    def build_coord_sys(self, v):
+        m = self.mol.copy()
+        m.set_internals(v)
+        m.set_calculator(self.get_calc())
+        return m
 
-    def run_ase(self, job):
-        (mystr, _) = self.coords2xyz(job.v)
+    def run(self, job):
 
         tmp_dir = common.get_tmp_dir()
 
         job_name = "asejob" + str(self.__get_job_counter())
-        mol_pickled = os.path.join(tmp_dir, job_name + common.INPICKLE)
-        ase_stdout_file = os.path.join(tmp_dir, job_base_name + ".stdout")
-        results_file = job_base_name + common.OUTPICKLE
+        mol_pickled = os.path.join(tmp_dir, job_name + common.INPICKLE_EXT)
+        ase_stdout_file = os.path.join(tmp_dir, job_name + ".stdout")
+        results_file = job_name + common.OUTPICKLE_EXT
+        results_file = os.path.join(tmp_dir, results_file)
 
         # write input file as xyz format
         coord_sys_obj = self.build_coord_sys(job.v)
@@ -143,7 +152,7 @@ class MolInterface:
         pickle.dump(coord_sys_obj, f)
         f.close()
 
-        cmd = ["python", "-m", "pickle_runner.py", self.calc_pickle_name, job_name]
+        cmd = ["python", "-m", "pickle_runner", mol_pickled]
         p = Popen(cmd, stdout=open(ase_stdout_file, "w"))
 
         (pid, ret_val) = os.waitpid(p.pid, 0)

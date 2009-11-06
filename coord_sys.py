@@ -6,7 +6,7 @@ import numpy
 import threading
 import numerical
 import os
-
+from copy import deepcopy
 
 import common
 
@@ -93,6 +93,9 @@ class CoordSys(object):
 
     def __init__(self, atom_symbols, atom_xyzs, abstract_coords, anchor=Dummy(), cell=None, pbc=None):
 
+        # enforce correct capitalisation
+        atom_symbols = [s.title() for s in atom_symbols]
+
         self._dims = len(abstract_coords)
         self._atoms = Atoms(symbols=atom_symbols, positions=atom_xyzs)
         if cell:
@@ -110,10 +113,24 @@ class CoordSys(object):
         self._var_mask = None
         self._exclusions_count = 0
 
+        # hack to provide extra functionality with ASE
+        self.pass_through = False
+
+    def copy(self):
+        cs = deepcopy(self)
+        cs._atoms = self._atoms.copy()
+
+        calc = deepcopy(self._atoms.get_calculator())
+        cs.set_calculator(calc)
+
+        return cs
+
     def __str__(self):
         s = '\n'.join([self.__class__.__name__, str(self._coords), str(self._var_mask)])
         return s
 
+    def __len__(self):
+        return len(self._atoms)
     def get_dims(self):
         return self._dims + self._anchor.dims - self._exclusions_count
 
@@ -156,6 +173,11 @@ class CoordSys(object):
 
     def get_positions(self):
         """ASE style interface function"""
+
+        # hack to provide extra compatibility with ASE
+        if self.pass_through:
+            return self._atoms.get_positions()
+
         return common.make_like_atoms(self._mask(self._coords))
 
     def get_centroid(self):
@@ -250,7 +272,7 @@ class CoordSys(object):
     def apply_constraints(self, vec):
         return vec
 
-    def get_forces(self, flat=False):
+    def get_forces(self, flat=False, **kwargs):
         cart_pos = self.get_cartesians()
         self._atoms.set_positions(cart_pos)
 
@@ -717,7 +739,7 @@ class XYZ(CoordSys):
 
     def copy(self, new_coords=None):
         new = deepcopy(self)
-        new.set_atoms(self._atoms.copy())
+        new._atoms = self._atoms.copy()
         if new_coords != None:
             new.set_internals(new_coords)
 

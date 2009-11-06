@@ -1,0 +1,11 @@
+C
+H 1 ch
+H 1 ch 2 hch
+H 1 ch 2 hch 3 hchh
+H 1 ch 2 hch 3 hchh1
+
+ch  1.09
+hch 109.5
+hchh    120.
+hchh1    120.4
+
