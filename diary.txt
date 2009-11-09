@@ -323,3 +323,11 @@ JobQueue(Threads.queue):
 13/10/2009
 ----------
  - got z-matrix optimisations to use radians not degrees
+
+09/11/2009
+----------
+ - lots of work, no diary entries
+ - see committed changes
+
+ - TODO:
+   - use write_trajectory() function to support dumping of band trajectories

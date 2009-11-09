@@ -327,7 +327,6 @@ def dump_beads(mol_interface, chain_of_states, params):
     """Writes the states along the reaction path to a file in a form that can
     be read by a molecule viewing program."""
 
-    return
     from copy import deepcopy
 
     global file_dump_count
@@ -342,7 +341,7 @@ def dump_beads(mol_interface, chain_of_states, params):
 #    print chain_of_states.beads_count
 #    print chain_of_states.bead_pes_energies
     for i, bead in enumerate(chain_of_states.get_bead_coords()):
-        mystr += str(mol_interface.natoms)
+#        mystr += str(mol_interface.natoms)
         mystr += "\nBead " + str(i) + ": Energy = " + str(chain_of_states.bead_pes_energies[i]) + "\n"
 #        mystr += "Gradients = " + str(local_bead_forces[i])
         molstr, coords = mol_interface.coords2xyz(bead)
