@@ -56,7 +56,8 @@ class TestAseMolInterface(aof.test.MyTestCase):
         print "Testing: MolecularInterface constructor with XYZ"
 
         params = dict()
-        params["calculator"] = ase.EMT, [], dict()
+        d = dict()
+        params["calculator"] = ase.EMT, [], d
 
         m1 = file2str("benzyl.xyz")
         m2 = m1
@@ -80,19 +81,19 @@ class TestAseMolInterface(aof.test.MyTestCase):
         mi = ami.MolInterface([m1, m2], params)
         print mi
 
+        # XYZ with ZMatrix
         m2 = file2str("benzyl.xyz")
         self.assertRaises(cs.ZMatrixException, ami.MolInterface, [m1, m2], params)
 
+        # non-matching atoms
         m2 = file2str("NH4.zmt")
         self.assertRaises(ami.MolInterfaceException, ami.MolInterface, [m1, m2], params)
 
+        # mixed dihedrals
         m2 = file2str("CH4-mixeddih.zmt")
         self.assertRaises(ami.MolInterfaceException, ami.MolInterface, [m1, m2], params)
 
     def test_constructor_ComplexCoordSys(self):
-        pass
-
-    def test_run(self):
         pass
 
 def suite():

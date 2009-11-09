@@ -6,9 +6,10 @@ import getopt
 import re
 import logging
 
-import molinterface
+import asemolinterface
 import sched
 import os
+import ase
 
 from common import * # TODO: must unify
 import common
@@ -48,7 +49,7 @@ def main(argv=None):
            a. method to use, number of processors, etc.
            b. reactant, transition state(s), product, in that order
            c. ...
-        2. initialise searcher, molinterface, drivers, etc.
+        2. initialise searcher, asemolinterface, drivers, etc.
         3. start searcher
     """
 
@@ -93,6 +94,21 @@ def main(argv=None):
         else:
             raise ParseError("Could not find section 'parameters'")
 
+        # extract ASE calculator specification
+        if config.has_section('calculator'):
+            calc_params = dict(config.items('calculator'))
+
+            # TODO: add some error checking for the following values
+            cons   = eval(calc_params['constructor'])
+            args   = eval(calc_params['args'])
+            kwargs = eval(calc_params['kwargs'])
+
+            calc_tuple = cons, args, kwargs
+            params['calculator'] = calc_tuple
+        else:
+            raise ParseError("Could not find section 'calculator'")
+
+
         print "parameters: ", params
 
         if not "processors" in params:
@@ -106,7 +122,6 @@ def main(argv=None):
         else:
             raise ParseError("Couldn't parse processor configuration.")
         
-
         print "Parsing geometries"
         for geom_ix in range(MAX_GEOMS):
             section_name = "geom" + str(geom_ix)
@@ -154,8 +169,8 @@ def setup_and_run(mol_strings, params):
     geometries. 2. Run searcher. 3. Print Summary."""
 
     # setup MoIinterface
-    #mol_interface_params = setup_params(params)
-    mol_interface = molinterface.MolInterface(mol_strings, params)
+    # mol_interface_params = setup_params(params)
+    mol_interface = asemolinterface.MolInterface(mol_strings, params)
 
     calc_man = sched.CalcManager(mol_interface, 
                            params["processors"]) # TODO: check (earlier) that this param is a tuple / correct format
@@ -312,6 +327,7 @@ def dump_beads(mol_interface, chain_of_states, params):
     """Writes the states along the reaction path to a file in a form that can
     be read by a molecule viewing program."""
 
+    return
     from copy import deepcopy
 
     global file_dump_count

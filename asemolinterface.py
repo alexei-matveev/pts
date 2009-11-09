@@ -6,13 +6,13 @@ import string
 import os
 import sys
 from copy import deepcopy
-from subprocess import Popen
+from subprocess import Popen, STDOUT
 import pickle
 
 import numpy
 
 import common
-import coord_sys as csys
+import aof.coord_sys as csys
 
 lg = logging.getLogger('mylogger') #common.PROGNAME)
 
@@ -108,7 +108,18 @@ class MolInterface:
         constructor, args, kwargs = params["calculator"]
         if not callable(constructor):
             raise MolInterfaceException("Supplied ASE calculator constructor was not callable")
-        self.get_calc = lambda: constructor(*args, **kwargs)
+
+        def get_calc(args_more=None, kwargs_more=None):
+            if args_more:
+                args.append(args_more)
+
+            if kwargs_more:
+                kwargs.update(kwargs_more)
+
+            return constructor(*args, **kwargs)
+            
+        #self.get_calc = lambda: constructor(*args, **kwargs)
+        self.get_calc = get_calc
 
         self.mol = mols[0]
 
@@ -131,6 +142,9 @@ class MolInterface:
         return True
 
     def build_coord_sys(self, v):
+        """Builds a coord sys object with internal coordinates given by 'v' 
+        and returns it."""
+
         m = self.mol.copy()
         m.set_internals(v)
         m.set_calculator(self.get_calc())
@@ -152,14 +166,16 @@ class MolInterface:
         pickle.dump(coord_sys_obj, f)
         f.close()
 
+        # TODO: additional scheduling commands e.g. dplace should go in here
         cmd = ["python", "-m", "pickle_runner", mol_pickled]
-        p = Popen(cmd, stdout=open(ase_stdout_file, "w"))
+        p = Popen(cmd, stdout=open(ase_stdout_file, "w"), stderr=STDOUT)
 
         (pid, ret_val) = os.waitpid(p.pid, 0)
         if ret_val != 0:
             raise MolInterfaceException("pickle_runner.py returned with " + str(ret_val)
                 + "\nwhen attempting to run " + ' '.join(cmd)
-                + "\nMake sure $PYTHONPATH contains " + sys.path[0] )
+                + "\nMake sure $PYTHONPATH contains " + sys.path[0] 
+                + "\n" + common.file2str(ase_stdout_file))
 
         # load results from file
         (e, g) = pickle.load(open(results_file, "r"))

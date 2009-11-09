@@ -1,5 +1,9 @@
 [parameters]
 
+# Specifies QC program to use
+# options: g03, ase
+qc_program: ase
+
 # specified operation of parallel scheduler
 #  - first number is the TOTAL number of processors available
 #  - second number is the MAXIMUM number of processors per QC job 
@@ -21,15 +25,12 @@ beads_count: 8
 #          for the NEB method:    l_bfgs_b, bfgs, grad_descent
 optimizer: l_bfgs_b
 
+# Python file containing ASE calculator setup and (optionally) the periodic 
+# boundary condition and unit cell size.
+ase_settings_file: asejobsettings-emt.py
+
 # Maximum number of iterations that optimizer will perform.
 max_iterations: 4
-
-
-[calculator]
-constructor: ase.EMT
-args: []
-kwargs: {}
-
 
 # Files specifying input geometries in either xyz or z-matrix format.
 # At least geom0 and geom1 must be given. If geom2 is given, the middle
