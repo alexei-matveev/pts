@@ -33,6 +33,7 @@ MAX_GEOMS = 3
 
 # default max iterations for optimiser
 DEFAULT_MAX_ITERATIONS = 20
+DEFAULT_FORCE_TOLERANCE = 0.05
 
 # unit conversions
 ANGSTROMS_TO_BOHRS = 1.8897

@@ -5,14 +5,17 @@ import sys
 import getopt
 import re
 import logging
+import numpy
 
 import asemolinterface
 import sched
 import os
 import ase
+from ase.calculators import SinglePointCalculator
+from ase.io.trajectory import write_trajectory
 
-from common import * # TODO: must unify
 import common
+from common import ParseError
 
 import searcher
 
@@ -32,6 +35,8 @@ if not globals().has_key("ch"):
 formatter = logging.Formatter("%(name)s (%(levelname)s): %(message)s")
 ch.setFormatter(formatter)
 
+flags = dict()
+
 class Usage(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -42,6 +47,7 @@ def usage():
     print "Usage: " + sys.argv[0] + " [options] input.file"
     print "Options:"
     print "  -h, --help: display this message"
+    print "  -m [0,..]:  perform a 'normal' minimisation of geoms with these indices"
 
 def main(argv=None):
     """
@@ -57,7 +63,7 @@ def main(argv=None):
         argv = sys.argv[1:]
     try:
         try:
-            opts, args = getopt.getopt(argv, "h", ["help"])
+            opts, args = getopt.getopt(argv, "ho:", ["help"])
         except getopt.error, msg:
              raise Usage(msg)
 
@@ -66,14 +72,17 @@ def main(argv=None):
             if o in ("-h", "--help"):
                 usage()
                 return 0
+            elif o in ('-o'):
+                geom_indices = eval(a)
+                flags['beadopt'] = geom_indices
             else:
                 raise Exception("FIXME: Option " + o + " incorrectly implemented")
                 return -1
 
 
-        if len(argv) != 1:
+        if len(args) != 1:
             raise Usage("Exactly 1 input file must be specified.")
-        inputfile = argv[0]
+        inputfile = args[0]
         inputfile_dir = os.path.dirname(inputfile)
 
     except Usage, err:
@@ -92,6 +101,7 @@ def main(argv=None):
             params = dict(config.items('parameters'))
             params["inputfile"] = inputfile
         else:
+            print config.sections()
             raise ParseError("Could not find section 'parameters'")
 
         # extract ASE calculator specification
@@ -105,9 +115,27 @@ def main(argv=None):
 
             calc_tuple = cons, args, kwargs
             params['calculator'] = calc_tuple
+
+            mask = calc_params.get('mask')
+            if mask:
+                mask = eval(mask)
+            params['mask'] = mask
+
         else:
             raise ParseError("Could not find section 'calculator'")
 
+        if config.has_section('opt'):
+            opt = dict(config.items('opt'))
+
+            # TODO: add some error checking for the following values
+            opt['tol'] = float(opt.get('tol', common.DEFAULT_FORCE_TOLERANCE))
+            opt['maxit'] = int(opt.get('maxit', common.DEFAULT_MAX_ITERATIONS))
+            opt['optimizer'] = opt.get('type')
+
+            params.update(opt)
+
+        else:
+            raise ParseError("Could not find section 'opt'")
 
         print "parameters: ", params
 
@@ -123,7 +151,7 @@ def main(argv=None):
             raise ParseError("Couldn't parse processor configuration.")
         
         print "Parsing geometries"
-        for geom_ix in range(MAX_GEOMS):
+        for geom_ix in range(common.MAX_GEOMS):
             section_name = "geom" + str(geom_ix)
             if config.has_section(section_name):
                 if config.has_option(section_name, 'file'):
@@ -136,7 +164,7 @@ def main(argv=None):
                 else:
                     break
 
-    except ParseError, err:
+    except common.ParseError, err:
         print err.msg
         return 1
 
@@ -169,51 +197,52 @@ def setup_and_run(mol_strings, params):
     geometries. 2. Run searcher. 3. Print Summary."""
 
     # setup MoIinterface
-    # mol_interface_params = setup_params(params)
-    mol_interface = asemolinterface.MolInterface(mol_strings, params)
+    # molinterface_params = setup_params(params)
+    molinterface = asemolinterface.MolInterface(mol_strings, params)
 
-    calc_man = sched.CalcManager(mol_interface, 
+    calc_man = sched.CalcManager(molinterface, 
                            params["processors"]) # TODO: check (earlier) that this param is a tuple / correct format
 
     # SETUP / RUN SEARCHER
     print "Molecule Interface..."
-    print mol_interface
-    reagent_coords = mol_interface.reagent_coords
+    print molinterface
+    reagent_coords = molinterface.reagent_coords
 
-    if params["method"] == "neb":
-        neb_calc(mol_interface, calc_man, reagent_coords, params)
-    elif params["method"] == "string":
-        string_calc(mol_interface, calc_man, reagent_coords, params)
+    meth = params["method"]
+    if 'beadopt' in flags:
+        beadopt_calc(molinterface, params, flags['beadopt'])
+    elif meth == "neb":
+        neb_calc(molinterface, calc_man, reagent_coords, params)
+    elif meth == "string":
+        string_calc(molinterface, calc_man, reagent_coords, params)
     else:
-        raise ParseError("Unknown method: " + params["method"])
+        assert False, "Should never happen, program should check earlier that the opt is specified correctly."
 
 # callback function
-def generic_callback(x, mol_interface, cos_obj, params):
-    print line()
+def generic_callback(x, molinterface, cos_obj, params):
+    print common.line()
 #                logging.info("Current path: %s" % str(x))
     print cos_obj
 #            print neb.gradients_vec
 #            print numpy.linalg.norm(neb.gradients_vec)
-    dump_beads(mol_interface, cos_obj, params)
+    dump_beads(molinterface, cos_obj, params)
     dump_steps(cos_obj)
     #cos_obj.plot()
-    print line()
+    print common.line()
     return x
 
 
 
-def string_calc(mol_interface, calc_man, reagent_coords, params):
+def string_calc(molinterface, calc_man, reagent_coords, params):
     """Setup String object, optimiser, etc."""
 
-    max_iterations = DEFAULT_MAX_ITERATIONS
-    if "max_iterations" in params:
-        max_iterations = int(params["max_iterations"])
+    max_iterations = params["max_iterations"]
 
     #  TODO: string micro-iterations when growing???
 
     beads_count = int(params["beads_count"])
     string = searcher.GrowingString(reagent_coords,
-                                    mol_interface.geom_checker,
+                                    molinterface.geom_checker,
                                     calc_man,
                                     beads_count,
                                     rho = lambda x: 1,
@@ -221,10 +250,14 @@ def string_calc(mol_interface, calc_man, reagent_coords, params):
                                     parallel=True)
 
     # initial path
-    dump_beads(mol_interface, string, params)
+    dump_beads(molinterface, string, params)
     dump_steps(string)
 
-    mycb = lambda x: generic_callback(x, mol_interface, string, params)
+    mycb = lambda x: generic_callback(x, molinterface, string, params)
+
+    # opt params
+    maxit = params['maxit']
+    tol = params['tol']
 
     print "Launching optimiser..."
     if params["optimizer"] == "l_bfgs_b":
@@ -235,8 +268,8 @@ def string_calc(mol_interface, calc_man, reagent_coords, params):
                                           string.get_state_as_array(),
                                           fprime=string.obj_func_grad,
                                           callback=mycb,
-                                          pgtol=0.005,
-                                          maxfun=max_iterations)
+                                          pgtol=tol,
+                                          maxfun=maxit)
         print opt
         print energy
         print dict
@@ -249,30 +282,50 @@ def string_calc(mol_interface, calc_man, reagent_coords, params):
     else:
          raise ParseError("Unknown optimizer: " + params["optimizer"])
        
+def beadopt_calc(mi, params, indices):
+    """Check that points with the specified indices are minima and minimise if necessary."""
+
+    for i in indices:
+        mol = mi.build_coord_sys(mi.reagent_coords[i])
+        opt = ase.LBFGS(mol)
+        s, l = 0, []
+
+        # FIXME: the final force norm printed by the optimiser is greater than the one specified here
+        maxit = params['maxit']
+        tol = params['tol']
+        while numpy.max(mol.get_forces()) > tol:
+            opt.run(steps=1)
+            s += 1
+            l.append(mol.atoms.copy())
+
+            if s >= maxit:
+                print "Max iterations exceeded."
+                break
+
+        ase.view(l)
 
 
-def neb_calc(mol_interface, calc_man, reagent_coords, params):
+def neb_calc(molinterface, calc_man, reagent_coords, params):
     """Setup NEB object, optimiser, etc."""
-
-    max_iterations = DEFAULT_MAX_ITERATIONS
-    if "max_iterations" in params:
-        max_iterations = int(params["max_iterations"])
-
 
     spr_const = float(params["spr_const"])
     beads_count = int(params["beads_count"])
     neb = searcher.NEB(reagent_coords, 
-              mol_interface.geom_checker, 
+              molinterface.geom_checker, 
               calc_man, 
               spr_const, 
               beads_count,
               parallel=True)
     # initial path
-    dump_beads(mol_interface, neb, params)
+    dump_beads(molinterface, neb, params)
     dump_steps(neb)
 
     # callback function
-    mycb = lambda x: generic_callback(x, mol_interface, neb, params)
+    mycb = lambda x: generic_callback(x, molinterface, neb, params)
+
+    # opt params
+    maxit = params['maxit']
+    tol = params['tol']
 
     print "Launching optimiser..."
     if params["optimizer"] == "l_bfgs_b":
@@ -283,8 +336,8 @@ def neb_calc(mol_interface, calc_man, reagent_coords, params):
                                           neb.get_state_as_array(),
                                           fprime=neb.obj_func_grad,
                                           callback=mycb,
-                                          pgtol=0.005,
-                                          maxfun=max_iterations)
+                                          pgtol=tol,
+                                          maxfun=maxit)
         print opt
         print energy
         print dict
@@ -294,15 +347,14 @@ def neb_calc(mol_interface, calc_man, reagent_coords, params):
               neb.get_state_as_array(), 
               fprime=neb.obj_func_grad, 
               callback=mycb,
-              maxiter=max_iterations)
+              maxiter=maxit)
 
     elif params["optimizer"] == "ase_lbfgs":
         import ase
         optimizer = ase.LBFGS(neb)
-        optimizer.run(fmax=0.04)
+        optimizer.run(fmax=tol)
         opt = neb.state_vec
 
-       
     elif params["optimizer"] == "grad_descent":
         opt = opt_gd(neb.obj_func, 
             neb.get_state_as_array(), 
@@ -318,12 +370,12 @@ def neb_calc(mol_interface, calc_man, reagent_coords, params):
 #    print opt
 #    print energy
 
-    dump_beads(mol_interface, neb, params)
+    dump_beads(molinterface, neb, params)
     print "steps"
     dump_steps(neb)
 
 
-def dump_beads(mol_interface, chain_of_states, params):
+def dump_beads(molinterface, chain_of_states, params):
     """Writes the states along the reaction path to a file in a form that can
     be read by a molecule viewing program."""
 
@@ -340,20 +392,20 @@ def dump_beads(mol_interface, chain_of_states, params):
 #    print chain_of_states.get_bead_coords()
 #    print chain_of_states.beads_count
 #    print chain_of_states.bead_pes_energies
-    for i, bead in enumerate(chain_of_states.get_bead_coords()):
-#        mystr += str(mol_interface.natoms)
-        mystr += "\nBead " + str(i) + ": Energy = " + str(chain_of_states.bead_pes_energies[i]) + "\n"
-#        mystr += "Gradients = " + str(local_bead_forces[i])
-        molstr, coords = mol_interface.coords2xyz(bead)
-        mystr += molstr
-#        mystr += "\n\n"
+    list = []
+    for i, vec in enumerate(chain_of_states.get_bead_coords()):
+        cs = molinterface.build_coord_sys(vec)
+        a = cs.atoms
+        e = chain_of_states.bead_pes_energies[i]
+        spc = SinglePointCalculator(e, None, None, None, a)
+        a.set_calculator(spc)
 
-    path = os.path.splitext(params["inputfile"])[0] + str(file_dump_count) + LOGFILE_EXT
+        list.append(a)
+
+    path = os.path.splitext(params["inputfile"])[0] + str(file_dump_count) + common.LOGFILE_EXT
 
     print "path", path
-    f = open(path, "w")
-    f.write(mystr)
-    f.close()
+    write_trajectory(path, list)
 
 def dump_steps(chain_of_states):
     """Prints the steps taken during the optimisation."""

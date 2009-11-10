@@ -202,6 +202,8 @@ class CoordSys(object):
     def set_var_mask(self, mask):
         """Sets a variable exclusion mask. Only include variables that are True."""
 
+        if not mask:
+            return
         mask = numpy.array(mask)
         assert mask.dtype == bool
         assert len(mask) == self.dims
@@ -284,7 +286,7 @@ class CoordSys(object):
         
         forces_coord_sys = self.apply_constraints(forces_coord_sys)
 
-        forces_masked = forces_coord_sys#self._mask(forces_coord_sys)
+        forces_masked = self._mask(forces_coord_sys)
 
         if flat:
             return forces_masked

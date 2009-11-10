@@ -42,7 +42,7 @@ class MolInterface:
             mols = [csys.ZMatrix(s) for s in mol_strings]
         elif csys.XYZ.matches(first):
             mols = [csys.XYZ(s) for s in mol_strings]
-        elif c_sys.ComplexCoordSys(first):
+        elif csys.ComplexCoordSys(first):
             mols = [csys.ComplexCoordSys(s) for s in mol_strings]
         else:
             raise MolInterfaceException("Unrecognised geometry string:\n" + first)
@@ -73,7 +73,9 @@ class MolInterface:
 
         self.var_names = all_var_names[0]
 
+        [m.set_var_mask(params['mask']) for m in mols]
         self.reagent_coords = [m.get_internals() for m in mols]
+        print self.reagent_coords[0]
 
         # Make sure that when interpolating between the dihedral angles of reactants 
         # and reagents, that this is done using the shortest possible arc length
@@ -122,6 +124,7 @@ class MolInterface:
         self.get_calc = get_calc
 
         self.mol = mols[0]
+
 
     def __str__(self):
         mystr = "format = " + self.mol.__class__.__name__
