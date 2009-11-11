@@ -21,7 +21,7 @@ def test_calc(**kwargs):
     if quick:
         return ase.EMT()
     else:
-        return aof.aof.ase_gau.Gaussian(**kwargs)
+        return aof.ase_gau.Gaussian(**kwargs)
 
 def geom_str_summ(s,n=2):
     """Summarises a string containing a molecular geometry so that very similar 
@@ -512,7 +512,7 @@ def suite():
 
 if __name__ == "__main__":
     visual = True
-    quick = False
-    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestZMatrixAndAtom("test_var_mask_big_water_opt")]))
+    quick = True
+    unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite([TestComplexCoordSys("test_var_mask_big_water_opt")]))
 
 

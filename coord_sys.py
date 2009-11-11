@@ -91,6 +91,8 @@ class RotAndTrans(Anchor):
 class CoordSys(object):
     """Abstract coordinate system. Sits on top of an ASE Atoms object."""
 
+    dih_vars = dict()
+
     def __init__(self, atom_symbols, atom_xyzs, abstract_coords, anchor=Dummy(), cell=None, pbc=None):
 
         # enforce correct capitalisation
@@ -202,8 +204,9 @@ class CoordSys(object):
     def set_var_mask(self, mask):
         """Sets a variable exclusion mask. Only include variables that are True."""
 
-        if not mask:
+        if mask == None:
             return
+
         mask = numpy.array(mask)
         assert mask.dtype == bool
         assert len(mask) == self.dims
@@ -281,12 +284,12 @@ class CoordSys(object):
         forces_cartesian = self._atoms.get_forces().flatten()
         transform_matrix, errors = self.get_transform_matrix(self._mask(self._coords))
         #TODO: test magnitude of errors
-        #print "transform_matrix", transform_matrix
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
         
         forces_coord_sys = self.apply_constraints(forces_coord_sys)
 
-        forces_masked = self._mask(forces_coord_sys)
+        #forces_masked = self._mask(forces_coord_sys)
+        forces_masked = forces_coord_sys
 
         if flat:
             return forces_masked
@@ -665,10 +668,12 @@ class ComplexCoordSys(CoordSys):
         self.var_names = [n for ns in list for n in ns]
 
         # list of all dihedral vars
-        addicts = lambda x,y: x.entend(y)
+        def addicts(x,y):
+            x.update(y)
+            return x
         list = [p.dih_vars for p in self._parts]
+        print list
         self.dih_vars = reduce(addicts, list)
-
 
     def get_internals(self):
         ilist = [p.get_internals() for p in self._parts]
