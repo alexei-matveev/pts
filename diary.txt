@@ -330,4 +330,4 @@ JobQueue(Threads.queue):
  - see committed changes
 
  - TODO:
-   - use write_trajectory() function to support dumping of band trajectories
+   - use write_trajectory() function to support dumping of band trajectories (DONE)
