@@ -14,7 +14,8 @@ import ase
 from ase.calculators import SinglePointCalculator
 from ase.io.trajectory import write_trajectory
 
-import common
+import aof
+import aof.common as common
 from common import ParseError
 
 import searcher
@@ -112,6 +113,8 @@ def main(argv=None):
             cons   = eval(calc_params['constructor'])
             args   = eval(calc_params['args'])
             kwargs = eval(calc_params['kwargs'])
+            kwargs = dict(kwargs)
+            print kwargs
 
             calc_tuple = cons, args, kwargs
             params['calculator'] = calc_tuple
@@ -136,6 +139,19 @@ def main(argv=None):
 
         else:
             raise ParseError("Could not find section 'opt'")
+
+        if config.has_section('molparams'):
+            mp = dict(config.items('molparams'))
+
+            # TODO: add some error checking for the following values
+            mp['cell'] = numpy.array(eval(mp.get('cell')))
+            mp['pbc'] = numpy.array(eval(mp.get('pbc')))
+
+            params.update(mp)
+
+        else:
+            print "No molparams found, assuming default cell and PBC conditions."
+
 
         print "parameters: ", params
 

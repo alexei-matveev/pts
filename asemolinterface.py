@@ -42,7 +42,7 @@ class MolInterface:
             mols = [csys.ZMatrix(s) for s in mol_strings]
         elif csys.XYZ.matches(first):
             mols = [csys.XYZ(s) for s in mol_strings]
-        elif csys.ComplexCoordSys(first):
+        elif csys.ComplexCoordSys.matches(first):
             mols = [csys.ComplexCoordSys(s) for s in mol_strings]
         else:
             raise MolInterfaceException("Unrecognised geometry string:\n" + first)
@@ -107,23 +107,14 @@ class MolInterface:
             else:
                 raise Exception("Use of " + params["placement_command"] + " not implemented")
 
-        constructor, args, kwargs = params["calculator"]
-        if not callable(constructor):
-            raise MolInterfaceException("Supplied ASE calculator constructor was not callable")
-
-        def get_calc(args_more=None, kwargs_more=None):
-            if args_more:
-                args.append(args_more)
-
-            if kwargs_more:
-                kwargs.update(kwargs_more)
-
-            return constructor(*args, **kwargs)
-            
-        #self.get_calc = lambda: constructor(*args, **kwargs)
-        self.get_calc = get_calc
+        self.calc_tuple = params["calculator"]
 
         self.mol = mols[0]
+
+        if 'cell' in params:
+            self.mol.set_cell(params['cell'])
+        if 'pbc' in params:
+            self.mol.set_pbc(params['pbc'])
 
 
     def __str__(self):
@@ -150,7 +141,7 @@ class MolInterface:
 
         m = self.mol.copy()
         m.set_internals(v)
-        m.set_calculator(self.get_calc())
+        m.set_calculator(self.calc_tuple)
         return m
 
     def run(self, job):
@@ -166,6 +157,8 @@ class MolInterface:
         # write input file as xyz format
         coord_sys_obj = self.build_coord_sys(job.v)
         f = open(mol_pickled, "wb")
+        print type(coord_sys_obj)
+#        exit()
         pickle.dump(coord_sys_obj, f)
         f.close()
 

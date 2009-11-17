@@ -181,7 +181,7 @@ class Gaussian:
             line = logfile.readline()
 
         if e == None or forces == []:
-            raise GaussDriverError("File not parsed, check " + logfilename)
+            raise GaussDriverError("File not parsed, check " + os.path.join(os.getcqd(), logfilename))
 
         forces = numpy.array(forces)
         return e, forces

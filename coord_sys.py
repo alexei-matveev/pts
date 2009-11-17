@@ -118,6 +118,21 @@ class CoordSys(object):
         # hack to provide extra functionality with ASE
         self.pass_through = False
 
+        self.calc_tuple = None
+
+    def set_calculator(self, calc_tuple):
+        if calc_tuple == None:
+            return
+
+        con, args, kwargs = calc_tuple
+        assert callable(con)
+        assert type(args) == list
+        assert type(kwargs) == dict
+
+        self.calc_tuple = calc_tuple
+        calc = con(*args, **kwargs)
+        self._atoms.set_calculator(calc)
+
     def copy(self):
         cs = deepcopy(self)
         cs._atoms = self._atoms.copy()
@@ -147,15 +162,32 @@ class CoordSys(object):
         ase.write(tmp, self._atoms, format="traj")
         f = open(tmp, "rb")
         odict["pickled_atoms"] = f.read()
-        odict["pickled_calc"] = self._atoms.calc
+#        odict["pickled_calc"] = self._atoms.calc
         f.close()
 
         return odict
 
     def __setstate__(self, idict):
         pickled_atoms = idict.pop("pickled_atoms")
-        pickled_calc = idict.pop("pickled_calc")
+        # temp
+        """kwargs = [('ismear', '1'),
+             ('sigma', '0.15')
+             , ('xc'     , 'VWN')
+             , ('isif'   , '2')
+             , ('enmax'  , '300')
+             , ('idipol' , '3')
+             , ('enaug'  , '300')
+             , ('ediffg' , '-0.02')
+             , ('voskown', '1')
+             , ('istart' , '1')
+             , ('icharg' , '1')
+             , ('nelmdl' , '0')
+             , ('kpts'   , [1,1,1])]"""
 
+        calc_tuple = idict.pop("calc_tuple")
+
+        # temp
+        #pickled_calc = ase.Vasp(**dict(kwargs)) #dict.pop("pickled_calc")
         self.__dict__.update(idict)
 
         tmp = os.tmpnam()
@@ -163,7 +195,7 @@ class CoordSys(object):
         f.write(pickled_atoms)
         f.close()
         self._atoms = ase.read(tmp, format="traj")
-        self.set_calculator(pickled_calc)
+        self.set_calculator(calc_tuple)
         self._state_lock = threading.RLock()
 
     def __getattr__(self, a):
@@ -190,8 +222,8 @@ class CoordSys(object):
         c = c / len(carts)
         return c
 
-    def set_calculator(self, calc):
-        return self._atoms.set_calculator(calc)
+    """def set_calculator(self, calc):
+        return self._atoms.set_calculator(calc)"""
 
     def set_positions(self, x):
         assert x.shape[1] == 3
@@ -278,6 +310,7 @@ class CoordSys(object):
         return vec
 
     def get_forces(self, flat=False, **kwargs):
+        print "*******************************************************************forces", str(self)
         cart_pos = self.get_cartesians()
         self._atoms.set_positions(cart_pos)
 
@@ -735,7 +768,17 @@ class XYZ(CoordSys):
     def wants_anchor(self):
         return False
     def get_transform_matrix(self, x):
-        return numpy.eye(self._dims), 0
+        m = numpy.eye(self._dims)
+
+        j = []
+        if self._var_mask != None:
+            for a,b in zip(m, self._var_mask):
+                if b:
+                    j.append(a)
+            m = numpy.array(j)
+
+        assert m.shape[0] == self.dims
+        return m, 0
 
     def get_var_names(self):
         return ["<cart>" for i in range(self.dims)]

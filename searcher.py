@@ -1122,6 +1122,8 @@ class GrowingString(ReactionPathway):
 def project_out(component_to_remove, vector):
     """Projects the component of 'vector' that list along 'component_to_remove'
     out of 'vector' and returns it."""
+    print len(component_to_remove)
+    print len(vector)
     projection = dot(component_to_remove, vector)
     output = vector - projection * component_to_remove
     return output
