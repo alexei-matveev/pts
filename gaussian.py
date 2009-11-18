@@ -9,6 +9,8 @@ import numpy
 
 from ase.data import chemical_symbols
 
+# this will break *standalone* comaptibility with ASE 
+import aof.common as common
 
 class Gaussian:
     """Class for doing Gaussian calculations."""
@@ -144,6 +146,7 @@ class Gaussian:
             command = " ".join(args)
 
             print "Running Gau job " + command + " in", os.getcwd()
+#            assert False
             p = subprocess.Popen(command, shell=True)
             sts = os.waitpid(p.pid, 0)
             parse_result = self.read()
@@ -185,7 +188,7 @@ class Gaussian:
         if e == None or forces == []:
             raise GaussDriverError("File not parsed, check " + os.path.join(os.getcwd(), logfilename))
 
-        forces = numpy.array(forces)
+        forces = numpy.array(forces) * common.ANGSTROMS_TO_BOHRS
         return e, forces
 
 class GaussDriverError(Exception):

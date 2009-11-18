@@ -159,11 +159,15 @@ class CoordSys(object):
 
         # create a string representing the atoms object using the ASE io functionality
         tmp = os.tmpnam()
+        old_calc = self._atoms.calc
+        self._atoms.calc = None
         ase.write(tmp, self._atoms, format="traj")
         f = open(tmp, "rb")
         odict["pickled_atoms"] = f.read()
 #        odict["pickled_calc"] = self._atoms.calc
         f.close()
+
+        self._atoms.calc = old_calc
 
         return odict
 

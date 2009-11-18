@@ -442,13 +442,15 @@ class NEB(ReactionPathway):
 
         spring_forces = vstack((zeros(self.dimension), spring_forces, zeros(self.dimension)))"""
 
-        bead_forces = []
+        total_bead_forces = []
+        perp_bead_forces = []
 
         # get PES forces / project out stuff
         for i in range(self.beads_count)[1:-1]: # don't include end beads, leave their gradients as zero
             self.bead_g_calls += 1
             pes_force = -self.qc_driver.gradient(self.state_vec[i])
             pes_force = project_out(self.tangents[i], pes_force)
+            perp_bead_forces.append(pes_force)
 
             spring_force = (self.base_spr_const * 
                             (self.bead_separations[i] - self.bead_separations[i-1]) * 
@@ -456,17 +458,19 @@ class NEB(ReactionPathway):
 
             total = pes_force + spring_force
 
-            bead_forces.append(total)
+            total_bead_forces.append(total)
 
         # at this point, parallel component has been projected out
-        bead_forces = array(bead_forces)
+        total_bead_forces = array(total_bead_forces)
         z = zeros(self.dimension)
-        self.bead_forces = vstack([z, bead_forces, z])
+        total_bead_forces = vstack([z, total_bead_forces, z])
+
+        self.bead_forces = array(perp_bead_forces).flatten()
 
         if new_state_vec != None:
             self.record_energy()
 
-        return -self.bead_forces.flatten()
+        return -total_bead_forces.flatten()
 
 class Func():
     def f():
@@ -1706,6 +1710,8 @@ class QuadraticStringMethod():
 
         # initial parameters for optimisation
         e, g = update_eg(x)
+        x = self.__callback(x)
+
         trust_rad = ones(N) * self.__init_trust_rad # ???
         H = []
         Hi = linalg.norm(g) * eye(self.__dims)
@@ -1727,10 +1733,6 @@ class QuadraticStringMethod():
             # respace, recalculate splines
             self.__string.update_path(x, respace=True)
 
-            # callback. Note, in previous versions, self.update_path was called by callback function
-            print common.line()
-            x = self.__callback(x)
-
 #            print "x",x
 #            print "prev_x",prev_x
             delta = x - prev_x
@@ -1744,8 +1746,13 @@ class QuadraticStringMethod():
             prev_e = e
             e, g = update_eg(x) # TODO: Question: will the state of the string be updated(through respacing)?
 
+            # callback. Note, in previous versions, self.update_path was called by callback function
+            print common.line()
+            x = self.__callback(x)
+
 #            print "linalg.norm(g)", linalg.norm(g)
             if common.rms(g) < self.__gtol:
+                print "Sub cycle finished", common.rms(g), "<", self.__gtol
                 break
 
             if self.__update_trust_rads:

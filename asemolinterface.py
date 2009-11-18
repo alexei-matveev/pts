@@ -107,7 +107,9 @@ class MolInterface:
             else:
                 raise Exception("Use of " + params["placement_command"] + " not implemented")
 
+        print common.line()
         self.calc_tuple = params["calculator"]
+        print 'params["calculator"]', params["calculator"]
 
         self.mol = mols[0]
 
@@ -154,11 +156,11 @@ class MolInterface:
         results_file = job_name + common.OUTPICKLE_EXT
         results_file = os.path.join(tmp_dir, results_file)
 
-        # write input file as xyz format
+        # write input file as pickled object
         coord_sys_obj = self.build_coord_sys(job.v)
+        print "coord_sys_obj._atoms.calc", coord_sys_obj.calc_tuple
         f = open(mol_pickled, "wb")
-        print type(coord_sys_obj)
-#        exit()
+        print "about to pickle", coord_sys_obj.calc_tuple
         pickle.dump(coord_sys_obj, f)
         f.close()
 
@@ -202,5 +204,4 @@ class MolInterface:
         self.job_counter_lock.release()
 
         return counter
-
 

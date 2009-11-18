@@ -114,7 +114,6 @@ def main(argv=None):
             args   = eval(calc_params['args'])
             kwargs = eval(calc_params['kwargs'])
             kwargs = dict(kwargs)
-            print kwargs
 
             calc_tuple = cons, args, kwargs
             params['calculator'] = calc_tuple
@@ -341,7 +340,7 @@ def neb_calc(molinterface, calc_man, reagent_coords, params):
               beads_count,
               parallel=True)
     # initial path
-    dump_beads(molinterface, neb, params)
+    #dump_beads(molinterface, neb, params)
     dump_steps(neb)
 
     # callback function
@@ -356,6 +355,9 @@ def neb_calc(molinterface, calc_man, reagent_coords, params):
 
         import cosopt.lbfgsb as so
 
+        import ase
+        dyn = ase.LBFGS(neb)
+        dyn.run()
         opt, energy, dict = so.fmin_l_bfgs_b(neb.obj_func,
                                           neb.get_state_as_array(),
                                           fprime=neb.obj_func_grad,
@@ -409,7 +411,7 @@ def dump_beads(molinterface, chain_of_states, params):
     file_dump_count += 1
 
     local_bead_forces = deepcopy(chain_of_states.bead_forces)
-    local_bead_forces.shape = (chain_of_states.beads_count, -1)
+    #local_bead_forces.shape = (chain_of_states.beads_count, -1)
 
     mystr = ""
 #    print chain_of_states.bead_pes_energies
