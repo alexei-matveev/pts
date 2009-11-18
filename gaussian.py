@@ -51,7 +51,8 @@ class Gaussian:
         self.charge = charge
         self.mult = mult
 
-        if os.system("which " + gau_command) != 0:
+        # TODO: is there a better way of doing this?
+        if os.system("which " + gau_command + "> /dev/null") != 0:
             raise GaussDriverError("Executable " + gau_command + " not found in path.")
         self.gau_command = gau_command
         self.nprocs = nprocs
@@ -142,6 +143,7 @@ class Gaussian:
             args = [self.gau_command, inputfile]
             command = " ".join(args)
 
+            print "Running Gau job " + command + " in", os.getcwd()
             p = subprocess.Popen(command, shell=True)
             sts = os.waitpid(p.pid, 0)
             parse_result = self.read()
@@ -181,7 +183,7 @@ class Gaussian:
             line = logfile.readline()
 
         if e == None or forces == []:
-            raise GaussDriverError("File not parsed, check " + os.path.join(os.getcqd(), logfilename))
+            raise GaussDriverError("File not parsed, check " + os.path.join(os.getcwd(), logfilename))
 
         forces = numpy.array(forces)
         return e, forces

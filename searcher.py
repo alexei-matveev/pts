@@ -17,6 +17,10 @@ from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, cei
 from common import * # TODO: must unify
 import common
 
+
+# TODO: remove global
+plot_count = 0
+
 lg = logging.getLogger(PROGNAME)
 lg.setLevel(logging.INFO)
 modlog = lg # synonyum
@@ -125,6 +129,7 @@ class ReactionPathway:
 
     f_calls = 0
     g_calls = 0
+    bead_g_calls = 0
 
     def __init__(self, reagents, beads_count, qc_driver, parallel):
 
@@ -167,6 +172,7 @@ class ReactionPathway:
     def get_bead_coords(self):
         """Return copy of state_vec as 2D array."""
         tmp = deepcopy(self.state_vec)
+        print self.beads_count, self.dimension
         tmp.shape = (self.beads_count, self.dimension)
         return tmp
 
@@ -261,7 +267,7 @@ class NEB(ReactionPathway):
         strrep += "\nRMS Perpendicular bead forces: " + str(common.rms(self.bead_forces))
         strrep += "\nFunction calls: " + str(self.f_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
-        strrep += "\nArchive: %d\t%f\t%f" % (self.g_calls, common.rms(self.bead_forces), total_energy)
+        strrep += "\nArchive (bgc, gc, rmsf, e): %d\t%d\t%f\t%f" % (self.bead_g_calls, self.g_calls, common.rms(self.bead_forces), total_energy)
         strrep += "\nAngles: %s" % str(self.get_angles())
 
         return strrep
@@ -440,6 +446,7 @@ class NEB(ReactionPathway):
 
         # get PES forces / project out stuff
         for i in range(self.beads_count)[1:-1]: # don't include end beads, leave their gradients as zero
+            self.bead_g_calls += 1
             pes_force = -self.qc_driver.gradient(self.state_vec[i])
             pes_force = project_out(self.tangents[i], pes_force)
 
@@ -743,7 +750,6 @@ class PathRepresentation(object):
             self.__normalised_positions = array([0.0] + normd_positions + [1.0])
             self.lg.debug("Normalised positions updated:" + str(self.__normalised_positions))
 
-
         return bead_vectors
         
     def __get_str_positions_exact(self):
@@ -834,10 +840,10 @@ class PathRepresentation(object):
     def set_rho(self, new_rho, normalise=True):
         """Set new bead density function, ensuring that it is normalised."""
         if normalise:
-            (int, err) = scipy.integrate.quad(new_rho, 0.0, 1.0)
+            (integral, err) = scipy.integrate.quad(new_rho, 0.0, 1.0)
         else:
             int = 1.0
-        self.__rho = lambda x: new_rho(x) / int
+        self.__rho = lambda x: new_rho(x) / integral
         return self.__rho
 
     def __generate_normd_positions_exact(self, total_str_len):
@@ -887,7 +893,6 @@ class PathRepresentation(object):
 
         return normd_positions
 
-
 class PiecewiseRho:
     """Supports the creation of piecewise functions as used by the GrowingString
     class as the bead density function."""
@@ -909,9 +914,8 @@ class PiecewiseRho:
             self.lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 class GrowingString(ReactionPathway):
-    def __init__(self, reagents, f_test, qc_driver, beads_count = 10, rho = lambda x: 1, growing=True, parallel=False):
+    def __init__(self, reagents, qc_driver, beads_count = 10, rho = lambda x: 1, growing=True, parallel=False):
 
-        ReactionPathway.__init__(self, reagents, beads_count, qc_driver, parallel)
         self.__qc_driver = qc_driver
 
         self.__final_beads_count = beads_count
@@ -920,10 +924,12 @@ class GrowingString(ReactionPathway):
         else:
             initial_beads_count = self.__final_beads_count
 
+        # TODO: this was moved from the first line recently, check
+        ReactionPathway.__init__(self, reagents, initial_beads_count, qc_driver, parallel)
+
         # create PathRepresentation object
         print "reagents", reagents
-        self.__path_rep = PathRepresentation(reagents, 
-            initial_beads_count, rho)
+        self.__path_rep = PathRepresentation(reagents, initial_beads_count, rho)
 
         # final bead spacing density function for grown string
         # make sure it is normalised
@@ -950,10 +956,10 @@ class GrowingString(ReactionPathway):
             total_energy += self.bead_pes_energies[i]
         strrep += "Total String Energy: " + str(total_energy)
 #        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
-        strrep += "\nPerpendicular bead forces norm: " + str(linalg.norm(self.bead_forces))
+        strrep += "\nPerpendicular bead forces norm: " + str(common.rms(self.bead_forces))
         strrep += "\nFunction calls: " + str(self.f_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
-        strrep += "\nArchive: %d\t%f\t%f" % (self.g_calls, linalg.norm(self.bead_forces), total_energy)
+        strrep += "\nArchive (bgc, gc, rmsf, e): %d\t%d\t%f\t%f" % (self.bead_g_calls, self.g_calls, common.rms(self.bead_forces), total_energy)
 #        strrep += "\nAngles: %s" % str(self.get_angles())
 
         return strrep
@@ -985,14 +991,14 @@ class GrowingString(ReactionPathway):
         assert self.beads_count <= self.__final_beads_count
         flab("called")
 
-        current_beads_count = self.beads_count
-
-        if current_beads_count == self.__final_beads_count:
+        if self.beads_count == self.__final_beads_count:
             return False
-        elif self.__final_beads_count - current_beads_count == 1:
-            self.beads_count = current_beads_count + 1
+        elif self.__final_beads_count - self.beads_count == 1:
+            self.beads_count += 1
         else:
-            self.beads_count = current_beads_count + 2
+            self.beads_count += 2
+
+        self.__path_rep.beads_count = self.beads_count
 
         # build new bead density function based on updated number of beads
         self.update_rho()
@@ -1079,6 +1085,7 @@ class GrowingString(ReactionPathway):
 
         # get gradients / perform projections
         for i in range(self.beads_count)[1:-1]:
+            self.bead_g_calls += 1
             g = self.__qc_driver.gradient(self.__path_rep.state_vec[i])
             t = ts[i]
             g = project_out(t, g)
@@ -1122,8 +1129,8 @@ class GrowingString(ReactionPathway):
 def project_out(component_to_remove, vector):
     """Projects the component of 'vector' that list along 'component_to_remove'
     out of 'vector' and returns it."""
-    print len(component_to_remove)
-    print len(vector)
+#    print len(component_to_remove)
+#    print len(vector)
     projection = dot(component_to_remove, vector)
     output = vector - projection * component_to_remove
     return output
@@ -1186,6 +1193,8 @@ def plot2D(react_path, path_res = 0.002):
     g.ylabel('y')
     g('set xrange [0:3]')
     g('set yrange [0:3]')
+    g('set key right bottom')
+    g('set key box')
 
     # Get some tmp filenames
     (fd, tmp_file1,) = tempfile.mkstemp(text=1)
@@ -1220,11 +1229,17 @@ def plot2D(react_path, path_res = 0.002):
     t0_func = Gnuplot.Func(t0_str)
 
     # PLOT THE VARIOUS PATHS
+    g('set term postscript color size 8,6')
+    global plot_count
+    g('set output "gp_test' + str(plot_count) + '.ps"')
+    plot_count += 1
     g.plot(#t0_func, 
         Gnuplot.File(tmp_file1, binary=0, title="Smooth", with_ = "lines"), 
         Gnuplot.File(tmp_file2, binary=0, with_ = "points", title = "get_state_vec()"), 
         Gnuplot.File(tmp_file3, binary=0, title="points on string from optimisation", with_ = "points"),
         Gnuplot.File(contour_file, binary=0, title="contours", with_="lines"))
+    #g.hardcopy('gp_test.ps', enhanced=1, color=1)
+
     raw_input('Press to continue...\n')
 
     os.unlink(tmp_file1)
@@ -1272,7 +1287,7 @@ def test_GQSM():
 
     reagents = [reactants, products]
     gs = GrowingString(reagents, qc_driver, 
-        beads_count=8, rho=rho_flat, growing=True)
+        beads_count=16, rho=rho_flat, growing=True)
 
     # Wrapper callback function
     def mycb(x):
@@ -1306,7 +1321,7 @@ def test_GrowingString():
     surf_plot = SurfPlot(GaussianPES())
     qc_driver = GaussianPES()
 
-    gs = GrowingString(reactants, products, qc_driver, f_test, 
+    gs = GrowingString([reactants, products], f_test, qc_driver, 
         beads_count=15, rho=rho_flat)
 
     # Wrapper callback function
@@ -1613,7 +1628,7 @@ class QuadraticStringMethod():
 
     [QSM] Burger and Yang, J Chem Phys 2006 vol 124 054109."""
 
-    def __init__(self, string = None, callback = None, gtol = 0.1, update_trust_rads = False, logger = modlog):
+    def __init__(self, string = None, callback = None, gtol = 0.01, update_trust_rads = False, logger = modlog):
         self.__string = string
         self.__callback = callback
         
@@ -1698,6 +1713,8 @@ class QuadraticStringMethod():
             H.append(deepcopy(Hi))
         H = array(H)
 
+#        print "type(x)",type(x)
+#        raw_input()
         # optimisation of whole string to semi-global min
         k = 0
         m = e # quadratically estimated energy
@@ -1711,6 +1728,7 @@ class QuadraticStringMethod():
             self.__string.update_path(x, respace=True)
 
             # callback. Note, in previous versions, self.update_path was called by callback function
+            print common.line()
             x = self.__callback(x)
 
 #            print "x",x
@@ -1726,7 +1744,8 @@ class QuadraticStringMethod():
             prev_e = e
             e, g = update_eg(x) # TODO: Question: will the state of the string be updated(through respacing)?
 
-            if linalg.norm(g) < self.__gtol:
+#            print "linalg.norm(g)", linalg.norm(g)
+            if common.rms(g) < self.__gtol:
                 break
 
             if self.__update_trust_rads:
@@ -2198,5 +2217,5 @@ def test_NEB():
 
 
 if __name__ == '__main__':
-    test_NEB()
+    test_GQSM()
 

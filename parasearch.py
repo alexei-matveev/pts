@@ -230,6 +230,10 @@ def setup_and_run(mol_strings, params):
     elif meth == "neb":
         neb_calc(molinterface, calc_man, reagent_coords, params)
     elif meth == "string":
+        params['growing'] = False
+        string_calc(molinterface, calc_man, reagent_coords, params)
+    elif meth == "growing_string":
+        params['growing'] = True
         string_calc(molinterface, calc_man, reagent_coords, params)
     else:
         assert False, "Should never happen, program should check earlier that the opt is specified correctly."
@@ -242,7 +246,7 @@ def generic_callback(x, molinterface, cos_obj, params):
 #            print neb.gradients_vec
 #            print numpy.linalg.norm(neb.gradients_vec)
     dump_beads(molinterface, cos_obj, params)
-    dump_steps(cos_obj)
+    #dump_steps(cos_obj)
     #cos_obj.plot()
     print common.line()
     return x
@@ -252,22 +256,16 @@ def generic_callback(x, molinterface, cos_obj, params):
 def string_calc(molinterface, calc_man, reagent_coords, params):
     """Setup String object, optimiser, etc."""
 
-    max_iterations = params["max_iterations"]
-
-    #  TODO: string micro-iterations when growing???
-
     beads_count = int(params["beads_count"])
     string = searcher.GrowingString(reagent_coords,
-                                    molinterface.geom_checker,
                                     calc_man,
                                     beads_count,
                                     rho = lambda x: 1,
-                                    growing=False,
+                                    growing=params['growing'],
                                     parallel=True)
-
     # initial path
     dump_beads(molinterface, string, params)
-    dump_steps(string)
+    #dump_steps(string)
 
     mycb = lambda x: generic_callback(x, molinterface, string, params)
 
@@ -276,7 +274,17 @@ def string_calc(molinterface, calc_man, reagent_coords, params):
     tol = params['tol']
 
     print "Launching optimiser..."
-    if params["optimizer"] == "l_bfgs_b":
+    if params['growing']:
+        gqs = searcher.QuadraticStringMethod(string, callback = mycb, update_trust_rads = True)
+        while True:
+            opt = gqs.opt()
+
+            # grow the string, but break if not possible
+            print "Growing"
+            if not string.grow_string():
+                break
+       
+    elif params["optimizer"] == "l_bfgs_b":
 
         import cosopt.lbfgsb as so
 
@@ -431,12 +439,17 @@ def dump_steps(chain_of_states):
     for i in range(len(chain_of_states.history))[1:]:
         prev = chain_of_states.history[i-1]
         curr = chain_of_states.history[i]
+        print "prev", prev.shape
+        print "curr", curr.shape
+        print "i", i
 
-        diff = curr - prev
+        if curr.shape == prev.shape:
+            diff = curr - prev
 
-        diff.shape = (chain_of_states.beads_count, -1)
-        diff = [numpy.linalg.norm(i) for i in diff]
-        print diff
+            print chain_of_states.beads_count, diff.shape
+            diff.shape = (chain_of_states.beads_count, -1)
+            diff = [numpy.linalg.norm(i) for i in diff]
+            print diff
 
     print "Chain energy history..."
     for e in chain_of_states.energy_history:
