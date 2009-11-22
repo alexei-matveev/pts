@@ -1,3 +1,84 @@
+"""
+Import minimization funciton:
+
+    >>> from scipy.optimize import fmin_l_bfgs_b as minimize
+
+Find the three minima:
+
+    >>> b, _, _ = minimize(energy, [0,0], gradient)
+    >>> b
+    array([ 0.62349942,  0.02803776])
+
+    >>> a, _, _ = minimize(energy, [-1,1], gradient)
+    >>> a
+    array([-0.55822362,  1.44172583])
+
+    >>> c, _, _ = minimize(energy, [0,1], gradient)
+    >>> c
+    array([-0.05001084,  0.46669421])
+
+Import the path representtion:
+
+    >>> from path_representation import PathRepresentation as Path
+
+Construct a path connecting two minima b and c:
+    >>> p = Path([b,c])
+
+    >>> p(0)
+    array([[ 0.62349942],
+           [ 0.02803776]])
+
+    >>> p(1)
+    array([[-0.05001084],
+           [ 0.46669421]])
+
+    >>> energy(p(0))
+    array([-108.16672412])
+
+    >>> energy(b)
+    -108.16672411685231
+
+Simplex minimizer that does not require gradients:
+
+    >>> from scipy.optimize import fmin
+    >>> bc = fmin(lambda x: -energy(p(x)), 0.5)
+    Optimization terminated successfully.
+             Current function value: 72.246872
+             Iterations: 12
+             Function evaluations: 24
+    >>> bc
+    array([ 0.60537109])
+    >>> p(bc)
+    array([[ 0.21577578],
+           [ 0.29358769]])
+
+The true TS between b and c is at (0.212, 0.293)
+with the energy -72.249 according to MB79.
+
+    >>> energy(p(bc))
+    array([-72.24687193])
+
+But for another TS approximation between minima a and b
+the guess is much worse:
+
+    >>> p = Path((a,b))
+    >>> ab = fmin(lambda x: -energy(p(x)), 0.5)
+    Optimization terminated successfully.
+             Current function value: -12.676227
+             Iterations: 13
+             Function evaluations: 26
+    >>> ab
+    array([ 0.30664062])
+    >>> p(ab)
+    array([[-0.19585933],
+           [ 1.00823164]])
+    >>> energy(p(ab))
+    array([ 12.67622733])
+
+The true TS between a and b is at  (-0.822, 0.624)
+with the energy -40.665 according to MB79 that is significantly
+further away than the maximum on the linear path between a and b.
+"""
 __all__ = ["energy", "gradient"] # "MuellerBrown"]
 
 from numpy import exp, array
