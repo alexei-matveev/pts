@@ -1,4 +1,4 @@
-__all__ = ["MuellerBrown"]
+__all__ = ["energy", "gradient"] # "MuellerBrown"]
 
 from numpy import exp, array
 
@@ -8,6 +8,10 @@ bb = (   0.,    0.,   11.,   0.6)
 cc = ( -10.,  -10.,   -6.5,  0.7)
 xx = (   1.,    0.,   -0.5, -1.)
 yy = (   0.,    0.5,   1.5,  1.)
+
+# find MB constant below:
+def energy(v): return MB.energy(v)
+def gradient(v): return MB.gradient(v)
 
 class MuellerBrown():
     """
@@ -98,6 +102,8 @@ class MuellerBrown():
             dfdy += ( 2 * c * (y - y0) + b * (x - x0) ) * expt
 
         return array((dfdx, dfdy))
+
+MB = MuellerBrown()
 
 # python mueller_brown.py [-v]:
 if __name__ == "__main__":
