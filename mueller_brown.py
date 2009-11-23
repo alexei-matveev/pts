@@ -90,10 +90,6 @@ cc = ( -10.,  -10.,   -6.5,  0.7)
 xx = (   1.,    0.,   -0.5, -1.)
 yy = (   0.,    0.5,   1.5,  1.)
 
-# find MB constant below:
-def energy(v): return MB.energy(v)
-def gradient(v): return MB.gradient(v)
-
 class MuellerBrown():
     """
     Mueller, Brown, Theoret. Chim. Acta (Berl.) 53, 75-93 (1979)
@@ -101,30 +97,35 @@ class MuellerBrown():
 
     Initialze the calculator:
 
-        >>> f = MuellerBrown()
+        >>> mb = MuellerBrown()
 
     Compute energy:
-        >>> f.energy((0,0))
+        >>> mb((0,0))
         -48.401274173183893
 
-        >>> f.energy((-0.558, 1.442))
+        >>> mb((-0.558, 1.442))
         -146.69948920058778
 
-        >>> f.energy((0.623, 0.028))
+        >>> mb((0.623, 0.028))
         -108.16665005353302
 
-        >>> f.energy((-0.050, 0.467))
+        >>> mb((-0.050, 0.467))
+        -80.767749248757724
+
+    "Calling" |mb| is the same as invoking its value method |f|:
+
+        >>> mb.f((-0.050, 0.467))
         -80.767749248757724
 
     or gradients:
 
-        >>> f.gradient((-0.558, 1.442))
+        >>> mb.fprime((-0.558, 1.442))
         array([ -1.87353829e-04,   2.04493895e-01])
 
-        >>> f.gradient((0.623, 0.028))
+        >>> mb.fprime((0.623, 0.028))
         array([-0.28214372, -0.19043391])
 
-        >>> f.gradient((-0.050, 0.467))
+        >>> mb.fprime((-0.050, 0.467))
         array([ 0.04894393,  0.44871342])
 
     
@@ -159,7 +160,7 @@ class MuellerBrown():
     def __str__(self):
         return "MuellerBrown"
 
-    def energy(self, v):
+    def f(self, v):
 
         x = v[0]
         y = v[1]
@@ -170,7 +171,10 @@ class MuellerBrown():
 
         return f
 
-    def gradient(self, v):
+    # make MB PES callable:
+    __call__ = f
+
+    def fprime(self, v):
 
         x = v[0]
         y = v[1]
@@ -185,6 +189,11 @@ class MuellerBrown():
         return array((dfdx, dfdy))
 
 MB = MuellerBrown()
+
+# find MB constant below, define two functions without
+# another level of indirection:
+energy = MB.f
+gradient = MB.fprime
 
 # python mueller_brown.py [-v]:
 if __name__ == "__main__":
