@@ -1,0 +1,10 @@
+#!/bin/bash
+#$-o /home/hugh/src/sem-global-ts/inputs/ViOxSiO2/species2_prime.out -j y
+#$-N species2_prime
+#$-S /bin/bash
+#$-pe shm 4
+#$-M  hugh.chaffey-millar@ch.tum.de
+. /etc/profile
+
+time g03 < /home/hugh/src/sem-global-ts/inputs/ViOxSiO2/species2_prime.com > /home/hugh/src/sem-global-ts/inputs/ViOxSiO2/species2_prime.log
+

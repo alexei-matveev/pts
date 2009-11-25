@@ -302,6 +302,12 @@ def string_calc(molinterface, calc_man, reagent_coords, params):
         opt = qs.opt()
         print opt
 
+    elif params["optimizer"] == "ase_lbfgs":
+
+        import ase
+        dyn = ase.LBFGS(string)
+        dyn.run()
+
     else:
          raise ParseError("Unknown optimizer: " + params["optimizer"])
        
@@ -355,9 +361,9 @@ def neb_calc(molinterface, calc_man, reagent_coords, params):
 
         import cosopt.lbfgsb as so
 
-        import ase
-        dyn = ase.LBFGS(neb)
-        dyn.run()
+        #import ase
+        #dyn = ase.LBFGS(neb)
+        #dyn.run()
         opt, energy, dict = so.fmin_l_bfgs_b(neb.obj_func,
                                           neb.get_state_as_array(),
                                           fprime=neb.obj_func_grad,

@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+
+"""Displays a couple of ASE GUIs to facilitate the ordering of atoms in pairs of molecules."""
+
 from ase.gui.images import Images
 from ase.gui.gui import GUI
 
@@ -31,6 +35,8 @@ def main(argv=None):
         except getopt.error, msg:
              raise Usage(msg)
         
+        if len(args) < 2:
+            raise Usage("Must specify two files")
         run(args)
 
     except Usage, err:

@@ -36,7 +36,7 @@ DEFAULT_MAX_ITERATIONS = 20
 DEFAULT_FORCE_TOLERANCE = 0.05
 
 # unit conversions
-ANGSTROMS_TO_BOHRS = 1.8897
+ANGSTROMS_TO_BOHRS = 1.8897 # bohr / A
 HARTREE_TO_ELECTRON_VOLTS = 27.2113845
 DEG_TO_RAD = numpy.pi / 180.
 RAD_TO_DEG = 180. / numpy.pi
@@ -123,7 +123,7 @@ def fname():
 
 
 SAMENESS_THRESH_VECTORS = 1e-6
-SAMENESS_THRESH_ENERGIES = 1e-6
+SAMENESS_THRESH_ENERGIES = 1e-10
 def is_same_v(v1, v2):
     return numpy.linalg.norm(v1 - v2, ord=numpy.inf) < SAMENESS_THRESH_VECTORS
 def is_same_e(e1, e2):

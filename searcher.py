@@ -47,8 +47,6 @@ def report(str):
     print "===", str
     print line
 
-print "\n\nBegin Program..." 
-
 # Function labeller
 def flab(msg, tag = "", tag1 = ""):
     import sys
@@ -262,12 +260,14 @@ class NEB(ReactionPathway):
         total_energy = 0
         for i in range(len(self.bead_pes_energies)): #[1:-1]:
             total_energy += self.bead_pes_energies[i]
+        max_energy = self.bead_pes_energies.max()
         strrep += "Total Band Energy: " + str(total_energy)
 #        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
         strrep += "\nRMS Perpendicular bead forces: " + str(common.rms(self.bead_forces))
         strrep += "\nFunction calls: " + str(self.f_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
-        strrep += "\nArchive (bgc, gc, rmsf, e): %d\t%d\t%f\t%f" % (self.bead_g_calls, self.g_calls, common.rms(self.bead_forces), total_energy)
+        strrep += "\nArchive (bgc, gc, rmsf, e, maxe): %d\t%d\t%f\t%f\t%f" % (self.bead_g_calls, self.g_calls, common.rms(self.bead_forces), total_energy, max_energy)
+
         strrep += "\nAngles: %s" % str(self.get_angles())
 
         return strrep
@@ -409,7 +409,8 @@ class NEB(ReactionPathway):
 
         pes_energies = sum(self.bead_pes_energies[1:-1])
 
-        return (pes_energies + spring_energies)
+        print "self.bead_pes_energies", self.bead_pes_energies
+        return self.bead_pes_energies.max() #(pes_energies + spring_energies)
 
       
     def obj_func_grad(self, new_state_vec = None):
@@ -958,16 +959,33 @@ class GrowingString(ReactionPathway):
         total_energy = 0
         for i in range(len(self.bead_pes_energies))[1:-1]:
             total_energy += self.bead_pes_energies[i]
+        max_energy = self.bead_pes_energies.max()
         strrep += "Total String Energy: " + str(total_energy)
 #        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
         strrep += "\nPerpendicular bead forces norm: " + str(common.rms(self.bead_forces))
         strrep += "\nFunction calls: " + str(self.f_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
-        strrep += "\nArchive (bgc, gc, rmsf, e): %d\t%d\t%f\t%f" % (self.bead_g_calls, self.g_calls, common.rms(self.bead_forces), total_energy)
+        strrep += "\nArchive (bgc, gc, rmsf, e, maxe): %d\t%d\t%f\t%f\t%f" % (self.bead_g_calls, self.g_calls, common.rms(self.bead_forces), total_energy, max_energy)
 #        strrep += "\nAngles: %s" % str(self.get_angles())
 
         return strrep
 
+    def set_positions(self, x):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
+        new_state_vec = x.flatten()[0:self.beads_count * self.dimension]
+        self.update_path(new_state_vec, respace = True)
+
+    def get_positions(self):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates.""" 
+        return common.make_like_atoms(self.state_vec)
+
+    def get_forces(self):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
+        return -common.make_like_atoms(self.obj_func_grad())
+
+    def get_potential_energy(self):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
+        return self.obj_func()
 
     def get_state_vec(self):
         return deepcopy(self.__path_rep.state_vec)
@@ -1067,7 +1085,7 @@ class GrowingString(ReactionPathway):
         if individual_energies:
             return deepcopy(es)
         else:
-            return total_energies
+            return es.max() #total_energies
        
     def obj_func_grad(self, new_state_vec = None):
         flab("called")
@@ -1291,7 +1309,7 @@ def test_GQSM():
 
     reagents = [reactants, products]
     gs = GrowingString(reagents, qc_driver, 
-        beads_count=16, rho=rho_flat, growing=True)
+        beads_count=8, rho=rho_flat, growing=True)
 
     # Wrapper callback function
     def mycb(x):
@@ -1632,12 +1650,12 @@ class QuadraticStringMethod():
 
     [QSM] Burger and Yang, J Chem Phys 2006 vol 124 054109."""
 
-    def __init__(self, string = None, callback = None, gtol = 0.01, update_trust_rads = False, logger = modlog):
+    def __init__(self, string = None, callback = None, gtol = 0.05, update_trust_rads = False, logger = modlog):
         self.__string = string
         self.__callback = callback
         
-        self.__init_trust_rad = 0.1
-        self.__h0 = 0.1
+        self.__init_trust_rad = 0.05
+        self.__h0 = 0.05
         self.__max_step_err = 0.01
         self.__dims = self.__string.dimension
 
