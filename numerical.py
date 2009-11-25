@@ -2,7 +2,7 @@ import numpy
 
 class NumDiff():
     """Some functions to numerically differential vector functions."""
-    def __init__(self, simpleerr=1e-4, init_h=1.0, method="numrec"):
+    def __init__(self, simpleerr=1e-4, init_h=0.1, method="numrec"):
         """
         method is either
             numrec: modified method from Numerical Recipes
@@ -12,6 +12,7 @@ class NumDiff():
         init_h is the initial h (i.e. finite difference) to use when using the
             numrec method"""
         self.max_err = simpleerr
+        assert init_h > 0
         self.init_h = init_h
         if method == "numrec":
             self.numdiff = self.numdiff_numrec

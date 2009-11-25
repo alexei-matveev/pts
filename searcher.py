@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 from scipy import *
+
+import scipy.integrate
 from scipy import interpolate
 try:
     import Gnuplot, Gnuplot.PlotItems, Gnuplot.funcutils
@@ -13,6 +15,7 @@ from copy import deepcopy
 import pickle
 
 from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil
+
 
 from common import * # TODO: must unify
 import common
@@ -30,8 +33,6 @@ if not globals().has_key("lg"):
     sh.setLevel(logging.DEBUG)
     lg.addHandler(sh)
 
-
-import scipy.integrate
 
 def _functionId(nFramesUp):
     """ Create a string naming the function n frames up on the stack.

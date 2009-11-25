@@ -10,10 +10,7 @@ import numpy as np
 
 import ase
 
-tmp = "2 0 0 1 1 2 8 6 7 3 5 4 6 5 3 8"
-tmp = "2 0 0 1 7 3 8 6 4 8 5 4 6 5 3 7"
-tmp = "2 0 0 1 1 2 7 3 8 6 4 8 5 4 6 5 3 7"
-sep_str = "15 21 13 13 14 14 11 9 9 10 12 11 10 12 20 20 21 18 19 19 17 15 16 17 18 16 3 5 5 1 7 7 4 6 8 8 6 0 22 22 23 23 24 24 2 2 1 3 0 4 25 25"
+from aof.coord_sys import vec_to_mat
 
 def aaa_dist(geom):
     """Calculate average interatom distance."""
@@ -148,47 +145,6 @@ class Rotate:
 
 
         
-    def mat(self, v):
-        """Generates rotation matrix based on vector v, whose length specifies 
-        the rotation angle and whose direction specifies an axis about which to
-        rotate."""
-
-        assert len(v) == 3
-        phi = norm(v)
-        a = cos(phi/2)
-        if phi < 0.02:
-            print "Used Taylor series approximation, phi =", phi
-            """
-            q2 = sin(phi/2) * v / phi
-               = sin(phi/2) / (phi/2) * v/2
-               = sin(x)/x + v/2 for x = phi/2
-
-            Using a taylor series for the first term...
-
-            (%i1) taylor(sin(x)/x, x, 0, 8);
-            >                           2    4      6       8
-            >                          x    x      x       x
-            > (%o1)/T/             1 - -- + --- - ---- + ------ + . . .
-            >                          6    120   5040   362880
-
-            Below phi/2 < 0.01, terms greater than x**8 contribute less than 
-            1e-16 and so are unimportant for double precision arithmetic.
-
-            """
-            x = phi / 2
-            taylor_approx = 1 - x**2/6. + x**4/120. - x**6/5040. + x**8/362880.
-            q2 = v/2 * taylor_approx
-
-        else:
-            q2 = sin(phi/2) * v / phi
-
-        b,c,d = q2
-
-        m = np.array([[ a*a + b*b - c*c - d*d , 2*b*c + 2*a*d,         2*b*d - 2*a*c  ],
-                   [ 2*b*c - 2*a*d         , a*a - b*b + c*c - d*d, 2*c*d + 2*a*b  ],
-                   [ 2*b*d + 2*a*c         , 2*c*d - 2*a*b        , a*a - b*b - c*c + d*d  ]])
-
-        return m
 
     def trans(self, geom, v):
         """Translates and rotates geometry geom based on v."""
@@ -196,7 +152,7 @@ class Rotate:
         shift = v[:3] # displacement
         imq   = v[3:] # imag_quaternion
 
-        mat = self.mat(imq)
+        mat = vec_to_mat(imq)
 
         g_moved = []
         for g in geom:

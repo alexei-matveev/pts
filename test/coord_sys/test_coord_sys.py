@@ -19,9 +19,9 @@ visual = False
 
 def test_calc(**kwargs):
     if quick:
-        return ase.EMT()
+        return (ase.EMT, [], {})
     else:
-        return aof.ase_gau.Gaussian(**kwargs)
+        return (aof.ase_gau.Gaussian, [], kwargs)
 
 def geom_str_summ(s,n=2):
     """Summarises a string containing a molecular geometry so that very similar 
@@ -169,10 +169,10 @@ class TestComplexCoordSys(aof.test.MyTestCase):
 
     def test_Anchoring(self):
 
-        self.assertRaises(cs.ComplexCoordSysException, cs.RotAndTrans, numpy.array([0.,0.,0.,0.,0.,0.]))
+        #self.assertRaises(cs.ComplexCoordSysException, cs.RotAndTrans, numpy.array([0.,0.,0.,0.,0.,0.]))
 
         # Generates a series of rotated molecular geometries and views them.
-        a = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,1.,1.]))
+        a = cs.RotAndTrans(numpy.array([1.,0.,0.,1.,1.,1.]))
         z = cs.ZMatrix(file2str("butane1.zmt"), anchor=a)
 
         print z.get_internals()
@@ -183,11 +183,9 @@ class TestComplexCoordSys(aof.test.MyTestCase):
         geoms_list = []
 
         for alpha, v in zip(alphas, vs):
-            w = numpy.array([numpy.cos(alpha / 2)])
-
             vec = common.normalise([1,v,-v])
             vec = numpy.sin(alpha / 2) * vec
-            q = numpy.hstack([w, vec])
+            q = numpy.hstack([vec])
             v = numpy.array([1.,1.,1.])
             a.set(numpy.hstack([q,v]))
             geoms_list.append(z.atoms.copy())
@@ -199,9 +197,9 @@ class TestComplexCoordSys(aof.test.MyTestCase):
 
         x = cs.XYZ(file2str("H2.xyz"))
 
-        a_h2o1 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,3.,1.,1.]), parent=x)
-        a_h2o2 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,1.,1.]), parent=x)
-        a_ch4  = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,-1.,1.]), parent=x)
+        a_h2o1 = cs.RotAndTrans(numpy.array([1.,0.,0.,3.,1.,1.]), parent=x)
+        a_h2o2 = cs.RotAndTrans(numpy.array([1.,0.,0.,1.,1.,1.]), parent=x)
+        a_ch4  = cs.RotAndTrans(numpy.array([1.,0.,0.,1.,-1.,1.]), parent=x)
 
         h2o1 = cs.ZMatrix(file2str("H2O.zmt"), anchor=a_h2o1)
         h2o2 = cs.ZMatrix(file2str("H2O.zmt"), anchor=a_h2o2)
@@ -218,7 +216,6 @@ class TestComplexCoordSys(aof.test.MyTestCase):
         for i in range(8):
             list.append(ccs.atoms.copy())
             dyn.run(steps=1,fmax=0.01)
-            print "Quaternion norms:", a_h2o1.qnorm, a_h2o2.qnorm, a_ch4.qnorm
 
         list.append(ccs.atoms.copy())
 
@@ -229,7 +226,7 @@ class TestComplexCoordSys(aof.test.MyTestCase):
         """Forms a complex coordinate system object from a few bits and pieces."""
         x = cs.XYZ(file2str("H2.xyz"))
 
-        a_h2o1 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,3.,1.,1.]), parent=x)
+        a_h2o1 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,1.]), parent=x)
 #        a_h2o2 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,1.,1.]), parent=x)
 #        a_ch4  = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,-1.,1.]), parent=x)
 
@@ -247,9 +244,9 @@ class TestComplexCoordSys(aof.test.MyTestCase):
         """Forms a complex coordinate system object from a few bits and pieces."""
         x = cs.XYZ(file2str("H2.xyz"))
 
-        a_h2o1 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,3.,1.,1.]), parent=x)
-        a_h2o2 = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,1.,1.]), parent=x)
-        a_ch4  = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,1.,-1.,1.]), parent=x)
+        a_h2o1 = cs.RotAndTrans(numpy.array([1.,0.,0.,3.,1.,1.]), parent=x)
+        a_h2o2 = cs.RotAndTrans(numpy.array([1.,0.,0.,1.,1.,1.]), parent=x)
+        a_ch4  = cs.RotAndTrans(numpy.array([1.,0.,0.,1.,-1.,1.]), parent=x)
 
         h2o1 = cs.ZMatrix(file2str("H2O.zmt"), anchor=a_h2o1)
         h2o2 = cs.ZMatrix(file2str("H2O.zmt"), anchor=a_h2o2)
@@ -274,7 +271,7 @@ class TestComplexCoordSys(aof.test.MyTestCase):
         parts   = []
         var_types = ""
         for pos in water_positions:
-            rs = [random() for i in range(4)]
+            rs = [random() for i in range(3)]
             quat = numpy.array(rs)
             quat = quat / numpy.linalg.norm(quat)
             gps = numpy.hstack([quat, pos*3])
@@ -285,7 +282,7 @@ class TestComplexCoordSys(aof.test.MyTestCase):
 
             # setup mask to identify nature of variables later
             var_types += "".join(["i" for j in range(h2o._dims)])
-            var_types += "rrrrppp"
+            var_types += "rrrppp"
 
         ccs = cs.ComplexCoordSys(parts)
 
@@ -303,7 +300,7 @@ class TestComplexCoordSys(aof.test.MyTestCase):
             if c == 'i':
                 return False
             elif c == 'r':
-                return False
+                return True
             elif c == 'p':
                 return True
             else:
@@ -321,7 +318,6 @@ class TestComplexCoordSys(aof.test.MyTestCase):
 
         if visual:
             ase.view(list)
-
 
     def test_var_mask_basic(self):
 
@@ -397,7 +393,7 @@ class TestComplexCoordSys(aof.test.MyTestCase):
         self.assertAlmostEqualVec(ccs._coords, ccs._demask(ccs.get_internals()))
 
         before = ccs._coords.copy()
-        print ccs.int2cart(ccs.get_internals())
+        #print ccs.int2cart(ccs.get_internals())
         after = ccs._coords.copy()
         self.assert_((before == after).all())
 
@@ -418,17 +414,16 @@ class TestComplexCoordSys(aof.test.MyTestCase):
         for i in range(8):
             list.append(ccs.atoms.copy())
             dyn.run(steps=1,fmax=0.01)
-#            print "Quaternion norms:", a_h2o1.qnorm, a_h2o2.qnorm, a_ch4.qnorm
 
         list.append(ccs.atoms.copy())
 
-        if visual:
-            ase.view(list)
+        #if visual:
+        ase.view(list)
 
     def test_ComplexCoordSys2(self):
 
         x = cs.XYZ(file2str("H2.xyz"))
-        a = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,3.,1.,1.]), parent=x)
+        a = cs.RotAndTrans(numpy.array([1.,0.,0.,3.,1.,1.]), parent=x)
         z = cs.ZMatrix(file2str("butane1.zmt"), anchor=a)
 
         parts = [x, z]
@@ -474,10 +469,10 @@ class TestComplexCoordSys(aof.test.MyTestCase):
 
     def test_ComplexCoordSys_pickling(self):
       
-        calc = ase.EMT()
+        calc = test_calc()
 
         x = cs.XYZ(file2str("H2.xyz"))
-        a = cs.RotAndTrans(numpy.array([1.,0.,0.,0.,3.,1.,1.]), parent=x)
+        a = cs.RotAndTrans(numpy.array([1.,0.,0.,3.,1.,1.]), parent=x)
         z = cs.ZMatrix(file2str("butane1.zmt"), anchor=a)
 
         parts = [x, z]
