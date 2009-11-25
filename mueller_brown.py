@@ -19,7 +19,7 @@ Find the three minima:
 
 Import the path representtion:
 
-    >>> from path_representation import PathRepresentation as Path
+    >>> from path_representation import Path
 
 Construct a path connecting two minima b and c:
     >>> p = Path([b,c])
@@ -83,6 +83,7 @@ __all__ = ["energy", "gradient"] # "MuellerBrown"]
 
 from numpy import exp, array
 
+# FIXME: how to mve them into class definiton out of global namespace?
 AA = (-200., -100., -170.,  15.)
 aa = (  -1.,   -1.,   -6.5,  0.7)
 bb = (   0.,    0.,   11.,   0.6)
@@ -188,10 +189,10 @@ class MuellerBrown():
 
         return array((dfdx, dfdy))
 
-MB = MuellerBrown()
 
-# find MB constant below, define two functions without
+# define MB constant, define two functions without
 # another level of indirection:
+MB = MuellerBrown()
 energy = MB.f
 gradient = MB.fprime
 
