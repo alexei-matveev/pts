@@ -107,9 +107,7 @@ class MolInterface:
             else:
                 raise Exception("Use of " + params["placement_command"] + " not implemented")
 
-        print common.line()
         self.calc_tuple = params["calculator"]
-        print 'params["calculator"]', params["calculator"]
 
         self.mol = mols[0]
 
@@ -129,6 +127,7 @@ class MolInterface:
 
     def __repr__(self):
         return "MolInterface: Writeme: __repr__()"
+
     def geom_checker(self, coords):
         """Not Yet Implemented.
         
@@ -158,9 +157,7 @@ class MolInterface:
 
         # write input file as pickled object
         coord_sys_obj = self.build_coord_sys(job.v)
-        print "coord_sys_obj._atoms.calc", coord_sys_obj.calc_tuple
         f = open(mol_pickled, "wb")
-        print "about to pickle", coord_sys_obj.calc_tuple
         pickle.dump(coord_sys_obj, f)
         f.close()
 

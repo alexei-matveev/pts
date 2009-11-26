@@ -243,16 +243,17 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
             n_function_evals += 1
             # Overwrite f and g:
             f, g = func_and_grad(x)
-#            print "g_norm =", scipy.linalg.norm(g)
+
+            if callable(callback): # added by HCM
+                callback(x) # added by HCM
+
+
         elif task_str.startswith('NEW_X'):
             # new iteration
             if n_function_evals > maxfun:
                 task[:] = 'STOP: TOTAL NO. of f AND g EVALUATIONS EXCEEDS LIMIT'
         else:
             break
-
-        if callback != None: # added by HCM
-            callback(x) # added by HCM
 
     task_str = task.tostring().strip('\x00').strip()
     if task_str.startswith('CONV'):

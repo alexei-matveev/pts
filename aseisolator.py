@@ -94,7 +94,7 @@ def main(argv=None):
             pickle.dump(result, open(result_file, "w"))
 
             # just for testing...
-            print pickle.load(open(result_file, "r"))
+            #print pickle.load(open(result_file, "r"))
 
         elif mode == "optimise":
             optim = ase.LBFGS(atoms, trajectory='opt.traj')

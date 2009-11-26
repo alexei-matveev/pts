@@ -8,9 +8,8 @@ from numpy import floor, zeros, array, ones, arange
 from common import *
 
 # setup logging
-print "Defining logger"
-lg = logging.getLogger(PROGNAME)
-lg.setLevel(logging.DEBUG)
+lg = logging.getLogger("aof.sched")
+lg.setLevel(logging.INFO)
 
 #if not globals().has_key("ch"):
 #    print "Defining stream handler"
@@ -146,13 +145,13 @@ class CalcManager():
     Only (a) and (c) implemented at present.
     """
 
-    def __init__(self, qc_driver, sched_args = None):
+    def __init__(self, qc_driver, params):
 
         self.qc_driver = qc_driver
         self.__para_sched = None
 
-        if sched_args != None:
-            total, max, norm = sched_args
+        if 'processors' in params:
+            total, max, norm = params['processors']
 
             lg.info("%d %d %d %s", total, norm, max, qc_driver)
             self.__para_sched = ParaSched(qc_driver, total, norm, max)
@@ -188,18 +187,17 @@ class CalcManager():
 
         # calculation has aleady been performed, will use cached version
         elif result.has_field(type):
-            lg.info("Already have result for %s, will used cached value" % v)
+            lg.debug("Already have result for %s, will used cached value" % v)
             return
 
         # calc is not already in list so must add
         self.__pending_jobs.append(Job(v, type))
-#        lg.info("Requesting calc for %s of type %s" % (v, type))
 
     def proc_requests(self):
         """Process all jobs in queue."""
         lg.info(self.__class__.__name__ + " %s jobs in queue" % len(self.__pending_jobs))
         if self.__para_sched != None:
-            lg.info(self.__class__.__name__ + " operating in parallel")
+            lg.info(self.__class__.__name__ + " parallel on up to " + str(self.__para_sched.total_procs) + " processors.")
             self.__para_sched.run_all(self.__pending_jobs)
 
             for r in self.__para_sched.get_results():
@@ -271,7 +269,7 @@ class ResultDict():
         else:
             return None
 
-class ParaSched:
+class ParaSched(object):
     def __init__(self, qc_driver, total_procs = 4, normal_procs = 2, max_procs = 4):
         
         self.__pending = Queue()
@@ -282,8 +280,13 @@ class ParaSched:
         if total_procs % normal_procs != 0:
             raise Exception("total_procs must be a whole multiple of min_procs")
 
+        self.__total_procs = total_procs
         self.__workers_count = int (floor (total_procs / normal_procs))
         self.__normal_procs = normal_procs
+
+    @property
+    def total_procs(self):
+        return self.__total_procs
 
     def __worker(self, pending, finished, ix):
         """Runs as a Python thread. "pending" and "finished" are both thread

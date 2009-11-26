@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 from scipy import *
+import sys
+import inspect
 
 import scipy.integrate
 from scipy import interpolate
@@ -24,7 +26,7 @@ import common
 # TODO: remove global
 plot_count = 0
 
-lg = logging.getLogger(PROGNAME)
+lg = logging.getLogger("aof.searcher")
 lg.setLevel(logging.INFO)
 modlog = lg # synonyum
 
@@ -126,9 +128,10 @@ class ReactionPathway:
     """Abstract object for chain-of-state reaction pathway."""
     dimension = -1
 
-    f_calls = 0
+    e_calls = 0
     g_calls = 0
     bead_g_calls = 0
+    bead_e_calls = 0
 
     def __init__(self, reagents, beads_count, qc_driver, parallel):
 
@@ -142,13 +145,6 @@ class ReactionPathway:
         # forces perpendicular to pathway
         self.bead_forces = zeros(beads_count * self.dimension)
 
-        # set reactant/product energies to arbitrarily low so that upwinding tangent calculation works
-#        self.default_initial_bead_pes_energies = zeros(self.beads_count)
-#        self.default_initial_bead_pes_energies[0] = -1e4
-#        self.default_initial_bead_pes_energies[-1] = -1e4
-
-        # energy of a bead on PES, doesn't include spring energies for NEB
-        # do I really need a deep copy?
 #        self.bead_pes_energies = deepcopy(self.default_initial_bead_pes_energies)
 
         self.tangents = zeros(beads_count * self.dimension)
@@ -157,6 +153,33 @@ class ReactionPathway:
         self.bead_pes_energies = zeros(beads_count)
         self.history = []
         self.energy_history = []
+
+    def __str__(self):
+#        print inspect.stack()
+        strrep = "Bead Energies: " + str(self.bead_pes_energies) + "\n"
+        total_energy = 0
+        for i in range(len(self.bead_pes_energies)): #[1:-1]:
+            total_energy += self.bead_pes_energies[i]
+        max_energy = self.bead_pes_energies.max()
+        strrep += "Total Band Energy: " + str(total_energy)
+#        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
+        strrep += "\nRMS Perpendicular bead forces: " + str(common.rms(self.bead_forces))
+        strrep += "\nFunction calls: " + str(self.e_calls)
+        strrep += "\nGradient calls: " + str(self.g_calls)
+        strrep += "\nArchive (bgc, gc, bec, ec, rmsf, e, maxe): %d\t%d\t%d\t%d\t%f\t%f\t%f" % \
+            (self.bead_g_calls, 
+                self.g_calls, 
+                self.bead_e_calls, 
+                self.e_calls, 
+                common.rms(self.bead_forces), 
+                total_energy, 
+                max_energy)
+
+        strrep += "\nAngles: %s" % str(self.get_angles())
+
+        return strrep
+
+
 
     @property
     def dimension(self):
@@ -176,7 +199,7 @@ class ReactionPathway:
         return tmp
 
     def obj_func(self, x):
-        self.f_calls += 1
+        self.e_calls += 1
         self.history.append(deepcopy(x))
 
     def obj_func_grad(self, x):
@@ -198,6 +221,7 @@ class ReactionPathway:
         bead_pes_energies = []
 #        print "self.state_vec:", self.state_vec
         for bead_vec in self.state_vec:
+            self.bead_e_calls += 1
             e = self.qc_driver.energy(bead_vec)
             bead_pes_energies.append(e)
 
@@ -255,24 +279,6 @@ class NEB(ReactionPathway):
             t1 = self.state_vec[i] - self.state_vec[i-1]
             angles.append(vector_angle(t1, t0))
         return array(angles)
-
-    def __str__(self):
-        strrep = "Bead Energies: " + str(self.bead_pes_energies) + "\n"
-        total_energy = 0
-        for i in range(len(self.bead_pes_energies)): #[1:-1]:
-            total_energy += self.bead_pes_energies[i]
-        max_energy = self.bead_pes_energies.max()
-        strrep += "Total Band Energy: " + str(total_energy)
-#        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
-        strrep += "\nRMS Perpendicular bead forces: " + str(common.rms(self.bead_forces))
-        strrep += "\nFunction calls: " + str(self.f_calls)
-        strrep += "\nGradient calls: " + str(self.g_calls)
-        strrep += "\nArchive (bgc, gc, rmsf, e, maxe): %d\t%d\t%f\t%f\t%f" % (self.bead_g_calls, self.g_calls, common.rms(self.bead_forces), total_energy, max_energy)
-
-        strrep += "\nAngles: %s" % str(self.get_angles())
-
-        return strrep
-
 
     def special_reduce_old(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
         """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
@@ -955,7 +961,7 @@ class GrowingString(ReactionPathway):
 
         self.parallel = parallel
 
-    def __str__(self):
+    """def __str__(self):
         strrep = "Bead Energies: " + str(self.bead_pes_energies) + "\n"
         total_energy = 0
         for i in range(len(self.bead_pes_energies))[1:-1]:
@@ -964,12 +970,12 @@ class GrowingString(ReactionPathway):
         strrep += "Total String Energy: " + str(total_energy)
 #        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
         strrep += "\nPerpendicular bead forces norm: " + str(common.rms(self.bead_forces))
-        strrep += "\nFunction calls: " + str(self.f_calls)
+        strrep += "\nFunction calls: " + str(self.e_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
         strrep += "\nArchive (bgc, gc, rmsf, e, maxe): %d\t%d\t%f\t%f\t%f" % (self.bead_g_calls, self.g_calls, common.rms(self.bead_forces), total_energy, max_energy)
 #        strrep += "\nAngles: %s" % str(self.get_angles())
 
-        return strrep
+        return strrep"""
 
     def set_positions(self, x):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""

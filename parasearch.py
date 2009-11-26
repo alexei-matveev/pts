@@ -7,9 +7,8 @@ import re
 import logging
 import numpy
 
-import asemolinterface
-import sched
 import os
+
 import ase
 from ase.calculators import SinglePointCalculator
 from ase.io.trajectory import write_trajectory
@@ -18,25 +17,22 @@ import aof
 import aof.common as common
 from common import ParseError
 
-import searcher
-
 file_dump_count = 0
 
 # setup logging
-import logging
-print "Defining logger"
-lg = logging.getLogger(__name__)
+lg = logging.getLogger("aof")
 lg.setLevel(logging.INFO)
-
-if not globals().has_key("ch"):
-    print "Defining stream handler"
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-    lg.addHandler(ch)
+#if not globals().has_key("ch"):
+#    print "Defining stream handler"
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(name)s (%(levelname)s): %(message)s")
 ch.setFormatter(formatter)
+lg.addHandler(ch)
 
 flags = dict()
+
+__all__ = ["neb_calc", "string_calc", "read_files", "generic_callback", "dump_steps"]
 
 class Usage(Exception):
     def __init__(self, msg):
@@ -100,7 +96,7 @@ def main(argv=None):
 
         if config.has_section('parameters'):
             params = dict(config.items('parameters'))
-            params["inputfile"] = inputfile
+            params["name"] = os.path.splitext(inputfile)[0]
         else:
             print config.sections()
             raise ParseError("Could not find section 'parameters'")
@@ -130,9 +126,9 @@ def main(argv=None):
             opt = dict(config.items('opt'))
 
             # TODO: add some error checking for the following values
-            opt['tol'] = float(opt.get('tol', common.DEFAULT_FORCE_TOLERANCE))
-            opt['maxit'] = int(opt.get('maxit', common.DEFAULT_MAX_ITERATIONS))
-            opt['optimizer'] = opt.get('type')
+            opt['tol'] = float(opt.pop('tol', common.DEFAULT_FORCE_TOLERANCE))
+            opt['maxit'] = int(opt.pop('maxit', common.DEFAULT_MAX_ITERATIONS))
+            opt['optimizer'] = opt.pop('type')
 
             params.update(opt)
 
@@ -186,26 +182,28 @@ def main(argv=None):
     logging.info("Molecules list: " + str(mol_files))
     logging.info("Parameters list: " + str(params))
 
+    mol_strings = read_files(mol_files)
+
+    setup_and_run(mol_strings, params)
+
+def read_files(mol_files):
     mol_strings = []
     try:
         # open files describing input molecules
         for file in mol_files:
             if os.path.exists(file):
                 f = open(file, "r")
-            elif os.path.exists(os.path.join(inputfile_dir, file)):
-                f = open(os.path.join(inputfile_dir, file), "r")
             else:
                 raise IOError("Cannot find " + file)
             mystr = f.read()
             f.close()
             mol_strings.append(mystr)
 
-    except IOError, e:
-        print "IOError", str(e)
-        print "Tried " + file + " and " + os.path.join(inputfile_dir, file)
-        return 1
+        return mol_strings
 
-    setup_and_run(mol_strings, params)
+    except IOError, e:
+        msg = "IOError" + str(e)
+        raise ParseError(msg)
 
 def setup_and_run(mol_strings, params):
     """1. Setup all objects based on supplied parameters and molecular 
@@ -213,27 +211,26 @@ def setup_and_run(mol_strings, params):
 
     # setup MoIinterface
     # molinterface_params = setup_params(params)
-    molinterface = asemolinterface.MolInterface(mol_strings, params)
+    molinterface = aof.MolInterface(mol_strings, params)
 
-    calc_man = sched.CalcManager(molinterface, 
-                           params["processors"]) # TODO: check (earlier) that this param is a tuple / correct format
+    calc_man = aof.CalcManager(molinterface, params) # TODO: check (earlier) that this param is a tuple / correct format
 
     # SETUP / RUN SEARCHER
     print "Molecule Interface..."
     print molinterface
-    reagent_coords = molinterface.reagent_coords
+#    reagent_coords = molinterface.reagent_coords
 
     meth = params["method"]
     if 'beadopt' in flags:
         beadopt_calc(molinterface, params, flags['beadopt'])
     elif meth == "neb":
-        neb_calc(molinterface, calc_man, reagent_coords, params)
+        neb_calc(molinterface, calc_man, params)
     elif meth == "string":
         params['growing'] = False
-        string_calc(molinterface, calc_man, reagent_coords, params)
+        string_calc(molinterface, calc_man, params)
     elif meth == "growing_string":
         params['growing'] = True
-        string_calc(molinterface, calc_man, reagent_coords, params)
+        string_calc(molinterface, calc_man, params)
     else:
         assert False, "Should never happen, program should check earlier that the opt is specified correctly."
 
@@ -256,7 +253,7 @@ def string_calc(molinterface, calc_man, reagent_coords, params):
     """Setup String object, optimiser, etc."""
 
     beads_count = int(params["beads_count"])
-    string = searcher.GrowingString(reagent_coords,
+    string = aof.searcher.GrowingString(molinterface.reagent_coords,
                                     calc_man,
                                     beads_count,
                                     rho = lambda x: 1,
@@ -274,7 +271,7 @@ def string_calc(molinterface, calc_man, reagent_coords, params):
 
     print "Launching optimiser..."
     if params['growing']:
-        gqs = searcher.QuadraticStringMethod(string, callback = mycb, update_trust_rads = True)
+        gqs = aof.searcher.QuadraticStringMethod(string, callback = mycb, update_trust_rads = True)
         while True:
             opt = gqs.opt()
 
@@ -298,7 +295,7 @@ def string_calc(molinterface, calc_man, reagent_coords, params):
         print dict
 
     elif params["optimizer"] == "quadratic_string":
-        qs = searcher.QuadraticStringMethod(string, callback = mycb, update_trust_rads = True)
+        qs = aof.searcher.QuadraticStringMethod(string, callback = mycb, update_trust_rads = True)
         opt = qs.opt()
         print opt
 
@@ -334,12 +331,12 @@ def beadopt_calc(mi, params, indices):
         ase.view(l)
 
 
-def neb_calc(molinterface, calc_man, reagent_coords, params):
+def neb_calc(molinterface, calc_man, params):
     """Setup NEB object, optimiser, etc."""
 
     spr_const = float(params["spr_const"])
     beads_count = int(params["beads_count"])
-    neb = searcher.NEB(reagent_coords, 
+    neb = aof.searcher.NEB(molinterface.reagent_coords, 
               molinterface.geom_checker, 
               calc_man, 
               spr_const, 
@@ -370,9 +367,6 @@ def neb_calc(molinterface, calc_man, reagent_coords, params):
                                           callback=mycb,
                                           pgtol=tol,
                                           maxfun=maxit)
-        print opt
-        print energy
-        print dict
     elif params["optimizer"] == "bfgs":
         from scipy.optimize import fmin_bfgs
         opt = fmin_bfgs(neb.obj_func, 
@@ -434,7 +428,7 @@ def dump_beads(molinterface, chain_of_states, params):
 
         list.append(a)
 
-    path = os.path.splitext(params["inputfile"])[0] + str(file_dump_count) + common.LOGFILE_EXT
+    path = params["name"] + str(file_dump_count) + common.LOGFILE_EXT
 
     print "path", path
     write_trajectory(path, list)
@@ -447,17 +441,12 @@ def dump_steps(chain_of_states):
     for i in range(len(chain_of_states.history))[1:]:
         prev = chain_of_states.history[i-1]
         curr = chain_of_states.history[i]
-        print "prev", prev.shape
-        print "curr", curr.shape
-        print "i", i
 
         if curr.shape == prev.shape:
             diff = curr - prev
 
-            print chain_of_states.beads_count, diff.shape
             diff.shape = (chain_of_states.beads_count, -1)
             diff = [numpy.linalg.norm(i) for i in diff]
-            print diff
 
     print "Chain energy history..."
     for e in chain_of_states.energy_history:
@@ -469,7 +458,7 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt, e:
         print e
-    import threading
+#    import threading
 #    print "Active threads upon exit were..."
 #    print threading.enumerate()
     sys.exit()
