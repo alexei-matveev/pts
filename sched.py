@@ -5,20 +5,23 @@ import time
 import logging
 from numpy import floor, zeros, array, ones, arange
 
-from common import *
+from aof.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR
 
 # setup logging
 lg = logging.getLogger("aof.sched")
 lg.setLevel(logging.INFO)
 
-#if not globals().has_key("ch"):
-#    print "Defining stream handler"
-#    ch = logging.StreamHandler()
-#    ch.setLevel(logging.DEBUG)
-#    lg.addHandler(ch)
-#formatter = logging.Formatter("%(name)s (%(levelname)s): %(message)s")
-#ch.setFormatter(formatter)
+class CalcManagerException(Exception):
+    def __init__(self, msg):
+        self.msg = msg 
+    def __str__(self, msg):
+        return self.msg
 
+class SchedException(Exception):
+    def __init__(self, msg):
+        self.msg = msg 
+    def __str__(self, msg):
+        return self.msg
 
 class ParaJobLauncher():
     def run(self, j, ix):
@@ -196,13 +199,14 @@ class CalcManager():
     def proc_requests(self):
         """Process all jobs in queue."""
         lg.info(self.__class__.__name__ + " %s jobs in queue" % len(self.__pending_jobs))
+
         if self.__para_sched != None:
             lg.info(self.__class__.__name__ + " parallel on up to " + str(self.__para_sched.total_procs) + " processors.")
             self.__para_sched.run_all(self.__pending_jobs)
 
             for r in self.__para_sched.get_results():
                 if ERROR_STR in r.flags:
-                    raise Exception("Error encountered in computation, result was: " + r)
+                    raise CalcManagerException("Error encountered in computation, result was: " + r)
                 self.__result_dict.add(r.v, r)
 
         # running serially
@@ -218,7 +222,7 @@ class CalcManager():
         """Returns the already computed energy of vector v."""
         res = self.__result_dict.get(v)
         if res == None:
-            raise Exception("No result found for vector %s (energy requested)." %v)
+            raise CalcManagerException("No result found for vector %s (energy requested)." %v)
 
         return res.e
 
@@ -226,9 +230,9 @@ class CalcManager():
         """Returns the already computed gradient of vector v (gradient requested)."""
         res = self.__result_dict.get(v)
         if res == None:
-            raise Exception("No result found for vector %s." %v)
+            raise CalcManagerException("No result found for vector %s." %v)
         elif res.g == None:
-            raise Exception("No gradient found for vector %s, only energy." %v)
+            raise CalcManagerException("No gradient found for vector %s, only energy." %v)
 
         return res.g      
         
@@ -278,7 +282,7 @@ class ParaSched(object):
 
         # no of workers to start
         if total_procs % normal_procs != 0:
-            raise Exception("total_procs must be a whole multiple of min_procs")
+            raise SchedException("total_procs must be a whole multiple of min_procs")
 
         self.__total_procs = total_procs
         self.__workers_count = int (floor (total_procs / normal_procs))
@@ -295,7 +299,7 @@ class ParaSched(object):
 
         my_id = thread.get_ident()
 
-        lg.debug("worker starting, id = %s ix = %s" % (my_id, ix))
+        lg.debug("Worker starting, id = %s ix = %s" % (my_id, ix))
 
         while not pending.empty():
 
@@ -310,7 +314,6 @@ class ParaSched(object):
 #            if ix % 2 == 0:
 #                raise Exception("Dummy")
 
-
             # setup parameter dictionary
             params = dict()
 
@@ -324,21 +327,22 @@ class ParaSched(object):
             # call quantum chem driver
             try:
                 res = self.__qc_driver.run(item)
-            except QCDriverException, inst:
+            except common.QCDriverException, inst:
                 # TODO: this needs to be done differently, when a worker encounters 
                 # an exception it should empty the queue and then rethrow, otherwise
                 # the other jobs will continue to run
-                error_msg = "Worker " + str(my_id) + ": Exception thrown when " + \
-                    "calling self.__qc_driver.run(item): " + str(type(inst)) + ": " + \
-                    str(inst.args)
+                l = ["Worker", str(my_id), ": Exception thrown when", 
+                     "calling self.__qc_driver.run(item):", str(type(inst)),
+                     ":", str(inst.args)]
+                msg = ' '.join(l)
                 
-                res = Result(item.v, 0.0, flags = dict(ERROR_STR = error_msg))
+                res = Result(item.v, 0.0, flags = dict(ERROR_STR = msg))
 
 
             finished.put(res)
             lg.info("Worker %s finished a job." % my_id)
             self.__pending.task_done()
-#            lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete: " + str(res))
+            lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete: " + str(res))
 
         lg.info("Queue empty, worker %s exiting." % my_id)
 
@@ -364,7 +368,7 @@ class ParaSched(object):
         lg.debug("All worker threads exited")
 
         if not self.__pending.empty():
-            lg.error("pending queue not empty but threads exited")
+            lg.error("Pending queue not empty but threads exited")
 
     def get_results(self):
         results = []
