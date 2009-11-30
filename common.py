@@ -80,7 +80,7 @@ class Result():
             raise ResultException("Trying to add a gradient result when one already exists")
 
 
-class Job():
+class Job(object):
     """Specifies calculations to perform on a particular geometry v."""
     def __init__(self, v, l):
         self.v = v

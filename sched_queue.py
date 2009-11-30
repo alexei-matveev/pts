@@ -1,7 +1,9 @@
 from __future__ import with_statement
+import time
 import Queue
 import numpy as np
 import threading
+from collections import deque
 
 import aof.common
 
@@ -14,18 +16,19 @@ class SchedStrategy:
         ptotal, pmax, pmin = self.procs
         assert ptotal >= pmax >= pmin
 
-    def generate(self, topology, job_costs=None):
+    def generate(self, topology, job_costs=None, params=None):
         """Generate a scheduling strategy
 
         topology:   model of system cpu sets
         job_count:  total number of jobs to schedule
         job_costs:  relative cost of each job (optional)
+        params:     any other params, instructions
         """
 
         raise False, "Abstract Function"
 
 class SchedStrategy_HCM_Simple(SchedStrategy):
-    def generate(self, topology, job_count, job_costs=None):
+    def generate(self, topology, job_count, favour_less_parallel=True):
         """Generate a scheduling strategy
 
         >>> procs = (4,2,1)
@@ -40,12 +43,12 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
 
         >>> sched = s.generate(Topology([4]), 7)
         >>> [r[0] for r in sched]
-        [[0], [1], [2], [3], [0, 1], [2], [3]]
+        [[0], [1], [2], [3], [0], [1], [2, 3]]
 
         >>> s = SchedStrategy_HCM_Simple((4,4,1))
         >>> sched = s.generate(Topology([4]), 7)
         >>> [r[0] for r in sched]
-        [[0], [1], [2], [3], [0, 1], [2], [3]]
+        [[0], [1], [2], [3], [0], [1], [2, 3]]
 
         >>> sched = s.generate(Topology([4]), 5)
         >>> [r[0] for r in sched]
@@ -64,17 +67,14 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
         >>> s = SchedStrategy_HCM_Simple((8,4,2))
         >>> sched = s.generate(Topology([4,4]), 3)
         >>> [r[0] for r in sched]
-        [[0, 1, 2], [4, 5], [6, 7]]
+        [[0, 1], [2, 3], [4, 5, 6]]
 
         >>> s = SchedStrategy_HCM_Simple((16,4,2))
         >>> sched = s.generate(Topology([4,4,4,4]), 30)
         >>> [r[0] for r in sched]
-        [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [0, 1, 2], [4, 5, 6], [8, 9], [10, 11], [12, 13], [14, 15]]
+        [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [0, 1], [2, 3], [4, 5], [6, 7], [8, 9, 10], [12, 13, 14]]
 
      """
-
-        if job_costs != None:
-            assert len(job_costs) == job_count
 
         ptotal, pmax, pmin = self.procs
         assert ptotal == sum(topology.all)
@@ -113,6 +113,14 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
             # get combination which fits into available cpus the best
             min_ix = np.argmin(leftovers)
             combination = combinations[min_ix]
+
+            # Sort jobs in order of increasing number of CPUs.
+            # In this way, longer running jobs i.e. those allocated to fewer 
+            # CPUs (under the assumption that all jobs will consumer the same 
+            # amount of total CPU time), will run first, and the more parallel
+            # jobs will be run later.
+            if favour_less_parallel:
+                combination.sort()
 
             for p in combination:
                 range = simtop.get_range(p)
@@ -180,6 +188,11 @@ class Topology(object):
         [n]         Single system image, n CPUs; e.g. shared memory SMP
         [a,b,c,...] Multiple system images, with a,b,c,... CPUs, e.g. a cluster
 
+
+    TODO: 
+     - add test that upon get_range failure, state doesn't change
+     - split functionality => higher no processors first/last
+       - adjust test cases accordingly
 
     >>> t = Topology([4])
     >>> t.get_range(2)
@@ -249,7 +262,7 @@ class Topology(object):
         self.id = 0
         self._alloc = dict()
 
-        self.lock = threading.RLock()
+        self._lock = threading.RLock()
 
     def __str__(self):
         msg = "%s / %s / %s" % (self.available, self.all, self.state)
@@ -257,10 +270,12 @@ class Topology(object):
 
     @property
     def available(self):
+        """List of numbers of available CPUs in each partition."""
         return [sum(i) for i in self.state]
 
     @property
     def all(self):
+        """List of total numbers of CPUs in each partition."""
         return [len(i) for i in self.state]
 
     def leftover(self, task_cpus):
@@ -305,7 +320,7 @@ class Topology(object):
     def put_range(self, id):
         """Relinquish ownership of cpus allocated with id."""
 
-        with self.lock:
+        with self._lock:
             ix_part, ixs_local = self._alloc.pop(id)
             part = self.state[ix_part]
             for i in ixs_local:
@@ -318,7 +333,7 @@ class Topology(object):
         If possible, (A) returns cpus in a partition of exactly n cpus, otherwise
         (B) returns cpus in a partition with exactly n remaining cpus, otherwise
         (C) returns the range that maximises the number of leftover cpus in the 
-        partition.
+        partition, otherwise (D) returns None, indicating failure.
 
         Returns a 4-tuple (ixs_global, ix_part, ixs_local, id)
             ixs_global: list of global cpu indices in system
@@ -330,7 +345,7 @@ class Topology(object):
 
         assert n > 0
 
-        with self.lock:
+        with self._lock:
 
             if n in self.available:
                 if n in self.all and self.all.index(n) == self.available.index(n):
@@ -404,7 +419,7 @@ class Topology(object):
     
     def copy(self):
         from copy import deepcopy
-        with self.lock:
+        with self._lock:
             # Cannot do a deepcopy of the whole object because locks cannot 
             # be copied. (Is there a way around this?)
             new = Topology(self.all)
@@ -425,41 +440,122 @@ class Topology(object):
         True
         """
 
-        with self.lock:
+        with self._lock:
             shape = self.all
             self.state = []
             for i in shape:
                 self.state.append([True for j in range(i)])
-       
 
-class SchedQueue(Queue.Queue):
-    """A thread-safe queue object that annotates it's contents with scheduling information."""
+class SchedQueue():
+    """A thread-safe queue object that 
+        - annotates it's contents with scheduling information
+        - keeps track of which processors in the system are free via an 
+          internal model
+        - re-generate scheduling info when new jobs are added to the queue
+
+    Calls to get() will block until the internal model of the cluster 
+    indicates that there are sufficient CPUs free to run the net job.
+    
+    >>> sq = SchedQueue((4,2,1), [4])
+    >>> sq.empty()
+    True
+
+    >>> sq.put(1)
+    >>> sq.put(2)
+    >>> sq.put([3,4,5,6,7])
+
+    >>> print sq
+    >>> l = []
+    >>> l += [sq.get(), sq.get()]
+    >>> print sq
+    >>> l += [sq.get(), sq.get()]
+    >>> print sq, l
+    >>> for id in [li[1][3] for li in l]:
+    ...     sq.task_done(id)
+    >>> print sq
+    >>> l = []
+    >>> l += [sq.get(), sq.get(), sq.get()]
+    >>> print sq
+    >>> sq.task_done(100)
+
+    """
 
     _sleeptime = 0.3
 
-    def __init__(self, procs, topology):
-        self._procs = procs
+    def __init__(self, procs, topology, sched_strategy=None):
+        assert procs[0] == sum(topology)
         self._topology = Topology(topology)
+        if sched_strategy == None:
+            self._sched_strategy = SchedStrategy_HCM_Simple(procs)
+        else:
+            self._sched_strategy = sched_strategy
 
-        Queue.Queue.__init__(self) # do I want this?
+        self._deque = deque()
+        self._sched_info = deque()
+        self._lock = threading.RLock()
 
-        self.lock = threading.RLock()
+    def __str__(self):
+        s = str(self._topology)
+        for i, j in zip(self._deque, self._sched_info):
+            s += '\n' + str(i) + ': ' + str(j)
+        return s
 
     def put(self, items):
+        """Places an item, or list of items, into the queue, and update the 
+        scheduling information based on (a) the total number of items now in 
+        the queue and (b) the currently in-use cpu set."""
+
         if type(items) == np.ndarray:
             items = items.tolist()
         elif type(items) != list:
             items = [items]
         
-        #TODO: in here, alter schedule info
+        with self._lock:
+            # add
+            for i in items:
+                self._deque.append(i)
 
-        return Queue.Queue.put(self, item)
+            # generate scheduling info
+            jobs = len(self._deque)
+            cpu_ranges = self._sched_strategy.generate(self._topology, jobs)
+
+            # decorate tasks with their allocated range of CPUs
+            self._sched_info = deque(cpu_ranges)
+
+            assert len(self._deque) == len(self._sched_info)
+
+
+    def task_done(self, id):
+        with self._lock:
+            assert len(self._deque) == len(self._sched_info)
+            self._topology.put_range(id)
+
+    def empty(self):
+        """Return True if and only the queue is empty."""
+        with self._lock:
+            return len(self._deque) == 0
 
     def get(self):
-        while not self._topology.fits(item):
-            time.sleep(self._sleeptime)
+        """Gets an item from the queue"""
+        with self._lock:
+            job = self._deque.popleft()
+            range = self._sched_info.popleft()
+            cpus = len(range[0])
 
-        return Queue.Queue.get(self, item)
+            # A noteworthy design decision has been made here...
+            # Instead of respecting the precise system CPU indices that were
+            # originally generated for this job, only the *total number* is
+            # used, in case we can find a better slot using the current 
+            # occupation of the system.
+
+            range = self._topology.get_range(cpus)
+            while not range:
+                time.sleep(self._sleeptime)
+                range = self._topology.get_range(cpus)
+
+            assert len(self._deque) == len(self._sched_info)
+
+            return (job, range)
 
 if __name__ == "__main__":
     import doctest

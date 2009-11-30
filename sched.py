@@ -304,6 +304,7 @@ class ParaSched(object):
         while not pending.empty():
 
             try:
+                #TODO: this should eb just pending.get() ???
                 item = self.__pending.get()
 
             except Queue.Empty, ex:
@@ -339,6 +340,10 @@ class ParaSched(object):
                 res = Result(item.v, 0.0, flags = dict(ERROR_STR = msg))
 
 
+            # TODO:
+            # if ok(res):
+            #     put ack into pending
+            # else: ...
             finished.put(res)
             lg.info("Worker %s finished a job." % my_id)
             self.__pending.task_done()
