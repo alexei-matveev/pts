@@ -10,11 +10,11 @@ import aof.common
 class SchedStrategy:
     def __init__(self, procs):
         """
-        procs: procs tuple (total, max, min)
+        procs: procs 2-tuple (max, min)
         """
         self.procs = procs
-        ptotal, pmax, pmin = self.procs
-        assert ptotal >= pmax >= pmin
+        pmax, pmin = self.procs
+        assert pmax >= pmin
 
     def generate(self, topology, job_costs=None, params=None):
         """Generate a scheduling strategy
@@ -31,7 +31,7 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
     def generate(self, topology, job_count, favour_less_parallel=True):
         """Generate a scheduling strategy
 
-        >>> procs = (4,2,1)
+        >>> procs = (2,1)
         >>> s = SchedStrategy_HCM_Simple(procs)
         >>> sched = s.generate(Topology([4]), 8)
         >>> [r[0] for r in sched]
@@ -45,7 +45,7 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
         >>> [r[0] for r in sched]
         [[0], [1], [2], [3], [0], [1], [2, 3]]
 
-        >>> s = SchedStrategy_HCM_Simple((4,4,1))
+        >>> s = SchedStrategy_HCM_Simple((4,1))
         >>> sched = s.generate(Topology([4]), 7)
         >>> [r[0] for r in sched]
         [[0], [1], [2], [3], [0], [1], [2, 3]]
@@ -54,30 +54,29 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
         >>> [r[0] for r in sched]
         [[0], [1], [2], [3], [0, 1, 2, 3]]
 
-        >>> s = SchedStrategy_HCM_Simple((8,4,1))
+        >>> s = SchedStrategy_HCM_Simple((4,1))
         >>> sched = s.generate(Topology([4,4]), 8)
         >>> [r[0] for r in sched]
         [[0], [4], [1], [5], [2], [3], [6], [7]]
 
-        >>> s = SchedStrategy_HCM_Simple((8,3,2))
+        >>> s = SchedStrategy_HCM_Simple((3,2))
         >>> sched = s.generate(Topology([4,4]), 5)
         >>> [r[0] for r in sched]
         [[0, 1], [2, 3], [4, 5], [6, 7], [0, 1, 2]]
 
-        >>> s = SchedStrategy_HCM_Simple((8,4,2))
+        >>> s = SchedStrategy_HCM_Simple((4,2))
         >>> sched = s.generate(Topology([4,4]), 3)
         >>> [r[0] for r in sched]
         [[0, 1], [2, 3], [4, 5, 6]]
 
-        >>> s = SchedStrategy_HCM_Simple((16,4,2))
+        >>> s = SchedStrategy_HCM_Simple((4,2))
         >>> sched = s.generate(Topology([4,4,4,4]), 30)
         >>> [r[0] for r in sched]
         [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [0, 1], [2, 3], [4, 5], [6, 7], [8, 9, 10], [12, 13, 14]]
 
      """
 
-        ptotal, pmax, pmin = self.procs
-        assert ptotal == sum(topology.all)
+        pmax, pmin = self.procs
         cpu_ranges = []
 
         # create a copy of the system topology for planning purposes
@@ -137,7 +136,7 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
         """Generates all possible distributions of n jobs on between min and 
         max cpus. Order does't matter.
         
-        >>> s = SchedStrategy_HCM_Simple((1,1,1))
+        >>> s = SchedStrategy_HCM_Simple((1,1))
         >>> s._gen_combs(2,2,2)
         array([[2, 2]])
 
@@ -249,9 +248,6 @@ class Topology(object):
     >>> print t2
     [1, 2, 3, 4] / [1, 2, 3, 4] / [[True], [True, True], [True, True, True], [True, True, True, True]]
 
-
-
-
     """
     def __init__(self, shape):
         self.state = []
@@ -350,7 +346,7 @@ class Topology(object):
             if n in self.available:
                 if n in self.all and self.all.index(n) == self.available.index(n):
                     ix_part = self.all.index(n)
-                
+ 
                 else:
                     ix_part = self.available.index(n)
 
@@ -388,7 +384,6 @@ class Topology(object):
         
         >>> Topology.frees([False, True, True, False])
         [1, 2]
-
         >>> Topology.frees([False, False])
         []
 
@@ -400,6 +395,7 @@ class Topology(object):
         """Finds the number of used processors when running jobs 
         with the specified CPUs."""
 
+        assert False, "I don't use this function I think...?"
         tmp = self.copy()
         tmp.reset()
 
@@ -446,6 +442,10 @@ class Topology(object):
             for i in shape:
                 self.state.append([True for j in range(i)])
 
+class SchedQueueEmpty(Exception):
+    "SchedQueue was empty."
+    pass
+
 class SchedQueue():
     """A thread-safe queue object that 
         - annotates it's contents with scheduling information
@@ -456,7 +456,7 @@ class SchedQueue():
     Calls to get() will block until the internal model of the cluster 
     indicates that there are sufficient CPUs free to run the net job.
     
-    >>> sq = SchedQueue((4,2,1), [4])
+    >>> sq = SchedQueue((2,1), [4])
     >>> sq.empty()
     True
 
@@ -464,26 +464,36 @@ class SchedQueue():
     >>> sq.put(2)
     >>> sq.put([3,4,5,6,7])
 
-    >>> print sq
     >>> l = []
     >>> l += [sq.get(), sq.get()]
-    >>> print sq
     >>> l += [sq.get(), sq.get()]
-    >>> print sq, l
-    >>> for id in [li[1][3] for li in l]:
+    >>> for id in [li.id for li in l]:
     ...     sq.task_done(id)
-    >>> print sq
     >>> l = []
     >>> l += [sq.get(), sq.get(), sq.get()]
     >>> print sq
+    [0] / [4] / [[False, False, False, False]]
     >>> sq.task_done(100)
+    Traceback (most recent call last):
+        ...
+    KeyError: 100
 
     """
 
-    _sleeptime = 0.3
+    class Item():
+        def __init__(self, job, tag):
+            self.job = job
+            self.tag = tag
+            self.id = tag[3]
+            self.range_global = tag[0]
+            self.part_ix      = tag[1]
+            self.range_local  = tag[2]
+        def __str__(self):
+            return str((self.job, self.tag))
+
+    _sleeptime = 0.01
 
     def __init__(self, procs, topology, sched_strategy=None):
-        assert procs[0] == sum(topology)
         self._topology = Topology(topology)
         if sched_strategy == None:
             self._sched_strategy = SchedStrategy_HCM_Simple(procs)
@@ -495,10 +505,11 @@ class SchedQueue():
         self._lock = threading.RLock()
 
     def __str__(self):
-        s = str(self._topology)
-        for i, j in zip(self._deque, self._sched_info):
-            s += '\n' + str(i) + ': ' + str(j)
-        return s
+        with self._lock:
+            s = str(self._topology)
+            for i, j in zip(self._deque, self._sched_info):
+                s += '\n' + str(i) + ': ' + str(j)
+            return s
 
     def put(self, items):
         """Places an item, or list of items, into the queue, and update the 
@@ -526,9 +537,8 @@ class SchedQueue():
 
 
     def task_done(self, id):
-        with self._lock:
-            assert len(self._deque) == len(self._sched_info)
-            self._topology.put_range(id)
+        assert type(id) == int
+        self._topology.put_range(id)
 
     def empty(self):
         """Return True if and only the queue is empty."""
@@ -538,6 +548,9 @@ class SchedQueue():
     def get(self):
         """Gets an item from the queue"""
         with self._lock:
+            if len(self._deque) == 0:
+                raise SchedQueueEmpty()
+
             job = self._deque.popleft()
             range = self._sched_info.popleft()
             cpus = len(range[0])
@@ -555,7 +568,61 @@ class SchedQueue():
 
             assert len(self._deque) == len(self._sched_info)
 
-            return (job, range)
+            return self.Item(job, range)
+
+def test_SchedQueue(cpus, topology, thread_count, items):
+    """Launches a whole lot of threads to test the functionality of SchedQueue.
+
+    cpus:         max, min numbers of cpus per job
+    topology:     list of processors in each system image
+    thread_count: total threads to launch
+    items:        items to process, can be any list, basically ignored
+    
+    >>> test_SchedQueue((2,1), [4], 8, range(100))
+    >>> test_SchedQueue((2,1), [4,4,2,1], 100, range(1000))
+    >>> test_SchedQueue((5,1), [4,4,2,1], 100, range(1000))
+    >>> test_SchedQueue((3,2), [1,1,1,2,3,4,5,6,7], 200, range(1000))
+    >>> test_SchedQueue((4,2), [4,4,4,4,4], 100, range(1000))
+
+    """
+
+    import random
+
+    sq = SchedQueue(cpus, topology)
+    finished = Queue.Queue()
+
+    def worker(inq, outq):
+        while not inq.empty():
+            try:
+                j = inq.get()
+            except SchedQueueEmpty, sqe:
+                return
+            time.sleep(0.01*random.random())
+            inq.task_done(j.id)
+            outq.put(j.job)
+
+    sq.put(items)
+
+    for i in range(thread_count):
+        t = threading.Thread(target=worker, args=(sq,finished))
+        t.daemon = True
+        t.start()
+
+    while threading.activeCount() > 1: # this is a bit crude, can it be done better?
+        time.sleep(0.1)
+
+    input = list(items)
+    input.sort()
+    output = list(finished.queue.__iter__())
+    output.sort()
+
+#    print input
+#    print output
+    assert input == output
+    assert sq._topology.all == sq._topology.available
+#    print sq
+
+
 
 if __name__ == "__main__":
     import doctest
