@@ -328,7 +328,7 @@ class ParaSched(object):
             # call quantum chem driver
             try:
                 res = self.__qc_driver.run(item)
-            except common.QCDriverException, inst:
+            except QCDriverException, inst:
                 # TODO: this needs to be done differently, when a worker encounters 
                 # an exception it should empty the queue and then rethrow, otherwise
                 # the other jobs will continue to run

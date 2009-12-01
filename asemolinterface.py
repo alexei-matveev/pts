@@ -14,7 +14,7 @@ import numpy
 import common
 import aof.coord_sys as csys
 
-lg = logging.getLogger('mylogger') #common.PROGNAME)
+lg = logging.getLogger('aof.asemolinterface') #common.PROGNAME)
 
 numpy.set_printoptions(linewidth=180)
 

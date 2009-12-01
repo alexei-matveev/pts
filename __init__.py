@@ -4,7 +4,7 @@ import test
 import sched
 #import zmatrix
 import coord_sys
-import gaussian as ase_gau
+import qcdrivers
 
 # locally modified l_bfgs_b optimiser from scipy
 import cosopt

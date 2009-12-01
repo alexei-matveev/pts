@@ -20,7 +20,7 @@ from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, cei
 
 
 from common import * # TODO: must unify
-import common
+import aof.common as common
 
 
 # TODO: remove global
@@ -28,7 +28,6 @@ plot_count = 0
 
 lg = logging.getLogger("aof.searcher")
 lg.setLevel(logging.INFO)
-modlog = lg # synonyum
 
 if not globals().has_key("lg"):
     sh = logging.StreamHandler()
@@ -55,20 +54,6 @@ def flab(msg, tag = "", tag1 = ""):
     import sys
     lg.debug("**** " + sys._getframe(1).f_code.co_name + str(msg) + str(tag) + str(tag1))
 
-
-"""def g(a):
-    x = a[0]
-    y = a[1]
-    dzdx = 4*x**3 - 3*80*x**2 + 2*1616*x + 2*2*x*y**2 - 2*8*y*x - 80*y**2 
-    dzdy = 2*2*x**2*y - 8*x**2 - 2*80*x*y + 2*1616*y + 4*y**3 - 3*8*y**2
-    return array([dzdy, dzdx])
-
-def e(a):
-    x = a[0]
-    y = a[1]
-    z = (x**2 + y**2) * ((x - 40)**2 + (y - 4) ** 2)
-    return (z)
-"""
 
 class FourWellPot(QCDriver):
     """From "Dey, Janicki, and Ayers, J. Chem. Phys., Vol. 121, No. 14, 8 October 2004" """
@@ -155,14 +140,12 @@ class ReactionPathway:
         self.energy_history = []
 
     def __str__(self):
-#        print inspect.stack()
         strrep = "Bead Energies: " + str(self.bead_pes_energies) + "\n"
         total_energy = 0
         for i in range(len(self.bead_pes_energies)): #[1:-1]:
             total_energy += self.bead_pes_energies[i]
         max_energy = self.bead_pes_energies.max()
         strrep += "Total Band Energy: " + str(total_energy)
-#        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
         strrep += "\nRMS Perpendicular bead forces: " + str(common.rms(self.bead_forces))
         strrep += "\nFunction calls: " + str(self.e_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
@@ -178,6 +161,16 @@ class ReactionPathway:
         strrep += "\nAngles: %s" % str(self.get_angles())
 
         return strrep
+
+    def get_angles(self):
+        """Returns an array of angles between beed groups of 3 beads."""
+
+        angles = []
+        for i in range(len(self.state_vec))[2:]:
+            t0 = self.state_vec[i-1] - self.state_vec[i-2]
+            t1 = self.state_vec[i] - self.state_vec[i-1]
+            angles.append(vector_angle(t1, t0))
+        return array(angles)
 
 
 
@@ -268,17 +261,6 @@ class NEB(ReactionPathway):
         # path representation object.
         reactants, products = reagents[0], reagents[-1]
         self.state_vec = vector_interpolate(reactants, products, beads_count)
-
-    # TODO: move this to ReactionPathway?
-    def get_angles(self):
-        """Returns an array of angles between beed groups of 3 beads."""
-
-        angles = []
-        for i in range(len(self.state_vec))[2:]:
-            t0 = self.state_vec[i-1] - self.state_vec[i-2]
-            t1 = self.state_vec[i] - self.state_vec[i-1]
-            angles.append(vector_angle(t1, t0))
-        return array(angles)
 
     def special_reduce_old(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
         """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
@@ -417,7 +399,7 @@ class NEB(ReactionPathway):
         pes_energies = sum(self.bead_pes_energies[1:-1])
 
         print "self.bead_pes_energies", self.bead_pes_energies
-        return self.bead_pes_energies.max() #(pes_energies + spring_energies)
+        return (pes_energies + spring_energies) #self.bead_pes_energies.max() #(pes_energies + spring_energies)
 
       
     def obj_func_grad(self, new_state_vec = None):
@@ -525,7 +507,7 @@ class PathRepresentation(object):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 500, logger = modlog):
+    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 500):
 
         # vector of vectors defining the path
         if (isinstance(state_vec, ndarray)):
@@ -554,8 +536,6 @@ class PathRepresentation(object):
         self.__max_integral_error = 1e-4
 
         self.__rho = self.set_rho(rho)
-
-        self.lg = modlog
 
         # TODO check all beads have same dimensionality
 
@@ -659,7 +639,7 @@ class PathRepresentation(object):
         cummulative = 0
 
         (str_len_precise, error) = scipy.integrate.quad(self.__arc_dist_func, 0, 1, limit=100)
-        self.lg.debug("String length integration error = " + str(error))
+        lg.debug("String length integration error = " + str(error))
         assert error < self.__max_integral_error
 
         for i in range(self.__str_resolution):
@@ -668,7 +648,7 @@ class PathRepresentation(object):
             cummulative += sub_integral
             list.append(cummulative)
 
-        #self.lg.debug('int_approx = {0}, int_accurate = {1}'.format(cummulative, str_len_precise))
+        #lg.debug('int_approx = {0}, int_accurate = {1}'.format(cummulative, str_len_precise))
 
         flab("exiting")
         return (list[-1], zip(param_steps, list))
@@ -754,13 +734,13 @@ class PathRepresentation(object):
 
         if update:
             self.state_vec = bead_vectors
-            self.lg.debug("New beads generated: " + str(self.__state_vec))
+            lg.debug("New beads generated: " + str(self.__state_vec))
 
             self.__path_tangents = bead_tangents
-            self.lg.debug("Tangents updated:" + str(self.__path_tangents))
+            lg.debug("Tangents updated:" + str(self.__path_tangents))
 
             self.__normalised_positions = array([0.0] + normd_positions + [1.0])
-            self.lg.debug("Normalised positions updated:" + str(self.__normalised_positions))
+            lg.debug("Normalised positions updated:" + str(self.__normalised_positions))
 
         return bead_vectors
         
@@ -895,7 +875,7 @@ class PathRepresentation(object):
 
         normd_positions = []
 
-        self.lg.debug("fractional_positions: %s" % fractional_positions)
+        lg.debug("fractional_positions: %s" % fractional_positions)
         for frac_pos in fractional_positions:
             for (norm, str) in incremental_positions:
 
@@ -908,11 +888,9 @@ class PathRepresentation(object):
 class PiecewiseRho:
     """Supports the creation of piecewise functions as used by the GrowingString
     class as the bead density function."""
-    def __init__(self, a1, a2, rho, max_beads, logger = modlog):
+    def __init__(self, a1, a2, rho, max_beads):
         self.a1, self.a2, self.rho = a1, a2, rho
         self.max_beads = max_beads
-
-        self.lg = logger
 
     def f(self, x):
         if 0 <= x <= self.a1:
@@ -922,8 +900,8 @@ class PiecewiseRho:
         elif self.a2 < x <= 1.0:
             return self.rho(x)
         else:
-            self.lg.error("Value of (%f) not on [0,1], should never happen" % x)
-            self.lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
+            lg.error("Value of (%f) not on [0,1], should never happen" % x)
+            lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 class GrowingString(ReactionPathway):
     def __init__(self, reagents, qc_driver, beads_count = 10, rho = lambda x: 1, growing=True, parallel=False):
@@ -1092,7 +1070,7 @@ class GrowingString(ReactionPathway):
         if individual_energies:
             return deepcopy(es)
         else:
-            return es.max() #total_energies
+            return total_energies #es.max() #total_energies
        
     def obj_func_grad(self, new_state_vec = None):
         flab("called")
@@ -1657,7 +1635,7 @@ class QuadraticStringMethod():
 
     [QSM] Burger and Yang, J Chem Phys 2006 vol 124 054109."""
 
-    def __init__(self, string = None, callback = None, gtol = 0.05, update_trust_rads = False, logger = modlog):
+    def __init__(self, string = None, callback = None, gtol = 0.05, update_trust_rads = False):
         self.__string = string
         self.__callback = callback
         
@@ -1672,8 +1650,6 @@ class QuadraticStringMethod():
         self.__gtol = gtol
 
         self.__update_trust_rads = update_trust_rads
-
-        self.lg = logger
 
     def mytest(self):
         dims = 3
@@ -1884,10 +1860,10 @@ class QuadraticStringMethod():
 
         assert len(prev_trust_rads) == N
 
-#        self.lg.debug("e = {0}".format(e))
-#        self.lg.debug("prev_e = {0}".format(prev_e))
-#        self.lg.debug("m = {0}".format(m))
-#        self.lg.debug("prev_m = {0}".format(prev_n))
+#        lg.debug("e = {0}".format(e))
+#        lg.debug("prev_e = {0}".format(prev_e))
+#        lg.debug("m = {0}".format(m))
+#        lg.debug("prev_m = {0}".format(prev_n))
         for i in range(N):
             rho = (e[i] - prev_e[i]) / (m[i] - prev_m[i])
 
@@ -1895,7 +1871,7 @@ class QuadraticStringMethod():
             # hence the denominator is zero
             if isnan(rho):
                 rho = 1
-            self.lg.info("rho = " + str(rho))
+            lg.info("rho = " + str(rho))
 
             rad = prev_trust_rads[i]
             if rho > 0.75 and 1.25 * linalg.norm(dx[i]) > rad:
@@ -1906,7 +1882,7 @@ class QuadraticStringMethod():
 
             new_trust_rads.append(rad)
 
-        self.lg.info("new trust radii = " + str(new_trust_rads))
+        lg.info("new trust radii = " + str(new_trust_rads))
         #wt()
         return new_trust_rads
 
@@ -1969,11 +1945,11 @@ class QuadraticStringMethod():
                 err = norm(step5 - step4)
 
                 if norm(x[i] - x0[i]) > trust_rad[i]:
-                    #self.lg.debug("Trust radius exceeded for point {0}".format(i))
+                    #lg.debug("Trust radius exceeded for point {0}".format(i))
                     flag = self.__TRUST_EXCEEDED
 
                 elif dot(g, prev_g[i]) < 0: # angle_change >= pi / 2: # is this correct?
-                    #self.lg.debug("Direction change for point {0}".format(i))
+                    #lg.debug("Direction change for point {0}".format(i))
                     print "g = ", g, "g_prev =", prev_g[i]
                     flag = self.__DIRECTION_CHANGE
 
@@ -2085,8 +2061,6 @@ class QuadraticStringMethod():
 class SurfPlot():
     def __init__(self, pes):
         self.__pes = pes
-
-        self.lg = modlog
 
     def plot(self, path = None, write_contour_file=False, maxx=3.0, minx=0.0, maxy=3.0, miny=0.0):
         flab("called")
