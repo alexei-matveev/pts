@@ -202,6 +202,7 @@ class Topology(object):
     
     Used to plan a scheduling sequence.
     Used to keep track of free/occupied cpus.
+    Used to record statistics on system usage, etc. (eventually)
 
     *Functions return lists, but NumPy arrays used internally.
     
@@ -271,7 +272,7 @@ class Topology(object):
     [1, 2, 3, 4] / [1, 2, 3, 4] / [[True], [True, True], [True, True, True], [True, True, True, True]]
 
     """
-    def __init__(self, shape):
+    def __init__(self, shape, f_timing=None):
         self.state = []
         for i in shape:
             assert i > 0
@@ -281,6 +282,9 @@ class Topology(object):
         self._alloc = dict()
 
         self._lock = threading.RLock()
+
+        # recording stats?
+        self.f_timing = f_timing
 
     def __str__(self):
         msg = "%s / %s / %s" % (self.available, self.all, self.state)
@@ -354,7 +358,15 @@ class Topology(object):
             for i in ixs_local:
                 assert not part[i]
                 part[i] = True
-            
+
+            if timing:
+                self.record()
+
+    def record(self):
+        t = time.time() - self.start_time
+        s = "%f\t%s" % (t, self)
+        self.file.write(s)
+ 
     def get_range(self, n):
         """Try to find a range of n cpus in the system.
         
@@ -374,7 +386,6 @@ class Topology(object):
         assert n > 0
 
         with self._lock:
-
             if n in self.available:
                 if n in self.all and self.all.index(n) == self.available.index(n):
                     ix_part = self.all.index(n)
@@ -409,6 +420,9 @@ class Topology(object):
             self._alloc[self.id] = (ix_part, ixs_local)
 
 #            lg.error("l n=%d %s %s" % (n,ix_part, ixs_local.tolist()))
+            if timing:
+                self.record()
+
             return (ixs_global.tolist(), ix_part, ixs_local.tolist(), self.id)
 
     @staticmethod
