@@ -145,7 +145,9 @@ class MolInterface:
         m.set_calculator(self.calc_tuple)
         return m
 
-    def run(self, job):
+    def run(self, item):
+
+        job = item.job
 
         tmp_dir = common.get_tmp_dir()
 

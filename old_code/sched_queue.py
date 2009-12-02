@@ -5,7 +5,7 @@ import numpy as np
 import threading
 from collections import deque
 
-import aof.common
+assert "False", "Deprecated (02/12/2009): this code has been moved to sched.py"
 
 class SchedStrategy:
     def __init__(self, procs):
@@ -16,7 +16,7 @@ class SchedStrategy:
         pmax, pmin = self.procs
         assert pmax >= pmin
 
-    def generate(self, topology, job_costs=None, params=None):
+    def generate(self, topology, job_count, job_costs=None, params=None):
         """Generate a scheduling strategy
 
         topology:   model of system cpu sets

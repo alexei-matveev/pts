@@ -11,7 +11,7 @@ import cosopt
 
 # bring through top level functions / classes for users' scripts
 from parasearch import neb_calc, string_calc, read_files, generic_callback, dump_steps
-from sched import CalcManager
+from calcman import CalcManager
 from asemolinterface import MolInterface
 
 def cleanup(gs):

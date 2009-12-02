@@ -3,6 +3,8 @@
 import copy
 import numpy
 import os
+import random
+import time
 
 PROGNAME = "searcher"
 ERROR_STR = "error"
@@ -81,7 +83,14 @@ class Result():
 
 
 class Job(object):
-    """Specifies calculations to perform on a particular geometry v."""
+    """Specifies calculations to perform on a particular geometry v.
+
+    The object was designed with flexibility to include extra parameters and 
+    multiple styles of computation, e.g. frequency calcs, different starting
+    wavefunctions, different SCF convergence parameters, etc.
+
+    FIXME: Is this object more complicated than necessary???
+    """
     def __init__(self, v, l):
         self.v = v
         if not isinstance(l, list):
@@ -104,6 +113,7 @@ class Job(object):
 
     def is_energy(self):
         return self.calc_list.count(self.E()) > 0
+
     def is_gradient(self):
         return self.calc_list.count(self.G()) > 0
 
@@ -193,32 +203,45 @@ class QCDriver:
 
 
 class GaussianPES():
-#    def __init__(self):
-#        QCDriver.__init__(self,2)
+    def __init__(self, fake_delay=None):
+        """
+        fake_delay:
+            float, average number of seconds to wait after running a job, just 
+            used in testing to simulate more cpu intensive jobs
+        """
+        self.fake_delay = fake_delay
 
     def __str__(self):
         return "GaussianPES"
 
     def energy(self, v):
-#        QCDriver.energy(self)
-#        print "energy running", type(v)
 
         x = v[0]
         y = v[1]
+
+        if self.fake_delay:
+            time.sleep(2*self.fake_delay*random.random())
+
         return (-numpy.exp(-(x**2 + y**2)) - numpy.exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*numpy.exp(-((1.5*x-1)**2 + (y-2)**2)))
 
     def gradient(self, v):
-#        QCDriver.gradient(self)
-#        print "gradient running"
 
         x = v[0]
         y = v[1]
         dfdx = 2*x*numpy.exp(-(x**2 + y**2)) + (2*x - 6)*numpy.exp(-((x-3)**2 + (y-3)**2)) + 0.02*x + 0.5*(4.5*x-3)*numpy.exp(-((1.5*x-1)**2 + (y-2)**2))
         dfdy = 2*y*numpy.exp(-(x**2 + y**2)) + (2*y - 6)*numpy.exp(-((x-3)**2 + (y-3)**2)) + 0.02*y + 0.5*(2*y-4)*numpy.exp(-((1.5*x-1)**2 + (y-2)**2))
-#        print "gradient:", dfdx
+        if self.fake_delay:
+            time.sleep(2*self.fake_delay*random.random())
 
         g = numpy.array((dfdx,dfdy))
         return g
+
+    def run(self, i):
+        j = i.job
+        e = self.energy(j.v)
+        g = self.gradient(j.v)
+
+        return Result(j.v, e, g)
 
 class PlanePES():
     def energy(self, v):
