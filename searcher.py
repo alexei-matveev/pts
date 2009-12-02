@@ -139,6 +139,8 @@ class ReactionPathway:
         self.history = []
         self.energy_history = []
 
+        self.grad_update_mask = [False] + [True for i in range(beads_count-2)] + [False]
+
     def __str__(self):
         strrep = "Bead Energies: " + str(self.bead_pes_energies) + "\n"
         total_energy = 0
@@ -904,7 +906,7 @@ class PiecewiseRho:
             lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 class GrowingString(ReactionPathway):
-    def __init__(self, reagents, qc_driver, beads_count = 10, rho = lambda x: 1, growing=True, parallel=False):
+    def __init__(self, reagents, qc_driver, beads_count = 10, rho = lambda x: 1, growing=True, parallel=False, head_size=None):
 
         self.__qc_driver = qc_driver
 
@@ -935,25 +937,16 @@ class GrowingString(ReactionPathway):
         self.__path_rep.generate_beads(update = True)
 
         # dummy energy of a reactant/product
+        # TODO: remove?
         self.__reagent_energy = 0
 
         self.parallel = parallel
 
-    """def __str__(self):
-        strrep = "Bead Energies: " + str(self.bead_pes_energies) + "\n"
-        total_energy = 0
-        for i in range(len(self.bead_pes_energies))[1:-1]:
-            total_energy += self.bead_pes_energies[i]
-        max_energy = self.bead_pes_energies.max()
-        strrep += "Total String Energy: " + str(total_energy)
-#        strrep += "\nPerpendicular bead forces: " + str(self.bead_forces)
-        strrep += "\nPerpendicular bead forces norm: " + str(common.rms(self.bead_forces))
-        strrep += "\nFunction calls: " + str(self.e_calls)
-        strrep += "\nGradient calls: " + str(self.g_calls)
-        strrep += "\nArchive (bgc, gc, rmsf, e, maxe): %d\t%d\t%f\t%f\t%f" % (self.bead_g_calls, self.g_calls, common.rms(self.bead_forces), total_energy, max_energy)
-#        strrep += "\nAngles: %s" % str(self.get_angles())
-
-        return strrep"""
+        # Number of beads in growing heads of growing string to calculate 
+        # gradients for. All others are left as zero.
+        assert head_size == None, "Not yet properly implemented, problem when beads are respaced."
+        assert head_size == None or (growing and beads_count / 2 -1 >= head_size > 0)
+        self.head_size = head_size
 
     def set_positions(self, x):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -1010,6 +1003,16 @@ class GrowingString(ReactionPathway):
         # build new bead density function based on updated number of beads
         self.update_rho()
         self.__path_rep.generate_beads(update = True)
+
+        # Build mask of gradients to calculate, effectively freezing some if 
+        # head_size, i.e. the size of the growing heads, is specified.
+        if self.head_size:
+            e = self.beads_count / 2 - self.head_size + self.beads_count % 2
+        else:
+            e = 1
+        m = self.beads_count - 2 * e
+        self.grad_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
+        lg.debug("MASK: " + str(self.grad_update_mask))
 
         return True
 
@@ -1084,23 +1087,24 @@ class GrowingString(ReactionPathway):
 
         # request and process parallel QC jobs
         if self.parallel:
-            for bead_vec in self.__path_rep.state_vec: #[1:-1]:
-                self.qc_driver.request_gradient(bead_vec)
+            for i, bead_vec in enumerate(self.__path_rep.state_vec): #[1:-1]:
+                if self.grad_update_mask[i]:
+                    self.qc_driver.request_gradient(bead_vec)
             self.qc_driver.proc_requests()
 
         self.update_bead_pes_energies()
 
         # get gradients / perform projections
-        for i in range(self.beads_count)[1:-1]:
-            self.bead_g_calls += 1
-            g = self.__qc_driver.gradient(self.__path_rep.state_vec[i])
-            t = ts[i]
-            g = project_out(t, g)
+        for i in range(self.beads_count):
+            if self.grad_update_mask[i]:
+                self.bead_g_calls += 1
+                g = self.__qc_driver.gradient(self.__path_rep.state_vec[i])
+                t = ts[i]
+                g = project_out(t, g)
+            else:
+                g = zeros(self.__path_rep.dimension)
             gradients.append(g)
 
-        react_gradients = prod_gradients = zeros(self.__path_rep.dimension)
-        gradients = [react_gradients] + gradients + [prod_gradients]
-        
         gradients = array(gradients).flatten()
         self.bead_forces = deepcopy(gradients)
 
