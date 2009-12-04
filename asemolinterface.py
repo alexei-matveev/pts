@@ -98,14 +98,11 @@ class MolInterface:
                             react[i] += 360.0 * common.DEG_TO_RAD
 
 
-        # setup process placement command
-        # TODO: suport for placement commands other than dplace
-        self.gen_placement_command = None
-        if "placement_command" in params:
-            if params["placement_command"] == "dplace":
-                self.gen_placement_command = self.gen_placement_command_dplace
-            else:
-                raise Exception("Use of " + params["placement_command"] + " not implemented")
+        # setup function that generates
+        self.place_str = None
+        if "placement" in params:
+            assert callable(params['placement'])
+            self.place_str = params['placement']
 
         self.calc_tuple = params["calculator"]
 
@@ -136,15 +133,24 @@ class MolInterface:
         assert False, "Not yet implemented"
         return True
 
-    def build_coord_sys(self, v):
+    def build_coord_sys(self, v, calc_kwargs=None):
         """Builds a coord sys object with internal coordinates given by 'v' 
         and returns it."""
 
         m = self.mol.copy()
         m.set_internals(v)
-        m.set_calculator(self.calc_tuple)
+        tuple = deepcopy(self.calc_tuple)
+
+        if calc_kwargs:
+            assert type(tuple[2]) == dict
+            assert type(calc_kwargs) == dict
+            tuple[2].update(calc_kwargs)
+#            print tuple[2]
+
+        m.set_calculator(tuple)
         return m
 
+      
     def run(self, item):
 
         job = item.job
@@ -158,13 +164,20 @@ class MolInterface:
         results_file = os.path.join(tmp_dir, results_file)
 
         # write input file as pickled object
-        coord_sys_obj = self.build_coord_sys(job.v)
+        # generate keyword arguments for number of cpus
+        d = {'nprocs': len(item.range_global)}
+        coord_sys_obj = self.build_coord_sys(job.v, calc_kwargs=d)
         f = open(mol_pickled, "wb")
         pickle.dump(coord_sys_obj, f)
         f.close()
 
-        # TODO: additional scheduling commands e.g. dplace should go in here
         cmd = ["python", "-m", "pickle_runner", mol_pickled]
+
+        # Generate placement command, e.g. for dplace
+        if callable(self.place_str):
+            placement = self.place_str(item.tag)
+            cmd = placement.split() + cmd
+            lg.info("Running with placement command %s" % placement)
         p = Popen(cmd, stdout=open(ase_stdout_file, "w"), stderr=STDOUT)
 
         (pid, ret_val) = os.waitpid(p.pid, 0)
@@ -188,11 +201,6 @@ class MolInterface:
         g1 = self.analytical_pes.gradient(coords)
         r = common.Result(coords, e1, gradient=g1)
         return r
-
-    def gen_placement_command_dplace(self, p_low, p_high):
-        """Generates a placement command (including arguments) for placement on
-        processors p_low to p_high."""
-        return "dplace -c %d-%d" % (p_low, p_high)
 
     def __get_job_counter(self):
         """Get unique numeric id for a job. Must be threadsafe."""

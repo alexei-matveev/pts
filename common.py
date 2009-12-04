@@ -5,6 +5,9 @@ import numpy
 import os
 import random
 import time
+import logging
+
+lg = logging.getLogger("aof.common")
 
 PROGNAME = "searcher"
 ERROR_STR = "error"
@@ -79,8 +82,11 @@ class Result():
         if self.g == None:
             self.g = res.g
         else:
+            lg.error("self.g = %s res = %s" % (self.g, res))
             raise ResultException("Trying to add a gradient result when one already exists")
 
+def vec_summarise(v):
+    return str(round(rms(self.v),3))
 
 class Job(object):
     """Specifies calculations to perform on a particular geometry v.
@@ -101,7 +107,8 @@ class Job(object):
         s = ""
         for j in self.calc_list:
             s += j.__str__()
-        return self.__class__.__name__ + " %s: %s" % (self.v, s)
+        s =  ' '.join([self.__class__.__name__, vec_summarise(self.v), s])
+        return s
 
     def geom_is(self, v_):
         assert len(v_) == len(self.v)
@@ -441,6 +448,10 @@ def make_like_atoms(x):
     x_ = numpy.hstack([x_, padding])
     x_.shape = (-1,3)
     return x_
+
+def place_str_dplace(tag):
+    s = "dplace -c " + ','.join([str(cpu) for cpu in tag[0]])
+    return s
 
 if __name__ == "__main__":
     import doctest

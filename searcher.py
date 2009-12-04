@@ -194,10 +194,13 @@ class ReactionPathway:
         return tmp
 
     def obj_func(self, x):
+        lg.info("Chain of States Objective Function call.")
         self.e_calls += 1
         self.history.append(deepcopy(x))
 
     def obj_func_grad(self, x):
+        lg.info("Chain of States Objective Function *Gradient* call.")
+
         self.g_calls += 1
         self.history.append(deepcopy(x))
 
@@ -214,7 +217,6 @@ class ReactionPathway:
         parallel mode).
         """
         bead_pes_energies = []
-#        print "self.state_vec:", self.state_vec
         for bead_vec in self.state_vec:
             self.bead_e_calls += 1
             e = self.qc_driver.energy(bead_vec)
@@ -1012,7 +1014,9 @@ class GrowingString(ReactionPathway):
             e = 1
         m = self.beads_count - 2 * e
         self.grad_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
-        lg.debug("MASK: " + str(self.grad_update_mask))
+        lg.debug("Bead Freezing MASK: " + str(self.grad_update_mask))
+
+        lg.info("******** String Grown to %d beads ********", self.beads_count)
 
         return True
 

@@ -4,6 +4,8 @@
 import os
 import subprocess
 import shutil
+import logging
+
 
 import numpy
 
@@ -11,6 +13,8 @@ from ase.data import chemical_symbols
 
 # this will break *standalone* comaptibility with ASE 
 import aof.common as common
+
+lg = logging.getLogger("aof.qcdrivers.gaussian")
 
 class Gaussian:
     """Class for doing Gaussian calculations."""
@@ -145,8 +149,7 @@ class Gaussian:
             args = [self.gau_command, inputfile]
             command = " ".join(args)
 
-            print "Running Gau job " + command + " in", os.getcwd()
-#            assert False
+            lg.debug("Running Gau job " + command + " in", os.getcwd())
             p = subprocess.Popen(command, shell=True)
             sts = os.waitpid(p.pid, 0)
             parse_result = self.read()
@@ -180,7 +183,8 @@ class Gaussian:
                     n,nuclear,Fx,Fy,Fz = line.split()
                     forces.append([float(Fx),float(Fy),float(Fz)])
                     line = logfile.readline()
-            elif line.find("Convergence failure -- run terminated") != -1:
+            elif line.find("Convergence failure -- run terminated") >= 0 or \
+                    line.find("The SCF is confused") >= 0:
                 return None
 
             line = logfile.readline()

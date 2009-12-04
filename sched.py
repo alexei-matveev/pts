@@ -271,6 +271,22 @@ class Topology(object):
     >>> print t2
     [1, 2, 3, 4] / [1, 2, 3, 4] / [[True], [True, True], [True, True, True], [True, True, True, True]]
 
+    # Test writing of stuff to file
+    >>> import tempfile
+    >>> f = tempfile.TemporaryFile()
+    >>> t = Topology([1], f_timing=f)
+    >>> r = t.get_range(1)
+    >>> time.sleep(0.1)
+    >>> t.put_range(r[3])
+    >>> time.sleep(0.05)
+    >>> r = t.get_range(1)
+    >>> f.seek(0)
+    >>> s = f.read()
+    >>> sp = s.split("\\n")
+    >>> len(sp)
+    4
+
+
     """
     def __init__(self, shape, f_timing=None):
         self.state = []
@@ -285,6 +301,8 @@ class Topology(object):
 
         # recording stats?
         self.f_timing = f_timing
+        if type(f_timing) == file:
+            self.start_time = time.time()
 
     def __str__(self):
         msg = "%s / %s / %s" % (self.available, self.all, self.state)
@@ -359,13 +377,14 @@ class Topology(object):
                 assert not part[i]
                 part[i] = True
 
-            if timing:
-                self.record()
+            if self.f_timing:
+                self._record()
 
-    def record(self):
+    def _record(self):
+        assert self.f_timing
         t = time.time() - self.start_time
-        s = "%f\t%s" % (t, self)
-        self.file.write(s)
+        s = "%.3f\t%d\t%s\n" % (t, sum(self.available), self)
+        self.f_timing.write(s)
  
     def get_range(self, n):
         """Try to find a range of n cpus in the system.
@@ -420,8 +439,8 @@ class Topology(object):
             self._alloc[self.id] = (ix_part, ixs_local)
 
 #            lg.error("l n=%d %s %s" % (n,ix_part, ixs_local.tolist()))
-            if timing:
-                self.record()
+            if self.f_timing:
+                self._record()
 
             return (ixs_global.tolist(), ix_part, ixs_local.tolist(), self.id)
 
@@ -503,7 +522,7 @@ class SchedQueue():
     Calls to get() will block until the internal model of the cluster 
     indicates that there are sufficient CPUs free to run the net job.
     
-    >>> sq = SchedQueue((2,1), [4])
+    >>> sq = SchedQueue(([4],2,1))
     >>> sq.empty()
     True
 
@@ -540,8 +559,10 @@ class SchedQueue():
 
     _sleeptime = 0.01
 
-    def __init__(self, procs, topology, sched_strategy=None):
+    def __init__(self, processors, sched_strategy=None):
 #        lg.info(self.__class__.__name__ + ": Topology: %s CPUs: %s" % (topology, procs))
+        topology, max_CPUs, min_CPUs = processors
+        procs = max_CPUs, min_CPUs
         self._topology = Topology(topology)
         if sched_strategy == None:
             self._sched_strategy = SchedStrategy_HCM_Simple(procs)
@@ -592,6 +613,10 @@ class SchedQueue():
         """Return True if and only the queue is empty."""
         with self._lock:
             return len(self._deque) == 0
+    def __len__(self):
+        with self._lock:
+            return len(self._deque)
+
 
     def get(self):
         """Gets an item from the queue"""
@@ -618,25 +643,24 @@ class SchedQueue():
 
             return self.Item(job, range)
 
-def test_SchedQueue(cpus, topology, thread_count, items):
+def test_SchedQueue(cpus, thread_count, items):
     """Launches a whole lot of threads to test the functionality of SchedQueue.
 
-    cpus:         max, min numbers of cpus per job
-    topology:     list of processors in each system image
+    cpus:         topology, max, min numbers of cpus per job
     thread_count: total threads to launch
     items:        items to process, can be any list, basically ignored
     
-    >>> test_SchedQueue((2,1), [4], 8, range(100))
-    >>> test_SchedQueue((2,1), [4,4,2,1], 100, range(1000))
-    >>> test_SchedQueue((5,1), [4,4,2,1], 100, range(1000))
-    >>> test_SchedQueue((3,2), [1,1,1,2,3,4,5,6,7], 200, range(1000))
-    >>> test_SchedQueue((4,2), [4,4,4,4,4], 100, range(1000))
+    >>> test_SchedQueue(([4],2,1), 8, range(100))
+    >>> test_SchedQueue(([4,4,2,1], 2,1), 100, range(1000))
+    >>> test_SchedQueue(([4,4,2,1], 5,1), 100, range(1000))
+    >>> test_SchedQueue(([1,1,1,2,3,4,5,6,7], 3,2), 200, range(1000))
+    >>> test_SchedQueue(([4,4,4,4,4], 4,2), 100, range(1000))
 
     """
 
     import random
 
-    sq = SchedQueue(cpus, topology)
+    sq = SchedQueue(cpus)
     finished = Queue()
 
     def worker(inq, outq):
@@ -686,7 +710,7 @@ class ParaSched(object):
     electronic structure calculations. Builds queues and generates sceduling
     info.
 
-    >>> ps = ParaSched(aof.common.GaussianPES(fake_delay=0.2), [8], (3,1))
+    >>> ps = ParaSched(aof.common.GaussianPES(fake_delay=0.2), ([8], 3, 1))
     >>> vecs = np.arange(12).reshape(-1,2)
     >>> jobs = [Job(i,[]) for i in vecs]
     >>> ps.batch_run(jobs)
@@ -698,23 +722,22 @@ class ParaSched(object):
     True
 
     """
-    def __init__(self, qc_driver, sys_shape, cpus):
+    def __init__(self, qc_driver, processors):
         """Constructor.
         
         qc_driver:
             object with a run() function
-        sys_shape:
-            list of processors in nodes in a parallel system
-        cpus:
-            2-tuple (max,min) of cpus over which to parallelise jobs
+        processors:
+            3-tuple: ([N1,N2,...], max_CPUs, min_CPUs)
+            i.e. shape of system, max CPUs per job, min CPUs per job
         """
         
         # pending queue contains self-generates scheduling info
-        self._pending = SchedQueue(cpus, sys_shape)
+        self._pending = SchedQueue(processors)
         self._finished = Queue()
         self._qc_driver = qc_driver
 
-        max_cpus, min_cpus = cpus
+        sys_shape, _, min_cpus = processors
 
         # no of workers to start
         self._workers_count = sum(sys_shape) / min_cpus
@@ -774,6 +797,7 @@ class ParaSched(object):
         # place jobs in a queue
         self._pending.put(jobs_list)
 
+#        lg.info("%d jobs in pending queue" % len(self._pending))
         # start workers
         lg.info("%s spawning %d worker threads" % (self.__class__.__name__, self._workers_count))
         for i in range(self._workers_count):

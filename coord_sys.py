@@ -157,7 +157,14 @@ class CoordSys(object):
         # hack to provide extra functionality with ASE
         self.pass_through = False
 
+        # stores (constructor, args, kwargs) for calculator generation
         self.calc_tuple = None
+
+    def _get_mol_str(self, s):
+        if os.path.exists(s):
+            return common.file2str(s)
+        else:
+            return s
 
     def set_calculator(self, calc_tuple):
         if calc_tuple == None:
@@ -530,6 +537,10 @@ def myenumerate(list, start=0):
     return zip (ixs, list)
 
 class ZMatrix(CoordSys):
+    """Supports optimisations in terms of z-matrices.
+    
+    TODO: test angles given as constants. IS there a problem with radians/degrees?
+    """
     @staticmethod
     def matches(mol_text):
         """Returns True if and only if mol_text matches a z-matrix. There must be at least one
@@ -541,17 +552,19 @@ class ZMatrix(CoordSys):
                              (([ ]*\w+\s+[+-]?\d+\.\d*[ \t\r\f\v]*\n)+)\s*$""", re.X)
         return (zmt.match(mol_text) != None)
 
-    def __init__(self, mol_text, anchor=Dummy()):
+    def __init__(self, mol, anchor=Dummy()):
+
+        molstr = self._get_mol_str(mol)
 
         self.zmtatoms = []
         self.vars = dict()
         self.zmtatoms_dict = dict()
         self._anchor = anchor
 
-        if not self.matches(mol_text):
-            raise ZMatrixException("Z-matrix not found in string:\n" + mol_text)
+        if not self.matches(molstr):
+            raise ZMatrixException("Z-matrix not found in string:\n" + molstr)
 
-        parts = re.search(r"(?P<zmt>.+?)\n\s*\n(?P<vars>.+)", mol_text, re.S)
+        parts = re.search(r"(?P<zmt>.+?)\n\s*\n(?P<vars>.+)", molstr, re.S)
 
         # z-matrix text, specifies connection of atoms
         zmt_spec = parts.group("zmt")
@@ -614,6 +627,9 @@ class ZMatrix(CoordSys):
             self.get_cartesians(), 
             self._coords,
             anchor)
+
+    def __repr__(self):
+        return self.zmt_str()
 
     def wants_anchor(self):
         return True
@@ -789,7 +805,9 @@ class XYZ(CoordSys):
 
     __pattern = re.compile(r'(\d+\s+)?(\s*\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+')
 
-    def __init__(self, molstr):
+    def __init__(self, mol):
+
+        molstr = self._get_mol_str(mol)
         if molstr[-1] != '\n':
             molstr += '\n'
 
@@ -806,6 +824,9 @@ class XYZ(CoordSys):
 
         self.dih_vars = dict()
 
+    def __repr__(self):
+        return self.xyz_str()
+
     def wants_anchor(self):
         return False
     def get_transform_matrix(self, x):
@@ -819,7 +840,7 @@ class XYZ(CoordSys):
             m = numpy.array(j)
 
         assert m.shape[0] == self.dims
-        return m, 0
+        return m, 0.0
 
     def get_var_names(self):
         return ["<cart>" for i in range(self.dims)]
