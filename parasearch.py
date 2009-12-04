@@ -336,7 +336,6 @@ def neb_calc(molinterface, calc_man, params):
     spr_const = float(params["spr_const"])
     beads_count = int(params["beads_count"])
     neb = aof.searcher.NEB(molinterface.reagent_coords, 
-              molinterface.geom_checker, 
               calc_man, 
               spr_const, 
               beads_count,
