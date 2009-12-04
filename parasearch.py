@@ -153,12 +153,11 @@ def main(argv=None):
         if not "processors" in params:
             raise ParseError("Processor configuration not specified")
         
-        proc_spec_str = re.findall(r"(\d+)\s*,(\d+)\s*,(\d+)\s*", params["processors"])
-        if proc_spec_str != []:
-            total, max, norm = proc_spec_str[0]
-            proc_spec = (int(total), int(max), int(norm))
-            params["processors"] = proc_spec
-        else:
+        try:
+            params["processors"] = eval(params["processors"])
+            print "hello"
+            print params["processors"]
+        except SyntaxError, e:
             raise ParseError("Couldn't parse processor configuration.")
         
         print "Parsing geometries"
@@ -213,7 +212,7 @@ def setup_and_run(mol_strings, params):
     # molinterface_params = setup_params(params)
     molinterface = aof.MolInterface(mol_strings, params)
 
-    calc_man = aof.CalcManager(molinterface, params) # TODO: check (earlier) that this param is a tuple / correct format
+    calc_man = aof.CalcManager(molinterface, params['processors']) # TODO: check (earlier) that this param is a tuple / correct format
 
     # SETUP / RUN SEARCHER
     print "Molecule Interface..."
