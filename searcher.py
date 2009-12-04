@@ -249,7 +249,7 @@ def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
 class NEB(ReactionPathway):
     """Implements a Nudged Elastic Band (NEB) transition state searcher."""
 
-    def __init__(self, reagents, f_test, qc_driver, base_spr_const, beads_count = 10, parallel = False):
+    def __init__(self, reagents, qc_driver, base_spr_const, beads_count = 10, parallel = False):
 
         ReactionPathway.__init__(self, reagents, beads_count, qc_driver, parallel)
 
