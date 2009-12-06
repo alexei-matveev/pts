@@ -1,21 +1,18 @@
 """
-This module provides conversion from z-matrix coordiantes to cartesian.
+This module provides conversion from z-matrix coordiantes
+to cartesian and back.
 
-Revise this:
-For the moment the |atoms| provided as an input to |z2c| should be
-subscriptable objects with following entries:
+Construct ZMat from a tuple representaiton using Python
+abbreviatons for empty tuple, 1-tuple, and 2-tuple:
 
-    atom[0] = index of a in 4-atom tuple x-a-b-c or None
-    atom[1] = index of b in 4-atom tuple x-a-b-c or None
-    atom[2] = index of c in 4-atom tuple x-a-b-c or None
-    atom[3] = x-a distance
-    atom[4] = x-a-b angle (currently in degrees)
-    atom[5] = x-a-b-c angle (currently in degrees)
-
-Construct ZMat from a tuple representaiton:
-
-    >>> rep = [(), (0,), (0, 1)]
+    >>> rep = [(None, None, None), (0, None, None), (0, 1, None)]
     >>> zm = ZMat(rep)
+
+The above may be abbreviated as:
+
+    >>> zm = ZMat([(), (0,), (0, 1)])
+
+Values of internal coordinates have to be provided separately:
 
     >>> h2o = (0.96, 0.96, 104.5 * pi / 180.0)
     >>> zm(h2o)
@@ -36,10 +33,23 @@ The order of internal variables is "left to right":
     array([[ -2.40364804e-01,   5.69106676e-17,  -9.29421735e-01],
            [  9.60000000e-01,   0.00000000e+00,   0.00000000e+00],
            [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00]])
+
+
+The |pinv| method of the Zmat() given the cartesian coordinates
+returns the internals according to the definition of connectivities
+encoded in Zmat().
+
+Compare zm(...) and zm( zm^-1( zm(...) ) ):
+
+    >>> zm(h2o) - zm(zm.pinv(zm(h2o)))
+    array([[ 0.,  0.,  0.],
+           [ 0.,  0.,  0.],
+           [ 0.,  0.,  0.]])
 """
 
 from math import pi
-from numpy import array as V, sin, cos, cross, dot, sqrt
+from numpy import sin, cos, cross, dot, sqrt, arccos
+from numpy import array, empty
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
 from func import Func
@@ -87,6 +97,9 @@ class ZMat(Func):
 
             self.__zm.append((a, b, c, idst, iang, idih))
 
+        # number of internal variables:
+        self.__dim = i
+
         #
         # Each entry in the ZM is a 6-tuple:
         #
@@ -95,8 +108,6 @@ class ZMat(Func):
         # with the last three fields being the left-to-right
         # running index of internal coordinate.
         #
-
-
 
     def f(self, v):
         "Use the input array |v| as values for internal coordinates and return cartesians"
@@ -143,7 +154,7 @@ class ZMat(Func):
             a, b, c, idst, iang, idih = atoms[x]
 
             # default origin:
-            if a is None: return V((0.0, 0.0, 0.0))
+            if a is None: return array((0.0, 0.0, 0.0))
 
             # sanity:
             if a == x: raise ZMError("same x&a")
@@ -153,7 +164,7 @@ class ZMat(Func):
             distance = vars[idst]
 
             # default X-axis:
-            if b is None: return V((distance, 0.0, 0.0)) # FXIME: X-axis
+            if b is None: return array((distance, 0.0, 0.0)) # FXIME: X-axis
 
             # sanity:
             if b == a: raise ZMError("same x&b")
@@ -166,7 +177,7 @@ class ZMat(Func):
             # position of c, and x-a-b-c dihedral angle:
             if c is None:
                 # default plane here:
-                cvec = V((0.0, 1.0, 0.0))
+                cvec = array((0.0, 1.0, 0.0))
                 dihedral = pi / 2.0
             else:
                 cvec = pos(c)
@@ -210,8 +221,54 @@ class ZMat(Func):
             xyz.append(pos(atom))
 
         # convert to vector/numpy:
-        xyz = V(xyz)
+        xyz = array(xyz)
         return xyz
+
+    def pinv(self, atoms):
+        "Pseudoinverse of Zmat, returns internal coordinates"
+
+        def dst(x, a):
+            "Distance x-a"
+            ax = atoms[x] - atoms[a]
+            return sqrt(dot(ax, ax))
+
+        def ang(x, a, b):
+            "Angle x-a-b"
+            ax = atoms[x] - atoms[a]
+            ab = atoms[b] - atoms[a]
+
+            ax /= sqrt(dot(ax, ax))
+            ab /= sqrt(dot(ab, ab))
+
+            return arccos(dot(ax, ab))
+
+        def dih(x, a, b):
+            "Dihedral angle x-a-b-c"
+            xa = atoms[a] - atoms[x]
+            ab = atoms[b] - atoms[a]
+            bc = atoms[c] - atoms[b]
+
+            xab = cross(xa, ab)
+            xab /= sqrt(dot(xab, xab))
+
+            abc = cross(ab, bc)
+            abc /= sqrt(dot(abc, abc))
+
+            return arccos(dot(xab, abc))
+
+        vars = empty(self.__dim) # array
+        x = 0
+        for a, b, c, idst, iang, idih in self.__zm:
+            if a is not None:
+                vars[idst] = dst(x, a)
+            if b is not None:
+                vars[iang] = ang(x, a, b)
+            if c is not None:
+                vars[idih] = dih(x, a, b, c)
+            x += 1
+
+        return vars
+
 
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
