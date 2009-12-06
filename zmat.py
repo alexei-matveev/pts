@@ -50,59 +50,69 @@ class ZMError(Exception):
 class ZMat(Func):
     def __init__(self, zm):
 
-        # save ZM representation (no specific values for internals):
-        self.__zm = zm
         #
         # Each entry in ZM definition is a 3-tuple (a, b, c)
         # defining x-a-b-c chain of atoms.
         #
 
+        def t3(t):
+            "Returns a tuple of length 3, missing entries set to None"
+            tup = tuple(t)
+            if len(tup) < 3:
+                tup += (None,) * (len(tup) - 3)
+            return tup
+
+        # convert to tuples, append enough |None|s in case thay are missing:
+        zm = [ t3(z) for z in zm ]
+
+        # save ZM representation with indices of internal coordinates:
+        i = 0
+        self.__zm = []
+        for a, b, c in zm:
+            if c is not None:
+                # regular ("4th and beyond") entry x-a-b-c:
+                idst, iang, idih = i+0, i+1, i+2
+                i += 3
+            elif b is not None:
+                # special ("third") entry x-a-b:
+                idst, iang, idih = i+0, i+1, None
+                i += 2
+            elif a is not None:
+                # special ("second") entry x-a:
+                idst, iang, idih = i+0, None, None
+                i += 1
+            else:
+                # special ("first") entry x:
+                idst, iang, idih = None, None, None
+
+            self.__zm.append((a, b, c, idst, iang, idih))
+
+        #
+        # Each entry in the ZM is a 6-tuple:
+        #
+        # (a, b, c, idst, iang, idih)
+        #
+        # with the last three fields being the left-to-right
+        # running index of internal coordinate.
+        #
+
+
 
     def f(self, v):
         "Use the input array |v| as values for internal coordinates and return cartesians"
 
-        #
-        # Each entry in the (filled) ZM is a 6-tuple:
-        #
-        # (fst, snd, trd, dst, ang, dih)
-        #
-        # fill the ZM rep with values for internals (very inefficient):
-        zm = []
-        i = 0
-        for a, b, c in self.__zm:
-            # print "abc=", a, b, c
-            # regular ("4th and beyond") entry x-a-b-c:
-            if c is not None: 
-                zm.append((a, b, c, v[i+0], v[i+1], v[i+2]))
-                i += 3
-                continue
-            # special ("third") entry x-a-b:
-            if b is not None: 
-                zm.append((a, b, c, v[i+0], v[i+1], None))
-                i += 2
-                continue
-            # special ("second") entry x-a:
-            if a is not None: 
-                zm.append((a, b, c, v[i+0], None, None))
-                i += 1
-                continue
-            # special ("first") entry x:
-            zm.append((a, b, c, None, None, None))
-
-        # print "Filled ZM=", zm
-
         # use ZM representation and values for internal coords
         # to compute cartesians:
-        return self.__z2c(zm)
+        return self.__z2c(self.__zm, v)
 
     def fprime(self, v):
         # either num-diff or anything better goes here:
         raise NotImplemented
 
-    def __z2c(self, atoms):
-        """Generates cartesian coordinates from z-matrix and the current set of 
+    def __z2c(self, atoms, vars):
+        """Generates cartesian coordinates from z-matrix and the current set of
         internal coordinates. Based on code in OpenBabel."""
-        
+
         # cache atomic positions, keys are the indices:
         cache = dict()
 
@@ -130,7 +140,7 @@ class ZMat(Func):
             "Compute atomic position, using memoized funciton pos()"
 
             # pick the ZM entry from array:
-            a, b, c, distance, angle, dihedral = atoms[x]
+            a, b, c, idst, iang, idih = atoms[x]
 
             # default origin:
             if a is None: return V((0.0, 0.0, 0.0))
@@ -138,8 +148,9 @@ class ZMat(Func):
             # sanity:
             if a == x: raise ZMError("same x&a")
 
-            # position of a:
+            # position of a, and x-a distance:
             avec = pos(a)
+            distance = vars[idst]
 
             # default X-axis:
             if b is None: return V((distance, 0.0, 0.0)) # FXIME: X-axis
@@ -148,16 +159,18 @@ class ZMat(Func):
             if b == a: raise ZMError("same x&b")
             if b == x: raise ZMError("same x&b")
 
-            # position of b:
+            # position of b, and x-a-b angle:
             bvec = pos(b)
+            angle = vars[iang]
 
-            # position of c:
+            # position of c, and x-a-b-c dihedral angle:
             if c is None:
                 # default plane here:
                 cvec = V((0.0, 1.0, 0.0))
                 dihedral = pi / 2.0
             else:
                 cvec = pos(c)
+                dihedral = vars[idih]
 
             # sanity:
             if c == b: raise ZMError("same b&c")
