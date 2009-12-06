@@ -323,19 +323,27 @@ class ZMat(NumDiff):
 
             return arccos(dot(ax, ab))
 
-        def dih(x, a, b):
+        def dih(x, a, b, c):
             "Dihedral angle x-a-b-c"
-            xa = atoms[a] - atoms[x]
-            ab = atoms[b] - atoms[a]
-            bc = atoms[c] - atoms[b]
+            v12 = atoms[a] - atoms[x] # arm1
+            v23 = atoms[b] - atoms[a] # base
+            v34 = atoms[c] - atoms[b] # arm2
 
-            xab = cross(xa, ab)
-            xab /= sqrt(dot(xab, xab))
+            n1 = cross(v12, v23) # arm1 x base
+            n1 /= sqrt(dot(n1, n1))
 
-            abc = cross(ab, bc)
-            abc /= sqrt(dot(abc, abc))
+            n2 = cross(v23, v34) # base x arm2
+            n2 /= sqrt(dot(n2, n2))
 
-            return arccos(dot(xab, abc))
+            # angle between two planes:
+            angle = arccos(dot(n1, n2))
+
+            # see if 1-2-3-4-skew is (anti)parallel to the base:
+            skew = cross(v12, v34)
+            if dot(v23, skew) > 0:
+                return -angle
+            else:
+                return angle
 
         vars = empty(self.__dim) # array
         x = 0
