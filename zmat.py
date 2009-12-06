@@ -2,13 +2,14 @@
 This module provides conversion from z-matrix coordiantes
 to cartesian and back.
 
-Construct ZMat from a tuple representaiton using Python
-abbreviatons for empty tuple, 1-tuple, and 2-tuple:
+Construct ZMat from a tuple representaiton of atomic
+connectivities:
 
     >>> rep = [(None, None, None), (0, None, None), (0, 1, None)]
     >>> zm = ZMat(rep)
 
-The above may be abbreviated as:
+The above may be abbreviated as using Python notations
+for empty tuple, 1-tuple, and a 2-tuple:
 
     >>> zm = ZMat([(), (0,), (0, 1)])
 
@@ -35,16 +36,28 @@ The order of internal variables is "left to right":
            [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00]])
 
 
-The |pinv| method of the Zmat() given the cartesian coordinates
+The |pinv| method of the ZMat() given the cartesian coordinates
 returns the internals according to the definition of connectivities
-encoded in Zmat().
+encoded in ZMat().
 
-Compare zm(...) and zm( zm^-1( zm(...) ) ):
+Compare |internals| and zm^-1( zm(internals) ):
 
-    >>> zm(h2o) - zm(zm.pinv(zm(h2o)))
-    array([[ 0.,  0.,  0.],
-           [ 0.,  0.,  0.],
-           [ 0.,  0.,  0.]])
+    >>> h2o = array(h2o)
+    >>> zm.pinv(zm(h2o)) - h2o
+    array([ 0.,  0.,  0.])
+
+The "pseudo" in the pseudoinverse is to remind you that
+the cartesian to internal is not one-to-one:
+
+    >>> xyz = zm(h2o)
+
+Both |xyz| and translated |xyz| correspond to the same set
+of internal coordinates:
+
+    >>> zm.pinv(xyz) - zm.pinv(xyz + array((1., 2., 3.)))
+    array([ 0.,  0.,  0.])
+
+The same holds for overall rotations.
 """
 
 from math import pi
@@ -225,7 +238,7 @@ class ZMat(Func):
         return xyz
 
     def pinv(self, atoms):
-        "Pseudoinverse of Zmat, returns internal coordinates"
+        "Pseudoinverse of ZMat, returns internal coordinates"
 
         def dst(x, a):
             "Distance x-a"
