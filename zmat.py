@@ -14,7 +14,7 @@ subscriptable objects with following entries:
 
 Construct ZMat from a tuple representaiton:
 
-    >>> rep = [(None, None, None), (0, None, None), (0, 1, None)]
+    >>> rep = [(), (0,), (0, 1)]
     >>> zm = ZMat(rep)
 
     >>> h2o = (0.96, 0.96, 104.5 * pi / 180.0)
@@ -56,10 +56,10 @@ class ZMat(Func):
         #
 
         def t3(t):
-            "Returns a tuple of length 3, missing entries set to None"
+            "Returns a tuple of length at least 3, missing entries set to None"
             tup = tuple(t)
-            if len(tup) < 3:
-                tup += (None,) * (len(tup) - 3)
+            # make it at least length 3, append enough None:
+            tup += (None,) * (3 - len(tup))
             return tup
 
         # convert to tuples, append enough |None|s in case thay are missing:
