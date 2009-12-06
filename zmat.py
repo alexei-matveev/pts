@@ -58,6 +58,45 @@ of internal coordinates:
     array([ 0.,  0.,  0.])
 
 The same holds for overall rotations.
+
+This CH4 example uses dihedral angles:
+
+    C
+    H 1 ch
+    H 1 ch 2 hch
+    H 1 ch 2 hch 3 hchh
+    H 1 ch 2 hch 3 -hchh
+
+    ch     1.09
+    hch  109.5
+    hchh 120.
+
+Connectivities:
+
+    >>> zm = ZMat([(), (0,), (0, 1), (0, 1, 2), (0, 1, 2)])
+
+Parameters:
+
+    >>> ch, hch, hchh = 1.09, 109.5 / 180. * pi, 120. / 180. * pi
+
+Internal coordinates:
+
+    >>> ch4 = (ch, ch, hch, ch, hch, hchh, ch, hch, -hchh)
+    >>> ch4 = array(ch4)
+
+Cartesian geometry:
+
+    >>> zm(ch4)
+    array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
+           [  1.09000000e+00,   0.00000000e+00,   0.00000000e+00],
+           [ -3.63849477e-01,   6.29149572e-17,  -1.02747923e+00],
+           [ -3.63849477e-01,  -8.89823111e-01,   5.13739613e-01],
+           [ -3.63849477e-01,   8.89823111e-01,   5.13739613e-01]])
+
+Test consistency with the inverse transformation:
+
+    >>> zm.pinv(zm(ch4)) - ch4
+    array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 """
 
 from math import pi
