@@ -6,8 +6,8 @@ Not for expensive functions!
 
     >>> from numpy import sin, cos
     >>> fprime, err = dfridr(sin, 0.0)
-    >>> fprime, err
-    (1.0, 0.0)
+    >>> round(fprime, 12), err < 1e-12
+    (1.0, True)
 
 Check numerical differentiation on the whole domain:
 
@@ -16,14 +16,14 @@ Check numerical differentiation on the whole domain:
     >>> def diff(x):
     ...     fprime, err = dfridr(sin, x)
     ...     return cos(x) - fprime
-    >>> max(abs([ diff(x) for x in linspace(-pi, pi, 11) ]))
-    4.5896619838003971e-13
+    >>> 1e-12 > max(abs([ diff(x) for x in linspace(-pi, pi, 11) ]))
+    True
 
 Check if error estimate is reasonable:
 
     >>> def chkerr(x):
     ...     fprime, err = dfridr(sin, x)
-    ...     return abs(cos(x) - fprime) <= err
+    ...     return abs(cos(x) - fprime) <= 10. * err
 
 Without factor 10 this will have some False entries:
 
@@ -33,7 +33,8 @@ Without factor 10 this will have some False entries:
 
 __all__ = ["dfridr"]
 
-# from numpy import empty, dtype # THIS CHANGES BEHAVIOUR: abs, max
+# this affects precision for some reason:
+from numpy import abs, max
 
 def dfridr(func, x, h=0.001):
     """
