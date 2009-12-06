@@ -17,13 +17,13 @@ Check numerical differentiation on the whole domain:
     ...     fprime, err = dfridr(sin, x)
     ...     return cos(x) - fprime
     >>> max(abs([ diff(x) for x in linspace(-pi, pi, 11) ]))
-    9.936496070395151e-13
+    4.5896619838003971e-13
 
 Check if error estimate is reasonable:
 
     >>> def chkerr(x):
     ...     fprime, err = dfridr(sin, x)
-    ...     return abs(cos(x) - fprime) <= 10. * err
+    ...     return abs(cos(x) - fprime) <= err
 
 Without factor 10 this will have some False entries:
 
@@ -33,7 +33,7 @@ Without factor 10 this will have some False entries:
 
 __all__ = ["dfridr"]
 
-from numpy import empty # THIS CHANGES BEHAVIOUR: abs, max
+# from numpy import empty, dtype # THIS CHANGES BEHAVIOUR: abs, max
 
 def dfridr(func, x, h=0.001):
     """
@@ -55,7 +55,8 @@ def dfridr(func, x, h=0.001):
 #   INTEGER i,j
 #   REAL errt,fac,hh,a(NTAB,NTAB)
 
-    a = empty((NTAB, NTAB))
+    # use dict() for 2D array:
+    a = dict()
 
     if h == 0.0: raise Exception('h must be nonzero in dfridr')
 
@@ -72,7 +73,7 @@ def dfridr(func, x, h=0.001):
         a[0, i] = (func(x + hh) - func(x - hh)) / (2.0 * hh) # Try new, smaller stepsize.
 
         fac = CON2
-        for j in range(1,i):
+        for j in range(1, i+1):
             # Compute extrapolations of various orders, requiring no new function evaluations.
             a[j, i] = (a[j-1, i] * fac - a[j-1, i-1]) / (fac - 1.)
             fac = CON2 * fac
