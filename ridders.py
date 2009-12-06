@@ -29,6 +29,19 @@ Without factor 10 this will have some False entries:
 
     >>> [ chkerr(x) for x in linspace(-pi, pi, 11) ]
     [True, True, True, True, True, True, True, True, True, True, True]
+
+Differentiation also works for univariate vector functions:
+
+    >>> from numpy import array, round
+    >>> def r(x): return array([cos(x), sin(x)])
+
+    >>> rprime, err = dfridr(r, 0.0)
+    >>> round(rprime, 12), err < 1e-12
+    (array([ 0.,  1.]), True)
+
+    >>> rprime, err = dfridr(r, pi / 4.)
+    >>> round(rprime, 12), err < 1e-12
+    (array([-0.70710678,  0.70710678]), True)
 """
 
 __all__ = ["dfridr"]
@@ -56,6 +69,9 @@ def dfridr(func, x, h=0.001):
 #   INTEGER i,j
 #   REAL errt,fac,hh,a(NTAB,NTAB)
 
+    # L-infifity norm:
+    def nrm(x): return max(abs(x))
+
     # use dict() for 2D array:
     a = dict()
 
@@ -78,7 +94,7 @@ def dfridr(func, x, h=0.001):
             # Compute extrapolations of various orders, requiring no new function evaluations.
             a[j, i] = (a[j-1, i] * fac - a[j-1, i-1]) / (fac - 1.)
             fac = CON2 * fac
-            errt = max(abs(a[j, i] - a[j-1, i]), abs(a[j, i] - a[j-1, i-1]))
+            errt = max(nrm(a[j, i] - a[j-1, i]), nrm(a[j, i] - a[j-1, i-1]))
 
             # The error strategy is to compare each new extrapolation to one order lower, both at
             # the present stepsize and the previous one.
@@ -86,7 +102,7 @@ def dfridr(func, x, h=0.001):
                 err = errt
                 result = a[j, i]
 
-        if abs(a[i, i] - a[i-1, i-1]) >= SAFE * err:
+        if nrm(a[i, i] - a[i-1, i-1]) >= SAFE * err:
             # If higher order is worse by a signicant factor SAFE, then quit early.
             return result, err
 
