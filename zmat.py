@@ -223,7 +223,7 @@ class ZMat(NumDiff):
                 # for actual computation see "pos1" below:
                 try:
                     p = pos1(x)
-                except ZMError, e:
+                except Exception, e:
                     raise ZMError("pos1 of", x, e.args)
                 cache[x] = p
                 return p
