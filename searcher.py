@@ -18,7 +18,7 @@ import logging
 from copy import deepcopy
 import pickle
 
-from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil
+from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs
 
 from path import Path
 
@@ -170,12 +170,13 @@ class ReactionPathway:
 
         self.bead_pes_energies = array(bead_pes_energies)
 
-    def ts_estims(self):
+    def ts_estims(self, tol=1e-10):
         """Returns list of all transition state(s) that appear to exist along
         the reaction pathway."""
 
         n = self.beads_count
         Es = self.bead_pes_energies.reshape(n,-1)
+        print Es
         dofs = self.state_vec.reshape(n,-1)
         assert len(dofs) == len(Es)
         ys = hstack([dofs, Es])
@@ -184,17 +185,23 @@ class ReactionPathway:
         xs = arange(0., 1., step)
         p = Path(ys, xs)
 
-        E_estim = lambda s: p(s)[-1]
+        E_estim_neg = lambda s: -p(s)[-1]
+        E_prime_estim = lambda s: p.fprime(s)[-1]
 
         ts_list = []
-        for x in xs[2:-2]:
-            E_0 = E_estim(x - step)
-            E_1 = E_estim(x)
-            x_min = fminbound(E_estim, x - step, x)
-            E_x = E_estim(x_min)
-            if abs(min) < 1e-8 and (E_0 < E_x > E_1):
+        for x in xs[2:-1]:
+            E_0 = -E_estim_neg(x - step)
+            E_1 = -E_estim_neg(x)
+            x_min = fminbound(E_estim_neg, x - step, x, xtol=tol)
+            E_x = -E_estim_neg(x_min)
+#            print x_min, abs(E_prime_estim(x_min)), E_0, E_x, E_1
+
+            # Use a looser tollerane on the gradient than on minimisation of 
+            # the energy function. FIXME: can this be done better?
+            E_prime_tol = tol * 1E4
+            if abs(E_prime_estim(x_min)) < E_prime_tol and (E_0 <= E_x >= E_1):
                 p_ts = p(x_min)
-                ts_list.append(p_ts[-1], p_ts[:-1])
+                ts_list.append((p_ts[-1], p_ts[:-1]))
 
         return ts_list
 
