@@ -5,6 +5,8 @@ import sys
 import inspect
 
 import scipy.integrate
+from scipy.optimize import fminbound
+
 from scipy import interpolate
 try:
     import Gnuplot, Gnuplot.PlotItems, Gnuplot.funcutils
@@ -18,6 +20,7 @@ import pickle
 
 from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil
 
+from path import Path
 
 from common import * # TODO: must unify
 import aof.common as common
@@ -171,49 +174,29 @@ class ReactionPathway:
         """Returns list of all transition state(s) that appear to exist along
         the reaction pathway."""
 
-        max_beads = self.get_max_beads()
-        bead_pairs = self.get_pairs(max_beads)
+        n = self.beads_count
+        Es = self.bead_pes_energies.reshape(n,-1)
+        dofs = self.state_vec.reshape(n,-1)
+        assert len(dofs) == len(Es)
+        ys = hstack([dofs, Es])
+
+        step = 1. / n
+        xs = arange(0., 1., step)
+        p = Path(ys, xs)
+
+        E_estim = lambda s: p(s)[-1]
 
         ts_list = []
-        for pair in bead_pairs:
-            i = pair[0]
-            j = pair[1]
+        for x in xs[2:-2]:
+            E_0 = E_estim(x - step)
+            E_1 = E_estim(x)
+            x_min = fminbound(E_estim, x - step, x)
+            E_x = E_estim(x_min)
+            if abs(min) < 1e-8 and (E_0 < E_x > E_1):
+                p_ts = p(x_min)
+                ts_list.append(p_ts[-1], p_ts[:-1])
 
-            dEds_i = self.dEds(i)
-            dEds_j = self.dEds(j)
-            if dEds_j <= 0 or dEds_i >= 0:
-                raise SearchingException("Maximum doesn't exist.")
-
-            s_i = ?
-            s_j = ?
-
-            A = array([[3*s_i**2, 2*s_i, 1, 0],
-                       [3*s_j**2, 2*s_j, 1, 0],
-                       [s_i**3, s_i**2, s_i, 1],
-                       [s_j**3, s_j**2, s_j, 1]])
-
-            ys = array([Ei, Ej, dEds_i, dEds_j])
-            
-            # calculate coefficients of cubic polynomial
-            a, b, c, d = linalg.solve(A,ys)
-
-            # cubic function
-            # E = lambda s: a*s**3 + b*s**2 + c*s + d
-
-            # derivative
-            dEds = lambda s: 3*a*s**2 + 2*b*s**2 + c
-
-            s_root1 = -(b + sqrt(b**2 - 4*a*c)) / 2 / a
-            s_root2 = -(b - sqrt(b**2 - 4*a*c)) / 2 / a
-            if s_i <= s_root1 <= s_j:
-                s_root = s_root1
-            elif s_i <= s_root2 <= s_j:
-                s_root = s_root2
-            else:
-                raise SearchingException("Maximum doesn't exist between points...")
-
-            # TODO: get geom of s_root
-            ts_list.append(s_root)
+        return ts_list
 
  
 def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
