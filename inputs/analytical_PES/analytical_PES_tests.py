@@ -5,7 +5,7 @@ from scipy.optimize.lbfgsb import fmin_l_bfgs_b
 import ase
 from numpy import array
 
-def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0.001, maxit=50):
+def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0.001, maxit=5):
 
     if model == 'neb':
         CoS = aof.searcher.NEB(reagents, qc, k, beads_count=N)
@@ -18,9 +18,10 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 
     # Wrapper callback function
     def callback(x):
+        print aof.common.line()
         print CoS
+        print aof.common.line()
         return x
-
 
     if alg == 'scipy_lbfgsb':
         opt, energy, dict = fmin_l_bfgs_b(CoS.obj_func,
@@ -43,7 +44,9 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 
 reagents = [array([0.,0.]), array([3.,3.])]
 
-test_StaticModel('neb', aof.common.GaussianPES(), reagents, 8, 1., 'scipy_lbfgsb')
-test_StaticModel('string', aof.common.GaussianPES(), reagents, 8, 1., 'scipy_lbfgsb')
+#test_StaticModel('neb', aof.pes.GaussianPES(), reagents, 8, 1., 'scipy_lbfgsb')
+#test_StaticModel('string', aof.pes.GaussianPES(), reagents, 8, 1., 'scipy_lbfgsb')
 
+reagents_MB = [array([ 0.62349942,  0.02803776]), array([-0.05001084,  0.46669421])]
+test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 8, 1., 'scipy_lbfgsb')
 

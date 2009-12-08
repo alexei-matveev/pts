@@ -50,64 +50,10 @@ def report(str):
     print line
 
 # Function labeller
-def flab(msg, tag = "", tag1 = ""):
+def flab(*args):
     import sys
-    lg.debug("**** " + sys._getframe(1).f_code.co_name + str(msg) + str(tag) + str(tag1))
-
-
-class FourWellPot(QCDriver):
-    """From "Dey, Janicki, and Ayers, J. Chem. Phys., Vol. 121, No. 14, 8 October 2004" """
-    def __init__(self):
-        QCDriver.__init__(self,2)
-
-        self.v0 = 4.0
-        self.a0 = 0.6
-        self.b1 = 0.1
-        self.b2 = 0.1
-        ais = 2.0 * ones(4)
-        sxs = [0.3, 1.0, 0.4, 1.0]
-        sys = [0.4, 1.0, 1.0, 0.1]
-        alphas = [1.3, -1.5, 1.4, -1.3]
-        betas = [-1.6, -1.7, 1.8, 1.23]
-
-        self.params_list = zip(ais, sxs, sys, alphas, betas)
-
-
-    def energy(self, v):
-        QCDriver.energy(self)
-
-        x, y = v[0], v[1]
-
-        def f_well(args):
-            a, sx, sy, alpha, beta = args
-            return a * exp(-sx * (x-alpha)**2 -sy * (y-beta)**2)
-        
-        e = self.v0 + self.a0*exp(-(x-self.b1)**2 -(y-self.b2)**2) \
-            - sum (map (f_well, self.params_list))
-
-        return e
-        
-    def gradient(self, v):
-        QCDriver.gradient(self)
-
-        x, y = v[0], v[1]
-
-        def df_welldx(args):
-            a, sx, sy, alpha, beta = args
-            return a * (-sx * (2*x-2*alpha)) * exp(-sx * (x-alpha)**2 -sy * (y-beta)**2)
-
-        def df_welldy(args):
-            a, sx, sy, alpha, beta = args
-            return a * (-sy * (2*y-2*beta)) * exp(-sx * (x-alpha)**2 -sy * (y-beta)**2)
-       
-        dedx = -(2*x - 2*self.b1)*self.a0*exp(-(x-self.b1)**2 -(y-self.b2)**2) \
-            - sum (map (f_welldx, self.params_list))
-
-        dedy = -(2*y - 2*self.b2)*self.a0*exp(-(x-self.b1)**2 -(y-self.b2)**2) \
-            - sum (map (f_welldy, self.params_list))
-
-        return (dedx, dedy)
-
+    args = [str(a) for a in args]
+    lg.info("**** " + sys._getframe(1).f_code.co_name + ' '.join(args))
 
 class ReactionPathway:
     """Abstract object for chain-of-state reaction pathway."""
@@ -207,9 +153,6 @@ class ReactionPathway:
     def record_energy(self):
         self.energy_history.append(sum(self.bead_pes_energies))
 
-    def dump(self):
-        pass
-
     def update_bead_pes_energies(self):
         """
         Updates internal vector with the energy of each bead (based on energy 
@@ -223,6 +166,55 @@ class ReactionPathway:
             bead_pes_energies.append(e)
 
         self.bead_pes_energies = array(bead_pes_energies)
+
+    def ts_estims(self):
+        """Returns list of all transition state(s) that appear to exist along
+        the reaction pathway."""
+
+        max_beads = self.get_max_beads()
+        bead_pairs = self.get_pairs(max_beads)
+
+        ts_list = []
+        for pair in bead_pairs:
+            i = pair[0]
+            j = pair[1]
+
+            dEds_i = self.dEds(i)
+            dEds_j = self.dEds(j)
+            if dEds_j <= 0 or dEds_i >= 0:
+                raise SearchingException("Maximum doesn't exist.")
+
+            s_i = ?
+            s_j = ?
+
+            A = array([[3*s_i**2, 2*s_i, 1, 0],
+                       [3*s_j**2, 2*s_j, 1, 0],
+                       [s_i**3, s_i**2, s_i, 1],
+                       [s_j**3, s_j**2, s_j, 1]])
+
+            ys = array([Ei, Ej, dEds_i, dEds_j])
+            
+            # calculate coefficients of cubic polynomial
+            a, b, c, d = linalg.solve(A,ys)
+
+            # cubic function
+            # E = lambda s: a*s**3 + b*s**2 + c*s + d
+
+            # derivative
+            dEds = lambda s: 3*a*s**2 + 2*b*s**2 + c
+
+            s_root1 = -(b + sqrt(b**2 - 4*a*c)) / 2 / a
+            s_root2 = -(b - sqrt(b**2 - 4*a*c)) / 2 / a
+            if s_i <= s_root1 <= s_j:
+                s_root = s_root1
+            elif s_i <= s_root2 <= s_j:
+                s_root = s_root2
+            else:
+                raise SearchingException("Maximum doesn't exist between points...")
+
+            # TODO: get geom of s_root
+            ts_list.append(s_root)
+
  
 def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
     """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
@@ -554,14 +546,11 @@ class PathRepresentation(object):
         """Returns the unit tangents to the path at the current set of 
         normalised positions."""
 
-        flab("called")
-
         tangents = []
         for str_pos in self.__normalised_positions:
             tangents.append(self.__get_tangent(str_pos))
 
         tangents = array(tangents)
-        flab("exited")
         return tangents
 
     def get_state_vec(self):
@@ -580,7 +569,6 @@ class PathRepresentation(object):
     def regen_path_func(self):
         """Rebuild a new path function and the derivative of the path based on 
         the contents of state_vec."""
-        flab("called")
 
         assert len(self.__state_vec) > 1
 
@@ -614,7 +602,6 @@ class PathRepresentation(object):
                 xs = self.__normalised_positions
                 assert len(self.__normalised_positions) == len(self.__state_vec)
                 self.__fs.append(SplineFunc(xs,ys))
-        flab("exited")
 
 
     def __arc_dist_func(self, x):
@@ -634,7 +621,6 @@ class PathRepresentation(object):
         [0,1]) and y is the corresponding distance along the string (i.e. on
         [0,string_len])."""
         
-        flab("called")
 
         # number of points to chop the string into
         param_steps = arange(0, 1, self.__step)
@@ -654,7 +640,6 @@ class PathRepresentation(object):
 
         #lg.debug('int_approx = {0}, int_accurate = {1}'.format(cummulative, str_len_precise))
 
-        flab("exiting")
         return (list[-1], zip(param_steps, list))
 
     def sub_str_lengths(self, normd_poses):
@@ -678,7 +663,6 @@ class PathRepresentation(object):
         of beads along a reaction path, according to the established path 
         (line, parabola or spline) and the parameterisation density."""
 
-        flab("called", update)
 
         assert len(self.__fs) > 1
 
@@ -749,7 +733,6 @@ class PathRepresentation(object):
         return bead_vectors
         
     def __get_str_positions_exact(self):
-        flab("called")
         from scipy.integrate import quad
         from scipy.optimize import fmin
 
@@ -791,7 +774,6 @@ class PathRepresentation(object):
         """Based on the provided density function self.__rho(x) and 
         self.beads_count, generates the fractional positions along the string 
         at which beads should occur."""
-        flab("called")
 
         param_steps = arange(0, 1 - self.__step, self.__step)
         integrated_density_inc = 1.0 / (self.beads_count - 1.0)
@@ -871,7 +853,6 @@ class PathRepresentation(object):
     def __generate_normd_positions(self, total_str_len, incremental_positions):
         """Returns a list of distances along the string in terms of the normalised 
         coordinate, based on desired fractional distances along string."""
-        flab("called")
 
         # Get fractional positions along string, based on bead density function
         # and the desired total number of beads
@@ -991,7 +972,6 @@ class GrowingString(ReactionPathway):
         """
 
         assert self.beads_count <= self.__final_beads_count
-        flab("called")
 
         if self.beads_count == self.__final_beads_count:
             return False
@@ -1024,7 +1004,6 @@ class GrowingString(ReactionPathway):
         """Update the density function so that it will deliver beads spaced
         as for a growing (or grown) string."""
 
-        flab("called")
         assert self.beads_count <= self.__final_beads_count
 
         from scipy.optimize import fmin
@@ -1052,7 +1031,6 @@ class GrowingString(ReactionPathway):
         self.__path_rep.set_rho(pwr.f)
 
     def obj_func(self, new_state_vec = None, individual_energies = False):
-        flab("called")
         ReactionPathway.obj_func(self, new_state_vec)
 
         self.update_path(new_state_vec, respace = True)
@@ -1080,7 +1058,6 @@ class GrowingString(ReactionPathway):
             return total_energies #es.max() #total_energies
        
     def obj_func_grad(self, new_state_vec = None):
-        flab("called")
         ReactionPathway.obj_func_grad(self, new_state_vec)
 
         self.update_path(new_state_vec, respace = True)
@@ -1122,7 +1099,7 @@ class GrowingString(ReactionPathway):
         It rebuilds a new (spline) representation of the path and then 
         redestributes the beads according to the density function."""
 
-        flab("called", respace)
+        flab("update_pathcalled", respace)
 
         if state_vec != None:
             self.__path_rep.state_vec = state_vec
@@ -1135,7 +1112,6 @@ class GrowingString(ReactionPathway):
             self.__path_rep.generate_beads(update = True)
 
     def plot(self):
-        flab("(GS) called")
 #        self.__path_rep.generate_beads_exact()
         plot2D(self.__path_rep)
 
@@ -1276,7 +1252,6 @@ def test_QSM():
 
     # Wrapper callback function
     def mycb(x):
-        flab("called")
         gs.update_path(x, respace = True)
         gs.plot()
         return gs.get_state_vec()
@@ -1306,7 +1281,6 @@ def test_GQSM():
 
     # Wrapper callback function
     def mycb(x):
-        flab("called")
         gs.update_path(x, respace = True)
         gs.plot()
         return gs.get_state_vec()
@@ -1341,7 +1315,6 @@ def test_GrowingString():
 
     # Wrapper callback function
     def mycb(x):
-        flab("called")
         gs.update_path(x, respace = True)
 #        surf_plot.plot(x)
         gs.plot()
@@ -2071,7 +2044,6 @@ class SurfPlot():
         self.__pes = pes
 
     def plot(self, path = None, write_contour_file=False, maxx=3.0, minx=0.0, maxy=3.0, miny=0.0):
-        flab("called")
         import os
         opt = deepcopy(path)
 
@@ -2152,7 +2124,6 @@ def test_NEB():
 
     # Wrapper callback function
     def mycb(x):
-        flab("called")
         #surf_plot.plot(path = x)
         print neb
         return x

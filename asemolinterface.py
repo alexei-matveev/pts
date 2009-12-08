@@ -171,7 +171,7 @@ class MolInterface:
         pickle.dump(coord_sys_obj, f)
         f.close()
 
-        cmd = ["python", "-m", "pickle_runner", mol_pickled]
+        cmd = ["python", "-m", "aof.pickle_runner", mol_pickled]
 
         # Generate placement command, e.g. for dplace
         if callable(self.place_str):

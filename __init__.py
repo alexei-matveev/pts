@@ -5,6 +5,7 @@ import sched
 #import zmatrix
 import coord_sys
 import qcdrivers
+import pes
 
 # locally modified l_bfgs_b optimiser from scipy
 import cosopt
