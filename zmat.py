@@ -36,7 +36,7 @@ The order of internal variables is "left to right":
            [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00]])
 
 
-The |pinv| method of the ZMat() given the cartesian coordinates
+The |pinv| (pseudo-inverse) method of the ZMat() given the cartesian coordinates
 returns the internals according to the definition of connectivities
 encoded in ZMat().
 
@@ -73,7 +73,7 @@ This CH4 example uses dihedral angles:
 
 Connectivities:
 
-    >>> zm = ZMat([(), (0,), (0, 1), (0, 1, 2), (0, 1, 2)])
+    >>> z4 = ZMat([(), (0,), (0, 1), (0, 1, 2), (0, 1, 2)])
 
 Parameters:
 
@@ -86,7 +86,7 @@ Internal coordinates:
 
 Cartesian geometry:
 
-    >>> zm(ch4)
+    >>> z4(ch4)
     array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
            [  1.09000000e+00,   0.00000000e+00,   0.00000000e+00],
            [ -3.63849477e-01,   6.29149572e-17,  -1.02747923e+00],
@@ -95,8 +95,34 @@ Cartesian geometry:
 
 Test consistency with the inverse transformation:
 
-    >>> zm.pinv(zm(ch4)) - ch4
+    >>> z4.pinv(z4(ch4)) - ch4
     array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
+
+"Breathing" mode derivative (estimate by num. diff.):
+
+    >>> d1 = (z4(ch4 * 1.001) - z4(ch4)) / 0.001
+    >>> d1
+    array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
+           [  1.09000000e+00,   0.00000000e+00,   0.00000000e+00],
+           [ -2.32879885e+00,   2.01785263e-17,  -3.29540342e-01],
+           [ -2.32879885e+00,   7.92879953e-01,   2.02788058e+00],
+           [ -2.32879885e+00,  -7.92879953e-01,   2.02788058e+00]])
+
+"Breathing" mode derivative (estimate using zm.fprime):
+
+    >>> d2 = dot(z4.fprime(ch4), ch4)
+    >>> d2
+    array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
+           [  1.09000000e+00,   0.00000000e+00,   0.00000000e+00],
+           [ -2.32750153e+00,   2.03360906e-17,  -3.32113563e-01],
+           [ -2.32750153e+00,   7.88354946e-01,   2.02969795e+00],
+           [ -2.32750153e+00,  -7.88354946e-01,   2.02969795e+00]])
+
+    >>> from numpy import max, abs, round
+    >>> max(abs(d2-d1))
+    0.004525006862505121
+
+(these are not real breathing modes as we scale also angles).
 """
 
 from math import pi
@@ -104,18 +130,19 @@ from numpy import sin, cos, cross, dot, sqrt, arccos
 from numpy import array, empty
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
-from func import Func
+from func import NumDiff
 
 class ZMError(Exception):
     pass
 
-class ZMat(Func):
+class ZMat(NumDiff):
     def __init__(self, zm):
 
         #
         # Each entry in ZM definition is a 3-tuple (a, b, c)
         # defining x-a-b-c chain of atoms.
         #
+        NumDiff.__init__(self, self.f, h=0.001)
 
         def t3(t):
             "Returns a tuple of length at least 3, missing entries set to None"
@@ -168,9 +195,11 @@ class ZMat(Func):
         # to compute cartesians:
         return self.__z2c(self.__zm, v)
 
-    def fprime(self, v):
-        # either num-diff or anything better goes here:
-        raise NotImplemented
+    # For the time without separate implementation
+    # inherit from NumDiff:
+#   def fprime(self, v):
+#       # either num-diff or anything better goes here:
+#       raise NotImplemented
 
     def __z2c(self, atoms, vars):
         """Generates cartesian coordinates from z-matrix and the current set of
