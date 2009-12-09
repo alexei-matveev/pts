@@ -176,6 +176,9 @@ class ReactionPathway:
 
         step = 1. / n
         xs = arange(0., 1., step)
+
+        # TODO: using Alexei's isolated Path object, eventually must make the
+        # GrowingString object use it as well.
         p = Path(ys, xs)
 
         E_estim_neg = lambda s: -p(s)[-1]
