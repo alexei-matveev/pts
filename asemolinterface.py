@@ -100,11 +100,11 @@ class MolInterface:
         self.place_str = None
         if "placement" in params and params['placement'] != None:
             f = params['placement']
-            assert callable(f)
+            assert callable(f), "Function to generate placement command was not callable."
 
             # perform test to make sure command is in path
             command = f(None)
-            assert common.exec_in_path(command)
+            assert common.exec_in_path(command), "Generated placement command was not in path."
             self.place_str = f
 
 
