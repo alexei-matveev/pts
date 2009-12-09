@@ -57,8 +57,7 @@ class Gaussian:
         self.charge = charge
         self.mult = mult
 
-        # TODO: is there a better way of doing this?
-        if os.system("which " + gau_command + "> /dev/null") != 0:
+        if not common.exec_in_path(gau_command):
             raise GaussDriverError("Executable " + gau_command + " not found in path.")
         self.gau_command = gau_command
         self.nprocs = nprocs

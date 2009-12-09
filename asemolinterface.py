@@ -11,7 +11,7 @@ import pickle
 
 import numpy
 
-import common
+import aof.common as common
 import aof.coord_sys as csys
 
 lg = logging.getLogger('aof.asemolinterface') #common.PROGNAME)
@@ -99,8 +99,14 @@ class MolInterface:
         # setup function that generates
         self.place_str = None
         if "placement" in params:
-            assert callable(params['placement'])
-            self.place_str = params['placement']
+            f = params['placement']
+            assert callable(f)
+
+            # perform test to make sure command is in path
+            command = f(None)
+            assert common.exec_in_path(command)
+            self.place_str = f
+
 
         self.calc_tuple = params["calculator"]
 

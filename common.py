@@ -31,6 +31,9 @@ def get_tmp_dir():
 
     return tmp_dir
 
+def exec_in_path(name):
+    # TODO: is there a better way of doing this?
+    return os.system("which " + name + "> /dev/null") == 0
 
 # Max no. of allowed geometries given to the optimiser to form the initial guess 
 # for the reaction pathway. Includes the reactant/product.
@@ -308,6 +311,8 @@ def make_like_atoms(x):
     return x_
 
 def place_str_dplace(tag):
+    if tag == None:
+        return "dplace"
     s = "dplace -c " + ','.join([str(cpu) for cpu in tag[0]])
     return s
 
