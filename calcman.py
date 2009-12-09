@@ -1,7 +1,7 @@
 import logging
 
 from aof.sched import ParaSched
-from aof.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR
+from aof.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR, vec_summarise
 import aof
 
 # setup logging
@@ -71,7 +71,7 @@ class CalcManager():
 
         # calculation has aleady been performed, will use cached version
         elif result.has_field(type):
-            lg.info("Already have result for %s, using cached version." % common.vec_summarise(v))
+            lg.info("Already have result for %s, using cached version." % vec_summarise(v))
             return
 
         # calc is not already in list so must add

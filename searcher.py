@@ -46,12 +46,6 @@ def _functionId(nFramesUp):
     return "%s (%s @ %d)" % (co.co_name, co.co_filename, co.co_firstlineno)
 
 
-def report(str):
-    line = "================================================================="
-    print line
-    print "===", str
-    print line
-
 # Function labeller
 def flab(*args):
     import sys
@@ -176,7 +170,6 @@ class ReactionPathway:
 
         n = self.beads_count
         Es = self.bead_pes_energies.reshape(n,-1)
-        print Es
         dofs = self.state_vec.reshape(n,-1)
         assert len(dofs) == len(Es)
         ys = hstack([dofs, Es])
@@ -2192,5 +2185,6 @@ def test_NEB():
 
 
 if __name__ == '__main__':
-    test_GQSM()
+    # FIXME: change to doctest
+    pass
 

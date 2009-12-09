@@ -25,10 +25,9 @@ class MolInterfaceException(Exception):
         return self.msg
  
 class MolInterface:
-    """Converts between molecule representations (i.e. internal xyz/zmat 
-    representation), optimisation coordinates, Quantum Chemistry logfile format
-    and QC program input format.
-    """
+    """Interface between optimisation coordinates and CoordSys object, 
+    providing also functionality to run a energy/gradient calculation of a
+    particular vector under a separate python interpreter instance."""
 
     def __init__(self, mol_strings, params = dict()):
         """mol_strings: list of strings, each of which describes a molecule, 
@@ -97,7 +96,6 @@ class MolInterface:
                         else:
                             react[i] += 360.0 * common.DEG_TO_RAD
 
-
         # setup function that generates
         self.place_str = None
         if "placement" in params:
@@ -108,9 +106,9 @@ class MolInterface:
 
         self.mol = mols[0]
 
-        if 'cell' in params:
+        if 'cell' in params and params['cell'] != None:
             self.mol.set_cell(params['cell'])
-        if 'pbc' in params:
+        if 'pbc' in params and params['pbc'] != None:
             self.mol.set_pbc(params['pbc'])
 
 
