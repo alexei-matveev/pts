@@ -74,7 +74,7 @@ aof.dump_steps(CoS)
 # callback function
 mycb = lambda x: aof.generic_callback(x, mi, CoS, params)
 
-import cosopt.lbfgsb as so
+import aof.cosopt.lbfgsb as so
 
 while True:
     opt, energy, dict = so.fmin_l_bfgs_b(CoS.obj_func,
