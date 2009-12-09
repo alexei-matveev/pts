@@ -37,7 +37,7 @@ class TestNEB(aof.test.MyTestCase):
         reactants = np.array([0,0])
         products = np.array([3,3])
 
-        neb = NEB([reactants, products], lambda x: True, com.GaussianPES(), default_spr_const, beads_count = 10)
+        neb = NEB([reactants, products], lambda x: True, aof.qcdrivers.GaussianPES(), default_spr_const, beads_count = 10)
 
         angs = neb.get_angles()
         self.assertAlmostEqualVec(angs, 180. * np.ones(neb.beads_count - 2))
@@ -57,7 +57,7 @@ class TestNEB(aof.test.MyTestCase):
         reactants = np.array([0,0])
         products = np.array([1,1])
 
-        neb = NEB([reactants, products], lambda x: True, com.GaussianPES(), default_spr_const, beads_count = 3)
+        neb = NEB([reactants, products], lambda x: True, aof.qcdrivers.GaussianPES(), default_spr_const, beads_count = 3)
         neb.obj_func(np.array([[0,0],[0,1],[1,1]]))
         print neb.bead_pes_energies
         neb.update_tangents()

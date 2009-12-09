@@ -29,19 +29,19 @@ class TestGaussianDriver(aof.test.MyTestCase):
 
     def test_gaussian_benzyl(self):
       
-        g = aof.ase_gau.Gaussian(charge=0, mult=2)
+        g = aof.qcdrivers.Gaussian(charge=0, mult=2)
         b = cs.XYZ(file2str("benzyl.xyz"))
         b.set_calculator(g)
         print b.get_forces()
 
     def test_gaussian_water(self):
       
-        g = aof.ase_gau.Gaussian(charge=0, mult=2)
+        g = aof.qcdrivers.Gaussian(charge=0, mult=2)
         b = cs.ZMatrix(file2str("H2O.zmt"))
         b.set_calculator(g)
         self.assertRaises(aof.gaussian.GaussDriverError, b.get_forces)
 
-        g = aof.ase_gau.Gaussian(charge=-1, mult=2)
+        g = aof.qcdrivers.Gaussian(charge=-1, mult=2)
         b = cs.ZMatrix(file2str("H2O.zmt"))
 
         expect = numpy.array([ 0.0632226, -0.00272265,  0.])
@@ -56,7 +56,7 @@ class TestGaussianDriver(aof.test.MyTestCase):
 will read in a guess and achieve speedier convergence the second time around."""
         print "This test will take around 20 seconds..."
         start = time.time()
-        g = aof.ase_gau.Gaussian(mult=2)
+        g = aof.qcdrivers.Gaussian(mult=2)
         b = cs.XYZ(file2str("benzyl.xyz"))
         b.set_calculator(g)
         b.get_potential_energy()
