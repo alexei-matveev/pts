@@ -98,7 +98,7 @@ class MolInterface:
 
         # setup function that generates
         self.place_str = None
-        if "placement" in params:
+        if "placement" in params and params['placement'] != None:
             f = params['placement']
             assert callable(f)
 

@@ -36,7 +36,7 @@ params = {
     'calculator': calc_tuple,
 
     # name of function to generate placement commant
-    'placement': aof.common.place_str_dplace, 
+    'placement': None, #aof.common.place_str_dplace, 
 
     # cell shape, see ASE documentation
     'cell': None, 
