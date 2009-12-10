@@ -146,7 +146,7 @@ __all__ = ["Path", "PathRepresentation"]
 import scipy.optimize
 import scipy.integrate
 
-from numpy import linalg, array, dot, sqrt, ones, arange
+from numpy import linalg, array, dot, sqrt, ones, arange, column_stack
 from numpy import ndarray
 from numpy import asarray
 

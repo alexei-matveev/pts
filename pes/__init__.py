@@ -1,5 +1,8 @@
 import mueller_brown as mb
+from plot import Plot2D
+
 import numpy as np
+
 
 class QCDriver:
     def __init__(self, dimension):

@@ -78,7 +78,7 @@ Derivatives of reciprocal functions are reciprocal:
 
 __all__ = ["Func", "LinFunc", "QuadFunc", "SplineFunc", "CubicFunc"]
 
-from numpy import array, dot, hstack, linalg
+from numpy import array, dot, hstack, linalg, atleast_1d
 from scipy.interpolate import interp1d, splrep, splev
 from scipy.integrate import quad
 from scipy.optimize import newton
@@ -125,9 +125,12 @@ class QuadFunc(Func):
         self.coefficients = coefficients
 
     def f(self, x):
-        return dot(array((x**2, x, 1)), self.coefficients)
+        x = atleast_1d(x).item()
+        tmp = dot(array((x**2, x, 1)), self.coefficients)
+        return tmp
 
     def fprime(self, x):
+        x = atleast_1d(x).item()
         return 2 * self.coefficients[0] * x + self.coefficients[1]
 
 class CubicFunc(Func):

@@ -30,6 +30,8 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
     def callback(x):
         print aof.common.line()
         print CoS
+        p = aof.pes.Plot2D()
+        p.plot(qc, CoS)
         print aof.common.line()
         return x
 
@@ -55,8 +57,12 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
             print opt
 
         elif alg == 'ase_lbfgs':
+
+
             opt = ase.LBFGS(CoS)
-    #        opt.attach(something)
+
+            # print out each step in optimisation
+            opt.attach(lambda: callback(None))
             opt.run(fmax=tol)
             x_opt = CoS.state_vec
             print x_opt
@@ -70,13 +76,13 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 
     print CoS.ts_estims()
 
-
 # python path_representation.py [-v]:
 if __name__ == "__main__":
     reagents_MB = [array([ 0.62349942,  0.02803776]), array([-0.558, 1.442])]
 #    test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 12, 1., 'ase_lbfgs', tol=0.001)
-    test_StaticModel('growingstring', aof.pes.MuellerBrown(), reagents_MB, 8, 1., 'scipy_lbfgsb', tol=0.01)
+    test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 12, 1., 'ase_lbfgs', tol=0.001)
 
+    exit()
     reagents = [array([0.,0.]), array([3.,3.])]
     test_StaticModel('neb', aof.pes.GaussianPES(), reagents, 8, 1., 'scipy_lbfgsb')
     test_StaticModel('string', aof.pes.GaussianPES(), reagents, 8, 1., 'scipy_lbfgsb')

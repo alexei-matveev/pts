@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from scipy import *
+#from scipy import *
 import sys
 import inspect
 
@@ -8,17 +8,12 @@ import scipy.integrate
 from scipy.optimize import fminbound
 
 from scipy import interpolate
-try:
-    import Gnuplot, Gnuplot.PlotItems, Gnuplot.funcutils
-except:
-    print "Warning, couldn't import Python GNU Plot interface"
-
 import tempfile, os
 import logging
 from copy import deepcopy
 import pickle
 
-from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs
+from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot
 
 from path import Path
 
@@ -94,10 +89,10 @@ class ReactionPathway:
         strrep += "\nRMS Perpendicular bead forces: " + str(common.rms(self.bead_forces))
         strrep += "\nFunction calls: " + str(self.e_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
-        strrep += "\nArchive (bgc, gc, bec, ec, rmsf, e, maxe): %d\t%d\t%d\t%d\t%f\t%f\t%f" % \
-            (self.bead_g_calls, 
+        strrep += "\nArchive (bc, bgc, gc, ec, rmsf, e, maxe): %d\t%d\t%d\t%d\t%f\t%f\t%f" % \
+            (self.beads_count,
+                self.bead_g_calls, 
                 self.g_calls, 
-                self.bead_e_calls, 
                 self.e_calls, 
                 common.rms(self.bead_forces), 
                 total_energy, 
@@ -117,7 +112,8 @@ class ReactionPathway:
             angles.append(vector_angle(t1, t0))
         return array(angles)
 
-
+    def pathfs(self):
+        return None
 
     @property
     def dimension(self):
@@ -139,12 +135,22 @@ class ReactionPathway:
     def obj_func(self, x):
         lg.info("Chain of States Objective Function call.")
         self.e_calls += 1
+        if self.bead_g_calls == 0:
+            self.bead_g_calls += self.beads_count
+        else:
+            self.bead_g_calls += self.beads_count - 2
+
         self.history.append(deepcopy(x))
 
     def obj_func_grad(self, x):
         lg.info("Chain of States Objective Function *Gradient* call.")
 
         self.g_calls += 1
+        if self.bead_g_calls == 0:
+            self.bead_g_calls += self.beads_count
+        else:
+            self.bead_g_calls += self.beads_count - 2
+
         self.history.append(deepcopy(x))
 
     def record_energy(self):
@@ -158,7 +164,6 @@ class ReactionPathway:
         """
         bead_pes_energies = []
         for bead_vec in self.state_vec:
-            self.bead_e_calls += 1
             e = self.qc_driver.energy(bead_vec)
             bead_pes_energies.append(e)
 
@@ -185,7 +190,7 @@ class ReactionPathway:
         E_prime_estim = lambda s: p.fprime(s)[-1]
 
         ts_list = []
-        for x in xs[2:-1]:
+        for x in xs[2:]:#-1]:
             E_0 = -E_estim_neg(x - step)
             E_1 = -E_estim_neg(x)
             x_min = fminbound(E_estim_neg, x - step, x, xtol=tol)
@@ -359,11 +364,12 @@ class NEB(ReactionPathway):
         if self.parallel:
 
             for i in range(self.beads_count): # [1:-1]:
+
                 bead_vec = self.state_vec[i]
                 self.qc_driver.request_gradient(bead_vec)
 
             self.qc_driver.proc_requests()
- 
+        
         # update vector of energies of individual beads`
         # this is required for the tangent calculation
         self.update_bead_pes_energies()
@@ -407,19 +413,11 @@ class NEB(ReactionPathway):
         self.update_bead_separations()
         self.update_tangents()
 
-        """separations_diffs = self.special_reduce(separations_vec, self.spr_const_vec, f2 = lambda x: x)
-        assert len(separations_diffs) == self.beads_count - 2
-
-        spring_forces = multiply(separations_diffs.flatten(), self.tangents[1:-1].transpose()).transpose()
-
-        spring_forces = vstack((zeros(self.dimension), spring_forces, zeros(self.dimension)))"""
-
         total_bead_forces = []
         perp_bead_forces = []
 
         # get PES forces / project out stuff
         for i in range(self.beads_count)[1:-1]: # don't include end beads, leave their gradients as zero
-            self.bead_g_calls += 1
             pes_force = -self.qc_driver.gradient(self.state_vec[i])
             pes_force = project_out(self.tangents[i], pes_force)
             perp_bead_forces.append(pes_force)
@@ -521,9 +519,12 @@ class PathRepresentation(object):
 
         # TODO check all beads have same dimensionality
 
-    def get_fs(self):
-        return self.__fs
+    """def get_fs(self):
+        return self.__fs"""
 
+    @property
+    def fs(self):
+        return self.__fs
     @property
     def path_tangents(self):
         return self.__path_tangents
@@ -917,6 +918,9 @@ class GrowingString(ReactionPathway):
         assert head_size == None or (growing and beads_count / 2 -1 >= head_size > 0)
         self.head_size = head_size
 
+    def pathfs(self):
+        return self.__path_rep.fs
+
     def set_positions(self, x):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
         new_state_vec = x.flatten()[0:self.beads_count * self.dimension]
@@ -1029,14 +1033,13 @@ class GrowingString(ReactionPathway):
                 self.qc_driver.request_gradient(bead_vec)
             self.qc_driver.proc_requests()
 
-#        print "self.__path_rep.state_vec:", self.__path_rep.state_vec
         self.update_bead_pes_energies()
 
-        #for bead_vec in self.__path_rep.state_vec: #[1:-1]:
-        #    es.append(self.__qc_driver.energy(bead_vec))
-
-        #es.append(self.__reagent_energy) # TODO: do I do something like this for NEB?
         es = self.bead_pes_energies
+
+        # assume that energies of end beads are not updated every time
+        self.bead_e_calls += len(es) - 2
+
         total_energies = sum(es)
         if individual_energies:
             return deepcopy(es)
@@ -1064,7 +1067,6 @@ class GrowingString(ReactionPathway):
         # get gradients / perform projections
         for i in range(self.beads_count):
             if self.grad_update_mask[i]:
-                self.bead_g_calls += 1
                 g = self.__qc_driver.gradient(self.__path_rep.state_vec[i])
                 t = ts[i]
                 g = project_out(t, g)
@@ -1124,8 +1126,8 @@ def vector_interpolate(start, end, beads_count):
     assert beads_count > 2
 
     # do I still need these lines?
-    start = array(start, dtype=float64)
-    end = array(end, dtype=float64)
+    start = array(start)
+    end = array(end)
 
     inc = (end - start) / (beads_count - 1)
     output = [ start + x * inc for x in range(beads_count) ]
@@ -1161,68 +1163,6 @@ def test_path_rep():
     plot2D(x)
 
 
-def plot2D(react_path, path_res = 0.002):
-    """Given a path object react_path, displays the a 2D depiction of it's 
-    first two dimensions as a graph."""
-    g = Gnuplot.Gnuplot(debug=1)
-
-    g.xlabel('x')
-    g.ylabel('y')
-    g('set xrange [0:3]')
-    g('set yrange [0:3]')
-    g('set key right bottom')
-    g('set key box')
-
-    # Get some tmp filenames
-    (fd, tmp_file1,) = tempfile.mkstemp(text=1)
-    (fd, tmp_file2,) = tempfile.mkstemp(text=1)
-    (fd, tmp_file3,) = tempfile.mkstemp(text=1)
-
-    params = arange(0, 1 + path_res, path_res)
-    f_x = react_path.get_fs()[0].f
-    f_y = react_path.get_fs()[1].f
-    xs = array ([f_x(p) for p in params])
-    ys = array ([f_y(p) for p in params])
-
-    sp = SurfPlot(GaussianPES())
-    contour_file = sp.plot(None, write_contour_file=True)
-
-    # smooth path
-    smooth_path = vstack((xs,ys)).transpose()
-    Gnuplot.Data(smooth_path, filename=tmp_file1, inline=0, binary=0)
-    
-    # state vector
-    data2 = react_path.get_state_vec()
-    Gnuplot.Data(data2, filename=tmp_file2, inline=0, binary=0)
-
-    # points along path
-    beads = react_path.generate_beads()
-    Gnuplot.Data(beads, filename=tmp_file3, inline=0, binary=0)
-
-    # draw tangent to the path
-    pt_ix = 1
-    t0_grad = react_path.path_tangents[pt_ix][1] / react_path.path_tangents[pt_ix][0]
-    t0_str = "%f * (x - %f) + %f" % (t0_grad, react_path.get_state_vec()[pt_ix][0], react_path.get_state_vec()[pt_ix][1])
-    t0_func = Gnuplot.Func(t0_str)
-
-    # PLOT THE VARIOUS PATHS
-    g('set term postscript color size 8,6')
-    global plot_count
-    g('set output "gp_test' + str(plot_count) + '.ps"')
-    plot_count += 1
-    g.plot(#t0_func, 
-        Gnuplot.File(tmp_file1, binary=0, title="Smooth", with_ = "lines"), 
-        Gnuplot.File(tmp_file2, binary=0, with_ = "points", title = "get_state_vec()"), 
-        Gnuplot.File(tmp_file3, binary=0, title="points on string from optimisation", with_ = "points"),
-        Gnuplot.File(contour_file, binary=0, title="contours", with_="lines"))
-    #g.hardcopy('gp_test.ps', enhanced=1, color=1)
-
-    raw_input('Press to continue...\n')
-
-    os.unlink(tmp_file1)
-    os.unlink(tmp_file2)
-    os.unlink(tmp_file3)
-    os.unlink(contour_file)
 
 def test_QSM():
     from scipy.optimize import fmin_bfgs
@@ -1374,7 +1314,7 @@ def wrap_function(function, args):
         return function(x, *args)
     return ncalls, function_wrapper
 
-_epsilon = sqrt(finfo(float).eps)
+#_epsilon = sqrt(finfo(float).eps)
 
 def dump_mat(mat):
     for row in mat:
@@ -1817,80 +1757,6 @@ class QuadraticStringMethod():
 
         #print "*******STEP", x, h, step4
         return step4, step5
-
-class SurfPlot():
-    def __init__(self, pes):
-        self.__pes = pes
-
-    def plot(self, path = None, write_contour_file=False, maxx=3.0, minx=0.0, maxy=3.0, miny=0.0):
-        import os
-        opt = deepcopy(path)
-
-        # Points on grid to draw PES
-        ps = 20.0
-        xrange = arange(ps)*((maxx-minx)/ps) + minx
-        yrange = arange(ps)*((maxy-miny)/ps) + miny
-
-        # tmp data file
-        (fd, tmpPESDataFile,) = tempfile.mkstemp(text=1)
-        Gnuplot.funcutils.compute_GridData(xrange, yrange, 
-            lambda x,y: self.__pes.energy([x,y]), filename=tmpPESDataFile, binary=0)
-
-        g = Gnuplot.Gnuplot(debug=1)
-        g('set contour')
-        g('set cntrparam levels 100')
-
-        # write out file containing 2D data representing contour lines
-        if write_contour_file:
-            (fd1, tmp_contour_file,) = tempfile.mkstemp(text=1)
-
-            g('unset surface')
-            str = "set table \"%s\"" % tmp_contour_file
-            g(str)
-            g.splot(Gnuplot.File(tmpPESDataFile, binary=0)) 
-            g.close()
-
-            print tmpPESDataFile
-            os.unlink(tmpPESDataFile)
-            os.close(fd)
-            return tmp_contour_file
-
-        # Make a 2-d array containing a function of x and y.  First create
-        # xm and ym which contain the x and y values in a matrix form that
-        # can be `broadcast' into a matrix of the appropriate shape:
-        g('set data style lines')
-        g('set hidden')
-        g.xlabel('x')
-        g.ylabel('y')
-
-        # Get some tmp filenames
-        (fd, tmpPathDataFile,) = tempfile.mkstemp(text=1)
-        Gnuplot.funcutils.compute_GridData(xrange, yrange, 
-            lambda x,y: self.__pes.energy([x,y]), filename=tmpPESDataFile, binary=0)
-        if opt != None:
-            opt.shape = (-1,2)
-            pathEnergies = array (map (self.__pes.energy, opt.tolist()))
-            pathEnergies += 0.05
-            xs = array(opt[:,0])
-            ys = array(opt[:,1])
-            data = transpose((xs, ys, pathEnergies))
-            Gnuplot.Data(data, filename=tmpPathDataFile, inline=0, binary=0)
-            import os
-            #wt()
-
-
-            # PLOT SURFACE AND PATH
-            g.splot(Gnuplot.File(tmpPESDataFile, binary=0), 
-                Gnuplot.File(tmpPathDataFile, binary=0, with_="linespoints"))
-        else:
-
-            # PLOT SURFACE ONLY
-            g.splot(Gnuplot.File(tmpPESDataFile, binary=0))
-
-        #wt()
-
-        os.unlink(tmpPathDataFile)
-        os.unlink(tmpPESDataFile)
 
 def test_NEB():
     from scipy.optimize import fmin_bfgs
