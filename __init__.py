@@ -15,6 +15,8 @@ from parasearch import neb_calc, string_calc, read_files, generic_callback, dump
 from calcman import CalcManager
 from asemolinterface import MolInterface
 
+from optwrap import runopt
+
 def cleanup(gs):
     """Perform error checking and other stuff on an environment used to run
     a search."""

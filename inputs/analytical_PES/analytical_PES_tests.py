@@ -1,8 +1,6 @@
 """Module to run tests on analytical potentials."""
 
 import aof
-from scipy.optimize.lbfgsb import fmin_l_bfgs_b
-from scipy.optimize import fmin_bfgs
 import ase
 from numpy import array
 
@@ -35,41 +33,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
         print aof.common.line()
         return x
 
-    def run_opt():
-        if alg == 'scipy_lbfgsb':
-            opt, energy, dict = fmin_l_bfgs_b(CoS.obj_func,
-                                          CoS.get_state_as_array(),
-                                          fprime=CoS.obj_func_grad,
-                                          callback=callback,
-                                          pgtol=tol,
-                                          maxfun=maxit)
-            print opt
-            print dict
-
-        elif alg == 'scipy_bfgs':
-            opt = fmin_bfgs(CoS.obj_func,
-                                          CoS.get_state_as_array(),
-                                          fprime=CoS.obj_func_grad,
-                                          callback=callback,
-                                          gtol=tol,
-                                          maxiter=maxit,
-                                          disp=bool)
-            print opt
-
-        elif alg == 'ase_lbfgs':
-
-
-            opt = ase.LBFGS(CoS)
-
-            # print out each step in optimisation
-            opt.attach(lambda: callback(None))
-            opt.run(fmax=tol)
-            x_opt = CoS.state_vec
-            print x_opt
-
-        else:
-            assert False, "Unrecognised algorithm " + alg
-
+    run_opt = lambda: aof.runopt(alg, CoS, tol, maxit, callback)
     run_opt()
     while growing and CoS.grow_string():
         run_opt()

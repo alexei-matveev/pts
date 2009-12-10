@@ -47,6 +47,8 @@ def main(argv=None):
         mol_pickled = open(mol_filename, "rb")
 
         # create atoms object based on pickled inputs
+        #PLAN: mol, extra_data = pickle.load(mol_pickled)
+        extra_data = dict()
         mol = pickle.load(mol_pickled)
         print "mol", str(mol)
 #        calc = pickle.load(calc_pickled)
@@ -55,7 +57,7 @@ def main(argv=None):
             raise PickleRunnerException("De-pickled molecule was not an instance of aof.coord_sys.CoordSys: " + str(type(mol)))
 
         if not mol.get_calculator():
-            raise PickleRunnerException("Molecule object had not calculator.")
+            raise PickleRunnerException("Molecule object had no calculator.")
 
 #        mol.set_calculator(calc)
 
@@ -76,6 +78,16 @@ def main(argv=None):
         if not os.path.exists(isolation_dir):
             os.mkdir(isolation_dir)
         os.chdir(isolation_dir)
+
+
+        # Now that we are in the directory of the calculation, copy the 
+        # WAVECAR or blah.chk file here.
+        # PLAN:
+        """
+        function = extra_data['f']
+        function(extra_data something)
+
+        """
 
         result_file = os.path.join(tmp_dir, jobname + common.OUTPICKLE_EXT)
 

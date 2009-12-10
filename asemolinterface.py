@@ -154,7 +154,6 @@ class MolInterface:
         m.set_calculator(tuple)
         return m
 
-      
     def run(self, item):
 
         job = item.job
@@ -167,11 +166,14 @@ class MolInterface:
         results_file = job_name + common.OUTPICKLE_EXT
         results_file = os.path.join(tmp_dir, results_file)
 
-        # write input file as pickled object
         # generate keyword arguments for number of cpus
-        d = {'nprocs': len(item.range_global)}
+        d = {'nprocs': len(item.range_global)} # PLAN: 'guess': item.wave_function_file
+
+        # write input file as pickled object
         coord_sys_obj = self.build_coord_sys(job.v, calc_kwargs=d)
         f = open(mol_pickled, "wb")
+        # PLAN: packet = coord_sys_obj, extra_data
+        #       pickle.dump(packet, f)
         pickle.dump(coord_sys_obj, f)
         f.close()
 
@@ -194,7 +196,7 @@ class MolInterface:
         # load results from file
         (e, g) = pickle.load(open(results_file, "r"))
 
-        return common.Result(job.v, e, g)
+        return common.Result(job.v, e, g) # PLAN: add name of calc
 
     def run_internal(self, job):
         """Used to return results from analytical potentials."""

@@ -3,6 +3,7 @@ import logging
 from aof.sched import ParaSched
 from aof.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR, vec_summarise
 import aof
+import numpy as np
 
 # setup logging
 lg = logging.getLogger("aof.calcman")
@@ -74,8 +75,11 @@ class CalcManager():
             lg.info("Already have result for %s, using cached version." % vec_summarise(v))
             return
 
+        # find dir containing previous calc to use as guess for wavefunction
+        guess_dir = self.__result_dict.get_closest(v)
+
         # calc is not already in list so must add
-        self.__pending_jobs.append(Job(v, type))
+        self.__pending_jobs.append(Job(v, type)) #PLAN: add guess_dir
 
     def proc_requests(self):
         """Process all jobs in queue."""
@@ -129,6 +133,19 @@ class ResultDict():
 
     def __len__(self):
         return len(self.list)
+
+    def get_closest(self, v):
+        if len(self.list) == 0:
+            return None
+
+        dists = [np.norm(v - x.v) for x in self.list]
+        dmin = np.inf
+        for i, d in enumerate(dists):
+            if d < dmin:
+                dmin = d
+                imin = i
+
+        return self.list[imin]
 
     def add(self, v, res):
         """Add result res for vector v to the dictionary."""
