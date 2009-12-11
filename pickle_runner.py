@@ -101,9 +101,9 @@ def main(argv=None):
             assert len(g.shape) == 1
             e = mol.get_potential_energy()
 
-            os.chdir(old_dir)
+            result = (e, g, os.getcwd())
 
-            result = (e, g, isolation_dir)
+            os.chdir(old_dir)
 
             pickle.dump(result, open(result_file, "w"))
 

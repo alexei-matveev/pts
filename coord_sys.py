@@ -176,7 +176,10 @@ class CoordSys(object):
         assert type(kwargs) == dict
 
         self.calc_tuple = calc_tuple
-        calc = con(*args, **kwargs)
+        try:
+            calc = con(*args, **kwargs)
+        except TypeError, e:
+           raise CoordSysException(str(e) + " (Are you supplying the wrong keyword arguments to this calculator?)")
         self._atoms.set_calculator(calc)
 
     def copy(self):

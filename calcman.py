@@ -26,7 +26,7 @@ class CalcManager():
     Only (a) and (c) implemented at present.
 
 
-    >>> cm = CalcManager(aof.common.GaussianPES())
+    >>> cm = CalcManager(aof.pes.GaussianPES())
     """
 
     def __init__(self, qc_driver, processors=None):
@@ -36,7 +36,8 @@ class CalcManager():
 
         if processors:
             shape, max_cpus, min_cpus = processors
-            if max(shape) < max([max_cpus, min_cpus]):
+            cpus = [max_cpus, min_cpus]
+            if max(shape) < max(cpus):
                 lg.warn("Max number of CPUs larger than max CPUs per node: %d > %d" % (max(cpus), max(shape)))
             lg.info("CPUs: %s QC Driver: %s", processors, qc_driver)
             self.__para_sched = ParaSched(qc_driver, processors)
@@ -190,8 +191,8 @@ def test_CalcManager(qc_driver, inputs, procs):
     >>> tmp = array((0.5, 0.7))
     >>> input1 = [tmp * x for x in range(10)]
     >>> input2 = [[random(),random()] for x in range(1000)]
-    >>> procs = ([4,3,2,1], (6,1))
-    >>> test_CalcManager(aof.common.GaussianPES(fake_delay=0.3), input1, procs)
+    >>> procs = ([4,3,2,1], 6,1)
+    >>> test_CalcManager(aof.pes.GaussianPES(fake_delay=0.3), input1, procs)
 
     """
 

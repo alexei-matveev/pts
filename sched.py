@@ -712,12 +712,12 @@ class ParaSched(object):
     electronic structure calculations. Builds queues and generates sceduling
     info.
 
-    >>> ps = ParaSched(aof.common.GaussianPES(fake_delay=0.2), ([8], 3, 1))
+    >>> ps = ParaSched(aof.pes.GaussianPES(fake_delay=0.2), ([8], 3, 1))
     >>> vecs = np.arange(12).reshape(-1,2)
     >>> jobs = [Job(i,[]) for i in vecs]
     >>> ps.batch_run(jobs)
     >>> res = np.array([r.g for r in ps.get_results()]).flatten()
-    >>> correct = np.array([aof.common.GaussianPES().gradient(v) for v in vecs]).flatten()
+    >>> correct = np.array([aof.pes.GaussianPES().gradient(v) for v in vecs]).flatten()
     >>> correct.sort()
     >>> res.sort()
     >>> (res == correct).all()

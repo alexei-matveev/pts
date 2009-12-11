@@ -1,7 +1,11 @@
-import mueller_brown as mb
-from plot import Plot2D
+import time
+import random
 
 import numpy as np
+
+import mueller_brown as mb
+from plot import Plot2D
+import aof
 
 
 class QCDriver:
@@ -103,7 +107,7 @@ class GaussianPES():
         e = self.energy(j.v)
         g = self.gradient(j.v)
 
-        return Result(j.v, e, g)
+        return aof.common.Result(j.v, e, g)
 
 class PlanePES():
     def energy(self, v):

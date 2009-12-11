@@ -240,6 +240,7 @@ def copy_chk_gaussian(dir):
 
     file = chks[-1][1]
     shutil.copy(file, "./" + name)
+    lg.info("Created " + name + " to use for guess")
     return name
  
 def pre_calc_function_g03(calc, data):
@@ -249,8 +250,9 @@ def pre_calc_function_g03(calc, data):
     Copy chk file to current dir and set number of processors flag.
     """
 
+    assert isinstance(calc, Gaussian), "Using pre_calc_function_g03 for some other calculator: " + str(calc)
     item = data['item']
-    print "Running pre_calc_function_g03"
+    lg.info("Running pre_calc_function_g03, data: " + str(data))
     chkpoint_dir = item.job.prev_calc_dir
 
     n = len(item.range_global)
