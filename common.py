@@ -59,11 +59,13 @@ def wt():
 
 
 class Result():
-    def __init__(self, v, energy, gradient = None, flags = dict()):
+    def __init__(self, v, energy, gradient = None, dir=None, flags = dict()):
+        #FIXME: can I get rid of flags?
         self.v = v
         self.e = energy
         self.g = gradient
         self.flags = flags
+        self.dir = dir
 
     def __eq__(self, r):
         return (isinstance(r, self.__class__) and is_same_v(r.v, self.v)) or (r != None and is_same_v(r, self.v))
@@ -75,8 +77,8 @@ class Result():
         return s
 
     def has_field(self, type):
-        return type == Job.G() and self.g != None \
-            or type == Job.E() and self.e != None
+        return type == 'G' and self.g != None \
+            or type == 'E' and self.e != None
         
     def merge(self, res):
         assert is_same_v(self.v, res.v)
@@ -97,14 +99,13 @@ class Job(object):
     The object was designed with flexibility to include extra parameters and 
     multiple styles of computation, e.g. frequency calcs, different starting
     wavefunctions, different SCF convergence parameters, etc.
-
-    FIXME: Is this object more complicated than necessary???
     """
-    def __init__(self, v, l):
+    def __init__(self, v, l, prev_calc_dir=None):
         self.v = v
         if not isinstance(l, list):
             l = [l]
         self.calc_list = l
+        self.prev_calc_dir = prev_calc_dir
     
     def __str__(self):
         s = ""
@@ -122,12 +123,12 @@ class Job(object):
             self.calc_list.append(calc)
 
     def is_energy(self):
-        return self.calc_list.count(self.E()) > 0
+        return self.calc_list.count('E') > 0
 
     def is_gradient(self):
-        return self.calc_list.count(self.G()) > 0
+        return self.calc_list.count('G') > 0
 
-    class E():
+    """class E():
         def __eq__(self, x):
             return isinstance(x, self.__class__) and self.__dict__ == x.__dict__
         def __str__(self):  return "E"
@@ -136,6 +137,7 @@ class Job(object):
         def __eq__(self, x):
             return isinstance(x, self.__class__) and self.__dict__ == x.__dict__
         def __str__(self):  return "G"
+    """
 
 def fname():
     import sys

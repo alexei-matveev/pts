@@ -84,7 +84,7 @@ def main(argv=None):
         if f != None:
             if not callable(f):
                 raise PickleRunnerException("Supplied function was neither callable or None.")
-            function(mol.get_calculator(), data)
+            f(mol.get_calculator(), data)
 
 
         result_file = os.path.join(tmp_dir, jobname + common.OUTPICKLE_EXT)
@@ -103,7 +103,7 @@ def main(argv=None):
 
             os.chdir(old_dir)
 
-            result = (e, g)
+            result = (e, g, isolation_dir)
 
             pickle.dump(result, open(result_file, "w"))
 

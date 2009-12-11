@@ -51,10 +51,10 @@ class CalcManager():
         return s
 
     def request_energy(self, v):
-        self.request_job(v, Job.E())
+        self.request_job(v, 'E')
 
     def request_gradient(self, v):
-        self.request_job(v, Job.G())
+        self.request_job(v, 'G')
 
     def request_job(self, v, type):
         """Place into queue a request for calculations of type 'type'."""
@@ -76,10 +76,13 @@ class CalcManager():
             return
 
         # find dir containing previous calc to use as guess for wavefunction
-        guess_dir = self.__result_dict.get_closest(v)
+        closest = self.__result_dict.get_closest(v)
+        dir = None
+        if closest != None:
+            dir = closest.dir
 
         # calc is not already in list so must add
-        self.__pending_jobs.append(Job(v, type)) #PLAN: add guess_dir
+        self.__pending_jobs.append(Job(v, type, prev_calc_dir=dir))
 
     def proc_requests(self):
         """Process all jobs in queue."""
@@ -135,6 +138,7 @@ class ResultDict():
         return len(self.list)
 
     def get_closest(self, v):
+        """Returns the result with the vector closest to |v|."""
         if len(self.list) == 0:
             return None
 
@@ -148,7 +152,7 @@ class ResultDict():
         return self.list[imin]
 
     def add(self, v, res):
-        """Add result res for vector v to the dictionary."""
+        """Add result res for vector |v| to the dictionary."""
         f = lambda x: is_same_v(v, x.v)
         matches_list = filter(f, self.list)
 

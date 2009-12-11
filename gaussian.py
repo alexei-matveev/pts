@@ -84,7 +84,7 @@ class Gaussian:
         for key in kwargs:
             if key == 'chkpoint':
                 self.set_chk(kwargs[key])
-            if key == 'nprocs':
+            elif key == 'nprocs':
                 self.set_nprocs(kwargs[key])
             else:
                 raise GaussDriverError(key + " not a valid key")
@@ -222,6 +222,9 @@ def copy_chk_gaussian(dir):
     directory.
     """
     name = "guess.chk"
+    if dir == None:
+        return
+    print "Searching for .chk file in", dir
     if not os.path.exists(dir):
         lg.warn("Path " + dir + " not found")
         return
@@ -247,10 +250,10 @@ def pre_calc_function_g03(calc, data):
     """
 
     item = data['item']
-    print "here in pre_calc_function_g03"
-    chkpoint_dir = item.job.wave_guess_dir
+    print "Running pre_calc_function_g03"
+    chkpoint_dir = item.job.prev_calc_dir
 
-    n = len(item.item.range_global)
+    n = len(item.range_global)
     calc.set(nprocs=n)
 
     filename = copy_chk_gaussian(chkpoint_dir)

@@ -196,9 +196,9 @@ class MolInterface:
                 + "\n" + common.file2str(ase_stdout_file))
 
         # load results from file
-        (e, g) = pickle.load(open(results_file, "r"))
+        (e, g, dir) = pickle.load(open(results_file, "r"))
 
-        return common.Result(job.v, e, g) # PLAN: add name of calc
+        return common.Result(job.v, e, g, dir=dir)
 
     def run_internal(self, job):
         """Used to return results from analytical potentials."""
