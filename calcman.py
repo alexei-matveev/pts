@@ -138,7 +138,7 @@ class ResultDict():
         if len(self.list) == 0:
             return None
 
-        dists = [np.norm(v - x.v) for x in self.list]
+        dists = [np.linalg.norm(v - x.v) for x in self.list]
         dmin = np.inf
         for i, d in enumerate(dists):
             if d < dmin:

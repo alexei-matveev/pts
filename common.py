@@ -316,9 +316,6 @@ def place_str_dplace(tag):
     s = "dplace -c " + ','.join([str(cpu) for cpu in tag[0]])
     return s
 
-def copy_chk_gaussian(dir):
-    # PLAN: code to find chk file in dir and copy it to current
-    pass
 
 if __name__ == "__main__":
     import doctest

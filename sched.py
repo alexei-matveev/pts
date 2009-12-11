@@ -17,6 +17,19 @@ import aof
 lg = logging.getLogger("aof.sched")
 lg.setLevel(logging.INFO)
 
+class Item():
+    def __init__(self, job, tag):
+        self.job          = job
+        self.tag          = tag
+        self.id           = tag[3]
+        self.range_global = tag[0]
+        self.part_ix      = tag[1]
+        self.range_local  = tag[2]
+    def __str__(self):
+        return str((self.job, self.tag))
+
+
+
 class SchedStrategy:
     def __init__(self, procs):
         """
@@ -546,17 +559,6 @@ class SchedQueue():
 
     """
 
-    class Item():
-        def __init__(self, job, tag):
-            self.job          = job
-            self.tag          = tag
-            self.id           = tag[3]
-            self.range_global = tag[0]
-            self.part_ix      = tag[1]
-            self.range_local  = tag[2]
-        def __str__(self):
-            return str((self.job, self.tag))
-
     _sleeptime = 0.01
 
     def __init__(self, processors, sched_strategy=None):
@@ -641,7 +643,7 @@ class SchedQueue():
 
             assert len(self._deque) == len(self._sched_info)
 
-            return self.Item(job, range)
+            return Item(job, range)
 
 def test_SchedQueue(cpus, thread_count, items):
     """Launches a whole lot of threads to test the functionality of SchedQueue.

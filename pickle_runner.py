@@ -6,6 +6,8 @@ import os
 import aof.common as common
 import aof.coord_sys as coord_sys
 import pickle
+#from aof.sched import Item
+#from common import Job.G
 
 import ase
 
@@ -46,20 +48,17 @@ def main(argv=None):
 #        calc_pickled = open(calc_filename, "rb")
         mol_pickled = open(mol_filename, "rb")
 
+        print "About to unpickle"
         # create atoms object based on pickled inputs
-        #PLAN: mol, extra_data = pickle.load(mol_pickled)
-        extra_data = dict()
-        mol = pickle.load(mol_pickled)
+        mol, f, data = pickle.load(mol_pickled)
+
         print "mol", str(mol)
-#        calc = pickle.load(calc_pickled)
 
         if not isinstance(mol, coord_sys.CoordSys):
             raise PickleRunnerException("De-pickled molecule was not an instance of aof.coord_sys.CoordSys: " + str(type(mol)))
 
         if not mol.get_calculator():
             raise PickleRunnerException("Molecule object had no calculator.")
-
-#        mol.set_calculator(calc)
 
         jobname =  mol_filename.split(".")[0]
 
@@ -80,21 +79,19 @@ def main(argv=None):
         os.chdir(isolation_dir)
 
 
-        # Now that we are in the directory of the calculation, copy the 
+        # Perform final tasks, e.g. copy the 
         # WAVECAR or blah.chk file here.
-        # PLAN:
-        """
-        function = extra_data['f']
-        function(extra_data something)
+        if f != None:
+            if not callable(f):
+                raise PickleRunnerException("Supplied function was neither callable or None.")
+            function(mol.get_calculator(), data)
 
-        """
 
         result_file = os.path.join(tmp_dir, jobname + common.OUTPICKLE_EXT)
 
         if mode == "calc_eg":
             # run job using ASE calculator
             print "Running pickle job in", os.getcwd()
-
 
             print "isolation_dir", isolation_dir
             print "type(mol._atoms.calc)", type(mol._atoms.calc)

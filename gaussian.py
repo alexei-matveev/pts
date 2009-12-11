@@ -3,8 +3,9 @@
 
 import os
 import subprocess
-import shutil
 import logging
+import glob
+import shutil
 
 
 import numpy
@@ -64,13 +65,29 @@ class Gaussian:
         assert nprocs > 0
         assert type(nprocs) == int
 
-        if chkpoint != None and not os.path.isfile(chkpoint):
-            raise GaussDriverError("File " + chkpoint + " is not a propper file or does not exist")
-        self.chkpoint = chkpoint
 
         # see function generate_header() also
         self.max_aggression = 1
         self.runs = 0
+
+    def set_chk(self, chkpoint):
+        if chkpoint != None and not os.path.isfile(chkpoint):
+            raise GaussDriverError("File " + chkpoint + " is not a file or does not exist")
+        self.chkpoint = chkpoint
+       
+    def set_nprocs(self, nprocs):
+        assert nprocs > 0
+        self.nprocs = nprocs
+
+    def set(self, **kwargs):
+        # FIXME: add all keywords
+        for key in kwargs:
+            if key == 'chkpoint':
+                self.set_chk(kwargs[key])
+            if key == 'nprocs':
+                self.set_nprocs(kwargs[key])
+            else:
+                raise GaussDriverError(key + " not a valid key")
 
     def update(self, atoms):
         """If Necessary, runs calculation."""
@@ -199,5 +216,44 @@ class GaussDriverError(Exception):
         self.msg = msg
     def __str__(self):
         return self.msg
+
+def copy_chk_gaussian(dir):
+    """Finds most recent .chk file in |dir| and copies it to the current 
+    directory.
+    """
+    name = "guess.chk"
+    if not os.path.exists(dir):
+        lg.warn("Path " + dir + " not found")
+        return
+    chks = glob.glob(dir + "/*.chk")
+    if len(chks) == 0:
+        lg.warn("No files " + dir + "/*.chk found")
+        return
+    if len(chks) > 1:
+        lg.warn("More than 1 " + dir + "/*.chk files found, using most recent one")
+
+    chks = [(os.path.getmtime(c), c) for c in chks]
+    chks.sort()
+
+    file = chks[-1][1]
+    shutil.copy(file, "./" + name)
+    return name
+ 
+def pre_calc_function_g03(calc, data):
+    """Function to run just before a calculation is run (i.e. a get_energy() 
+    or get_potential_energy() call is made) to perform any final tasks.
+    
+    Copy chk file to current dir and set number of processors flag.
+    """
+
+    item = data['item']
+    print "here in pre_calc_function_g03"
+    chkpoint_dir = item.job.wave_guess_dir
+
+    n = len(item.item.range_global)
+    calc.set(nprocs=n)
+
+    filename = copy_chk_gaussian(chkpoint_dir)
+    calc.set(chkpoint=filename)
 
 

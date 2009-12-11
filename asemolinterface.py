@@ -98,7 +98,7 @@ class MolInterface:
 
         # setup function that generates
         self.place_str = None
-        if "placement" in params and params['placement'] != None:
+        if 'placement' in params and params['placement'] != None:
             f = params['placement']
             assert callable(f), "Function to generate placement command was not callable."
 
@@ -108,7 +108,9 @@ class MolInterface:
             self.place_str = f
 
 
-        self.calc_tuple = params["calculator"]
+        a,b,c,d = params["calculator"]
+        self.calc_tuple = a,b,c
+        self.pre_calc_function = d
 
         self.mol = mols[0]
 
@@ -149,7 +151,6 @@ class MolInterface:
             assert type(tuple[2]) == dict
             assert type(calc_kwargs) == dict
             tuple[2].update(calc_kwargs)
-#            print tuple[2]
 
         m.set_calculator(tuple)
         return m
@@ -166,15 +167,16 @@ class MolInterface:
         results_file = job_name + common.OUTPICKLE_EXT
         results_file = os.path.join(tmp_dir, results_file)
 
-        # generate keyword arguments for number of cpus
-        d = {'nprocs': len(item.range_global)} # PLAN: 'guess': item.wave_function_file
+        # compile package of extra data
+        extra_data = dict()
+        extra_data['item'] = item
+        function = self.pre_calc_function
 
         # write input file as pickled object
-        coord_sys_obj = self.build_coord_sys(job.v, calc_kwargs=d)
+        coord_sys_obj = self.build_coord_sys(job.v)
         f = open(mol_pickled, "wb")
-        # PLAN: packet = coord_sys_obj, extra_data
-        #       pickle.dump(packet, f)
-        pickle.dump(coord_sys_obj, f)
+        packet = coord_sys_obj, function, extra_data
+        pickle.dump(packet, f)
         f.close()
 
         cmd = ["python", "-m", "aof.pickle_runner", mol_pickled]
