@@ -83,7 +83,9 @@ class CalcManager():
             dir = closest.dir
 
         # calc is not already in list so must add
-        self.__pending_jobs.append(Job(v, type, prev_calc_dir=dir))
+        j = Job(v, type, prev_calc_dir=dir)
+        self.__pending_jobs.append(j)
+        lg.info("Requesting job " + str(j))
 
     def proc_requests(self):
         """Process all jobs in queue."""

@@ -384,20 +384,21 @@ class Topology(object):
         """Relinquish ownership of cpus allocated with id."""
 
         with self._lock:
+            if self.f_timing:
+                self._record()
+
             ix_part, ixs_local = self._alloc.pop(id)
             part = self.state[ix_part]
             for i in ixs_local:
                 assert not part[i]
                 part[i] = True
 
-            if self.f_timing:
-                self._record()
-
     def _record(self):
         assert self.f_timing
         t = time.time() - self.start_time
         s = "%.3f\t%d\t%s\n" % (t, sum(self.available), self)
         self.f_timing.write(s)
+        self.f_timing.flush()
  
     def get_range(self, n):
         """Try to find a range of n cpus in the system.
@@ -565,7 +566,9 @@ class SchedQueue():
 #        lg.info(self.__class__.__name__ + ": Topology: %s CPUs: %s" % (topology, procs))
         topology, max_CPUs, min_CPUs = processors
         procs = max_CPUs, min_CPUs
-        self._topology = Topology(topology)
+
+        f = open("cpu_occupation_timing.txt", "a")
+        self._topology = Topology(topology, f_timing=f)
         if sched_strategy == None:
             self._sched_strategy = SchedStrategy_HCM_Simple(procs)
         else:

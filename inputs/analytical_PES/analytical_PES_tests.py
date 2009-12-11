@@ -4,7 +4,7 @@ import aof
 import ase
 from numpy import array
 
-def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0.1, maxit=20):
+def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0.1, maxit=50):
     """Tests non-growing String and NEB on an analytical potential using a 
     particular minimiser.
     
@@ -44,7 +44,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 if __name__ == "__main__":
     reagents_MB = [array([ 0.62349942,  0.02803776]), array([-0.558, 1.442])]
 #    test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 12, 1., 'ase_lbfgs', tol=0.001)
-    test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 12, 1., 'ase_lbfgs', tol=0.001)
+    test_StaticModel('growingstring', aof.pes.MuellerBrown(), reagents_MB, 30, 5., 'ase_lbfgs', tol=0.001)
 
     exit()
     reagents = [array([0.,0.]), array([3.,3.])]

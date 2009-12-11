@@ -91,7 +91,7 @@ class Result():
             raise ResultException("Trying to add a gradient result when one already exists")
 
 def vec_summarise(v):
-    return str(round(rms(v),3))
+    return str(round(rms(v),4))
 
 class Job(object):
     """Specifies calculations to perform on a particular geometry v.

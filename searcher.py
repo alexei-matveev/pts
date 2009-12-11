@@ -13,16 +13,13 @@ import logging
 from copy import deepcopy
 import pickle
 
-from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot, eye, outer, inf, isnan, isfinite
+from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot, eye, outer, inf, isnan, isfinite, size, vstack
 
 from path import Path
 
 from common import * # TODO: must unify
 import aof.common as common
 
-
-# TODO: remove global
-plot_count = 0
 
 lg = logging.getLogger("aof.searcher")
 lg.setLevel(logging.INFO)
@@ -76,6 +73,7 @@ class ReactionPathway:
         self.bead_pes_energies = zeros(beads_count)
         self.history = []
         self.energy_history = []
+        self.ts_history = []
 
         self.grad_update_mask = [False] + [True for i in range(beads_count-2)] + [False]
 
@@ -169,40 +167,54 @@ class ReactionPathway:
 
         self.bead_pes_energies = array(bead_pes_energies)
 
-    def ts_estims(self, tol=1e-10):
+    def record_ts_estim(self, mode='highest'):
+        estims = self.ts_estims(mode=mode)
+        estims.sort()
+        self.ts_history.append(estims[-1])
+        
+    def ts_estims(self, tol=1e-10, mode='highest'):
         """Returns list of all transition state(s) that appear to exist along
         the reaction pathway."""
 
         n = self.beads_count
         Es = self.bead_pes_energies.reshape(n,-1)
+
         dofs = self.state_vec.reshape(n,-1)
-        assert len(dofs) == len(Es)
-        ys = hstack([dofs, Es])
 
-        step = 1. / n
-        xs = arange(0., 1., step)
+        if mode == 'splines':
+            assert len(dofs) == len(Es)
+            ys = hstack([dofs, Es])
 
-        # TODO: using Alexei's isolated Path object, eventually must make the
-        # GrowingString object use it as well.
-        p = Path(ys, xs)
+            step = 1. / n
+            xs = arange(0., 1., step)
 
-        E_estim_neg = lambda s: -p(s)[-1]
-        E_prime_estim = lambda s: p.fprime(s)[-1]
+            # TODO: using Alexei's isolated Path object, eventually must make the
+            # GrowingString object use it as well.
+            p = Path(ys, xs)
 
-        ts_list = []
-        for x in xs[2:]:#-1]:
-            E_0 = -E_estim_neg(x - step)
-            E_1 = -E_estim_neg(x)
-            x_min = fminbound(E_estim_neg, x - step, x, xtol=tol)
-            E_x = -E_estim_neg(x_min)
-#            print x_min, abs(E_prime_estim(x_min)), E_0, E_x, E_1
+            E_estim_neg = lambda s: -p(s)[-1]
+            E_prime_estim = lambda s: p.fprime(s)[-1]
 
-            # Use a looser tollerane on the gradient than on minimisation of 
-            # the energy function. FIXME: can this be done better?
-            E_prime_tol = tol * 1E4
-            if abs(E_prime_estim(x_min)) < E_prime_tol and (E_0 <= E_x >= E_1):
-                p_ts = p(x_min)
-                ts_list.append((p_ts[-1], p_ts[:-1]))
+            ts_list = []
+            for x in xs[2:]:#-1]:
+                E_0 = -E_estim_neg(x - step)
+                E_1 = -E_estim_neg(x)
+                x_min = fminbound(E_estim_neg, x - step, x, xtol=tol)
+                E_x = -E_estim_neg(x_min)
+    #            print x_min, abs(E_prime_estim(x_min)), E_0, E_x, E_1
+
+                # Use a looser tollerane on the gradient than on minimisation of 
+                # the energy function. FIXME: can this be done better?
+                E_prime_tol = tol * 1E4
+                if abs(E_prime_estim(x_min)) < E_prime_tol and (E_0 <= E_x >= E_1):
+                    p_ts = p(x_min)
+                    ts_list.append((p_ts[-1], p_ts[:-1]))
+        elif mode == 'highest':
+            i = Es.argmax()
+            ts_list = [(Es[i], dofs[i])]
+        else:
+            raise Exception("Unrecognised TS estimation mode " + mode)
+
 
         return ts_list
 
@@ -1058,7 +1070,7 @@ class GrowingString(ReactionPathway):
         # request and process parallel QC jobs
         if self.parallel:
             for i, bead_vec in enumerate(self.__path_rep.state_vec): #[1:-1]:
-                if self.grad_update_mask[i]:
+                if self.grad_update_mask[i] or self.e_calls == 0 or self.g_calls == 0:
                     self.qc_driver.request_gradient(bead_vec)
             self.qc_driver.proc_requests()
 

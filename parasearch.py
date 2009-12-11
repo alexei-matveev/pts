@@ -6,6 +6,7 @@ import getopt
 import re
 import logging
 import numpy
+from copy import deepcopy
 
 import os
 
@@ -234,15 +235,15 @@ def setup_and_run(mol_strings, params):
         assert False, "Should never happen, program should check earlier that the opt is specified correctly."
 
 # callback function
-def generic_callback(x, molinterface, cos_obj, params):
+def generic_callback(x, molinterface, CoS, params):
     print common.line()
-#                logging.info("Current path: %s" % str(x))
-    print cos_obj
-#            print neb.gradients_vec
-#            print numpy.linalg.norm(neb.gradients_vec)
-    dump_beads(molinterface, cos_obj, params)
-    #dump_steps(cos_obj)
-    #cos_obj.plot()
+    print CoS
+    dump_beads(molinterface, CoS, params['name'] + "-CoS")
+    CoS.record_ts_estim('highest')
+    l = CoS.ts_history
+    energies, history = zip(*l)
+    mol_list_to_traj(molinterface, history, energies, params['name'] + "-evol")
+
     print common.line()
     return x
 
@@ -399,37 +400,36 @@ def neb_calc(molinterface, calc_man, params):
     dump_steps(neb)
 
 
-def dump_beads(molinterface, chain_of_states, params):
+def dump_beads(molinterface, chain_of_states, name):
     """Writes the states along the reaction path to a file in a form that can
     be read by a molecule viewing program."""
 
-    from copy import deepcopy
+    mols = chain_of_states.get_bead_coords()
+    energies = chain_of_states.bead_pes_energies
 
+    mol_list_to_traj(molinterface, mols, energies, name)
+
+def mol_list_to_traj(molinterface, mols, energies, name):
     global file_dump_count
     file_dump_count += 1
-
-    local_bead_forces = deepcopy(chain_of_states.bead_forces)
+    #local_bead_forces = deepcopy(chain_of_states.bead_forces)
     #local_bead_forces.shape = (chain_of_states.beads_count, -1)
 
-    mystr = ""
-#    print chain_of_states.bead_pes_energies
-#    print chain_of_states.get_bead_coords()
-#    print chain_of_states.beads_count
-#    print chain_of_states.bead_pes_energies
     list = []
-    for i, vec in enumerate(chain_of_states.get_bead_coords()):
+    for i, vec in enumerate(mols):
         cs = molinterface.build_coord_sys(vec)
         a = cs.atoms
-        e = chain_of_states.bead_pes_energies[i]
+        e = energies[i]
         spc = SinglePointCalculator(e, None, None, None, a)
         a.set_calculator(spc)
 
         list.append(a)
 
-    path = params["name"] + str(file_dump_count) + common.LOGFILE_EXT
+    path = name + str(file_dump_count) + common.LOGFILE_EXT
 
-    print "path", path
     write_trajectory(path, list)
+
+    print "Trajectory written to", path
 
 def dump_steps(chain_of_states):
     """Prints the steps taken during the optimisation."""

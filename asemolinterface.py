@@ -1,7 +1,10 @@
+from __future__ import with_statement
+
 import scipy
 import re
 import thread
 import logging
+import threading
 import string
 import os
 import sys
@@ -50,6 +53,7 @@ class MolInterface:
         # used to number input files as they are created and run
         self.job_counter = 0
         self.job_counter_lock = thread.allocate_lock()
+        self.build_coord_sys_lock = threading.RLock()
 
         # lists of various properties for input reagents
         atoms_lists    = [m.get_chemical_symbols() for m in mols]
@@ -143,17 +147,18 @@ class MolInterface:
         """Builds a coord sys object with internal coordinates given by 'v' 
         and returns it."""
 
-        m = self.mol.copy()
-        m.set_internals(v)
-        tuple = deepcopy(self.calc_tuple)
+        with self.build_coord_sys_lock:
+            m = self.mol.copy()
+            m.set_internals(v)
+            tuple = deepcopy(self.calc_tuple)
 
-        if calc_kwargs:
-            assert type(tuple[2]) == dict
-            assert type(calc_kwargs) == dict
-            tuple[2].update(calc_kwargs)
+            if calc_kwargs:
+                assert type(tuple[2]) == dict
+                assert type(calc_kwargs) == dict
+                tuple[2].update(calc_kwargs)
 
-        m.set_calculator(tuple)
-        return m
+            m.set_calculator(tuple)
+            return m
 
     def run(self, item):
 
