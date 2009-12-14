@@ -19,21 +19,19 @@ Find the three minima:
 
 Import the path representtion:
 
-    >>> from path_representation import Path
+    >>> from path import Path
 
 Construct a path connecting two minima b and c:
     >>> p = Path([b,c])
 
     >>> p(0)
-    array([[ 0.62349942],
-           [ 0.02803776]])
+    array([ 0.62349942,  0.02803776])
 
     >>> p(1)
-    array([[-0.05001084],
-           [ 0.46669421]])
+    array([-0.05001084,  0.46669421])
 
     >>> energy(p(0))
-    array([-108.16672412])
+    -108.16672411685231
 
     >>> energy(b)
     -108.16672411685231
@@ -46,17 +44,41 @@ Simplex minimizer that does not require gradients:
              Current function value: 72.246872
              Iterations: 12
              Function evaluations: 24
+
     >>> bc
     array([ 0.60537109])
+
     >>> p(bc)
-    array([[ 0.21577578],
-           [ 0.29358769]])
+    array([ 0.21577578,  0.29358769])
+
+Define a function that retunrs the square of the gradient,
+it has its minima at stationary points, both at PES minima
+and PES saddle points:
+
+    >>> from numpy import dot
+    >>> def g2(x):
+    ...   g = gradient(x)
+    ...   return dot(g, g)
+    ...
+    >>> ts2 = fmin(g2, [0.2, 0.3])
+    Optimization terminated successfully.
+             Current function value: 0.000022
+             Iterations: 24
+             Function evaluations: 46
+    >>> ts2
+    array([ 0.21248201,  0.2929813 ])
+    >>> ts2 - p(bc)
+    array([-0.00329377, -0.00060639])
+
+... very close! Compare the energies:
+
+    >>> energy(ts2)
+    -72.248940103363921
+    >>> energy(p(bc))
+    -72.246871930853558
 
 The true TS between b and c is at (0.212, 0.293)
 with the energy -72.249 according to MB79.
-
-    >>> energy(p(bc))
-    array([-72.24687193])
 
 But for another TS approximation between minima a and b
 the guess is much worse:
@@ -67,17 +89,77 @@ the guess is much worse:
              Current function value: -12.676227
              Iterations: 13
              Function evaluations: 26
+
     >>> ab
     array([ 0.30664062])
+
     >>> p(ab)
-    array([[-0.19585933],
-           [ 1.00823164]])
+    array([-0.19585933,  1.00823164])
+
     >>> energy(p(ab))
-    array([ 12.67622733])
+    12.676227327570253
 
 The true TS between a and b is at  (-0.822, 0.624)
 with the energy -40.665 according to MB79 that is significantly
 further away than the maximum on the linear path between a and b.
+
+    >>> ts1 = fmin(g2, [-0.8, 0.6])
+    Optimization terminated successfully.
+             Current function value: 0.000028
+             Iterations: 28
+             Function evaluations: 53
+    >>> ts1
+    array([-0.82200123,  0.62430438])
+    >>> energy(ts1)
+    -40.664843511462038
+
+So indeed tha path maximum p(ab) is not even close to a saddle point,
+and the gradient minimization would even fail if starting from p(ab).
+
+To use a minimizer with gradients we need to compose functions AND the gradients
+consistent with the chain differentiation rule for this:
+
+    q(x) = q(p(x))
+
+Remember that p(x) is the path funciton defined above.
+
+    >>> q = MuellerBrown()
+
+Input is assumed to be a vector by l_bfgs_b minimizer:
+
+    >>> def f(x): return -q.f( p.f(x[0]) )
+
+And this is no more than the chain differentiation rule, with
+type wrappers to make l_bfgs_b optimizer happy:
+
+    >>> def fprime(x): return -dot( q.fprime( p.f(x[0]) ), p.fprime(x[0]) ).flatten()
+
+flatten() here has an effect of turning a scalar into length 1 array.
+
+    >>> ab, _, _ = minimize(f, [0.5], fprime, bounds=[(0., 1.)])
+    >>> ab
+    array([ 0.30661623])
+
+(this converges after 10 func calls, compare with 26 in simplex method)
+
+The composition may be automated by a type Func() operating
+with .f and .fprime methods.
+
+    >>> from func import compose
+    >>> e = compose(q, p)
+    >>> e(0.30661623), e.fprime(0.30661623)
+    (12.676228284381487, 8.8724010719257174e-06)
+
+Gives the same energy of the maximum on the linear path between a and b
+and almost zero gradient. To use it with minimizer one needs
+to invert the sign and wrap scalars/vectors into arrays:
+
+    >>> def f(x): return -e.f(x[0])
+    >>> def fprime(x): return -e.fprime(x[0]).flatten()
+
+    >>> ab, _, _ = minimize(f, [0.5], fprime, bounds=[(0., 1.)])
+    >>> ab
+    array([ 0.30661623])
 """
 __all__ = ["energy", "gradient"] # "MuellerBrown"]
 
