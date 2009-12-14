@@ -399,7 +399,7 @@ class NEB(ReactionPathway):
         pes_energies = sum(self.bead_pes_energies[1:-1])
 
         print "self.bead_pes_energies", self.bead_pes_energies
-        return (pes_energies + spring_energies) #self.bead_pes_energies.max() #(pes_energies + spring_energies)
+        return (pes_energies) # + spring_energies) #self.bead_pes_energies.max() #(pes_energies + spring_energies)
 
       
     def obj_func_grad(self, new_state_vec = None):
