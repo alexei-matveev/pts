@@ -8,8 +8,8 @@ connectivities:
     >>> rep = [(None, None, None), (0, None, None), (0, 1, None)]
     >>> zm = ZMat(rep)
 
-The above may be abbreviated as using Python notations
-for empty tuple, 1-tuple, and a 2-tuple:
+The above may be abbreviated using Python notations
+for empty tuple, 1-tuple, and a 2-tuple as:
 
     >>> zm = ZMat([(), (0,), (0, 1)])
 
@@ -34,7 +34,6 @@ The order of internal variables is "left to right":
     array([[ -2.40364804e-01,   5.69106676e-17,  -9.29421735e-01],
            [  9.60000000e-01,   0.00000000e+00,   0.00000000e+00],
            [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00]])
-
 
 The |pinv| (pseudo-inverse) method of the ZMat() given the cartesian coordinates
 returns the internals according to the definition of connectivities
@@ -125,8 +124,7 @@ Test consistency with the inverse transformation:
 (these are not real breathing modes as we scale also angles).
 """
 
-from math import pi
-from numpy import sin, cos, cross, dot, sqrt, arccos
+from numpy import pi, sin, cos, cross, dot, sqrt, arccos
 from numpy import array, empty
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
@@ -142,7 +140,7 @@ class ZMat(NumDiff):
         # Each entry in ZM definition is a 3-tuple (a, b, c)
         # defining x-a-b-c chain of atoms.
         #
-        NumDiff.__init__(self, self.f, h=0.001)
+        # not required: NumDiff.__init__(self, self.f, h=0.001)
 
         def t3(t):
             "Returns a tuple of length at least 3, missing entries set to None"
