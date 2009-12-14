@@ -143,9 +143,9 @@ class CubicFunc(Func):
     0.0
 
     >>> c = CubicFunc(array([1,3]), array([0,0]), dydxs=array([1,1]))
-    >>> round(c(1), 2)
-    -0
-    >>> c.fprime(1)
+    >>> round(c(1), 12)
+    -0.0
+    >>> round(c.fprime(1), 12)
     1.0
 
     >>> c = CubicFunc(array([0,1,2,3]), array([0,0,0,0]))
