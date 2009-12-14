@@ -74,14 +74,109 @@ Derivatives of reciprocal functions are reciprocal:
 
     >>> Q.fprime(2.) * P.fprime(Q(2.))
     1.0
+
+NumDiff() provides numerical differentiation for
+the cases where implementation of |fprime| method
+appears cumbersome:
+
+    >>> spl2 = NumDiff(spl)
+    >>> spl2(0.333) - spl(0.333)
+    0.0
+    >>> err = spl2.fprime(0.333) - spl.fprime(0.333)
+    >>> abs(err) / spl.fprime(0.333) < 1e-12
+    True
+
+NumDiff() for multivariante functions, MB79 is a 2D PES:
+
+    >>> from mueller_brown import MuellerBrown
+    >>> mb1 = MuellerBrown()
+    >>> mb2 = NumDiff(mb1)
+
+The point to differentiate at:
+
+    >>> p = array([0., 0.])
+
+Analytical derivatives:
+
+    >>> mb1.fprime(p)
+    array([-120.44528524, -108.79148986])
+
+Numerical  derivatives:
+
+    >>> mb2.fprime(p)
+    array([-120.44528524, -108.79148986])
+
+NumDiff() for multivariate vector functions, say the gradient of MB79:
+
+    >>> grad = NumDiff(mb1.fprime)
+
+Hessian is the (numerical) derivative of the gradient:
+
+    >>> hess = grad.fprime
+
+This is one of the minima on MB79 PES:
+
+    >>> b = array([ 0.62349942,  0.02803776])
+
+The gradient is (almost) zero:
+
+    >>> grad(b)
+    array([  8.57060655e-06,   6.74209871e-06])
+
+The Hessian must be positively defined:
+
+    >>> hess(b)
+    array([[  553.62608244,   154.92743643],
+           [  154.92743643,  2995.60603248]])
+
+For multivariate array-valued functions one needs to care about
+indexing:
+
+    >>> def f(x):
+    ...     a = x[0,0]
+    ...     b = x[0,1]
+    ...     c = x[1,0]
+    ...     d = x[1,1]
+    ...     return array([[a+d, b-c],
+    ...                   [c-b, d-a]])
+    >>> f1 = NumDiff(f)
+    >>> from numpy import zeros
+    >>> df = f1.fprime(zeros((2,2)))
+
+Derivatives wrt |a| == x[0,0]:
+
+    >>> df[:,:,0,0]
+    array([[ 1.,  0.],
+           [ 0., -1.]])
+
+Derivatives wrt |b| == x[0,1]:
+
+    >>> df[:,:,0,1]
+    array([[ 0.,  1.],
+           [-1.,  0.]])
+
+Derivatives wrt |c| == x[1,0]:
+
+    >>> df[:,:,1,0]
+    array([[ 0., -1.],
+           [ 1.,  0.]])
+
+Derivatives wrt |d| == x[1,1]:
+
+    >>> df[:,:,1,1]
+    array([[ 1.,  0.],
+           [ 0.,  1.]])
+
 """
 
 __all__ = ["Func", "LinFunc", "QuadFunc", "SplineFunc", "CubicFunc"]
 
 from numpy import array, dot, hstack, linalg, atleast_1d
+from numpy import empty
 from scipy.interpolate import interp1d, splrep, splev
 from scipy.integrate import quad
 from scipy.optimize import newton
+from ridders import dfridr
 
 class Func(object):
     def __init__(self, f=None, fprime=None):
@@ -92,7 +187,7 @@ class Func(object):
     def __call__(self, *args, **kwargs):
         return self.f(*args, **kwargs)
     # here you cannot do __call__ = f
-    # if you want children to specialize!
+    # if you want subclasses to specialize!
 
 def compose(p, q):
     "Compose p*q, make p(x) = p(q(x))"
@@ -273,6 +368,95 @@ class Inverse(Func):
 
         # return the reciprocal of the forward derivative at x:
         return 1. / self.s.fprime(x)
+
+
+class NumDiff(Func):
+    """Implements |.fprime| method by numerical differentiation"""
+
+    # in case subclasses dont call our __init__:
+    __h = 0.001
+
+    def __init__(self, f=None, h=0.001):
+        """Just saves the function f(x)"""
+
+        # save the func, and default step:
+        if f is not None:
+            self.f = f
+        # else: the subclass should implement it
+        self.__h = h
+
+    # either set in __init__ or implemented by subclass:
+#   def f(self, x):
+#       return self.__f(x)
+
+    def fprime(self, x):
+        """Numerical derivatives of self.f(x)"""
+
+        if type(x) == type(1.0): # univariate function:
+            dfdx, err = dfridr(self.f, x, h=self.__h)
+            # print dfdx, err, err / prime
+            assert err <= abs(dfdx) * 1.e-12
+            return dfdx
+        else: # maybe multivariate:
+            # FIXME: cannot one unify the two branches?
+
+            f = self.f # abbreviation
+
+            xshape = x.shape
+            xsize  = x.size
+
+            # FIXME: this evaluation is only to get the type info of the result:
+            fx = f(x)
+            fshape = fx.shape
+            fsize  = fx.size
+
+            # print "ftype, xtype=", type(fx), type(x)
+            # print "fshape, xshape =", fshape, xshape
+            # print "fsize, xsize =", fsize, xsize
+
+            # univariate function of |y| with parameter |n| staying for the
+            # index of variable component:
+            xwork  = x.copy() # will be used by |func|
+            def func(y, n):
+                # flatten:
+                xwork.shape = (xsize,)
+
+                # save component:
+                old = xwork[n]
+
+                # set component:
+                xwork[n] = old + y
+
+                # restore original shape:
+                xwork.shape = xshape
+
+                # feed into function to be differentiated:
+                fx = f(xwork)
+
+                # reshape and restore old component:
+                xwork.shape = (xsize,)
+                xwork[n] = old
+
+                return fx
+
+            # we take the convention that df_i/dx_k is at [i,k] position
+            # of the array:
+            dfdx = empty((fsize, xsize))
+
+            # differentiate by each component:
+            for n in range(xsize):
+                fn = lambda y: func(y, n)
+                dfdxn, err = dfridr(fn, 0.0, h=self.__h)
+                # print dfdxn, type(dfdxn), dfdxn.shape
+
+                # for assignment to dfdx[:,n] to succed, flatten if suitable:
+                if fsize > 1: dfdxn.shape = (fsize,)
+                dfdx[:, n] = dfdxn
+
+            # set the proper shape of the result:
+            dfdx.shape = fshape + xshape
+            # print 'dfdx=', dfdx
+            return dfdx
 
 
 # python func.py [-v]:
