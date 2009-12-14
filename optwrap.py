@@ -1,6 +1,6 @@
 """Provides a uniform interface to a variety of optimisers."""
 
-from scipy.optimize.lbfgsb import fmin_l_bfgs_b
+from aof.cosopt.lbfgsb import fmin_l_bfgs_b
 from scipy.optimize import fmin_cg
 
 import ase
@@ -16,7 +16,7 @@ def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
                                   fprime=CoS.obj_func_grad,
                                   callback=callback,
                                   pgtol=tol,
-                                  maxfun=maxit)
+                                  maxfun=maxit, maxstep=maxstep)
         return dict
 
     elif name == 'scipy_cg':
@@ -39,7 +39,7 @@ def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
             assert False, ' '.join(["Unrecognised algorithm", name, "not in"] + names)
 
         # attach optimiser to print out each step in
-        opt.attach(lambda: callback(None), interval=5)
+        opt.attach(lambda: callback(None), interval=1)
         opt.run(fmax=tol)
         x_opt = CoS.state_vec
         return None

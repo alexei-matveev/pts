@@ -33,10 +33,11 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
         print aof.common.line()
         return x
 
-    run_opt = lambda: aof.runopt(alg, CoS, tol, maxit, callback, maxstep=0.05)
-    run_opt()
-    while growing and CoS.grow_string():
-        run_opt()
+    run_opt = lambda: aof.runopt(alg, CoS, tol, maxit, callback, maxstep=0.1)
+    print run_opt()
+    while True:#growing and CoS.grow_string():
+        CoS.update_path()
+        print run_opt()
 
     print CoS.ts_estims()
 
@@ -44,7 +45,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 if __name__ == "__main__":
     reagents_MB = [array([ 0.62349942,  0.02803776]), array([-0.558, 1.442])]
 #    test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 12, 1., 'ase_lbfgs', tol=0.001)
-    test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 8, 1., 'ase_lbfgs', tol=0.02)
+    test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 12, 2., 'scipy_lbfgsb', tol=0.001, maxit=50)
 
     exit()
     reagents = [array([0.,0.]), array([3.,3.])]

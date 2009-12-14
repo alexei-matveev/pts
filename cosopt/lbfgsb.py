@@ -26,7 +26,7 @@
 
 ## Modifications by Travis Oliphant and Enthought, Inc.  for inclusion in SciPy
 
-from numpy import zeros, float64, array, int32
+from numpy import zeros, float64, array, int32, dot, sqrt
 
 import scipy.optimize._lbfgsb as _lbfgsb
 import scipy.optimize as optimize
@@ -38,7 +38,7 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
                   bounds=None, m=10, factr=1e7, pgtol=1e-5,
                   epsilon=1e-8,
                   iprint=-1, maxfun=15000,
-                  callback = None): # added by hugh
+                  callback = None, maxstep=0.2): # added by hugh
     """
     Minimize a function func using the L-BFGS-B algorithm.
 
@@ -233,9 +233,19 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
 #        print "f =", type(f)
 #        print "g =", type(g)
 
+        prevx = x.copy()
         _lbfgsb.setulb(m, x, low_bnd, upper_bnd, nbd, f, g, factr,
                        pgtol, wa, iwa, task, iprint, csave, lsave,
                        isave, dsave)
+
+        # scale step size
+        step = x - prevx
+        size = sqrt(dot(step, step))
+        print "STEP:", step
+        if size > maxstep:
+            print "*********** scaling step size"
+            step = step / size * maxstep
+            x = prevx + step
 #        print "Opt Iteration Done" # by HCM
         task_str = task.tostring()
         if task_str.startswith('FG'):
@@ -243,7 +253,12 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
             n_function_evals += 1
             # Overwrite f and g:
             f, g = func_and_grad(x)
+            print "g_max", g.max()
+            print g.copy().reshape(-1,2)[-2]
+            print x.copy().reshape(-1,2)[-2]
+            print step.copy().reshape(-1,2)[-2]
 
+            print "n_function_evals",n_function_evals
             if callable(callback): # added by HCM
                 callback(x) # added by HCM
 

@@ -483,7 +483,7 @@ class QuadFunc(Func):
 
 class SplineFunc(Func):
     def __init__(self, xs, ys):
-        self.spline_data = interpolate.splrep(xs, ys, s=0)
+        self.spline_data = interpolate.splrep(xs, ys, s=0, k=3)
 
     def f(self, x):
         return interpolate.splev(x, self.spline_data, der=0)
@@ -730,6 +730,17 @@ class PathRepresentation(object):
             lg.debug("Normalised positions updated:" + str(self.__normalised_positions))
 
         return bead_vectors
+
+    def update_tangents(self):
+        points_cnt = len(self.__state_vec)
+        even_spacing = arange(0.0, 1.0 + 1.0 / (points_cnt - 1), 1.0 / (points_cnt - 1))
+        even_spacing = even_spacing[0:points_cnt]
+
+        ts = []
+        for i in even_spacing:
+             ts.append(self.__get_tangent(i))
+        
+        self.__path_tangents = array(ts)
         
     def __get_str_positions_exact(self):
         from scipy.integrate import quad
@@ -1035,7 +1046,7 @@ class GrowingString(ReactionPathway):
     def obj_func(self, new_state_vec = None, individual_energies = False):
         ReactionPathway.obj_func(self, new_state_vec)
 
-        self.update_path(new_state_vec, respace = True)
+        self.update_path(new_state_vec, respace = False)
 
         es = [] #[self.__reagent_energy]
 
@@ -1061,7 +1072,7 @@ class GrowingString(ReactionPathway):
     def obj_func_grad(self, new_state_vec = None):
         ReactionPathway.obj_func_grad(self, new_state_vec)
 
-        self.update_path(new_state_vec, respace = True)
+        self.update_path(new_state_vec, respace = False)
 
         gradients = []
 
@@ -1110,12 +1121,12 @@ class GrowingString(ReactionPathway):
         # respace the beads along the path
         if respace:
             self.__path_rep.generate_beads(update = True)
+        else:
+            self.__path_rep.update_tangents()
 
     def plot(self):
 #        self.__path_rep.generate_beads_exact()
         plot2D(self.__path_rep)
-
-
 
 def project_out(component_to_remove, vector):
     """Projects the component of 'vector' that list along 'component_to_remove'
