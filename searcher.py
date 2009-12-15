@@ -584,7 +584,7 @@ class PathRepresentation(object):
             # parabolic path
             elif len(self.__state_vec) == 3:
 
-                # TODO: at present, transition state assumed to be half way ebtween reacts and prods
+                # FIXME: at present, transition state assumed to be half way ebtween reacts and prods
                 ps = array((0.0, 0.5, 1.0))
                 ps_x_pow_2 = ps**2
                 ps_x_pow_1 = ps
@@ -613,6 +613,19 @@ class PathRepresentation(object):
 
         (integral, error) = scipy.integrate.quad(self.__arc_dist_func, 0.0, 1.0)
         return integral
+
+    def get_bead_separations(self):
+        """Returns the arc length between beads according to the current 
+        parameterisation.
+        """
+
+        a = self.__normalised_positions
+        N = len(a)
+        seps = []
+        for i in range(N)[1:]:
+            l = scipy.integrate.quad(self.__arc_dist_func, a[i-1], a[i])
+            seps.append(l[0])
+        return array(seps)
 
     def __get_total_str_len(self):
         """Returns the a duple of the total length of the string and a list of 
@@ -737,9 +750,9 @@ class PathRepresentation(object):
         even_spacing = even_spacing[0:points_cnt]
 
         ts = []
-        for i in even_spacing:
+        for i in self.__normalised_positions:
              ts.append(self.__get_tangent(i))
-        
+ 
         self.__path_tangents = array(ts)
         
     def __get_str_positions_exact(self):
@@ -941,6 +954,11 @@ class GrowingString(ReactionPathway):
         assert head_size == None or (growing and beads_count / 2 -1 >= head_size > 0)
         self.head_size = head_size
 
+        # maximum allowed ratio between (max bead sep - min bead sep) and (average bead sep)
+        self.__max_sep_ratio = 0.5
+
+        self.must_regenerate  = False
+
     def pathfs(self):
         return self.__path_rep.fs
 
@@ -1044,6 +1062,9 @@ class GrowingString(ReactionPathway):
         self.__path_rep.set_rho(pwr.f)
 
     def obj_func(self, new_state_vec = None, individual_energies = False):
+        if self.must_regenerate:
+            return self.bead_pes_energies.sum()
+
         ReactionPathway.obj_func(self, new_state_vec)
 
         self.update_path(new_state_vec, respace = False)
@@ -1063,13 +1084,37 @@ class GrowingString(ReactionPathway):
         # assume that energies of end beads are not updated every time
         self.bead_e_calls += len(es) - 2
 
-        total_energies = sum(es)
-        if individual_energies:
-            return deepcopy(es)
-        else:
-            return total_energies #es.max() #total_energies
+        # If bead spacings become too uneven, set a flag so that the string 
+        # is not modified until it is updated.
+        if self.lengths_disparate():
+            self.must_regenerate = True
+
+        return es.sum() #es.max() #total_energies
        
+    def lengths_disparate(self):
+        seps = self.__path_rep.get_bead_separations()
+
+        # If string is incompletely grown, remove inter-bead distance, 
+        # corresponding to the ungrown portion of the string.
+        if self.beads_count < self.__final_beads_count:
+            l = seps.tolist()
+            i = seps.argmax()
+            l.pop(i)
+            seps = array(l)
+
+        max_sep = seps.max()
+        min_sep = seps.min()
+        mean_sep = seps.mean()
+
+        r = (max_sep - min_sep) / mean_sep
+        lg.info("Bead spacing ratio is %f" % r)
+        return r > self.__max_sep_ratio
+
     def obj_func_grad(self, new_state_vec = None):
+
+        if self.must_regenerate:
+            return array(self.__path_rep.state_vec * 0.).flatten()
+
         ReactionPathway.obj_func_grad(self, new_state_vec)
 
         self.update_path(new_state_vec, respace = False)
@@ -1103,6 +1148,11 @@ class GrowingString(ReactionPathway):
         if new_state_vec != None:
             self.record_energy()
 
+        # If bead spacings become too uneven, set a flag so that the string 
+        # is not modified until it is updated.
+        if self.lengths_disparate():
+            self.must_regenerate = True
+
         return gradients
 
     def update_path(self, state_vec = None, respace = True):
@@ -1110,7 +1160,7 @@ class GrowingString(ReactionPathway):
         It rebuilds a new (spline) representation of the path and then 
         redestributes the beads according to the density function."""
 
-        flab("update_pathcalled", respace)
+        flab("update_path called", respace)
 
         if state_vec != None:
             self.__path_rep.state_vec = state_vec
@@ -1121,6 +1171,7 @@ class GrowingString(ReactionPathway):
         # respace the beads along the path
         if respace:
             self.__path_rep.generate_beads(update = True)
+            self.must_regenerate = False
         else:
             self.__path_rep.update_tangents()
 
