@@ -258,7 +258,7 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
 #            print x.copy().reshape(-1,2)[-2]
 #            print step.copy().reshape(-1,2)[-2]
 
-#            print "n_function_evals",n_function_evals
+            print "n_function_evals",n_function_evals
             if callable(callback): # added by HCM
                 callback(x) # added by HCM
 

@@ -53,6 +53,10 @@ class ReactionPathway:
     bead_g_calls = 0
     bead_e_calls = 0
 
+    # Set to true by GrowingString sub-class to indicate that bead spacing 
+    # threshold has been exceeded.
+    must_regenerate = False
+
     def __init__(self, reagents, beads_count, qc_driver, parallel):
 
         self.parallel = parallel
@@ -499,7 +503,7 @@ class PathRepresentation(object):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 500):
+    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 10000):
 
         # vector of vectors defining the path
         if (isinstance(state_vec, ndarray)):

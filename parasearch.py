@@ -20,6 +20,11 @@ import aof.common as common
 from common import ParseError
 
 file_dump_count = 0
+def get_file_dump_count():
+    global file_dump_count
+    file_dump_count += 1
+    return file_dump_count
+
 start_time = time.time()
 
 # setup logging
@@ -239,7 +244,11 @@ def generic_callback(x, molinterface, CoS, params):
     print common.line()
     print "Time %f s" % (time.time() - start_time)
     print CoS
-    name = params['name']
+
+    fdc = get_file_dump_count()
+    fdc = "-iter_" + str(fdc)
+
+    name = params['name'] + fdc
     dump_beads(molinterface, CoS, name + "-CoS")
     CoS.record_ts_estim('highest')
     l = CoS.ts_history
@@ -413,11 +422,6 @@ def dump_beads(molinterface, chain_of_states, name):
     mol_list_to_traj(molinterface, mols, energies, name)
 
 def mol_list_to_traj(molinterface, mols, energies, name):
-    global file_dump_count
-    file_dump_count += 1
-    #local_bead_forces = deepcopy(chain_of_states.bead_forces)
-    #local_bead_forces.shape = (chain_of_states.beads_count, -1)
-
     list = []
     for i, vec in enumerate(mols):
         cs = molinterface.build_coord_sys(vec)
@@ -428,7 +432,7 @@ def mol_list_to_traj(molinterface, mols, energies, name):
 
         list.append(a)
 
-    path = name + str(file_dump_count) + common.LOGFILE_EXT
+    path = name + common.LOGFILE_EXT
 
     write_trajectory(path, list)
 

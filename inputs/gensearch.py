@@ -38,8 +38,9 @@ cb = lambda x: aof.generic_callback(x, mi, CoS, params)
 runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.2)
 
 # main optimisation loop
-runopt()
-while CoS.must_regenerate or growing or not CoS.grow_string():
+print runopt()
+while CoS.must_regenerate or (growing and CoS.grow_string()):
+    print CoS.must_regenerate, growing, CoS.grow_string()
     CoS.update_path()
     print "Optimisation RESTARTED (i.e. string grown or respaced)"
     runopt()
