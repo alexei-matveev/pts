@@ -70,6 +70,8 @@ class Gaussian:
         self.max_aggression = 1
         self.runs = 0
 
+        self.chkpoint = None
+
     def set_chk(self, chkpoint):
         if chkpoint != None and not os.path.isfile(chkpoint):
             raise GaussDriverError("File " + chkpoint + " is not a file or does not exist")

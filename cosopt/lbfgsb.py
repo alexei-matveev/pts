@@ -241,7 +241,7 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
         # scale step size
         step = x - prevx
         size = sqrt(dot(step, step))
-        print "STEP:", step
+#        print "STEP:", step
         if size > maxstep:
             print "*********** scaling step size"
             step = step / size * maxstep
@@ -254,11 +254,11 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
             # Overwrite f and g:
             f, g = func_and_grad(x)
             print "g_max", g.max()
-            print g.copy().reshape(-1,2)[-2]
-            print x.copy().reshape(-1,2)[-2]
-            print step.copy().reshape(-1,2)[-2]
+#            print g.copy().reshape(-1,2)[-2]
+#            print x.copy().reshape(-1,2)[-2]
+#            print step.copy().reshape(-1,2)[-2]
 
-            print "n_function_evals",n_function_evals
+#            print "n_function_evals",n_function_evals
             if callable(callback): # added by HCM
                 callback(x) # added by HCM
 

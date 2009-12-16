@@ -1,5 +1,5 @@
 # optimiser to use
-opt_type = 'ase_lbfgs'
+opt_type = 'scipy_lbfgsb'
 
 # mask of variables to freeze
 # True => optimised
@@ -17,8 +17,8 @@ mask = None #[False for i in range(12*3)] + [True for i in range(3*3)]
 calc_tuple = (
     aof.qcdrivers.Gaussian, 
     [], 
-    {'basis': '3-21G', 'charge': 0, 'mult':1}, 
-    aof.qcdrivers.pre_calc_function_g03)
+    {'basis': '3-21G', 'charge': 0, 'mult': 1}, 
+    None)#aof.qcdrivers.pre_calc_function_g03)
 
 # scheduling information
 # Field 1: list of processors per node e.g.
@@ -53,7 +53,7 @@ params = {
 
 beads_count = 15  # number of beads
 tol = 0.01       # optimiser force tolerance
-maxit = 20       # max iterations
+maxit = 30       # max iterations
 spr_const = 5.0  # NEB spring constant (ignored for string)
 growing = False  # is the string growing
 

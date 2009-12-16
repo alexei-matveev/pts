@@ -912,7 +912,7 @@ class PiecewiseRho:
             lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 class GrowingString(ReactionPathway):
-    def __init__(self, reagents, qc_driver, beads_count = 10, rho = lambda x: 1, growing=True, parallel=False, head_size=None):
+    def __init__(self, reagents, qc_driver, beads_count = 10, rho = lambda x: 1, growing=True, parallel=False, head_size=None, max_sep_ratio = 0.5):
 
         self.__qc_driver = qc_driver
 
@@ -955,7 +955,7 @@ class GrowingString(ReactionPathway):
         self.head_size = head_size
 
         # maximum allowed ratio between (max bead sep - min bead sep) and (average bead sep)
-        self.__max_sep_ratio = 0.5
+        self.__max_sep_ratio = max_sep_ratio
 
         self.must_regenerate  = False
 

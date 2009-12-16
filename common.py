@@ -248,6 +248,13 @@ def file2str(f):
     f.close()
     return mystr
 
+def str2file(s, fn):
+    """Returns contents file with name f as a string."""
+    f = open(fn, "w")
+    f.write(repr(s))
+    f.close()
+    lg.info("Writing " + fn)
+
 def normalise(x):
     x = x / numpy.linalg.norm(x)
     return x

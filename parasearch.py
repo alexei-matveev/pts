@@ -7,6 +7,7 @@ import re
 import logging
 import numpy
 from copy import deepcopy
+import time
 
 import os
 
@@ -19,13 +20,12 @@ import aof.common as common
 from common import ParseError
 
 file_dump_count = 0
+start_time = time.time()
 
 # setup logging
 lg = logging.getLogger("aof")
 lg.setLevel(logging.INFO)
-#if not globals().has_key("ch"):
-#    print "Defining stream handler"
-ch = logging.StreamHandler()
+ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(name)s (%(levelname)s): %(message)s")
 ch.setFormatter(formatter)
@@ -237,12 +237,15 @@ def setup_and_run(mol_strings, params):
 # callback function
 def generic_callback(x, molinterface, CoS, params):
     print common.line()
+    print "Time %f s" % (time.time() - start_time)
     print CoS
-    dump_beads(molinterface, CoS, params['name'] + "-CoS")
+    name = params['name']
+    dump_beads(molinterface, CoS, name + "-CoS")
     CoS.record_ts_estim('highest')
     l = CoS.ts_history
     energies, history = zip(*l)
-    mol_list_to_traj(molinterface, history, energies, params['name'] + "-evol")
+    mol_list_to_traj(molinterface, history, energies, name + "-evol")
+    common.str2file(CoS.state_vec, name + "-state_vec" + common.LOGFILE_EXT)
 
     print common.line()
     return x

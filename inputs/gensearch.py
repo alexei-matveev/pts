@@ -34,16 +34,17 @@ CoS = aof.searcher.GrowingString(mi.reagent_coords,
           head_size=None)
 
 # callback function
-mycb = lambda x: aof.generic_callback(x, mi, CoS, params)
+cb = lambda x: aof.generic_callback(x, mi, CoS, params)
 
+runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.2)
 
 # main optimisation loop
-while True:
-    aof.runopt(opt_type, CoS, tol, maxit, mycb)
+runopt()
+while CoS.must_regenerate or growing or not CoS.grow_string():
+    CoS.update_path()
+    print "Optimisation RESTARTED (i.e. string grown or respaced)"
+    runopt()
 
-    if not growing or not CoS.grow_string():
-        break
-    
 # get best estimate(s) of TS from band/string
 tss = CoS.ts_estims()
 
