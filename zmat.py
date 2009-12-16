@@ -122,10 +122,52 @@ Test consistency with the inverse transformation:
     0.004525006862505121
 
 (these are not real breathing modes as we scale also angles).
+
+A surface model with three atoms at these positions:
+
+    >>> slab = [[0., 0., 0.], [1., 0., 0.], [0., 1., 0.]]
+
+A ZMat() with one atom attached to the surface,
+referencing the indices of atoms in the "environment":
+
+    >>> zm = ZMat([(1, 2, 3)], fixed=slab)
+
+"Spherical" coordinates for that atom:
+
+    >>> r = (2.5, pi/2, -pi/2)
+
+Evaluation of the zmatrix at |r| will return four
+positions, including those of the "surface" atoms:
+
+    >>> round(zm(r), 12)
+    array([[ 0. ,  0. ,  2.5],
+           [ 0. ,  0. ,  0. ],
+           [ 1. ,  0. ,  0. ],
+           [ 0. ,  1. ,  0. ]])
+
+    >>> zm.pinv(zm(r))
+    array([ 2.5       ,  1.57079633, -1.57079633])
+
+    >>> round(zm.fprime(r), 12)
+    array([[[ 0. , -2.5,  0. ],
+            [ 0. ,  0. ,  2.5],
+            [ 1. ,  0. ,  0. ]],
+    <BLANKLINE>
+           [[ 0. ,  0. ,  0. ],
+            [ 0. ,  0. ,  0. ],
+            [ 0. ,  0. ,  0. ]],
+    <BLANKLINE>
+           [[ 0. ,  0. ,  0. ],
+            [ 0. ,  0. ,  0. ],
+            [ 0. ,  0. ,  0. ]],
+    <BLANKLINE>
+           [[ 0. ,  0. ,  0. ],
+            [ 0. ,  0. ,  0. ],
+            [ 0. ,  0. ,  0. ]]])
 """
 
 from numpy import pi, sin, cos, cross, dot, sqrt, arccos
-from numpy import array, empty
+from numpy import array, asarray, empty
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
 from func import NumDiff
@@ -134,7 +176,17 @@ class ZMError(Exception):
     pass
 
 class ZMat(NumDiff):
-    def __init__(self, zm):
+    def __init__(self, zm, fixed=None):
+        """The first argument |zm| is a representation of connectivities
+        used to define internal coordinates.
+
+        |fixed| is an (N x 3)-array (or nested lists) defining cartesian
+        coordinates of the fixed "environment" for the part of the system defined
+        by |zm|. It is appended to the output of |.f| method as-is and may be
+        used to treat the fixed subsystem (e.g. surface model). It should
+        be ok to reference the indices of atoms of "environment" in the z-matrix
+        definition |zm|.
+        """
 
         #
         # Each entry in ZM definition is a 3-tuple (a, b, c)
@@ -186,12 +238,22 @@ class ZMat(NumDiff):
         # running index of internal coordinate.
         #
 
+        #
+        # Save the fixed "environment" to be appended to ZMat output:
+        #
+        if fixed is not None:
+            self.__fixed = asarray(fixed)
+        else:
+            # 0x3 array:
+            self.__fixed = array([]).reshape(0, 3)
+
+
     def f(self, v):
         "Use the input array |v| as values for internal coordinates and return cartesians"
 
         # use ZM representation and values for internal coords
         # to compute cartesians:
-        return self.__z2c(self.__zm, v)
+        return self.__z2c(v)
 
     # For the time without separate implementation
     # inherit from NumDiff:
@@ -199,38 +261,62 @@ class ZMat(NumDiff):
 #       # either num-diff or anything better goes here:
 #       raise NotImplemented
 
-    def __z2c(self, atoms, vars):
+    def __z2c(self, vars):
         """Generates cartesian coordinates from z-matrix and the current set of
         internal coordinates. Based on code in OpenBabel."""
 
-        # cache atomic positions, keys are the indices:
-        cache = dict()
+        # number of atoms in z-part
+        na = len(self.__zm)
+
+        # number of atoms in fixed environemnt:
+        ne = len(self.__fixed)
+
+        # flags to indicate valid atomic positions, keys are the indices:
+        cached = [0] * na + [1] * ne
+        # 0: undefined, 1: defined, -1: computation in progress
+
+        # (N x 3)-array with junk values:
+        xyz = empty((na + ne, 3))
+
+        # fill the preset positions of the "environment" atoms:
+        xyz[na:,:] = self.__fixed
+
+        # undefined values set to NaNs (not used anywhere):
+        xyz[:na,:] = None
 
         def pos(x):
             "Return atomic position, compute if necessary and memoize"
 
-            if x in cache:
+            if cached[x] == -1:
                 # catch infinite recursion:
-                if cache[x] is None:
-                    raise ZMError("cycle")
-                else:
-                    return cache[x]
+                raise ZMError("cycle")
+
+            if cached[x]:
+                # return cached value:
+                return xyz[x]
             else:
-                # prevent infinite recursion, put some nonsense:
-                cache[x] = None
+                # prevent infinite recursion, indicate computation in progress:
+                cached[x] = -1
+
                 # for actual computation see "pos1" below:
                 try:
                     p = pos1(x)
                 except Exception, e:
                     raise ZMError("pos1 of", x, e.args)
-                cache[x] = p
+
+                # save position of atom x into cache array:
+                xyz[x] = p
+
+                # set the flag for valid positions of atom x:
+                cached[x] = 1
+
                 return p
 
         def pos1(x):
             "Compute atomic position, using memoized funciton pos()"
 
             # pick the ZM entry from array:
-            a, b, c, idst, iang, idih = atoms[x]
+            a, b, c, idst, iang, idih = self.__zm[x]
 
             # default origin:
             if a is None: return array((0.0, 0.0, 0.0))
@@ -294,13 +380,16 @@ class ZMat(NumDiff):
 
             return p
 
-        # compute all positions:
-        xyz = []
-        for atom in range(len(atoms)):
-            xyz.append(pos(atom))
+        # force evaluation of all positions:
+        for x in range(na + ne):
+            # calling pos(x) will set xyz[x] and xyz[y] for all y's
+            # that are required to compute pos(x). Here we assume
+            # left-to-right evaluation order:
+            p = pos(x)
+            q = xyz[x]
+            if (p != q).any():
+                raise ZMError("computed and cached positions differ")
 
-        # convert to vector/numpy:
-        xyz = array(xyz)
         return xyz
 
     def pinv(self, atoms):
