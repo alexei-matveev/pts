@@ -46,7 +46,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 # python path_representation.py [-v]:
 if __name__ == "__main__":
     reagents_MB = [array([ 0.62349942,  0.02803776]), array([-0.558, 1.442])]
-    reagents_MB = eval(aof.common.file2str("test.txt"))
+#    reagents_MB = eval(aof.common.file2str("test.txt"))
 #    test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 12, 1., 'ase_lbfgs', tol=0.001)
     test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 11, 2., 'scipy_lbfgsb', tol=0.01, maxit=50)
 
