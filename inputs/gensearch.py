@@ -23,8 +23,14 @@ CoS = aof.searcher.GrowingString(init_state_vec,
           calc_man, 
           beads_count,
           growing=growing,
-          parallel=True,
-          head_size=None)
+          parallel=True)
+
+"""CoS = aof.searcher.NEB(mi.reagent_coords, 
+          calc_man, 
+          spr_const,
+          beads_count,
+          parallel=True)"""
+
 
 # callback function
 cb = lambda x: aof.generic_callback(x, mi, CoS, params)
