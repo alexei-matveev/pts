@@ -3,30 +3,23 @@
 import sys
 import os
 import aof
-import ase
 from aof.common import file2str
+import ase
 
-
-# Deal with environment variables
-# FIXME: messy
-args = sys.argv[1:]
-assert len(args) == 3, "Usage reactant, product, parameters.py"
-reagent_files = args[0:2]
-names = [os.path.splitext(f)[0] for f in reagent_files]
-params_file = args[2]
-name = "_to_".join(names) + "_with_" + os.path.splitext(params_file)[0]
-print "Search name:", name
+name, params_file, mol_strings, init_state_vec = aof.setup(sys.argv)
 
 # bring in custom parameters parameters
 exec(file2str(params_file))
 
 # set up some objects
-mol_strings = aof.read_files(reagent_files)
 mi          = aof.MolInterface(mol_strings, params)
 calc_man    = aof.CalcManager(mi, procs_tuple)
 
 # setup searcher i.e. String or NEB
-CoS = aof.searcher.GrowingString(mi.reagent_coords, 
+if init_state_vec == None:
+    init_state_vec = mi.reagent_coords
+
+CoS = aof.searcher.GrowingString(init_state_vec, 
           calc_man, 
           beads_count,
           growing=growing,
