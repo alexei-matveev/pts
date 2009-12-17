@@ -250,7 +250,7 @@ def generic_callback(x, molinterface, CoS, params):
 
     name = params['name'] + fdc
     dump_beads(molinterface, CoS, name + "-CoS")
-    CoS.record_ts_estim('highest')
+    CoS.record_ts_estim('splines_and_cubic')
     l = CoS.ts_history
     energies, history = zip(*l)
     mol_list_to_traj(molinterface, history, energies, name + "-evol")
