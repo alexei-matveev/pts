@@ -260,7 +260,6 @@ def generic_callback(x, molinterface, CoS, params):
     return x
 
 
-
 def string_calc(molinterface, calc_man, reagent_coords, params):
     """Setup String object, optimiser, etc."""
 

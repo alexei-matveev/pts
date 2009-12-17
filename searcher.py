@@ -16,6 +16,7 @@ import pickle
 from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot, eye, outer, inf, isnan, isfinite, size, vstack
 
 from path import Path
+from func import CubicFunc
 
 from common import * # TODO: must unify
 import aof.common as common
@@ -74,11 +75,16 @@ class ReactionPathway:
         self.tangents = zeros(beads_count * self.dimension)
         self.tangents.shape = (beads_count, self.dimension)
 
+        # energies / gradients of beads, excluding any spring forces / projections
         self.bead_pes_energies = zeros(beads_count)
+        self.bead_pes_gradients = zeros(beads_count * self.dimension)
+        self.bead_pes_gradients.shape = (beads_count, self.dimension)
+
         self.history = []
         self.energy_history = []
         self.ts_history = []
 
+        # mask of gradients to update at each position
         self.grad_update_mask = [False] + [True for i in range(beads_count-2)] + [False]
 
     def __str__(self):
@@ -171,7 +177,10 @@ class ReactionPathway:
 
         self.bead_pes_energies = array(bead_pes_energies)
 
-    def record_ts_estim(self, mode='highest'):
+    def record_ts_estim(self, mode='splines_and_cubic'):
+        """Records the energy transition state estimate that can be formed 
+        from the current pathway.
+        """
         estims = self.ts_estims(mode=mode)
         estims.sort()
         self.ts_history.append(estims[-1])
@@ -180,13 +189,15 @@ class ReactionPathway:
         """Returns list of all transition state(s) that appear to exist along
         the reaction pathway."""
 
+        lg.info("Estimating the transition states along the pathway, mode = %s" % mode)
         n = self.beads_count
-        Es = self.bead_pes_energies.reshape(n,-1)
-
+        Es = self.bead_pes_energies.reshape(n)
         dofs = self.state_vec.reshape(n,-1)
+        assert len(dofs) == len(Es)
 
         if mode == 'splines':
-            assert len(dofs) == len(Es)
+            """Uses a spline representation of the energy/coordinates of the entire path."""
+            Es.shape = (n,-1)
             ys = hstack([dofs, Es])
 
             step = 1. / n
@@ -201,19 +212,81 @@ class ReactionPathway:
 
             ts_list = []
             for x in xs[2:]:#-1]:
+                # For each pair of points along the path, find the minimum
+                # energy and check that the gradient is also zero.
                 E_0 = -E_estim_neg(x - step)
                 E_1 = -E_estim_neg(x)
                 x_min = fminbound(E_estim_neg, x - step, x, xtol=tol)
                 E_x = -E_estim_neg(x_min)
     #            print x_min, abs(E_prime_estim(x_min)), E_0, E_x, E_1
 
-                # Use a looser tollerane on the gradient than on minimisation of 
+                # Use a looser tollerance when minimising the gradient than for 
                 # the energy function. FIXME: can this be done better?
                 E_prime_tol = tol * 1E4
                 if abs(E_prime_estim(x_min)) < E_prime_tol and (E_0 <= E_x >= E_1):
                     p_ts = p(x_min)
                     ts_list.append((p_ts[-1], p_ts[:-1]))
+
+        elif mode == 'splines_and_cubic':
+            """Uses a spline representation of the molecular coordinates and 
+            a cubic polynomial defined from the slope / value of the energy 
+            for pairs of points along the path.
+            """
+
+            ys = dofs.copy()
+
+            step = 1. / n
+            ss = arange(0., 1., step)
+
+            # build fresh functional representation of optimisation 
+            # coordinates as a function of a path parameter s
+            xs = Path(ys, ss)
+
+            ts_list = []
+            for i in range(n)[1:]:#-1]:
+                # For each pair of points along the path, find the minimum
+                # energy and check that the gradient is also zero.
+                E_0 = Es[i-1]
+                E_1 = Es[i]
+                dEdx_0 = self.bead_pes_gradients[i-1]
+                dEdx_1 = self.bead_pes_gradients[i]
+                dxds_0 = xs.fprime(ss[i-1])
+                dxds_1 = xs.fprime(ss[i])
+
+                # energy gradient at "left/right" bead along path
+                #print "dEdx_0, dxds_0", dEdx_0, dxds_0
+                #print "dEdx_1, dxds_1", dEdx_1, dxds_1
+                dEds_0 = dot(dEdx_0, dxds_0)
+                dEds_1 = dot(dEdx_1, dxds_1)
+
+                dEdss = array([dEds_0, dEds_1])
+                #print "i",i
+                #print "dEdss", dEdss
+                #print "ss[i-1:i+1], Es[i-1:i+1]", ss[i-1:i+1], Es[i-1:i+1]
+
+                if dEds_0 >= 0 and dEds_1 < 0:
+                    cub = CubicFunc(ss[i-1:i+1], Es[i-1:i+1], dEdss)
+                    E_estim_neg = lambda s: -cub(s[0])
+                    E_prime_estim = lambda s: cub.fprime(s[0])
+
+                    s_min = fminbound(E_estim_neg, ss[i-1], ss[i], xtol=tol)
+                    #print "s_min",s_min
+                    E_s = -E_estim_neg(s_min)
+
+                    #print "E_s", E_s
+
+                    # Use a looser tollerance on the gradient than on minimisation of 
+                    # the energy function. FIXME: can this be done better?
+                    E_prime_tol = tol * 1E4
+                    if abs(E_prime_estim(s_min)) < E_prime_tol and (E_0 <= E_s >= E_1):
+                        #print "Found", i
+                        xs_ts = xs(s_min)
+                        ts_list.append((E_s, xs_ts))
+                #print "-------"
+
         elif mode == 'highest':
+            """Just picks the highest energy from along the path.
+            """
             i = Es.argmax()
             ts_list = [(Es[i], dofs[i])]
         else:
@@ -397,13 +470,9 @@ class NEB(ReactionPathway):
         spring_energies = 0.5 * numpy.sum (spring_energies)
 #        print "spring_energies", spring_energies
 
-        # Hmm, why do I do this? WRONG???
-        #self.bead_pes_energies = self.default_initial_bead_pes_energies
-
         pes_energies = sum(self.bead_pes_energies[1:-1])
 
-        print "self.bead_pes_energies", self.bead_pes_energies
-        return (pes_energies) # + spring_energies) #self.bead_pes_energies.max() #(pes_energies + spring_energies)
+        return pes_energies
 
       
     def obj_func_grad(self, new_state_vec = None):
@@ -434,8 +503,10 @@ class NEB(ReactionPathway):
 
         # get PES forces / project out stuff
         for i in range(self.beads_count)[1:-1]: # don't include end beads, leave their gradients as zero
-            pes_force = -self.qc_driver.gradient(self.state_vec[i])
-            pes_force = project_out(self.tangents[i], pes_force)
+            g = self.qc_driver.gradient(self.state_vec[i])
+            self.bead_pes_gradients[i] = g.copy()
+
+            pes_force = project_out(self.tangents[i], -g)
             perp_bead_forces.append(pes_force)
 
             spring_force = (self.base_spr_const * 
@@ -1096,6 +1167,10 @@ class GrowingString(ReactionPathway):
         return es.sum() #es.max() #total_energies
        
     def lengths_disparate(self):
+        """Returns true if the ratio between the (difference of longest and 
+        shortest segments) to the average segment length is above a certain 
+        value (self.__max_sep_ratio).
+        """
         seps = self.__path_rep.get_bead_separations()
 
         # If string is incompletely grown, remove inter-bead distance, 
@@ -1140,6 +1215,7 @@ class GrowingString(ReactionPathway):
         for i in range(self.beads_count):
             if self.grad_update_mask[i]:
                 g = self.__qc_driver.gradient(self.__path_rep.state_vec[i])
+                self.bead_pes_gradients[i] = g.copy()
                 t = ts[i]
                 g = project_out(t, g)
             else:

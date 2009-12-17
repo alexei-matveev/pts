@@ -46,7 +46,7 @@ while CoS.must_regenerate or (growing and CoS.grow_string()):
     runopt()
 
 # get best estimate(s) of TS from band/string
-tss = CoS.ts_estims()
+tss = CoS.ts_estims(mode='splines_and_cubic')
 
 # print cartesian coordinates of all transition states that were found
 print "Dumping located transition states"
