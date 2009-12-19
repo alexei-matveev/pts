@@ -215,6 +215,7 @@ class CoordSys(object):
         odict["pickled_atoms"] = f.read()
 #        odict["pickled_calc"] = self._atoms.calc
         f.close()
+        os.unlink(tmp)
 
         self._atoms.calc = old_calc
 
@@ -248,6 +249,8 @@ class CoordSys(object):
         f.write(pickled_atoms)
         f.close()
         self._atoms = ase.read(tmp, format="traj")
+        os.unlink(tmp)
+
         self.set_calculator(calc_tuple)
         self._state_lock = threading.RLock()
 
