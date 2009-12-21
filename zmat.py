@@ -206,7 +206,10 @@ class ZMat(NumDiff):
 
         # save ZM representation with indices of internal coordinates:
         i = 0
+        # internal z-matrix representation:
         self.__zm = []
+        # kind of internal cooridnate (dst, ang, dih):
+        self.kinds = []
         for a, b, c in zm:
             if c is not None:
                 # regular ("4th and beyond") entry x-a-b-c:
@@ -225,6 +228,9 @@ class ZMat(NumDiff):
                 idst, iang, idih = None, None, None
 
             self.__zm.append((a, b, c, idst, iang, idih))
+            if idst is not None: self.kinds.append("dst")
+            if iang is not None: self.kinds.append("ang")
+            if idih is not None: self.kinds.append("dih")
 
         # number of internal variables:
         self.__dim = i
