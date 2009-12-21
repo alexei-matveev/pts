@@ -6,12 +6,15 @@ import numpy as np
 from numpy import array, arange, vstack
 import tempfile, os
 
+import logging
+lg = logging.getLogger("aof.pes")
+lg.setLevel(logging.INFO)
+
+
 try:
     import Gnuplot, Gnuplot.PlotItems, Gnuplot.funcutils
 except:
-    print "Warning, couldn't import Python GNU Plot interface"
-    exit(1)
-
+    lg.warn("Warning, couldn't import Python GNU Plot interface")
 
 class SurfPlot():
     def __init__(self, pes):
