@@ -86,7 +86,7 @@ if __name__ == "__main__":
     MB_saddle1 = array([ 0.21248659,  0.29298832]) # energy = -0.072248940112325243
     MB_saddle2 = array([-0.82200156,  0.62431281]) # energy = -0.040664843508657414
 
-    test_StaticModel('neb', aof.pes.MuellerBrown(), reagents_MB, 11, 2., 'scipy_lbfgsb', tol=0.0001, maxit=50, real_ts=MB_saddle2)
+    test_StaticModel('neb', aof.pes.MuellerBrown(), reagents_MB, 11, 2., 'scipy_lbfgsb', tol=0.0001, maxit=50, real_ts=MB_saddle2, plot='never')
 
     exit()
     reagents = [array([0.,0.]), array([3.,3.])]

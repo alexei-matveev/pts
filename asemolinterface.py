@@ -94,7 +94,7 @@ class MolInterface:
             for i in range(len(react)):
                 if self.var_names[i] in mols[0].dih_vars:
                     if abs(react[i] - prod[i]) > 180.0 * common.DEG_TO_RAD:
-                        assert self.var_names[i] in self.mols.dih_vars
+#                        assert self.var_names[i] in self.mols[0].dih_vars
                         if react[i] > prod[i]:
                             prod[i] += 360.0 * common.DEG_TO_RAD
                         else:

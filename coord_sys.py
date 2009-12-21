@@ -182,14 +182,23 @@ class CoordSys(object):
            raise CoordSysException(str(e) + " (Are you supplying the wrong keyword arguments to this calculator?)")
         self._atoms.set_calculator(calc)
 
-    def copy(self):
+    """def copy(self):
         cs = deepcopy(self)
         cs._atoms = self._atoms.copy()
 
         calc = deepcopy(self._atoms.get_calculator())
         cs.set_calculator(calc)
 
-        return cs
+        return cs"""
+
+    def copy(self, new_coords=None):
+        new = deepcopy(self)
+        new._atoms = self._atoms.copy()
+        if new_coords != None:
+            new.set_internals(new_coords)
+
+        return new
+
 
     def __str__(self):
         s = '\n'.join([self.__class__.__name__, str(self._coords), str(self._var_mask)])
@@ -392,8 +401,8 @@ class CoordSys(object):
         return self._atoms.get_potential_energy()
        
 
-    def copy(self, new_coords=None):
-        assert False, "Abstract function"
+    """def copy(self, new_coords=None):
+        assert False, "Abstract function" """
 
     @property
     def atoms(self):
@@ -854,14 +863,6 @@ class XYZ(CoordSys):
 
     def get_cartesians(self):
         return self._coords.reshape(-1,3)
-
-    def copy(self, new_coords=None):
-        new = deepcopy(self)
-        new._atoms = self._atoms.copy()
-        if new_coords != None:
-            new.set_internals(new_coords)
-
-        return new
 
     @staticmethod
     def matches(molstr):

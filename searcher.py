@@ -13,7 +13,7 @@ import logging
 from copy import deepcopy
 import pickle
 
-from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot, eye, outer, inf, isnan, isfinite, size, vstack
+from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot, eye, outer, inf, isnan, isfinite, size, vstack, atleast_1d
 
 from path import Path
 from func import CubicFunc
@@ -266,8 +266,12 @@ class ReactionPathway:
 
                 if dEds_0 >= 0 and dEds_1 < 0:
                     cub = CubicFunc(ss[i-1:i+1], Es[i-1:i+1], dEdss)
-                    E_estim_neg = lambda s: -cub(s[0])
-                    E_prime_estim = lambda s: cub.fprime(s[0])
+
+                    # Some versions of SciPy seem to give the function called 
+                    # by fminbound a 1d vector, and others give it a scalar.
+                    # The workaround here is to use the atleast_1d function.
+                    E_estim_neg = lambda s: -cub(atleast_1d(s)[0])
+                    E_prime_estim = lambda s: cub.fprime(atleast_1d(s)[0])
 
                     s_min = fminbound(E_estim_neg, ss[i-1], ss[i], xtol=tol)
                     #print "s_min",s_min
@@ -1033,6 +1037,11 @@ class GrowingString(ReactionPathway):
         self.__max_sep_ratio = max_sep_ratio
 
         self.must_regenerate  = False
+
+    def __len__(self):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
+
+        return len(common.make_like_atoms(self.state_vec))
 
     def pathfs(self):
         return self.__path_rep.fs

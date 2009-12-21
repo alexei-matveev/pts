@@ -16,6 +16,7 @@ def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
                                   fprime=CoS.obj_func_grad,
                                   callback=callback,
                                   pgtol=tol,
+                                  factr=10, # stops when step is < factr*machine_precision
                                   maxfun=maxit, maxstep=maxstep)
         return dict
 
