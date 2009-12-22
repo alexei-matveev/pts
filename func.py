@@ -172,7 +172,7 @@ Derivatives wrt |d| == x[1,1]:
 __all__ = ["Func", "LinFunc", "QuadFunc", "SplineFunc", "CubicFunc"]
 
 from numpy import array, dot, hstack, linalg, atleast_1d
-from numpy import empty, asarray
+from numpy import empty, asarray, searchsorted
 from scipy.interpolate import interp1d, splrep, splev
 from scipy.integrate import quad
 from scipy.optimize import newton
@@ -285,7 +285,6 @@ class CubicFunc(Func):
 
     def fprime(self, x):
         return dot(array((3*x**2, 2*x, 1., 0.)), self.coeffs)
-               
 
 class SplineFunc(Func):
     def __init__(self, xs, ys):
@@ -297,6 +296,178 @@ class SplineFunc(Func):
     def fprime(self, x):
         return splev(x, self.spline_data, der=1)
 
+def casteljau(t, ps):
+    """de Casteljau's algorythm for evaluating Bernstein forms,
+    e.g. for the third order:
+
+                 3               2          2              3
+    C (t) = (1-t) * P  +  3t(1-t) * P  +  3t(1-t) * P  +  t * P
+     3               0               1               2         3
+
+    where [P0, P1, P2, P3] are taken from ps[:]
+
+        >>> casteljau(0., [1.])
+        1.0
+        >>> casteljau(1., [1.])
+        1.0
+        >>> casteljau(0.5, [1.])
+        1.0
+        >>> casteljau(0.5, [2.])
+        2.0
+        >>> casteljau(0.5, [10., 5.])
+        7.5
+
+    Should also work for array valued (e.g. 2D) points:
+
+        >>> casteljau(0.5, [array([10., 3.]), array([5., 10.]), array([3., 5.])])
+        array([ 5.75,  7.  ])
+
+    Compare with this:
+
+        >>> casteljau(0.5, [10., 5., 3.])
+        5.75
+        >>> casteljau(0.5, [3., 10., 5.])
+        7.0
+    """
+
+    # polynomial order:
+    n = len(ps) - 1
+
+    # a copy of ps, will be modifying this:
+    bs = asarray(ps).copy() # \beta^0
+
+    for j in xrange(1, n + 1):
+        # \beta^j, j=1..n:
+        bs[:n-j+1] = bs[:n-j+1] * (1 - t) + bs[1:n-j+2] * t
+
+    return bs[0] # \beta^{n}_0
+
+class CubicSpline(Func):
+    """Piecwise fitting with cubic polynomials.
+
+    By s = CubicSpline(xs, ys, yprimes) one constructs a Func()
+    with cubic interpolation in each interval.
+
+    NOTE: the second derivative of this spline is NOT continous.
+
+        >>> s = CubicSpline([0.0, 0.3, 0.8], [1., 0., -1.], [2., 2., 3.])
+        >>> s(0.0)
+        1.0
+        >>> s(0.3)
+        0.0
+        >>> s(0.8)
+        -1.0
+        >>> round(s.fprime(0.), 12)
+        2.0
+        >>> s.fprime(0.3)
+        2.0
+        >>> s.fprime(0.8)
+        3.0
+
+    Compare analytical and numerical derivatives:
+
+        >>> abs(s.fprime(0.5)) > 1
+        True
+        >>> s1 = NumDiff(s)
+        >>> abs(s.fprime(0.5) - s1.fprime(0.5)) < 1.e-12
+        True
+
+    For single interval the same behaviour as CubicFunc():
+
+        >>> c = CubicSpline([1., 3.], [0., 0.], [1., 1.])
+        >>> round(c(1.), 12)
+        0.0
+        >>> c(3.)
+        0.0
+        >>> c.fprime(1.)
+        1.0
+
+    Should also work for nD interpolation, here 2 points in 2D:
+
+        >>> r = CubicSpline([1., 3.], [(10., 3.), (5., 10.)], [(3., 5.), (7., 9.)])
+
+        >>> r(1.)
+        array([ 10.,   3.])
+
+        >>> r(3.)
+        array([  5.,  10.])
+
+        >>> r.fprime(1.)
+        array([ 3.,  5.])
+
+        >>> r.fprime(3.)
+        array([ 7.,  9.])
+    """
+    def __init__(self, xs, ys, yprimes):
+        assert len(xs) == len(ys)
+        assert len(xs) == len(yprimes)
+
+        xs = asarray(xs)
+        ys = asarray(ys)
+        yprimes = asarray(yprimes)
+
+        self.xs = xs
+
+        # number of intervals:
+        m = len(xs) - 1
+
+        # precompute four Bezier points for each interval:
+        ps = [] # empty((m, 4))
+        for i in range(m):
+            dx = xs[i+1] - xs[i]
+            p4 = [ ys[i]
+                 , ys[i]   + yprimes[i]   / 3.0 * dx
+                 , ys[i+1] - yprimes[i+1] / 3.0 * dx
+                 , ys[i+1] ]
+            ps.append(p4)
+        self.ps = ps
+
+        # precompute three Bezier points for derivative at each interval:
+        dps = [] # empty((m, 3))
+        for i in range(m):
+            # 3 is the order of differentiated Bernstein polynomials:
+            p3 = [ 3.0 * (ps[i][1] - ps[i][0])
+                 , 3.0 * (ps[i][2] - ps[i][1])
+                 , 3.0 * (ps[i][3] - ps[i][2]) ]
+            dps.append(p3)
+        self.dps = dps
+
+    def f(self, x):
+        """Uses search in sorted array.
+        This tells that 1.5 would need to be inserted at position 2:
+            >>> searchsorted([0., 1., 2.], 1.5)
+            2
+        """
+        xs = self.xs # abbr
+        i = searchsorted(xs, x)
+
+        # out of range:
+        if i == 0: i = 1
+            # x = xs[0]
+
+        if i == len(xs): i = len(xs) - 1
+            # x = xs[-1]
+
+        # normalized coordinate within the interval, t in (0,1)
+        dx = xs[i] - xs[i-1]
+        t = (x - xs[i-1]) / dx
+        return casteljau(t, self.ps[i-1])
+
+    def fprime(self, x):
+        xs = self.xs # abbr
+        i = searchsorted(xs, x)
+
+        # out of range:
+        if i == 0: i = 1
+            # x = xs[0]
+
+        if i == len(xs): i = len(xs) - 1
+            # x = xs[-1]
+
+        # normalized coordinate within the interval, t in (0,1)
+        dx = xs[i] - xs[i-1]
+        t = (x - xs[i-1]) / dx
+        return casteljau(t, self.dps[i-1]) / dx
 
 class Integral(Func):
     """This is slightly more than a quadrature, because it
