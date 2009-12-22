@@ -172,7 +172,7 @@ Derivatives wrt |d| == x[1,1]:
 __all__ = ["Func", "LinFunc", "QuadFunc", "SplineFunc", "CubicFunc"]
 
 from numpy import array, dot, hstack, linalg, atleast_1d
-from numpy import empty
+from numpy import empty, asarray
 from scipy.interpolate import interp1d, splrep, splev
 from scipy.integrate import quad
 from scipy.optimize import newton
@@ -401,6 +401,9 @@ class NumDiff(Func):
             # FIXME: cannot one unify the two branches?
 
             f = self.f # abbreviation
+
+            # convert argument to array if necessary:
+            x = asarray(x)
 
             xshape = x.shape
             xsize  = x.size
