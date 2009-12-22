@@ -160,6 +160,48 @@ to invert the sign and wrap scalars/vectors into arrays:
     >>> ab, _, _ = minimize(f, [0.5], fprime, bounds=[(0., 1.)])
     >>> ab
     array([ 0.30661623])
+
+Build the approximate energy profile along the A-B path,
+use only seven points to evaluate MB79, both values
+and gradients:
+
+    >>> from numpy import linspace
+    >>> xs      = linspace(0., 1., 7)
+    >>> ys      = [ e(x)        for x in xs ]
+    >>> yprimes = [ e.fprime(x) for x in xs ]
+
+    >>> from func import CubicSpline
+    >>> e1 = CubicSpline(xs, ys, yprimes)
+
+Maximal difference between the real energy profile and
+cubic spline approximaton:
+
+    >>> xx = linspace(0., 1., 71)
+    >>> errs = [abs(e(x) - e1(x)) for x in xx]
+    >>> xm, err = max(zip(xx, errs), key=lambda s: s[1])
+
+    >>> xm, err
+    (0.58571428571428574, 0.73161131588862816)
+
+    >>> e(xm), e1(xm)
+    (-57.002611182814157, -56.270999866925528)
+
+Find an energy minimum at approximated energy profile:
+
+    >>> def f(x): return -e1.f(x[0])
+    >>> def fprime(x): return -e1.fprime(x[0]).flatten()
+
+    >>> ab1, _, _ = minimize(f, [0.5], fprime, bounds=[(0., 1.)])
+    >>> ab1
+    array([ 0.30776737])
+
+This is not much different from the previous result, 0.30661623.
+
+    >>> -e(0.30776737), -e1(0.30776737)
+    (-12.674103478706414, -12.634608278360837)
+
+    >>> -e(0.30661623), -e1(0.30661623)
+    (-12.676228284381487, -12.632359891279457)
 """
 __all__ = ["energy", "gradient"] # "MuellerBrown"]
 
