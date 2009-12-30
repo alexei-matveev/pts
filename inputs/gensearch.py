@@ -5,6 +5,7 @@ import os
 import aof
 from aof.common import file2str
 import ase
+from numpy import zeros # temporary
 
 name, params_file, mol_strings, init_state_vec = aof.setup(sys.argv)
 
@@ -33,7 +34,7 @@ CoS = aof.searcher.GrowingString(init_state_vec,
 
 
 # callback function
-cb = lambda x: aof.generic_callback(x, mi, CoS, params)
+cb = lambda x: aof.generic_callback(x, mi, CoS, params, zeros(60))
 
 runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.2)
 

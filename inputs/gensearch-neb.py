@@ -38,6 +38,7 @@ cb = lambda x: aof.generic_callback(x, mi, CoS, params)
 runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.2)
 
 # main optimisation loop
+cb(CoS)
 print runopt()
 while CoS.must_regenerate or (growing and CoS.grow_string()):
     print CoS.must_regenerate, growing, CoS.grow_string()
@@ -46,7 +47,7 @@ while CoS.must_regenerate or (growing and CoS.grow_string()):
     runopt()
 
 # get best estimate(s) of TS from band/string
-tss = CoS.ts_estims()
+tss = CoS.ts_estims(mode='splines')
 
 # print cartesian coordinates of all transition states that were found
 print "Dumping located transition states"

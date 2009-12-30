@@ -9,6 +9,7 @@ import os
 from copy import deepcopy
 
 import common
+import zmat
 
 def vec_to_mat(v):
     """Generates rotation matrix based on vector v, whose length specifies 
@@ -830,7 +831,7 @@ class XYZ(CoordSys):
             raise CoordSysException("String did not match pattern for XYZ:\n" + molstr)
 
         coords = re.findall(r"([+-]?\d+\.\d*)", molstr)
-        atom_symbols = re.findall(r"(\w\w?).+?\n", molstr)
+        atom_symbols = re.findall(r"([a-zA-Z][a-zA-Z]?).+?\n", molstr)
         self._coords = numpy.array([float(c) for c in coords])
 
         CoordSys.__init__(self, atom_symbols, 
@@ -902,3 +903,179 @@ class C(B):
         self.c=3
     def y(self):
         return A.x
+
+class ZMatrix2(CoordSys):
+    """
+    Supports optimisations in terms of z-matrices. This version uses zmat.py.
+
+        >>> s = "C\\nH 1 ch1\\nH 1 ch2 2 hch1\\nH 1 ch3 2 hch2 3 hchh1\\nH 1 ch4 2 hch3 3 -hchh2\\n\\nch1    1.09\\nch2    1.09\\nch3    1.09\\nch4    1.09\\nhch1 109.5\\nhch2 109.5\\nhch3 109.5\\nhchh1  120.\\nhchh2  120.\\n"
+
+        >>> z = ZMatrix2(s)
+        >>> z.get_internals()
+        array([ 1.09      ,  1.09      ,  1.09      ,  1.09      ,  1.91113553,
+                1.91113553,  1.91113553,  2.0943951 ,  2.0943951 ])
+
+        >>> ints = z.get_internals()
+
+        >>> z.get_cartesians()
+        array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
+               [  1.09000000e+00,   0.00000000e+00,   0.00000000e+00],
+               [  5.04109050e-01,   5.91763623e-17,  -9.66423337e-01],
+               [ -3.63849477e-01,  -9.68544549e-01,   3.42979613e-01],
+               [ -9.55567765e-01,  -1.43335165e+00,   8.27545960e-01]])
+        >>> cs = z.get_cartesians() + 1000
+        >>> z.set_cartesians(cs)
+        >>> from numpy import abs
+        >>> abs(z.get_internals() - ints).round()
+        array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
+
+        >>> r = repr(z)
+        
+   
+    """
+    @staticmethod
+    def matches(mol_text):
+        """Returns True if and only if mol_text matches a z-matrix. There must be at least one
+        variable in the variable list."""
+        zmt = re.compile(r"""\s*(\w\w?\s*
+                             \s*(\w\w?\s+\d+\s+\S+\s*
+                             \s*(\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s*
+                             ([ ]*\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s+\d+\s+\S+[ ]*\n)*)?)?)[ \t]*\n
+                             (([ ]*\w+\s+[+-]?\d+\.\d*[ \t\r\f\v]*\n)+)\s*$""", re.X)
+        return (zmt.match(mol_text) != None)
+
+    def __init__(self, mol, anchor=Dummy()):
+
+        molstr = self._get_mol_str(mol)
+
+        self.zmtatoms = []
+        self.vars = dict()
+        self.zmtatoms_dict = dict()
+        self._anchor = anchor
+
+        if not self.matches(molstr):
+            raise ZMatrixException("Z-matrix not found in string:\n" + molstr)
+
+        parts = re.search(r"(?P<zmt>.+?)\n\s*\n(?P<vars>.+)", molstr, re.S)
+
+        # z-matrix text, specifies connection of atoms
+        zmt_spec = parts.group("zmt")
+
+        # variables text, specifies values of variables
+        variables_text = parts.group("vars")
+        self.var_names = re.findall(r"(\w+).*?\n", variables_text)
+        coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
+        self._coords = numpy.array([float(c) for c in coords])
+    
+        # Create data structure of atoms. There is both an ordered list and an 
+        # unordered dictionary with atom index as the key.
+        lines = zmt_spec.split("\n")
+        for ix, line in myenumerate(lines, start=1):
+            a = ZMTAtom(line, ix)
+            self.zmtatoms.append(a)
+
+        # Dictionaries of (a) dihedral angles and (b) angles
+        self.dih_vars = dict()
+        self.angles = dict()
+        for atom in self.zmtatoms:
+            if atom.dih_var() != None:
+                self.dih_vars[atom.dih_var()] = 1
+                self.angles[atom.dih_var()] = 1
+            if atom.ang != None:
+                self.angles[atom.ang] = 1
+
+        # Create dictionary of variable values (unordered) and an 
+        # ordered list of variable names.
+        #print "Molecule"
+        for i in range(len(self.var_names)):
+            key = self.var_names[i]
+            if key in self.angles:
+                self._coords[i] *= common.DEG_TO_RAD
+            val = float(self._coords[i])
+
+            self.vars[key] = val
+
+        # check that z-matrix is fully specified
+        self.zmt_ordered_vars = []
+        for atom in self.zmtatoms:
+            self.zmt_ordered_vars += atom.all_vars()
+        for var in self.zmt_ordered_vars:
+            if not var in self.vars:
+                raise ZMatrixException("Variable '" + var + "' not given in z-matrix")
+
+        symbols = [a.name for a in self.zmtatoms]
+
+        spec = self.make_spec(self.zmtatoms)
+        self._zmt = zmat.ZMat(spec)
+        CoordSys.__init__(self, symbols, 
+            self.get_cartesians(), 
+            self._coords,
+            anchor)
+        
+
+    def make_spec(self, zmtatoms):
+        l = []
+        for a in zmtatoms:
+            if a.a == None:
+                con = ()
+            elif a.b == None:
+                con = (a.a - 1,)
+            elif a.c == None:
+                con = (a.a - 1, a.b - 1,)
+            else:
+                con = (a.a - 1, a.b - 1, a.c - 1)
+
+            l.append(con)
+        return l
+
+    def __repr__(self):
+        return self.zmt_str()
+
+    def wants_anchor(self):
+        return True
+
+    def zmt_str(self):
+        """Returns a z-matrix format molecular representation in a string."""
+        mystr = ""
+        for atom in self.zmtatoms:
+            mystr += str(atom) + "\n"
+        mystr += "\n"
+        for var in self.var_names:
+            if var in self.angles:
+                mystr += var + "\t" + str(self.vars[var] * common.RAD_TO_DEG) + "\n"
+            else:
+                mystr += var + "\t" + str(self.vars[var]) + "\n"
+        return mystr
+
+    def set_internals(self, internals):
+        """Update stored list of variable values."""
+
+        CoordSys.set_internals(self, internals)
+
+        for i, var in zip( internals[0:self._dims], self.var_names ):
+            self.vars[var] = i
+
+    def set_cartesians(self, carts):
+        """Calculates internal coordinates based on given cartesians."""
+
+        internals = self._zmt.pinv(carts)
+        self.set_internals(internals)
+
+    def get_cartesians(self):
+        """Generates cartesian coordinates from z-matrix and the current set of 
+        internal coordinates. Based on code in OpenBabel."""
+        
+        xyz_coords = self._zmt.f(self._coords)
+
+        return xyz_coords
+
+# Testing the examples in __doc__strings, execute
+# "python gxmatrix.py", eventualy with "-v" option appended:
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+
+# You need to add "set modeline" and eventually "set modelines=5"
+# to your ~/.vimrc for this to take effect.
+# Dont (accidentally) delete these lines! Unless you do it intentionally ...
+# Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax

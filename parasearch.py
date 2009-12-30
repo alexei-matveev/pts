@@ -6,6 +6,7 @@ import getopt
 import re
 import logging
 import numpy
+from numpy.linalg import norm
 from copy import deepcopy
 import time
 
@@ -240,7 +241,7 @@ def setup_and_run(mol_strings, params):
         assert False, "Should never happen, program should check earlier that the opt is specified correctly."
 
 # callback function
-def generic_callback(x, molinterface, CoS, params):
+def generic_callback(x, molinterface, CoS, params, correct_ts=None):
     print common.line()
     print "Time %f s" % (time.time() - start_time)
     print CoS
@@ -255,6 +256,19 @@ def generic_callback(x, molinterface, CoS, params):
     energies, history = zip(*l)
     mol_list_to_traj(molinterface, history, energies, name + "-evol")
     common.str2file(CoS.state_vec, name + "-state_vec" + common.LOGFILE_EXT)
+
+    if correct_ts != None:
+        ts1 = CoS.ts_estims(mode='highest')[-1][-1]
+        ts2 = CoS.ts_estims(mode='splines_and_cubic')[-1][-1]
+        ts3 = CoS.ts_estims(mode='splines')[-1][-1]
+
+        ts1_err = norm(ts1 - correct_ts)
+        ts2_err = norm(ts1 - correct_ts)
+        ts3_err = norm(ts1 - correct_ts)
+
+        print "TS Errors (h,sac,s)\t%s\t%s\t%s" %(ts1_err, ts2_err, ts3_err)
+
+
 
     print common.line()
     return x

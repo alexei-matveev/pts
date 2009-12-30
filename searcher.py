@@ -182,10 +182,12 @@ class ReactionPathway:
         from the current pathway.
         """
         estims = self.ts_estims(mode=mode)
+        if len(estims) < 1:
+            lg.warn("No transition state found.")
         estims.sort()
         self.ts_history.append(estims[-1])
         
-    def ts_estims(self, tol=1e-10, mode='highest'):
+    def ts_estims(self, tol=1e-10, mode='splines_and_cubic'):
         """Returns list of all transition state(s) that appear to exist along
         the reaction pathway."""
 
@@ -241,8 +243,12 @@ class ReactionPathway:
             # build fresh functional representation of optimisation 
             # coordinates as a function of a path parameter s
             xs = Path(ys, ss)
+            print "ss",ss
 
             ts_list = []
+
+            from numpy.linalg import norm
+            print "ys", norm(ys[2]-ys[1]), norm(ys[1]-ys[0])
             for i in range(n)[1:]:#-1]:
                 # For each pair of points along the path, find the minimum
                 # energy and check that the gradient is also zero.
@@ -252,8 +258,9 @@ class ReactionPathway:
                 dEdx_1 = self.bead_pes_gradients[i]
                 dxds_0 = xs.fprime(ss[i-1])
                 dxds_1 = xs.fprime(ss[i])
+                print "ang", common.vector_angle(ys[2]-ys[0], dxds_1)
 
-                # energy gradient at "left/right" bead along path
+                #energy gradient at "left/right" bead along path
                 #print "dEdx_0, dxds_0", dEdx_0, dxds_0
                 #print "dEdx_1, dxds_1", dEdx_1, dxds_1
                 dEds_0 = dot(dEdx_0, dxds_0)
@@ -261,7 +268,7 @@ class ReactionPathway:
 
                 dEdss = array([dEds_0, dEds_1])
                 #print "i",i
-                #print "dEdss", dEdss
+                print "dEdss", dEdss
                 #print "ss[i-1:i+1], Es[i-1:i+1]", ss[i-1:i+1], Es[i-1:i+1]
 
                 if dEds_0 >= 0 and dEds_1 < 0:
@@ -274,10 +281,10 @@ class ReactionPathway:
                     E_prime_estim = lambda s: cub.fprime(atleast_1d(s)[0])
 
                     s_min = fminbound(E_estim_neg, ss[i-1], ss[i], xtol=tol)
-                    #print "s_min",s_min
+                    print "s_min",s_min
                     E_s = -E_estim_neg(s_min)
 
-                    #print "E_s", E_s
+                    print "E_s", E_s
 
                     # Use a looser tollerance on the gradient than on minimisation of 
                     # the energy function. FIXME: can this be done better?
@@ -296,6 +303,10 @@ class ReactionPathway:
         else:
             raise Exception("Unrecognised TS estimation mode " + mode)
 
+        if len(ts_list) < 1:
+            ix = self.beads_count/2
+            lg.warn("No transition state found, taking bead with index beads_count/2.")
+            ts_list = [(Es[ix], dofs[ix])]
 
         return ts_list
 
@@ -531,7 +542,10 @@ class NEB(ReactionPathway):
         if new_state_vec != None:
             self.record_energy()
 
-        return -total_bead_forces.flatten()
+        g = -total_bead_forces.flatten()
+        print "g", g
+        print str(self)
+        return g
 
 class Func():
     def f():
