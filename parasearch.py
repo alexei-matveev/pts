@@ -263,10 +263,10 @@ def generic_callback(x, molinterface, CoS, params, correct_ts=None):
         ts3 = CoS.ts_estims(mode='splines')[-1][-1]
 
         ts1_err = norm(ts1 - correct_ts)
-        ts2_err = norm(ts1 - correct_ts)
-        ts3_err = norm(ts1 - correct_ts)
+        ts2_err = norm(ts2 - correct_ts)
+        ts3_err = norm(ts3 - correct_ts)
 
-        print "TS Errors (h,sac,s)\t%s\t%s\t%s" %(ts1_err, ts2_err, ts3_err)
+        print "TS Errors (h,sac,s)\t%s\t%s\t%s" % (ts1_err, ts2_err, ts3_err)
 
 
 

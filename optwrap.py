@@ -41,7 +41,7 @@ def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
 
         # attach optimiser to print out each step in
         opt.attach(lambda: callback(None), interval=1)
-        opt.run(fmax=tol)
+        opt.run(fmax=tol, steps=maxit)
         x_opt = CoS.state_vec
         return None
 

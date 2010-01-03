@@ -34,7 +34,7 @@ CoS = aof.searcher.GrowingString(init_state_vec,
 
 
 # callback function
-cb = lambda x: aof.generic_callback(x, mi, CoS, params, zeros(60))
+cb = lambda x: aof.generic_callback(x, mi, CoS, params)
 
 runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.2)
 

@@ -43,7 +43,7 @@ def main(argv=None):
             raise Usage("Must specify two files")
 
         sep_str = args[2]
-        run(sep_str, args[0], args[1], [2,3,4])
+        run(sep_str, args[0], args[1], [1,2,3])
 
     except Usage, err:
         print >>sys.stderr, err.msg
