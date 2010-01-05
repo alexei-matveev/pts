@@ -88,7 +88,9 @@ def run(order_str, fn1, fn2, ixs=None):
         i,j = o
         g1.append(geom1[i])
         g2.append(geom2[j])
-        assert a1.get_chemical_symbols()[i] == a2.get_chemical_symbols()[j]
+        print i, j, a1.get_chemical_symbols()[i] + " = " + a2.get_chemical_symbols()[j]
+
+        assert a1.get_chemical_symbols()[i] == a2.get_chemical_symbols()[j], a1.get_chemical_symbols()[i] + " = " + a2.get_chemical_symbols()[j]
         chem_symbols.append(a2.get_chemical_symbols()[j])
 
     g1 = array(g1)

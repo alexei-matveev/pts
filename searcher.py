@@ -30,6 +30,11 @@ if not globals().has_key("lg"):
     sh.setLevel(logging.DEBUG)
     lg.addHandler(sh)
 
+class MustRegenerate(Exception):
+    pass
+
+class MustRestart(Exception):
+    pass
 
 def _functionId(nFramesUp):
     """ Create a string naming the function n frames up on the stack.
@@ -109,6 +114,9 @@ class ReactionPathway:
         strrep += "\nAngles: %s" % str(self.get_angles())
 
         return strrep
+
+    def grow_string(self):
+        return False
 
     def get_angles(self):
         """Returns an array of angles between beed groups of 3 beads."""
@@ -1185,7 +1193,8 @@ class GrowingString(ReactionPathway):
         # If bead spacings become too uneven, set a flag so that the string 
         # is not modified until it is updated.
         if self.lengths_disparate():
-            self.must_regenerate = True
+            raise MustRegenerate
+            #self.must_regenerate = True
 
         return es.sum() #es.max() #total_energies
        
@@ -1254,7 +1263,8 @@ class GrowingString(ReactionPathway):
         # If bead spacings become too uneven, set a flag so that the string 
         # is not modified until it is updated.
         if self.lengths_disparate():
-            self.must_regenerate = True
+            raise MustRegenerate
+            #self.must_regenerate = True
 
         return gradients
 
