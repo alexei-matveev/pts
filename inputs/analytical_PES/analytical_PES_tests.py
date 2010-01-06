@@ -67,10 +67,10 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 
     run_opt = lambda: aof.runopt(alg, CoS, tol, maxit, callback, maxstep=0.1)
     print run_opt()
-    while CoS.must_regenerate or growing and CoS.grow_string():
+    """while CoS.must_regenerate or growing and CoS.grow_string():
         CoS.update_path()
         print "Optimisation RESTARTED"
-        print run_opt()
+        print run_opt()"""
 
     print CoS.ts_estims(mode='splines_and_cubic')
 
@@ -80,13 +80,14 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 # python path_representation.py [-v]:
 if __name__ == "__main__":
     reagents_MB = [array([ 0.62349942,  0.02803776]), array([-0.558, 1.442])]
-#    reagents_MB = eval(aof.common.file2str("test.txt"))
+    reagents_MB = eval(aof.common.file2str("initial_pathway.txt"))
+#    reagents_MB = array([[ 0.62349942,  0.02803776], [-0.82200156,  0.62431281], [-0.558     ,  1.442     ]])
 #    test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 12, 1., 'ase_lbfgs', tol=0.001)
 
     MB_saddle1 = array([ 0.21248659,  0.29298832]) # energy = -0.072248940112325243
     MB_saddle2 = array([-0.82200156,  0.62431281]) # energy = -0.040664843508657414
 
-    test_StaticModel('neb', aof.pes.MuellerBrown(), reagents_MB, 11, 2., 'scipy_lbfgsb', tol=0.0001, maxit=50, real_ts=MB_saddle2, plot='never')
+    test_StaticModel('neb', aof.pes.MuellerBrown(), reagents_MB, 11, 2., 'ase_scipy_lbfgsb', tol=0.0001, maxit=20, real_ts=MB_saddle2, plot='every')
 
     exit()
     reagents = [array([0.,0.]), array([3.,3.])]

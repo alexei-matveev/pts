@@ -58,9 +58,9 @@ params = {
     # variables to mask, see above
     'mask': mask} 
 
-beads_count = 8   # number of beads
+beads_count = 3   # number of beads
 tol = 0.001       # optimiser force tolerance
-maxit = 30       # max iterations
+maxit = 2       # max iterations
 spr_const = 5.0  # NEB spring constant (ignored for string)
 growing = False  # is the string growing
 

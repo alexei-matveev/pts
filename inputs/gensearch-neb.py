@@ -40,11 +40,6 @@ runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.2)
 # main optimisation loop
 cb(CoS)
 print runopt()
-while CoS.must_regenerate or (growing and CoS.grow_string()):
-    print CoS.must_regenerate, growing, CoS.grow_string()
-    CoS.update_path()
-    print "Optimisation RESTARTED (i.e. string grown or respaced)"
-    runopt()
 
 # get best estimate(s) of TS from band/string
 tss = CoS.ts_estims(mode='splines')

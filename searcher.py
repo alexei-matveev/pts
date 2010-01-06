@@ -31,9 +31,11 @@ if not globals().has_key("lg"):
     lg.addHandler(sh)
 
 class MustRegenerate(Exception):
+    """Used to force the optimiser to exit in certain situations."""
     pass
 
 class MustRestart(Exception):
+    """Used to force the optimiser to exit in certain situations."""
     pass
 
 def _functionId(nFramesUp):
@@ -356,10 +358,17 @@ class NEB(ReactionPathway):
 
         self.use_upwinding_tangent = True
 
-        #  TODO: generate initial path using all geoms in reagents. Must use
-        # path representation object.
-        reactants, products = reagents[0], reagents[-1]
-        self.state_vec = vector_interpolate(reactants, products, beads_count)
+        # Generate or copy specified initial path
+        if len(reagents) == beads_count:
+            self.state_vec = reagents.copy()
+        else:
+            pr = PathRepresentation(reagents, beads_count, lambda x: 1)
+            pr.regen_path_func()
+            pr.generate_beads(update = True)
+            self.state_vec = pr.state_vec.copy()
+
+#        reactants, products = reagents[0], reagents[-1]
+#        self.state_vec = vector_interpolate(reactants, products, beads_count)
 
     def special_reduce_old(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
         """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
@@ -603,10 +612,7 @@ class PathRepresentation(object):
     def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 10000):
 
         # vector of vectors defining the path
-        if (isinstance(state_vec, ndarray)):
-            self.__state_vec = state_vec
-        else:
-            self.__state_vec = array(state_vec)
+        self.__state_vec = array(state_vec)
 
         # number of vectors defining the path
         self.beads_count = beads_count
