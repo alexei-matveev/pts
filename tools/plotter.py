@@ -6,6 +6,7 @@
 import os
 import sys
 import getopt
+from os.path import basename
 
 class Usage(Exception):
     def __init__(self, msg):
@@ -41,6 +42,8 @@ def run(args, maxit=50):
     for fn in args:
         f = open(fn)
         f_out = open(fn + '.out', 'w')
+
+        prev = 0., 0., 0.
         while True:
             line = f.readline()
             if not line:
@@ -48,26 +51,29 @@ def run(args, maxit=50):
 
             if line[0:7] == 'Archive':
                 line = line.split(':')[1]
-                """a = line.split()
+                a = line.split()
                 bc, bgc, gc, ec, rmsf, e, maxe = a
                 bc, bgc, gc, ec = [int(i) for i in bc, bgc, gc, ec]
-                rmsf, e, maxe = [float(i) for i in rmsf, e, maxe]"""
+                rmsf, e, maxe = [float(i) for i in rmsf, e, maxe]
 
-                f_out.write(line)
+                if (rmsf, e, maxe) != prev:
+                    line = "%d\t%d\t%d\t%d\t%f\t%f\t%f\n" % (bc, bgc, gc, ec, rmsf, e, maxe)
+                    f_out.write(line)
+                    prev = rmsf, e, maxe
         f.close()
         f_out.close()
 
     plot_files = ['"' + fn + '.out"' for fn in args]
-    energy_plots = [fn + ' using 3:6' for fn in plot_files]
+    energy_plots = [fn + ' using 6' for fn in plot_files]
     energy_plots = ','.join(energy_plots)
 
-    gradient_plots = [fn + ' using 3:5' for fn in plot_files]
+    gradient_plots = [fn + ' using 5' for fn in plot_files]
     gradient_plots = ','.join(gradient_plots)
 
     values = {'maxit': maxit, 'energyplots': energy_plots, 'gradientplots': gradient_plots}
     gnuplot_str = plot_str % values
 
-    gpfile = '_'.join(args) + '.gp'
+    gpfile = '_'.join([basename(a) for a in args]) + '.gp'
     out = open(gpfile, 'w')
     out.write(gnuplot_str)
     out.close()
