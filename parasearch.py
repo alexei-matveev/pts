@@ -436,6 +436,52 @@ def dump_beads(molinterface, chain_of_states, name):
     mols = chain_of_states.get_bead_coords()
     energies = chain_of_states.bead_pes_energies
 
+   # the values we also wanted:
+ 
+    #print "States", chain_of_states
+    ### SEEVALUES
+    outputbeadafterbead = False 
+    seeforces =  numpy.array(chain_of_states.bead_forces )
+    seetangents = chain_of_states.tangents
+    onedim, twodim = seetangents.shape
+    dimsee = seeforces.shape[0]
+    if int(dimsee) == (onedim-2)* twodim:
+        helpforce = numpy.zeros((1,twodim))
+        seeforce = seeforces.reshape(onedim -2 ,twodim)
+        seegradients = chain_of_states.bead_pes_gradients
+        if outputbeadafterbead:
+            for numi, seetangent in enumerate(seetangents):
+                  print "for bead",numi,"with energy", energies[numi]
+                  print "coordinates:"
+                  print mols[numi]
+                  print "force:"
+                  if numi == 0:
+                      print helpforce[0]
+                  elif numi == onedim-1:
+                      print helpforce[0]
+                  else:
+                      print seeforce[numi-1]
+                  print "tangent:"
+                  print seetangent
+                  print "gradient (without spring forces/ projections):"
+                  print seegradients[numi]
+        else:
+            print "for",onedim,"beads"
+            print "energy:"
+            for energy in energies:
+                print energy
+            print "force:"
+            print helpforce[0]
+            for sforce in seeforce:
+                print sforce   
+            print helpforce[0]
+            print "tangent:"
+            for seetangent in seetangents:
+                print seetangent
+            print "gradient (without spring forces/ projections):"
+            for seegradient in seegradients:
+                print seegradient
+
     mol_list_to_traj(molinterface, mols, energies, name)
 
 def mol_list_to_traj(molinterface, mols, energies, name):
