@@ -410,6 +410,10 @@ class CoordSys(object):
         self._atoms.positions = self.get_cartesians()
         return self._atoms
 
+    @property
+    def atoms_count(self):
+        return len(self._atoms)
+
     def xyz_str(self):
         """Returns an xyz format molecular representation in a string."""
 
@@ -757,7 +761,7 @@ class ComplexCoordSys(CoordSys):
         parents = numpy.array([p._anchor != None for p in self._parts])
         anchors = numpy.array([p.wants_anchor != None for p in self._parts])
         if not (parents & anchors).all():
-            raise ComplexCoordSysException("Not all objects that need one have an anchor, and/or some that don't need one have one.")
+            raise ComplexCoordSysException("Not all objects that need an anchor have one, and/or some that don't need one have one.")
 
         l_join = lambda a, b: a + b
         atom_symbols = reduce(l_join, [p.get_chemical_symbols() for p in self._parts])
@@ -815,6 +819,13 @@ class ComplexCoordSys(CoordSys):
     def get_cartesians(self):
         carts = [p.get_cartesians() for p in self._parts]
         return numpy.vstack(carts)
+    
+    def set_cartesians(self, x):
+        raise False, "Not Yet Implemented"
+
+        asum = 0
+        for p in self._parts:
+            p.set_cartesians(x[asum:asum + p.atoms_count]) for p in self._parts]
  
 
 class XYZ(CoordSys):
@@ -864,6 +875,10 @@ class XYZ(CoordSys):
 
     def get_cartesians(self):
         return self._coords.reshape(-1,3)
+    def set_cartesians(self, x):
+        tmp = x.reshape(-1,3)
+        assert len(tmp) == len(self._coords)
+        self._coords = tmp
 
     @staticmethod
     def matches(molstr):
