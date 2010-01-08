@@ -9,8 +9,11 @@ from numpy import zeros # temporary
 
 name, params_file, mol_strings, init_state_vec = aof.setup(sys.argv)
 
-# bring in custom parameters parameters
-exec(file2str(params_file))
+# bring in custom parameters
+
+params_file_str = file2str(params_file)
+print params_file_str
+exec(params_file_str)
 
 # set up some objects
 mi          = aof.MolInterface(mol_strings, params)
