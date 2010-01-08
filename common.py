@@ -330,3 +330,12 @@ if __name__ == "__main__":
     import doctest
     doctest.testmod()
 
+def important(s):
+    n = len(s)
+    rep = lambda c, j: ''.join([c for i in range(j)])
+    line = '+' + rep('-', n) + '+'
+    mid = '|' + s + '|'
+    s = "%s\n%s\n%s" % (line, mid, line)
+    return s
+
+

@@ -825,7 +825,7 @@ class ComplexCoordSys(CoordSys):
 
         asum = 0
         for p in self._parts:
-            p.set_cartesians(x[asum:asum + p.atoms_count]) for p in self._parts]
+            p.set_cartesians(x[asum:asum + p.atoms_count])
  
 
 class XYZ(CoordSys):

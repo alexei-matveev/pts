@@ -6,6 +6,7 @@ from scipy.optimize import fmin_cg
 import ase
 import aof
 from aof import MustRegenerate, MaxIterations, Converged
+from aof.common import important
 
 __all__ = ["opt"]
 
@@ -15,6 +16,7 @@ def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
 
     CoS.maxit = maxit
     def cb(x):
+        print "tol",tol
         return callback(x, tol=tol)
 
     while True:
@@ -22,21 +24,21 @@ def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
             # tol and maxit are scaled so that they are never reached.
             # Convergence is tested via the callback function.
             # Exceeding maxit is tested during an energy/gradient call.
-            runopt_inner(name, CoS, tol*0.01, maxit*100, callback, maxstep=0.2)
+            runopt_inner(name, CoS, tol*0.01, maxit*100, cb, maxstep=0.2)
         except MustRegenerate:
             CoS.update_path()
-            print "Optimisation RESTARTED (respaced)"
+            print important("Optimisation RESTARTED (respaced)")
             continue
 
         except MaxIterations:
-            print "Optimisation STOPPED (maximum iterations)"
+            print important("Optimisation STOPPED (maximum iterations)")
             break
 
         except Converged:
-            print "Optimisation Converged"
+            print important("Optimisation Converged")
 
         if CoS.grow_string():
-            print "Optimisation RESTARTED (string grown)"
+            print important("Optimisation RESTARTED (string grown)")
             continue
         else:
             break

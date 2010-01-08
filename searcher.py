@@ -97,6 +97,7 @@ class ReactionPathway:
         TODO: this should probably be called via the optimiser at some point.
         """
 
+        print "tol",tol
         if self.g_calls == 0:
             return
         elif self.growing and not self.grown() and self.rmsf < tol*10:
