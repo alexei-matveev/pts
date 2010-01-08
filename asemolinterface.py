@@ -191,6 +191,7 @@ class MolInterface:
             placement = self.place_str(item.tag)
             cmd = placement.split() + cmd
             lg.info("Running with placement command %s" % placement)
+        print "Final command", ' '.join(cmd)
         p = Popen(cmd, stdout=open(ase_stdout_file, "w"), stderr=STDOUT)
 
         (pid, ret_val) = os.waitpid(p.pid, 0)

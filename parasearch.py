@@ -241,7 +241,7 @@ def setup_and_run(mol_strings, params):
         assert False, "Should never happen, program should check earlier that the opt is specified correctly."
 
 # callback function
-def generic_callback(x, molinterface, CoS, params, correct_ts=None):
+def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
     print common.line()
     print "Time %f s" % (time.time() - start_time)
     print CoS
@@ -271,6 +271,9 @@ def generic_callback(x, molinterface, CoS, params, correct_ts=None):
 
 
     print common.line()
+
+    CoS.test_convergence(tol)
+
     return x
 
 

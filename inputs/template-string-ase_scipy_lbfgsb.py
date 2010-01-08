@@ -1,5 +1,8 @@
 # optimiser to use
-opt_type = 'ase_lbfgs'
+opt_type = 'ase_scipy_lbfgsb'
+
+# Chain of State method to use
+cos_type = 'string'
 
 # mask of variables to freeze
 # True => optimised
@@ -59,9 +62,8 @@ params = {
     'mask': mask} 
 
 beads_count = 7   # number of beads
-tol = 0.001       # optimiser force tolerance
-maxit = 40       # max iterations
+tol = 0.01       # optimiser force tolerance
+maxit = 50       # max iterations
 spr_const = 5.0  # NEB spring constant (ignored for string)
-growing = False  # is the string growing
 
 

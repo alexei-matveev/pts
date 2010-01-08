@@ -20,6 +20,7 @@ from func import CubicFunc
 
 from common import * # TODO: must unify
 import aof.common as common
+import aof
 
 
 lg = logging.getLogger("aof.searcher")
@@ -30,14 +31,6 @@ if not globals().has_key("lg"):
     sh.setLevel(logging.DEBUG)
     lg.addHandler(sh)
 
-class MustRegenerate(Exception):
-    """Used to force the optimiser to exit in certain situations."""
-    pass
-
-class MustRestart(Exception):
-    """Used to force the optimiser to exit in certain situations."""
-    pass
-
 def _functionId(nFramesUp):
     """ Create a string naming the function n frames up on the stack.
     """
@@ -47,10 +40,10 @@ def _functionId(nFramesUp):
 
 
 # Function labeller
-def flab(*args):
+"""def flab(*args):
     import sys
     args = [str(a) for a in args]
-    lg.info("**** " + sys._getframe(1).f_code.co_name + ' '.join(args))
+    lg.info("**** " + sys._getframe(1).f_code.co_name + ' '.join(args))"""
 
 class ReactionPathway:
     """Abstract object for chain-of-state reaction pathway."""
@@ -62,7 +55,7 @@ class ReactionPathway:
     bead_e_calls = 0
 
     # Set to true by GrowingString sub-class to indicate that bead spacing 
-    # threshold has been exceeded.
+    # threshold has been exceeded. TODO: can I get rid of this now?
     must_regenerate = False
 
     def __init__(self, reagents, beads_count, qc_driver, parallel):
@@ -75,7 +68,7 @@ class ReactionPathway:
         #TODO: check that all reagents are same length
 
         # forces perpendicular to pathway
-        self.bead_forces = zeros(beads_count * self.dimension)
+        self.bead_forces = zeros(beads_count * self.dimension).reshape(beads_count,-1)
 
 #        self.bead_pes_energies = deepcopy(self.default_initial_bead_pes_energies)
 
@@ -94,14 +87,40 @@ class ReactionPathway:
         # mask of gradients to update at each position
         self.grad_update_mask = [False] + [True for i in range(beads_count-2)] + [False]
 
+        self._maxit = sys.maxint
+
+    def test_convergence(self, tol):
+        """
+        Raises Converged if converged, applying weaker convergence 
+        criterion if growing string is not fully grown.
+
+        TODO: this should probably be called via the optimiser at some point.
+        """
+
+        if self.g_calls == 0:
+            return
+        elif self.growing and not self.grown() and self.rmsf < tol*10:
+            raise aof.Converged
+        elif self.rmsf < tol:
+            raise aof.Converged
+
+    @property
+    def rmsf(self):
+        return common.rms(self.bead_forces[1:-1])
+
     def __str__(self):
-        strrep = "Bead Energies: " + str(self.bead_pes_energies) + "\n"
         total_energy = 0
+        assert len(self.bead_forces) == self.beads_count
+        rms = self.rmsf
+
+        #TODO: clean this up
+        strrep = "Bead Energies: %s\n" % self.bead_pes_energies
+        strrep += "Pythagorean Bead separations: %s\n" % self.update_bead_separations() 
         for i in range(len(self.bead_pes_energies)): #[1:-1]:
             total_energy += self.bead_pes_energies[i]
         max_energy = self.bead_pes_energies.max()
         strrep += "Total Band Energy: " + str(total_energy)
-        strrep += "\nRMS Perpendicular bead forces: " + str(common.rms(self.bead_forces))
+        strrep += "\nRMS Perpendicular bead forces: " + str(rms)
         strrep += "\nFunction calls: " + str(self.e_calls)
         strrep += "\nGradient calls: " + str(self.g_calls)
         strrep += "\nArchive (bc, bgc, gc, ec, rmsf, e, maxe): %d\t%d\t%d\t%d\t%f\t%f\t%f" % \
@@ -109,7 +128,7 @@ class ReactionPathway:
                 self.bead_g_calls, 
                 self.g_calls, 
                 self.e_calls, 
-                common.rms(self.bead_forces), 
+                rms, 
                 total_energy, 
                 max_energy)
 
@@ -129,6 +148,22 @@ class ReactionPathway:
             t1 = self.state_vec[i] - self.state_vec[i-1]
             angles.append(vector_angle(t1, t0))
         return array(angles)
+
+    def update_bead_separations(self):
+        """Updates internal vector of distances between beads."""
+
+        v = self.state_vec.copy()
+        seps = []
+        for i in range(1,len(v)):
+            dv = v[i] - v[i-1]
+            seps.append(dot(dv,dv))
+
+        self.bead_separations = array(seps)**0.5
+
+#        lg.info("Pythagorean Bead separations: %s" % self.bead_separations)
+
+        return self.bead_separations
+
 
     def pathfs(self):
         return None
@@ -150,7 +185,17 @@ class ReactionPathway:
         tmp.shape = (self.beads_count, self.dimension)
         return tmp
 
+    def get_maxit(self):
+        return self._maxit
+    def set_maxit(self, new):
+        assert new > 0
+        self._maxit = new
+    maxit = property(get_maxit, set_maxit)
+
     def obj_func(self, x):
+        if self.e_calls >= self.maxit or self.g_calls >= self.maxit:
+            raise aof.MaxIterations
+
         lg.info("Chain of States Objective Function call.")
         self.e_calls += 1
         if self.bead_g_calls == 0:
@@ -161,6 +206,9 @@ class ReactionPathway:
         self.history.append(deepcopy(x))
 
     def obj_func_grad(self, x):
+        if self.e_calls >= self.maxit or self.g_calls >= self.maxit:
+            raise aof.MaxIterations
+
         lg.info("Chain of States Objective Function *Gradient* call.")
 
         self.g_calls += 1
@@ -346,6 +394,7 @@ def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
 class NEB(ReactionPathway):
     """Implements a Nudged Elastic Band (NEB) transition state searcher."""
 
+    growing = False
     def __init__(self, reagents, qc_driver, base_spr_const, beads_count = 10, parallel = False):
 
         ReactionPathway.__init__(self, reagents, beads_count, qc_driver, parallel)
@@ -358,7 +407,7 @@ class NEB(ReactionPathway):
 
         self.use_upwinding_tangent = True
 
-        # Generate or copy specified initial path
+        # Generate or copy initial path
         if len(reagents) == beads_count:
             self.state_vec = reagents.copy()
         else:
@@ -369,33 +418,6 @@ class NEB(ReactionPathway):
 
 #        reactants, products = reagents[0], reagents[-1]
 #        self.state_vec = vector_interpolate(reactants, products, beads_count)
-
-    def special_reduce_old(self, list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
-        """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
-        returns a list of length N-1 where each element of the output array is 
-        f2(f1(k_i * x_i, k_i+1 * x_i+1)) ."""
-
-        assert type(list) == ndarray
-        assert len(list) >= 2
-        assert len(ks) == 0 or len(ks) == len(list)
-        
-        # Fill with trivial value that won't change the result of computations
-        if len(ks) == 0:
-            ks = array(ones(len(list)))
-
-        assert type(ks) == ndarray
-        for a in range(len(ks)):
-            list[a] = list[a] * ks[a]
-
-        curr_dim = list.shape[1]  # generate zero vector of the same dimension of the list of input dimensions
-        z = array(zeros(curr_dim))
-        list_pos = vstack((list, z))
-        list_neg = vstack((z, list))
-
-        list = f1 (list_pos, list_neg)
-        list = f2 (list[1:-1])
-
-        return list
 
     def update_tangents(self):
         # terminal beads have no tangent
@@ -439,21 +461,6 @@ class NEB(ReactionPathway):
     def __len__(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
         return int(ceil((self.beads_count * self.dimension / 3.)))
-
-    def update_bead_separations(self):
-        """Updates internal vector of distances between beads."""
-#        self.bead_separation_sqrs_sums = array( map (sum, self.special_reduce(self.state_vec).tolist()) )
-
-        v = self.state_vec.copy()
-        seps = []
-        for i in range(1,len(v)):
-            dv = v[i] - v[i-1]
-            seps.append(dot(dv,dv))
-
-        self.bead_separations = array(seps)**0.5
-
-        print self.bead_separations
-#        self.bead_separation_sqrs_sums.shape = (self.beads_count - 1, 1)
 
     def set_positions(self, x):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -500,11 +507,12 @@ class NEB(ReactionPathway):
         
         spring_energies = self.base_spr_const * self.bead_separations**2
         spring_energies = 0.5 * numpy.sum (spring_energies)
-#        print "spring_energies", spring_energies
+        lg.info("Spring energies %s" % spring_energies)
 
-        pes_energies = sum(self.bead_pes_energies[1:-1])
+#        pes_energies = sum(self.bead_pes_energies[1:-1])
 
-        return pes_energies
+        # should spring_enrgies be included here?
+        return self.bead_pes_energies.sum()# + spring_energies
 
       
     def obj_func_grad(self, new_state_vec = None):
@@ -554,14 +562,14 @@ class NEB(ReactionPathway):
         z = zeros(self.dimension)
         total_bead_forces = vstack([z, total_bead_forces, z])
 
-        self.bead_forces = array(perp_bead_forces).flatten()
+        self.bead_forces = vstack([z, perp_bead_forces, z])
 
         if new_state_vec != None:
             self.record_energy()
 
         g = -total_bead_forces.flatten()
-        print "g", g
-        print str(self)
+#        print "g", g
+#        print str(self)
         return g
 
 class Func():
@@ -1019,11 +1027,13 @@ class PiecewiseRho:
             lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 class GrowingString(ReactionPathway):
-    def __init__(self, reagents, qc_driver, beads_count = 10, rho = lambda x: 1, growing=True, parallel=False, head_size=None, max_sep_ratio = 0.5):
+    def __init__(self, reagents, qc_driver, beads_count = 10, rho = lambda x: 1, growing=True, parallel=False, head_size=None, max_sep_ratio = 0.1):
 
         self.__qc_driver = qc_driver
 
         self.__final_beads_count = beads_count
+
+        self.growing = growing
         if growing:
             initial_beads_count = 4
         else:
@@ -1064,6 +1074,7 @@ class GrowingString(ReactionPathway):
         # maximum allowed ratio between (max bead sep - min bead sep) and (average bead sep)
         self.__max_sep_ratio = max_sep_ratio
 
+        # TODO: can I get rid of this?
         self.must_regenerate  = False
 
     def __len__(self):
@@ -1077,7 +1088,7 @@ class GrowingString(ReactionPathway):
     def set_positions(self, x):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
         new_state_vec = x.flatten()[0:self.beads_count * self.dimension]
-        self.update_path(new_state_vec, respace = True)
+        self.update_path(new_state_vec, respace = False)
 
     def get_positions(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates.""" 
@@ -1108,6 +1119,20 @@ class GrowingString(ReactionPathway):
     def tangents(self):
         return self.__path_rep.path_tangents
 
+    def expand(self, old, new_size):
+
+        assert len(old) % 2 == 0
+
+        new = zeros(old.shape[1] * new_size).reshape(new_size, -1)
+        for i in range(len(old) / 2):
+            new[i] = old[i]
+            new[-i] = old[-i]
+
+        return new
+
+    def grown(self):
+        return self.beads_count == self.__final_beads_count
+
     def grow_string(self):
         """
         Adds 2, 1 or 0 beads to string (such that the total number of 
@@ -1116,12 +1141,14 @@ class GrowingString(ReactionPathway):
 
         assert self.beads_count <= self.__final_beads_count
 
-        if self.beads_count == self.__final_beads_count:
+        if self.grown():
             return False
         elif self.__final_beads_count - self.beads_count == 1:
             self.beads_count += 1
         else:
             self.beads_count += 2
+
+        self.bead_pes_gradients = self.expand(self.bead_pes_gradients, self.beads_count)
 
         self.__path_rep.beads_count = self.beads_count
 
@@ -1199,7 +1226,7 @@ class GrowingString(ReactionPathway):
         # If bead spacings become too uneven, set a flag so that the string 
         # is not modified until it is updated.
         if self.lengths_disparate():
-            raise MustRegenerate
+            raise aof.MustRegenerate
             #self.must_regenerate = True
 
         return es.sum() #es.max() #total_energies
@@ -1224,7 +1251,7 @@ class GrowingString(ReactionPathway):
         mean_sep = seps.mean()
 
         r = (max_sep - min_sep) / mean_sep
-        lg.info("Bead spacing ratio is %f" % r)
+        lg.info("Bead spacing ratio is %f, max is %f" % (r, self.__max_sep_ratio))
         return r > self.__max_sep_ratio
 
     def obj_func_grad(self, new_state_vec = None):
@@ -1260,8 +1287,8 @@ class GrowingString(ReactionPathway):
                 g = zeros(self.__path_rep.dimension)
             gradients.append(g)
 
-        gradients = array(gradients).flatten()
-        self.bead_forces = deepcopy(gradients)
+        gradients = array(gradients)
+        self.bead_forces = gradients.copy()
 
         if new_state_vec != None:
             self.record_energy()
@@ -1269,17 +1296,15 @@ class GrowingString(ReactionPathway):
         # If bead spacings become too uneven, set a flag so that the string 
         # is not modified until it is updated.
         if self.lengths_disparate():
-            raise MustRegenerate
+            raise aof.MustRegenerate
             #self.must_regenerate = True
 
-        return gradients
+        return gradients.copy().flatten()
 
     def update_path(self, state_vec = None, respace = True):
         """After each iteration of the optimiser this function must be called.
         It rebuilds a new (spline) representation of the path and then 
         redestributes the beads according to the density function."""
-
-        flab("update_path called", respace)
 
         if state_vec != None:
             self.__path_rep.state_vec = state_vec

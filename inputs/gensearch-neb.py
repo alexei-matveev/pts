@@ -33,7 +33,8 @@ CoS = aof.searcher.NEB(mi.reagent_coords,
 
 
 # callback function
-cb = lambda x: aof.generic_callback(x, mi, CoS, params)
+def cb(x, tol=0.01):
+    return aof.generic_callback(x, mi, CoS, params, tol=tol)
 
 runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.2)
 

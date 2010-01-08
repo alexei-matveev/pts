@@ -20,21 +20,31 @@ calc_man    = aof.CalcManager(mi, procs_tuple)
 if init_state_vec == None:
     init_state_vec = mi.reagent_coords
 
-CoS = aof.searcher.GrowingString(init_state_vec, 
+cos_type = cos_type.lower()
+if cos_type == 'string':
+    CoS = aof.searcher.GrowingString(init_state_vec, 
           calc_man, 
           beads_count,
-          growing=growing,
+          growing=False,
           parallel=True)
-
-"""CoS = aof.searcher.NEB(mi.reagent_coords, 
+elif cos_type == 'growingstring':
+    CoS = aof.searcher.GrowingString(init_state_vec, 
+          calc_man, 
+          beads_count,
+          growing=True,
+          parallel=True)
+elif cos_type == 'neb':
+    CoS = aof.searcher.NEB(mi.reagent_coords, 
           calc_man, 
           spr_const,
           beads_count,
-          parallel=True)"""
-
+          parallel=True)
+else:
+    raise Exception('Unknown type: %s' % cos_type)
 
 # callback function
-cb = lambda x: aof.generic_callback(x, mi, CoS, params)
+def cb(x, tol=0.01):
+    return aof.generic_callback(x, mi, CoS, params, tol=tol)
 
 runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.2)
 

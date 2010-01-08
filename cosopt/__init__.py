@@ -27,6 +27,7 @@ class SciPyFminLBFGSB(SciPyOptimizer):
                                 #retall=0, 
                                 callback=self.callback,
                                 factr=10
-                              )   
+                              )
+        print output
 
 

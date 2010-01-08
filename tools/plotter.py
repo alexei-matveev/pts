@@ -24,15 +24,15 @@ set size 1, 0.5
 
 set style data linespoints
 
-set ylabel "Hartree"
+set ylabel "Hartree per bead"
 set origin 0,0.5
 plot [1:%(maxit)d] %(energyplots)s
 set origin 0, 0
 set logscale y
 set nokey
 
-set ylabel "Hartree / Angstrom"
-set xlabel "Band String Gradient Evaluations"
+set ylabel "RMS Hartree / Ang or Deg"
+set xlabel "Chain Gradient Evaluations"
 plot [1:%(maxit)d] %(gradientplots)s
 
 """
@@ -57,17 +57,17 @@ def run(args, maxit=50):
                 rmsf, e, maxe = [float(i) for i in rmsf, e, maxe]
 
                 if (rmsf, e, maxe) != prev:
-                    line = "%d\t%d\t%d\t%d\t%f\t%f\t%f\n" % (bc, bgc, gc, ec, rmsf, e, maxe)
+                    line = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\n" % (bc, bgc, gc, ec, rmsf, e, maxe, e/bc)
                     f_out.write(line)
                     prev = rmsf, e, maxe
         f.close()
         f_out.close()
 
     plot_files = ['"' + fn + '.out"' for fn in args]
-    energy_plots = [fn + ' using 6' for fn in plot_files]
+    energy_plots = [fn + ' using 3:8' for fn in plot_files]
     energy_plots = ','.join(energy_plots)
 
-    gradient_plots = [fn + ' using 5' for fn in plot_files]
+    gradient_plots = [fn + ' using 3:5' for fn in plot_files]
     gradient_plots = ','.join(gradient_plots)
 
     values = {'maxit': maxit, 'energyplots': energy_plots, 'gradientplots': gradient_plots}

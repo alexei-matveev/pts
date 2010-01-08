@@ -237,7 +237,7 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
 
             #print "step x", str(x)
             f, g = func_and_grad(x)
-            print "Line searching, current f =", f
+#            print "Line searching, current f =", f
 
         elif task_str.startswith('NEW_X'):
 

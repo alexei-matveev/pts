@@ -15,7 +15,26 @@ from parasearch import neb_calc, string_calc, read_files, generic_callback, dump
 from calcman import CalcManager
 from asemolinterface import MolInterface
 
+class MustRegenerate(Exception):
+    """Used to force the optimiser to exit if bead spacing has become uneven."""
+    pass
+
+class MustRestart(Exception):
+    """Used to force the optimiser to exit in certain situations."""
+    pass
+
+class MaxIterations(Exception):
+    """Used to force the optimiser to exit if max no of iterations has been exceeded."""
+    pass
+
+class Converged(Exception):
+    """Used to force convergence."""
+    pass
+
+
+
 from optwrap import runopt
+
 
 def cleanup(gs):
     """Perform error checking and other stuff on an environment used to run
@@ -78,7 +97,7 @@ def setup(argv):
 
 
     names = [os.path.splitext(f)[0] for f in reagents]
-    name = "_to_".join(names) + "_with_" + os.path.splitext(params_file)[0]
+    name = "_to_".join(names) + "_with_" + os.path.splitext(os.path.basename(params_file))[0]
 
     return name, params_file, mol_strings, init_state_vec
 

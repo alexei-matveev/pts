@@ -169,7 +169,7 @@ class Gaussian:
             args = [self.gau_command, inputfile]
             command = " ".join(args)
 
-            lg.debug("Running Gau job " + command + " in", os.getcwd())
+            lg.info("Running Gau job " + command + " in " + os.getcwd())
             p = subprocess.Popen(command, shell=True)
             sts = os.waitpid(p.pid, 0)
             parse_result = self.read()
@@ -245,6 +245,7 @@ def copy_chk_gaussian(dir):
     file = chks[-1][1]
     shutil.copy(file, "./" + name)
     lg.info("Created " + name + " to use for guess")
+    lg.info("CWD was " + os.getcwd())
     return name
  
 def pre_calc_function_g03(calc, data):
