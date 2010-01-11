@@ -7,9 +7,32 @@ import threading
 import numerical
 import os
 from copy import deepcopy
+import operator
 
 import common
 import zmat
+
+# Some strings for testing
+testccs1 = """
+H2 =  "H  0.0 0.0 0.0\\n"
+H2 += "H  0.0 0.0 0.908\\n"
+
+H2O =  "H\\n"
+H2O += "O 1 ho1\\n"
+H2O += "H 2 ho2 1 hoh\\n"
+H2O += "\\n"
+H2O += "ho1   1.09\\n"
+H2O += "ho2   1.09\\n"
+H2O += "hoh  120.1\\n"
+
+xyz = XYZ(H2)
+
+anchor = RotAndTrans([1.,0.,0.,3.,1.,1.], parent=xyz)
+zmt = ZMatrix2(H2O, anchor=anchor)
+
+ccs = [xyz, zmt]
+
+"""
 
 def vec_to_mat(v):
     """Generates rotation matrix based on vector v, whose length specifies 
@@ -83,6 +106,12 @@ class Dummy(Anchor):
         Anchor.__init__(self, initial)
         self._coords = numpy.array([])
 
+    def __eq__(self, d):
+        return d.__class__ == self.__class__
+    
+    def __ne__(self, d):
+        return not self.__eq__(d)
+
     def reposition(self, x):
         return x
 
@@ -109,6 +138,19 @@ class RotAndTrans(Anchor):
                          [ 2*b*d + 2*a*c         , 2*c*d - 2*a*b        , a*a - b*b - c*c + d*d  ]])
 
         return m
+
+    def set_cart(self, new, orig):
+        self.coords[3:] = new[0]
+        rotated = new - self.coords[3:]
+        
+        def f(i):
+            mat = vec_to_mat(i)
+            v = numpy.dot(mat, orig) - rotated
+            return numpy.sqrt(numpy.dot(v, v))
+
+        old_rot = self.coords[0:3]
+        self.coords[0:3] = fsolve(f, old_rot)
+
 
     def reposition(self, carts):
         """Based on a quaternion and a translation, transforms a set of 
@@ -191,6 +233,10 @@ class CoordSys(object):
         cs.set_calculator(calc)
 
         return cs"""
+
+    def test_matches(self, s):
+        if not self.matches(s):
+            raise CoordSysException("String:\n %s\n doesn't specify an object of type %s" % (s, self.__class__.__name))
 
     def copy(self, new_coords=None):
         new = deepcopy(self)
@@ -651,6 +697,7 @@ class ZMatrix(CoordSys):
     def __repr__(self):
         return self.zmt_str()
 
+    @property
     def wants_anchor(self):
         return True
 
@@ -753,14 +800,69 @@ class ZMatrix(CoordSys):
         return xyz_coords
 
 class ComplexCoordSys(CoordSys):
-    """Object to support the combination of multiple CoordSys objects into one."""
+    """Object to support the combination of multiple CoordSys objects into one.
+    
+    >>> l = [ZMatrix2("H\\nH 1 hh\\n\\nhh  1.0\\n")]
+    >>> css = ComplexCoordSys(l)
+    Traceback (most recent call last):
+        ...
+    ComplexCoordSysException: Not all objects that need an anchor have one, and/or some that don't need one have one.
 
-    def __init__(self, sub_parts):
-        self._parts = sub_parts
+    >>> ccs = ComplexCoordSys(testccs1)
 
-        parents = numpy.array([p._anchor != None for p in self._parts])
-        anchors = numpy.array([p.wants_anchor != None for p in self._parts])
-        if not (parents & anchors).all():
+    """
+
+    @staticmethod
+    def matches(s):
+        """Text format to create this object is any valid Python syntax that 
+        will result in a variable sys_list pointing to an instance.
+
+        >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nccs = [XYZ(xyz1), XYZ(xyz2)]"
+        >>> ComplexCoordSys.matches(s)
+        True
+
+        >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nwrong_name = [XYZ(xyz1), XYZ(xyz2)]"
+        >>> ComplexCoordSys.matches(s)
+        False
+        """
+        ccs = None
+        try:
+            exec(s)
+        except SyntaxError, err:
+            pass
+
+        return isinstance(ccs, list) and reduce(operator.and_, [isinstance(i, CoordSys) for i in ccs])
+
+    def __init__(self, s):
+        """
+        >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nccs = [XYZ(xyz1), XYZ(xyz2)]"
+        >>> ccs = ComplexCoordSys(s)
+        >>> ccs.get_cartesians()
+        array([[ 0.  ,  0.  ,  0.  ],
+               [ 0.  ,  0.  ,  1.08]])
+        
+        >>> exec(s)
+        >>> ccs = ComplexCoordSys(ccs)
+        >>> ccs.get_cartesians()
+        array([[ 0.  ,  0.  ,  0.  ],
+               [ 0.  ,  0.  ,  1.08]])
+
+        >>> new_carts = [[3,2,1],[4,5,6]]
+        >>> ccs.set_cartesians(new_carts)
+        >>> (new_carts == ccs.get_cartesians()).all()
+        True
+
+        """
+        if isinstance(s, str):
+            self.test_matches(s)
+            exec(s)
+            self._parts = ccs
+        else:
+            self._parts = s
+
+        has_no_anc = numpy.array([p._anchor == Dummy() for p in self._parts])
+        wants_anc = numpy.array([p.wants_anchor for p in self._parts])
+        if not (has_no_anc ^ wants_anc).all():
             raise ComplexCoordSysException("Not all objects that need an anchor have one, and/or some that don't need one have one.")
 
         l_join = lambda a, b: a + b
@@ -821,11 +923,11 @@ class ComplexCoordSys(CoordSys):
         return numpy.vstack(carts)
     
     def set_cartesians(self, x):
-        raise False, "Not Yet Implemented"
-
+        x = numpy.array(x).reshape(-1,3)
         asum = 0
         for p in self._parts:
             p.set_cartesians(x[asum:asum + p.atoms_count])
+            asum += p.atoms_count
  
 
 class XYZ(CoordSys):
@@ -854,6 +956,7 @@ class XYZ(CoordSys):
     def __repr__(self):
         return self.xyz_str()
 
+    @property
     def wants_anchor(self):
         return False
     def get_transform_matrix(self, x):
@@ -875,8 +978,9 @@ class XYZ(CoordSys):
 
     def get_cartesians(self):
         return self._coords.reshape(-1,3)
+
     def set_cartesians(self, x):
-        tmp = x.reshape(-1,3)
+        tmp = x.reshape(-1)
         assert len(tmp) == len(self._coords)
         self._coords = tmp
 
@@ -921,7 +1025,8 @@ class C(B):
 
 class ZMatrix2(CoordSys):
     """
-    Supports optimisations in terms of z-matrices. This version uses zmat.py.
+    Supports optimisations in terms of z-matrices. This version uses zmat.py. 
+    This second version exists because zmat.py has xyz -> zmt support.
 
         >>> s = "C\\nH 1 ch1\\nH 1 ch2 2 hch1\\nH 1 ch3 2 hch2 3 hchh1\\nH 1 ch4 2 hch3 3 -hchh2\\n\\nch1    1.09\\nch2    1.09\\nch3    1.09\\nch4    1.09\\nhch1 109.5\\nhch2 109.5\\nhch3 109.5\\nhchh1  120.\\nhchh2  120.\\n"
 
@@ -1046,6 +1151,7 @@ class ZMatrix2(CoordSys):
     def __repr__(self):
         return self.zmt_str()
 
+    @property
     def wants_anchor(self):
         return True
 
@@ -1078,9 +1184,12 @@ class ZMatrix2(CoordSys):
 
     def get_cartesians(self):
         """Generates cartesian coordinates from z-matrix and the current set of 
-        internal coordinates. Based on code in OpenBabel."""
+        internal coordinates."""
         
         xyz_coords = self._zmt.f(self._coords)
+
+        if self._anchor != None:
+            xyz_coords = self._anchor.reposition(xyz_coords)
 
         return xyz_coords
 
@@ -1094,3 +1203,4 @@ if __name__ == "__main__":
 # to your ~/.vimrc for this to take effect.
 # Dont (accidentally) delete these lines! Unless you do it intentionally ...
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
+
