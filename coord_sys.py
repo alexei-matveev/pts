@@ -2,12 +2,17 @@ from __future__ import with_statement
 import re
 import ase
 from ase import Atoms
-import numpy
+
+
+import numpy # FIXME: unify
+from numpy import array, arange
+
 import threading
 import numerical
 import os
 from copy import deepcopy
 import operator
+from scipy.optimize import fmin_bfgs, fmin
 
 import common
 import zmat
@@ -43,7 +48,7 @@ def vec_to_mat(v):
     phi = numpy.linalg.norm(v)
     a = numpy.cos(phi/2)
     if phi < 0.02:
-        print "Used Taylor series approximation, phi =", phi
+        #print "Used Taylor series approximation, phi =", phi
         """
         q2 = sin(phi/2) * v / phi
            = sin(phi/2) / (phi/2) * v/2
@@ -87,6 +92,9 @@ class Anchor(object):
     def reposition(self, *args):
         assert False, "Abstract function"
 
+    def set_cartesians(self, *args, **kwargs):
+        pass
+
     def set(self, t):
         assert len(t) == self.dims
         self._coords = t
@@ -125,10 +133,6 @@ class RotAndTrans(Anchor):
         initial = numpy.array(initial)
         self._coords = initial
 
-    """@property
-    def qnorm(self):
-        return numpy.linalg.norm(self.coords[0:4])"""
-
     def quaternion2rot_mat(self, quaternion):
         """See http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation"""
         a,b,c,d = quaternion
@@ -139,17 +143,61 @@ class RotAndTrans(Anchor):
 
         return m
 
-    def set_cart(self, new, orig):
-        self.coords[3:] = new[0]
-        rotated = new - self.coords[3:]
-        
+    def set_cartesians(self, new, orig, ftol=1e-8):
+        """
+        >>> r = RotAndTrans(arange(6)*1.0)
+        >>> orig = array([[0.,0,0],[0,0,1],[0,1,0]])
+        >>> new =  array([[0.,0,0],[0,1,0],[1,0,0]])
+        >>> r.set_cartesians(new, orig)
+        >>> new2 = r.reposition(orig)
+        >>> abs((new2 - new).round(4))
+        array([[ 0.,  0.,  0.],
+               [ 0.,  0.,  0.],
+               [ 0.,  0.,  0.]])
+
+        >>> parent = XYZ("C 1.0 -1.0 1.0\\n")
+        >>> parent.get_centroid()
+        array([ 1., -1.,  1.])
+
+        >>> r = RotAndTrans(arange(6)*1.0, parent=parent)
+        >>> orig = array([[0.,0,0],[0,0,1],[0,1,0]])
+        >>> new  = array([[0.,0,0],[0,0,1],[0,1,0]])
+        >>> r.set_cartesians(new, orig)
+        >>> new3 = r.reposition(orig)
+        >>> abs((new3 - new).round(4))
+        array([[ 0.,  0.,  0.],
+               [ 0.,  0.,  0.],
+               [ 0.,  0.,  0.]])
+
+        """
+        assert (orig[0] == numpy.zeros(3)).all()
+
+        # only three points are required to determine rotation/translation
+        new = new[:3]
+        orig = orig[:3]
+
+        if self._parent != None:
+            new -= self._parent.get_centroid()
+        self._coords[3:] = new[0]
+        print self._coords[3:]
+
+        # coords as they would be after rotation but not translation
+        rotated = new - self._coords[3:]
+        print "rot",rotated
+
         def f(i):
             mat = vec_to_mat(i)
-            v = numpy.dot(mat, orig) - rotated
-            return numpy.sqrt(numpy.dot(v, v))
+            transformed = array([numpy.dot(mat, i) for i in orig])
+            v =  (transformed - rotated).flatten()
+            tmp = numpy.sqrt(numpy.dot(v, v))
+            return tmp
 
-        old_rot = self.coords[0:3]
-        self.coords[0:3] = fsolve(f, old_rot)
+        old_rot = self._coords[:3].copy()
+        best, err, _, _, _ = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0)
+        if err > ftol:
+            raise CoordSysException("Didn't converge in anchor parameterisation, %f > 0.0" %(err))
+        self._coords[0:3] = best
+        #return self._coords
 
 
     def reposition(self, carts):
@@ -338,6 +386,7 @@ class CoordSys(object):
         return self._atoms.set_calculator(calc)"""
 
     def set_positions(self, x):
+        """ASE style interface function"""
         assert x.shape[1] == 3
 
         #demasked = self._demask(x.flatten()[0:)
@@ -412,6 +461,11 @@ class CoordSys(object):
     def get_cartesians(self):
         """Returns Cartesians as a flat array."""
         assert False, "Abstract function"
+
+    def set_cartesians(self, new, pure):
+        """Sets internal coordinates (including those of the Anchor) based on 
+        the given set of cartesians."""
+        self._anchor.set_cartesians(new, pure)
 
     def get_internals(self):
         raw = numpy.hstack([self._coords.copy(), self._anchor.coords])
@@ -1179,16 +1233,20 @@ class ZMatrix2(CoordSys):
     def set_cartesians(self, carts):
         """Calculates internal coordinates based on given cartesians."""
 
-        internals = self._zmt.pinv(carts)
-        self.set_internals(internals)
+        internals_zmt = self._zmt.pinv(carts)
+        pure_carts = self.get_cartesians(anchor=False)
 
-    def get_cartesians(self):
+        CoordSys.set_cartesians(self, carts, pure_carts)
+
+        self._coords = internals_zmt
+
+    def get_cartesians(self, anchor=True):
         """Generates cartesian coordinates from z-matrix and the current set of 
         internal coordinates."""
         
         xyz_coords = self._zmt.f(self._coords)
 
-        if self._anchor != None:
+        if self._anchor != None and anchor:
             xyz_coords = self._anchor.reposition(xyz_coords)
 
         return xyz_coords

@@ -38,7 +38,7 @@ plot [1:%(maxit)d] %(gradientplots)s
 """
 #aseneb.txt.arch" using 2:4 title "ASE NEB", "myneb_aselbfgs-newe.txt.arch" using 2:4 title "My NEB (ASE-LBFGS)", "myneb_numpy
 
-def run(args, maxit=50):
+def run(args, maxit=25):
     for fn in args:
         f = open(fn)
         f_out = open(fn + '.out', 'w')
