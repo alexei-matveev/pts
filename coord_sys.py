@@ -127,6 +127,14 @@ class RotAndTrans(Anchor):
     _dims = 6
 
     def __init__(self, initial, parent = None):
+        """
+        initial:
+            initial value
+
+        parent:
+            Other anchored object that this anchor gives an orientation 
+            relative to.
+        """
         Anchor.__init__(self, initial)
         self._parent = parent
 
@@ -145,6 +153,9 @@ class RotAndTrans(Anchor):
 
     def set_cartesians(self, new, orig, ftol=1e-8):
         """
+        Sets value of internal quaternion / translation data using transformed 
+        and non-transformed cartesian coordinates.
+
         >>> r = RotAndTrans(arange(6)*1.0)
         >>> orig = array([[0.,0,0],[0,0,1],[0,1,0]])
         >>> new =  array([[0.,0,0],[0,1,0],[1,0,0]])
@@ -168,22 +179,19 @@ class RotAndTrans(Anchor):
         array([[ 0.,  0.,  0.],
                [ 0.,  0.,  0.],
                [ 0.,  0.,  0.]])
-
         """
         assert (orig[0] == numpy.zeros(3)).all()
 
         # only three points are required to determine rotation/translation
-        new = new[:3]
-        orig = orig[:3]
+        new = new[:3].copy()
+        orig = orig[:3].copy()
 
         if self._parent != None:
             new -= self._parent.get_centroid()
         self._coords[3:] = new[0]
-        print self._coords[3:]
 
         # coords as they would be after rotation but not translation
         rotated = new - self._coords[3:]
-        print "rot",rotated
 
         def f(i):
             mat = vec_to_mat(i)
