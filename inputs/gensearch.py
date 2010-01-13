@@ -9,6 +9,9 @@ from numpy import zeros # temporary
 
 name, params_file, mol_strings, init_state_vec = aof.setup(sys.argv)
 
+# TODO: setup circular re-naming to prevent accidental overwrites
+logfile = open(name + '.log', 'w')
+
 # bring in custom parameters
 
 params_file_str = file2str(params_file)
@@ -29,19 +32,22 @@ if cos_type == 'string':
           calc_man, 
           beads_count,
           growing=False,
-          parallel=True)
+          parallel=True,
+          reporting=logfile)
 elif cos_type == 'growingstring':
     CoS = aof.searcher.GrowingString(init_state_vec, 
           calc_man, 
           beads_count,
           growing=True,
-          parallel=True)
+          parallel=True,
+          reporting=logfile)
 elif cos_type == 'neb':
     CoS = aof.searcher.NEB(mi.reagent_coords, 
           calc_man, 
           spr_const,
           beads_count,
-          parallel=True)
+          parallel=True,
+          reporting=logfile)
 else:
     raise Exception('Unknown type: %s' % cos_type)
 

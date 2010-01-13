@@ -243,8 +243,9 @@ def setup_and_run(mol_strings, params):
 # callback function
 def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
     print common.line()
-    print "Time %f s" % (time.time() - start_time)
+    print "***Callback***"
     print CoS
+    print "Time %f s" % (time.time() - start_time)
 
     fdc = get_file_dump_count()
     fdc = "-iter_" + str(fdc)
@@ -275,7 +276,6 @@ def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
     CoS.test_convergence(tol)
 
     return x
-
 
 def string_calc(molinterface, calc_man, reagent_coords, params):
     """Setup String object, optimiser, etc."""

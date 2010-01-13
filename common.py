@@ -260,7 +260,7 @@ def normalise(x):
     return x
 
 def rms(x):
-    return numpy.sqrt(numpy.mean(x.flatten()**2))
+    return numpy.sqrt(numpy.mean(numpy.array(x).flatten()**2))
 
 #### Exceptions ####
 class ResultException(Exception):
