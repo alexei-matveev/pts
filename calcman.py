@@ -4,16 +4,14 @@ from aof.sched import ParaSched
 from aof.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR, vec_summarise
 import aof
 import numpy as np
+import pickle
 
 # setup logging
 lg = logging.getLogger("aof.calcman")
 lg.setLevel(logging.INFO)
 
 class CalcManagerException(Exception):
-    def __init__(self, msg):
-        self.msg = msg 
-    def __str__(self):
-        return self.msg
+    pass
 
 
 class CalcManager():
@@ -29,7 +27,7 @@ class CalcManager():
     >>> cm = CalcManager(aof.pes.GaussianPES())
     """
 
-    def __init__(self, qc_driver, processors=None):
+    def __init__(self, qc_driver, processors=None, to_cache=None, from_cache=None):
 
         self.qc_driver = qc_driver
         self.__para_sched = None
@@ -43,7 +41,21 @@ class CalcManager():
             self.__para_sched = ParaSched(qc_driver, processors)
 
         self.__pending_jobs = []
-        self.__result_dict = ResultDict(self)
+
+        try:
+            if from_cache != None:
+                self.__result_dict = pickle.load(open(from_cache))
+                lg.info("Loading previously ResultDict from " + from_cache)
+            else:
+                self.__result_dict = ResultDict()
+            self.__to_cache = to_cache
+
+            # dump empty ResultDict to make sure the file is writable
+            if to_cache != None:
+                pickle.dump(self.__result_dict, open(to_cache, 'w'))
+                lg.info("Storing ResultDict in " + to_cache)
+        except IOError, msg:
+            raise CalcManagerException(msg)
 
     def __str__(self):
         s = self.__class__.__name__ + ":"
@@ -111,6 +123,9 @@ class CalcManager():
                 self.__result_dict.add(j.v, res)
                 self.__pending_jobs = [] # added 03/12/2009
 
+        if self.__to_cache != None:
+            pickle.dump(self.__result_dict, open(self.__to_cache, 'w'))
+
 
 
     def energy(self, v):
@@ -133,9 +148,9 @@ class CalcManager():
         
 class ResultDict():
     """Maintains a dictionary of results i.e. energy / gradient calculations."""
-    def __init__(self, parent):
+    def __init__(self):
         self.list = []
-        self.parent = parent
+#        self.parent = parent
 
     def __len__(self):
         return len(self.list)
@@ -171,10 +186,8 @@ class ResultDict():
 
     def get(self, v):
         """Get previously calculated results for vector v from the dictionary."""
-#        print "GET: %s in %s" % (v, self.list)
         f = lambda x: is_same_v(v, x.v)
         matches_list = filter (f, self.list)
-#        lg.info("Matches list %s" % matches_list)
 
         if len(matches_list) > 1:
             lg.debug("More than 1 result for vector %s already in dictionary (get)." % v)
@@ -184,9 +197,8 @@ class ResultDict():
         else:
             return None
 
-def test_CalcManager(qc_driver, inputs, procs):
-    """Perform more comprehensive tests of CalcManager.
-    
+def test_CalcManager(qc_driver, inputs, procs, to_cache=None, from_cache=None):
+    """Perform more comprehensive tests of CalcManager / ResultDict infrastructure.
 
     >>> from numpy import *
     >>> from random import random
@@ -195,10 +207,15 @@ def test_CalcManager(qc_driver, inputs, procs):
     >>> input2 = [[random(),random()] for x in range(1000)]
     >>> procs = ([4,3,2,1], 6,1)
     >>> test_CalcManager(aof.pes.GaussianPES(fake_delay=0.3), input1, procs)
-
+    >>> test_CalcManager(aof.pes.GaussianPES(fake_delay=0.3), input1, procs, to_cache="")
+    Traceback (most recent call last):
+        ...
+    CalcManagerException: [Errno 2] No such file or directory: ''
+    >>> test_CalcManager(aof.pes.GaussianPES(fake_delay=0.3), input1, procs, to_cache='test_CalcManager.tmp')
+    >>> test_CalcManager(aof.pes.GaussianPES(fake_delay=0.3), input1, procs, from_cache='test_CalcManager.tmp')
     """
 
-    cm = CalcManager(qc_driver, procs)
+    cm = CalcManager(qc_driver, procs, from_cache=from_cache, to_cache=to_cache)
 
     # request gradients, energies and both
     N = len(inputs)

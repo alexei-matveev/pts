@@ -7,10 +7,11 @@ from aof.common import file2str
 import ase
 from numpy import zeros # temporary
 
-name, params_file, mol_strings, init_state_vec = aof.setup(sys.argv)
+name, params_file, mol_strings, init_state_vec, prev_results_file = aof.setup(sys.argv)
 
 # TODO: setup circular re-naming to prevent accidental overwrites
 logfile = open(name + '.log', 'w')
+disk_result_cache = '%s.ResultDict.pickle' % name
 
 # bring in custom parameters
 
@@ -20,7 +21,7 @@ exec(params_file_str)
 
 # set up some objects
 mi          = aof.MolInterface(mol_strings, params)
-calc_man    = aof.CalcManager(mi, procs_tuple)
+calc_man    = aof.CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=prev_results_file)
 
 # setup searcher i.e. String or NEB
 if init_state_vec == None:

@@ -64,15 +64,18 @@ def setup(argv):
 
     init_state_vec = None
     params_file = None
+    prev_results_file = None
 
     try:
-        opts, reagents = getopt.getopt(argv, "h", ["params=", "path=", "help"])
+        opts, reagents = getopt.getopt(argv, "h", ["params=", "path=", "load=", "help"])
         for o, a in opts:
             if o in ("-h", "--help"):
                 usage(execname)
                 return 0
             elif o in ("--params"):
                 params_file = a
+            elif o in ("--load"):
+                prev_results_file = a
 
             elif o in ("--path"):
                 init_state_vec = eval(file2str(a))
@@ -99,6 +102,6 @@ def setup(argv):
     names = [os.path.splitext(f)[0] for f in reagents]
     name = "_to_".join(names) + "_with_" + os.path.splitext(os.path.basename(params_file))[0]
 
-    return name, params_file, mol_strings, init_state_vec
+    return name, params_file, mol_strings, init_state_vec, prev_results_file
 
 
