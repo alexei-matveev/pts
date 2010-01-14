@@ -33,6 +33,7 @@ class TestNEB(aof.test.MyTestCase):
         self.assertAlmostEqualVec(v7, np.array([0,1]))
 
     def test_NEB1(self):
+        assert False, "Moved to doctests"
         default_spr_const = 1.
         reactants = np.array([0,0])
         products = np.array([3,3])
@@ -53,6 +54,8 @@ class TestNEB(aof.test.MyTestCase):
             self.assertAlmostEqual(np.linalg.norm(t,2), 1)
 
     def test_NEB2(self):
+        assert False, "Moved to doctests"
+
         default_spr_const = 1.
         reactants = np.array([0,0])
         products = np.array([1,1])

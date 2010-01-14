@@ -16,8 +16,9 @@ def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
 
     CoS.maxit = maxit
     def cb(x):
-        print "tol",tol
-        return callback(x, tol=tol)
+        y = callback(x)
+        CoS.test_convergence(tol)
+        return y
 
     while True:
         try:

@@ -273,7 +273,7 @@ def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
 
     print common.line()
 
-    CoS.test_convergence(tol)
+#    CoS.test_convergence(tol)
 
     return x
 
