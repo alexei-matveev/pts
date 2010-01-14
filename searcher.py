@@ -66,18 +66,15 @@ class ReactionPathway:
         #TODO: check that all reagents are same length
 
         # forces perpendicular to pathway
-        self.perp_bead_forces = zeros(beads_count * self.dimension).reshape(beads_count,-1)
-        self.para_bead_forces = []#zeros(beads_count * self.dimension).reshape(beads_count,-1)
-
-#        self.bead_pes_energies = deepcopy(self.default_initial_bead_pes_energies)
+        self.perp_bead_forces = zeros((beads_count, self.dimension))
+        self.para_bead_forces = zeros((beads_count, self.dimension))
 
         self.tangents = zeros(beads_count * self.dimension)
         self.tangents.shape = (beads_count, self.dimension)
 
         # energies / gradients of beads, excluding any spring forces / projections
         self.bead_pes_energies = zeros(beads_count)
-        self.bead_pes_gradients = zeros(beads_count * self.dimension)
-        self.bead_pes_gradients.shape = (beads_count, self.dimension)
+        self.bead_pes_gradients = zeros((beads_count, self.dimension))
 
         self.prev_state = None
         self.prev_perp_forces = None
@@ -96,6 +93,7 @@ class ReactionPathway:
         if reporting:
             assert type(reporting) == file
         self.reporting = reporting
+
 
     def test_convergence(self, tol):
         """
@@ -128,7 +126,7 @@ class ReactionPathway:
         if self.prev_state == None:
             return 0., [0. for i in self.state_vec]
         step = self.state_vec - self.prev_state
-        return common.rms(step), [common.rms(s) for s in step]
+        return common.rms(step), array([common.rms(s) for s in step])
 
     @property
     def energies(self):
@@ -280,18 +278,47 @@ class ReactionPathway:
         self._maxit = new
     maxit = property(get_maxit, set_maxit)
 
-    def obj_func(self, x):
+    def obj_func(self, new_state_vec=None, grad=False):
+
         if self.eg_calls >= self.maxit:
             raise aof.MaxIterations
 
         lg.info("Chain of States Objective Function call.")
-#        self.eg_calls += 1
         if self.bead_eg_calls == 0:
             self.bead_eg_calls += self.beads_count
         else:
             self.bead_eg_calls += self.beads_count - 2
 
-        self.history.append(deepcopy(x))
+        # If a state vector has been specified, return the value of the 
+        # objective function for this new state and set the state of self
+        # to the new state.
+        if new_state_vec != None:
+            self.state_vec = array(new_state_vec).reshape(self.beads_count, -1)
+
+         # request and process parallel QC jobs
+        if self.parallel:
+
+            for i in range(self.beads_count): #[1:-1]:
+                self.qc_driver.request_gradient(self.state_vec[i])
+
+            self.qc_driver.proc_requests()
+
+        self.update_bead_pes_energies()
+        self.update_bead_separations()
+        self.update_tangents()
+
+        # get PES forces / project out stuff
+        for i in range(self.beads_count):
+            g = self.qc_driver.gradient(self.state_vec[i])
+            self.bead_pes_gradients[i] = g.copy()
+
+            perp_force, para_force = project_out(self.tangents[i], -g)
+
+            self.perp_bead_forces[i] = perp_force
+            self.para_bead_forces[i] = para_force
+
+        self.post_obj_func(grad)
+
 
     def obj_func_grad_old(self, x):
         if self.e_calls >= self.maxit or self.g_calls >= self.maxit:
@@ -501,12 +528,12 @@ class NEB(ReactionPathway):
     Chain of States Summary
 
     >>> neb.step
-    (0.0, [0.0, 0.0, 0.0, 0.0])
+    (0.0, array([ 0.,  0.,  0.,  0.]))
 
     >>> neb.obj_func_grad([[0,0],[0.3,0.3],[0.9,0.9],[1,1]]).round(3)
     array([-0.   , -0.   , -0.282, -0.318,  0.714,  0.286, -0.   , -0.   ])
 
-    >>> array(neb.step[1]).round(1)
+    >>> neb.step[1].round(1)
     array([ 0. ,  0.1,  0.2,  0. ])
 
     >>> neb.eg_calls
@@ -639,38 +666,12 @@ class NEB(ReactionPathway):
 
     def obj_func(self, new_state_vec = None, grad=False):
 
-        ReactionPathway.obj_func(self, new_state_vec)
+        ReactionPathway.obj_func(self, new_state_vec, grad)
 
-        # If a state vector has been specified, return the value of the 
-        # objective function for this new state and set the state of self
-        # to the new state.
-        if new_state_vec != None:
-            self.state_vec = array(new_state_vec).reshape(self.beads_count, -1)
-
-         # request and process parallel QC jobs
-        if self.parallel:
-
-            for i in range(self.beads_count): #[1:-1]:
-                self.qc_driver.request_gradient(self.state_vec[i])
-
-            self.qc_driver.proc_requests()
-
-        self.update_bead_pes_energies()
-        self.update_bead_separations()
-        self.update_tangents()
-
-        result_bead_forces = []
-        perp_bead_forces  = []
-        para_bead_forces  = []
-
-        # get PES forces / project out stuff
-        for i in range(self.beads_count):#[1:-1]: # don't include end beads, leave their gradients as zero
-            g = self.qc_driver.gradient(self.state_vec[i])
-            self.bead_pes_gradients[i] = g.copy()
-
-            perp_force, para_force = project_out(self.tangents[i], -g)
-            perp_bead_forces.append(perp_force)
-            para_bead_forces.append(para_force)
+        result_bead_forces = zeros((self.beads_count, self.dimension))
+        for i in range(self.beads_count):
+            if not self.grad_update_mask[i]:
+                continue
 
             spring_force_mag = 0
             # no spring force for end beads
@@ -681,23 +682,9 @@ class NEB(ReactionPathway):
 
             spring_force = spring_force_mag * self.tangents[i]
 
-            total = perp_force + spring_force
+            total = self.perp_bead_forces[i] + spring_force
 
-            result_bead_forces.append(total)
-
-        
-        self.perp_bead_forces = perp_bead_forces
-        self.para_bead_forces = para_bead_forces
-
-        # at this point, parallel component has been projected out
-        result_bead_forces = array(result_bead_forces)
-
-        # set force of end beads to zero
-        z = zeros(self.dimension)
-        result_bead_forces[0] = z
-        result_bead_forces[-1] = z
-
-        self.post_obj_func(grad)
+            result_bead_forces[i] = total
 
         if grad:
             g = -result_bead_forces.flatten()
@@ -1163,6 +1150,7 @@ class PiecewiseRho:
             lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 class GrowingString(ReactionPathway):
+    """"""
     """Implements growing and non-growing strings.
 
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
@@ -1185,7 +1173,7 @@ class GrowingString(ReactionPathway):
     Chain of States Summary
 
     >>> s.step
-    (0.0, [0.0, 0.0, 0.0, 0.0])
+    (0.0, array([ 0.,  0.,  0.,  0.]))
 
     >>> s.obj_func_grad(new)
     array([ 0.        ,  0.        ,  0.02041863, -0.02041863,  0.10998242, -0.10998242,  0.        ,  0.        ])
@@ -1374,7 +1362,7 @@ class GrowingString(ReactionPathway):
         pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
         self.__path_rep.set_rho(pwr.f)
 
-    def obj_func_old(self, new_state_vec = None, grad):
+    def obj_func_old(self, new_state_vec = None):
         if self.must_regenerate:
             return self.bead_pes_energies.sum()
 
