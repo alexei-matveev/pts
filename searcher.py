@@ -134,7 +134,7 @@ class ReactionPathway(object):
     @property
     def energies(self):
         """RMS forces, not including those of end beads."""
-        return common.rms(self.bead_pes_energies), [common.rms(s) for s in self.bead_pes_energies]
+        return self.bead_pes_energies.sum(), self.bead_pes_energies
 
     def set_positions(self, x):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
