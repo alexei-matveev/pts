@@ -1242,11 +1242,12 @@ class ZMatrix2(CoordSys):
         """Calculates internal coordinates based on given cartesians."""
 
         internals_zmt = self._zmt.pinv(carts)
-        pure_carts = self.get_cartesians(anchor=False)
+#        pure_carts = self.get_cartesians(anchor=False)
 
-        CoordSys.set_cartesians(self, carts, pure_carts)
+#        CoordSys.set_cartesians(self, carts, pure_carts)
 
-        self._coords = internals_zmt
+#        self._coords = internals_zmt
+        self.set_internals(internals_zmt)
 
     def get_cartesians(self, anchor=True):
         """Generates cartesian coordinates from z-matrix and the current set of 
