@@ -43,7 +43,7 @@ elif cos_type == 'growingstring':
           parallel=True,
           reporting=logfile)
 elif cos_type == 'neb':
-    CoS = aof.searcher.NEB(mi.reagent_coords, 
+    CoS = aof.searcher.NEB(init_state_vec, 
           calc_man, 
           spr_const,
           beads_count,

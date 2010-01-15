@@ -201,22 +201,24 @@ class ReactionPathway(object):
         return '\n'.join(s)
 
     def record(self):
-        list = [(self.prev_state, self.state_vec),
+        """list = [(self.prev_state, self.state_vec),
                 (self.prev_perp_forces, self.perp_bead_forces),
                 (self.prev_para_forces, self.para_bead_forces),
                 (self.prev_energies, self.bead_pes_energies)]
         
         for prev, curr in list:
-            prev = array(curr)
+            prev = array(curr)"""
+
+        self.prev_state = self.state_vec.copy()
 
     def post_obj_func(self, grad):
         if self.reporting:
             if grad:
-                self.reporting.write("***Gradient call***\n")
+                self.reporting.write("***Gradient call (E was %f)***\n" % self.bead_pes_energies.sum())
             else:
-                self.reporting.write("***Energy call***\n")
+                self.reporting.write("***Energy call (E was %f)***\n" % self.bead_pes_energies.sum())
         if self.prev_state == None:
-            self.prev_state = self.state_vec
+            self.prev_state = self.state_vec.copy()
         elif (self.state_vec == self.prev_state).all():
             return
 
