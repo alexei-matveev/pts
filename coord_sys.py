@@ -5,7 +5,7 @@ from ase import Atoms
 
 
 import numpy # FIXME: unify
-from numpy import array, arange
+from numpy import array, arange, abs
 
 import threading
 import numerical
@@ -44,6 +44,7 @@ def vec_to_mat(v):
     the rotation angle and whose direction specifies an axis about which to
     rotate."""
 
+    v = numpy.array(v)
     assert len(v) == 3
     phi = numpy.linalg.norm(v)
     a = numpy.cos(phi/2)
@@ -472,13 +473,13 @@ class CoordSys(object):
 
     def set_cartesians(self, new, pure):
         """Sets internal coordinates (including those of the Anchor) based on 
-        the given set of cartesians."""
+        the given set of cartesians and the pure, non-rotated cartesians."""
         self._anchor.set_cartesians(new, pure)
 
     def get_internals(self):
         raw = numpy.hstack([self._coords.copy(), self._anchor.coords])
         masked = self._mask(raw)
-        return masked
+        return masked.copy()
 
     def apply_constraints(self, vec):
         return vec
@@ -953,7 +954,7 @@ class ComplexCoordSys(CoordSys):
         ilist = [p.get_internals() for p in self._parts]
         iarray = numpy.hstack(ilist)
 
-        return self._mask(iarray)
+        return self._mask(iarray).copy()
 
     """def set_var_mask(self, m):
         CoordSys.set_var_mask(self, m)
@@ -1113,6 +1114,41 @@ class ZMatrix2(CoordSys):
 
         >>> r = repr(z)
         
+        Tests of anchored Z-Matrix
+        ==========================
+
+        >>> ac = [0.,0.,0.,3.,1.,1.]
+        >>> a = RotAndTrans(ac)
+        >>> z = ZMatrix2(s, anchor=a)
+        >>> z.get_internals()
+        array([ 1.09      ,  1.09      ,  1.09      ,  1.09      ,  1.91113553,
+                1.91113553,  1.91113553,  2.0943951 ,  2.0943951 ,  0.        ,
+                0.        ,  0.        ,  3.        ,  1.        ,  1.        ])
+
+        >>> ints = z.get_internals().copy()
+
+        >>> (z.get_cartesians() - array([3.,1.,1.])).round(3)
+        array([[ 0.   ,  0.   ,  0.   ],
+               [ 1.09 ,  0.   ,  0.   ],
+               [ 0.504,  0.   , -0.966],
+               [-0.364, -0.969,  0.343],
+               [-0.956, -1.433,  0.828]])
+
+        >>> ints[-6:-3] = [1,2,3]
+        >>> ints_old = ints.copy()
+        >>> z.set_internals(ints)
+        >>> cs = z.get_cartesians() + 1000
+        >>> mat = vec_to_mat([3,2,1])
+        >>> cs = numpy.array([numpy.dot(mat, i) for i in cs])
+        >>> z.set_cartesians(cs)
+        >>> res = abs(z.get_internals() - ints_old).round(2)
+        >>> res[:-6]
+        array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
+        >>> (res[-6:] != ints_old[-6:]).all()
+        True
+
+        >>> r = repr(z)
+        
    
     """
     @staticmethod
@@ -1242,12 +1278,11 @@ class ZMatrix2(CoordSys):
         """Calculates internal coordinates based on given cartesians."""
 
         internals_zmt = self._zmt.pinv(carts)
-#        pure_carts = self.get_cartesians(anchor=False)
+        pure_carts = self.get_cartesians(anchor=False)
 
-#        CoordSys.set_cartesians(self, carts, pure_carts)
+        CoordSys.set_cartesians(self, carts, pure_carts)
 
-#        self._coords = internals_zmt
-        self.set_internals(internals_zmt)
+        self.set_internals(numpy.hstack([internals_zmt, self._anchor.get()]))
 
     def get_cartesians(self, anchor=True):
         """Generates cartesian coordinates from z-matrix and the current set of 

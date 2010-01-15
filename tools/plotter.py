@@ -24,7 +24,7 @@ set size 1, 0.333
 
 set style data linespoints
 
-set ylabel "Hartree per bead"
+set ylabel "Energy per bead"
 set origin 0,0.67
 plot [1:%(maxit)d] %(energyplots)s
 
@@ -32,13 +32,13 @@ set nokey
 set origin 0,0.333 
 set logscale y
 
-set ylabel "RMS Step / Ang or Rad"
+set ylabel "RMS Stepsize
 plot [1:%(maxit)d] %(stepplots)s
 
 set origin 0, 0
 set logscale y
 
-set ylabel "RMS Hartree / Ang or Rad"
+set ylabel "RMS Forces"
 set xlabel "Chain Gradient Evaluations"
 plot [1:%(maxit)d] %(gradientplots)s
 
@@ -51,11 +51,12 @@ def run(args, maxit=40):
         f = open(fn)
         f_out = open(fn + '.out', 'w')
 
+        highestN = 0
         prev = 0., 0., 0.
         while True:
             line = f.readline()
             if not line:
-                maxit = min(maxit, highestN)
+#                maxit = min(maxit, highestN)
                 break
 
             if line[0:7] == 'Archive':
@@ -70,7 +71,7 @@ def run(args, maxit=40):
                     line = "%d\t%d\t%f\t%f\t%f\t%f\t%f\n" % (bc, N, rmsf, e, maxe, s, e/bc)
                     f_out.write(line)
                     prev = rmsf, e, maxe
-                    highestN = N
+                    highestN = max(N, highestN)
         f.close()
         f_out.close()
 

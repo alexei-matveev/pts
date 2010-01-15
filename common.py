@@ -27,6 +27,7 @@ def get_tmp_dir():
         tmp_dir = os.path.abspath(os.getcwd())
 
     if not os.path.exists(tmp_dir):
+        print "Attempting to remove ", tmp_dir
         os.mkdir(tmp_dir)
 
     return tmp_dir
