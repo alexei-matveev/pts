@@ -316,9 +316,7 @@ class ReactionPathway(object):
             self._state_vec = array(x).reshape(self.beads_count, -1)
     state_vec = property(get_state_vec, set_state_vec)
 
-    def obj_func(self, new_state_vec, grad=False):
-
-#        self.reporting.write("ReactP called with %s" % (new_state_vec == None))
+    def obj_func(self, new_state_vec=None, grad=False):
 
         # NOTE: this automatically skips if None
         self.state_vec = new_state_vec
@@ -338,8 +336,17 @@ class ReactionPathway(object):
          # request and process parallel QC jobs
         if self.parallel:
 
+            # for growing string objects: the number should be the same as for the
+            # last string not the current one
+            # diffinbeads gives the number of beads wich will be added later on
+            # only the second half of beadnumbers have to be shifted
+            list_occupied_beads = range(self.beads_count)
+            if diffinbeads > 0 :
+                for i in range(self.beads_count/2, self.beads_count):
+                     list_occupied_beads[i] +=diffinbeads
             for i in range(self.beads_count): #[1:-1]:
-                self.qc_driver.request_gradient(self.state_vec[i])
+                # if request of gradients are given, give also the number of the bead______AN
+                self.qc_driver.request_gradient(self.state_vec[i],list_occupied_beads[i] )
 
             self.qc_driver.proc_requests()
 
@@ -1431,15 +1438,20 @@ class GrowingString(ReactionPathway):
         lg.info("Bead spacing ratio is %f, max is %f" % (r, self.__max_sep_ratio))
         return r > self.__max_sep_ratio
 
-    def obj_func(self, new_state_vec = None):
 
-        ReactionPathway.obj_func(self, new_state_vec)
+    def obj_func(self, new_state_vec = None):
+        # growing string object needs to know how many beads should be added
+        # for knowing the correct bead number _____AN
+        diffbeads = self.__final_beads_count - self.beads_count
+        ReactionPathway.obj_func(self, new_state_vec, diffinbeads=diffbeads)
 
         return self.bead_pes_energies.sum()
 
     def obj_func_grad(self, new_state_vec = None):
-
-        ReactionPathway.obj_func(self, new_state_vec, grad=True)
+        # growing string object needs to know how many beads should be added
+        # for knowing the correct bead number _____AN
+        diffbeads = self.__final_beads_count - self.beads_count
+        ReactionPathway.obj_func(self, new_state_vec, grad=True, diffinbeads=diffbeads)
 
         result_bead_forces = zeros((self.beads_count, self.dimension))
         for i in range(self.beads_count):

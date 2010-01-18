@@ -100,13 +100,17 @@ class Job(object):
     The object was designed with flexibility to include extra parameters and 
     multiple styles of computation, e.g. frequency calcs, different starting
     wavefunctions, different SCF convergence parameters, etc.
+    
+    num_bead was included for the creation of working directories per
+    bead                        _____AN
     """
-    def __init__(self, v, l, prev_calc_dir=None):
+    def __init__(self, v, l, num_bead, prev_calc_dir=None ):
         self.v = v
         if not isinstance(l, list):
             l = [l]
         self.calc_list = l
         self.prev_calc_dir = prev_calc_dir
+        self.num_bead = num_bead
     
     def __str__(self):
         s = ""

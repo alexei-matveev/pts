@@ -49,7 +49,7 @@ def main(argv=None):
         jobname =  os.path.splitext(molecule)[0]
 
         # setup directories, filenames
-        isolation_dir = os.path.join("isolation_" + os.path.basename(jobname))
+        isolation_dir = os.path.basename(jobname)
         print isolation_dir
 
         old_dir = os.getcwd()

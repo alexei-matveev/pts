@@ -63,13 +63,16 @@ class CalcManager():
             s += j.__str__() + "\n"
         return s
 
-    def request_energy(self, v):
-        self.request_job(v, 'E')
+    def request_energy(self, vi, num):
+        # hand over number (num) of bead      ____AN
+        self.request_job(v, 'E', num)
 
-    def request_gradient(self, v):
-        self.request_job(v, 'G')
+    def request_gradient(self, v, num):
+        # hand over number (num) of bead      _______AN
+        self.request_job(v, 'G', num)
 
-    def request_job(self, v, type):
+    def request_job(self, v, type, num):
+        # hand over number (num) of bead      ____AN
         """Place into queue a request for calculations of type 'type'."""
 
         result = self.__result_dict.get(v)
@@ -95,7 +98,9 @@ class CalcManager():
             dir = closest.dir
 
         # calc is not already in list so must add
-        j = Job(v, type, prev_calc_dir=dir)
+        # gives also num (number of bead, take care for growingstring)
+        # as a hand over to the job ______AN
+        j = Job(v, type, num, prev_calc_dir=dir )
         self.__pending_jobs.append(j)
         lg.info("Requesting job " + str(j))
 

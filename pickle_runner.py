@@ -63,7 +63,8 @@ def main(argv=None):
         jobname =  mol_filename.split(".")[0]
 
         # setup directories, filenames
-        isolation_dir = os.path.join("isolation_" + os.path.basename(jobname))
+        # only use basename       _____AN
+        isolation_dir =  os.path.basename(jobname)
         print "isolation_dir", isolation_dir
 
         old_dir = os.getcwd()
