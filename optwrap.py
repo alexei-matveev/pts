@@ -25,7 +25,7 @@ def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
             # tol and maxit are scaled so that they are never reached.
             # Convergence is tested via the callback function.
             # Exceeding maxit is tested during an energy/gradient call.
-            runopt_inner(name, CoS, tol*0.01, maxit*100, cb, maxstep=0.2)
+            runopt_inner(name, CoS, tol*0.01, maxit*100, cb, maxstep=maxstep)
         except MustRegenerate:
             CoS.update_path()
             print important("Optimisation RESTARTED (respaced)")

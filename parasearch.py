@@ -247,10 +247,9 @@ def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
     print CoS
     print "Time %f s" % (time.time() - start_time)
 
-    fdc = get_file_dump_count()
-    fdc = "-iter_" + str(fdc)
+    N = "-iter_" + str(CoS.eg_calls)
 
-    name = params['name'] + fdc
+    name = params['name'] + N
     dump_beads(molinterface, CoS, name + "-CoS")
     CoS.record_ts_estim('splines_and_cubic')
     l = CoS.ts_history
@@ -274,6 +273,8 @@ def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
     print common.line()
 
 #    CoS.test_convergence(tol)
+
+    CoS.signal_callback()
 
     return x
 

@@ -34,14 +34,16 @@ if cos_type == 'string':
           beads_count,
           growing=False,
           parallel=True,
-          reporting=logfile)
+          reporting=logfile,
+          max_sep_ratio=0.3)
 elif cos_type == 'growingstring':
     CoS = aof.searcher.GrowingString(init_state_vec, 
           calc_man, 
           beads_count,
           growing=True,
           parallel=True,
-          reporting=logfile)
+          reporting=logfile,
+          max_sep_ratio=0.3)
 elif cos_type == 'neb':
     CoS = aof.searcher.NEB(init_state_vec, 
           calc_man, 
@@ -56,7 +58,7 @@ else:
 def cb(x, tol=0.01):
     return aof.generic_callback(x, mi, CoS, params, tol=tol)
 
-runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.2)
+runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.1)
 
 # main optimisation loop
 cb(CoS)

@@ -63,6 +63,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
             tss.sort()
             ts = tss[-1][-1]
             print "TS Error", norm(ts - real_ts)
+        CoS.signal_callback()
         return x
 
     run_opt = lambda: aof.runopt(alg, CoS, tol, maxit, callback, maxstep=0.1)
@@ -82,8 +83,8 @@ if __name__ == "__main__":
     reagents_MB = [array([ 0.62349942,  0.02803776]), array([-0.558, 1.442])]
     reagents_MB = eval(aof.common.file2str("initial_pathway.txt"))
     reagents_MB = array([[ 0.62349942,  0.02803776], [-0.82200156,  0.62431281], [-0.558     ,  1.442     ]])
-    test_StaticModel('neb', aof.pes.MuellerBrown(), reagents_MB, 12, 1., 'ase_lbfgs', tol=0.001)
-    exit()
+#    test_StaticModel('neb', aof.pes.MuellerBrown(), reagents_MB, 12, 1., 'ase_lbfgs', tol=0.001)
+#    exit()
 
     MB_saddle1 = array([ 0.21248659,  0.29298832]) # energy = -0.072248940112325243
     MB_saddle2 = array([-0.82200156,  0.62431281]) # energy = -0.040664843508657414
