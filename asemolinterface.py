@@ -45,10 +45,9 @@ class MolInterface:
         elif csys.XYZ.matches(first):
             mols = [csys.XYZ(s) for s in mol_strings]
         elif csys.ComplexCoordSys.matches(first):
-            mols = [csys.ComplexCoordSys(s) for s in mol_strings]
+            mols = [csys.parse_and_return(s) for s in mol_strings]
         else:
             raise MolInterfaceException("Unrecognised geometry string:\n" + first)
-
 
         # used to number input files as they are created and run
         self.job_counter = 0

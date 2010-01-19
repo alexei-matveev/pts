@@ -183,6 +183,8 @@ class RotAndTrans(Anchor):
         """
         assert (orig[0] == numpy.zeros(3)).all()
 
+        Anchor.set_cartesians(self)
+
         # only three points are required to determine rotation/translation
         new = new[:3].copy()
         orig = orig[:3].copy()
@@ -202,9 +204,9 @@ class RotAndTrans(Anchor):
             return tmp
 
         old_rot = self._coords[:3].copy()
-        best, err, _, _, _ = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0)
+        best, err, _, _, _  = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0, maxiter=2000)
         if err > ftol:
-            raise CoordSysException("Didn't converge in anchor parameterisation, %f > 0.0" %(err))
+            raise CoordSysException("Didn't converge in anchor parameterisation, %.20f > %.20f" %(err, ftol))
         self._coords[0:3] = best
         #return self._coords
 
@@ -471,10 +473,11 @@ class CoordSys(object):
         """Returns Cartesians as a flat array."""
         assert False, "Abstract function"
 
-    def set_cartesians(self, new, pure):
+    def set_cartesians(self, *args):
         """Sets internal coordinates (including those of the Anchor) based on 
         the given set of cartesians and the pure, non-rotated cartesians."""
-        self._anchor.set_cartesians(new, pure)
+        if self._anchor != None:
+            self._anchor.set_cartesians(*args)
 
     def get_internals(self):
         raw = numpy.hstack([self._coords.copy(), self._anchor.coords])
@@ -490,8 +493,11 @@ class CoordSys(object):
 
         forces_cartesian = self._atoms.get_forces().flatten()
         transform_matrix, errors = self.get_transform_matrix(self._mask(self._coords))
-        #TODO: test magnitude of errors
+        
+        print "numdiff errors", errors.max()
+
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
+        print "forces_coord_sys", forces_coord_sys
         
         forces_coord_sys = self.apply_constraints(forces_coord_sys)
 
@@ -871,7 +877,25 @@ class ComplexCoordSys(CoordSys):
         ...
     ComplexCoordSysException: Not all objects that need an anchor have one, and/or some that don't need one have one.
 
+    Test of Internals <-> Cartesians interconversion
+    ================================================
+
+    Using testccs1...
     >>> ccs = ComplexCoordSys(testccs1)
+    >>> ints = ccs.get_internals().round(3)
+
+    Get it's carts and transform them...
+    >>> xyz = ccs.get_cartesians() + 10.
+    >>> mat = vec_to_mat([3,2,1])
+    >>> xyz = numpy.array([numpy.dot(mat, c) for c in xyz])
+
+    Re-generate internals from those carts
+    >>> ccs.set_cartesians(xyz)
+    >>> ints2 = ccs.get_internals().round(3)
+
+    Make sure the internal coords of the water have changed.
+    >>> (ints == ints2)[6:9].all()
+    True
 
     """
 
@@ -986,6 +1010,7 @@ class ComplexCoordSys(CoordSys):
         return numpy.vstack(carts)
     
     def set_cartesians(self, x):
+        CoordSys.set_cartesians(self)
         x = numpy.array(x).reshape(-1,3)
         asum = 0
         for p in self._parts:
@@ -1033,7 +1058,7 @@ class XYZ(CoordSys):
             m = numpy.array(j)
 
         assert m.shape[0] == self.dims
-        return m, 0.0
+        return m, numpy.array([0.0])
 
     def get_var_names(self):
         return ["<cart>" for i in range(self.dims)]
@@ -1043,6 +1068,8 @@ class XYZ(CoordSys):
         return self._coords.reshape(-1,3)
 
     def set_cartesians(self, x):
+        CoordSys.set_cartesians(self)
+
         tmp = x.reshape(-1)
         assert len(tmp) == len(self._coords)
         self._coords = tmp
@@ -1278,7 +1305,7 @@ class ZMatrix2(CoordSys):
         """Calculates internal coordinates based on given cartesians."""
 
         internals_zmt = self._zmt.pinv(carts)
-        pure_carts = self.get_cartesians(anchor=False)
+        pure_carts = self._zmt.f(internals_zmt)
 
         CoordSys.set_cartesians(self, carts, pure_carts)
 
