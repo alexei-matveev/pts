@@ -159,6 +159,8 @@ class ReactionPathway(object):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates.""" 
         return common.make_like_atoms(self.state_vec.copy())
 
+    positions = property(get_positions, set_positions)
+
     @property
     def state_summary(self):
         s = common.vec_summarise(self.state_vec)

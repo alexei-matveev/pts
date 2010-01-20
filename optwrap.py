@@ -10,8 +10,9 @@ from aof.common import important
 
 __all__ = ["opt"]
 
+names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line']
+
 def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
-    names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb']
     assert name in names
 
     CoS.maxit = maxit
@@ -60,6 +61,8 @@ def runopt_inner(name, CoS, tol, maxit, callback, maxstep=0.2):
 
         if name == 'ase_lbfgs':
             opt = ase.LBFGS(CoS, maxstep=maxstep)
+        elif name == 'ase_lbfgs_line':
+            opt = ase.LineSearchLBFGS(CoS, maxstep=maxstep)
         elif name == 'ase_fire':
             opt = ase.FIRE(CoS)
         elif name == 'ase_scipy_cg':
