@@ -317,6 +317,8 @@ class ReactionPathway(object):
     state_vec = property(get_state_vec, set_state_vec)
 
     def obj_func(self, new_state_vec=None, grad=False):
+        # diffinbeads is only needed for growing string, for everything else it
+        # can be set to zero
 
         # NOTE: this automatically skips if None
         self.state_vec = new_state_vec
@@ -336,17 +338,9 @@ class ReactionPathway(object):
          # request and process parallel QC jobs
         if self.parallel:
 
-            # for growing string objects: the number should be the same as for the
-            # last string not the current one
-            # diffinbeads gives the number of beads wich will be added later on
-            # only the second half of beadnumbers have to be shifted
-            list_occupied_beads = range(self.beads_count)
-            if diffinbeads > 0 :
-                for i in range(self.beads_count/2, self.beads_count):
-                     list_occupied_beads[i] +=diffinbeads
-            for i in range(self.beads_count): #[1:-1]:
-                # if request of gradients are given, give also the number of the bead______AN
-                self.qc_driver.request_gradient(self.state_vec[i],list_occupied_beads[i] )
+            for i in range(self.beads_count):
+                # if request of gradients are given, give also the number of the bead
+                self.qc_driver.request_gradient(self.state_vec[i], self.get_final_bead_ix(i))
 
             self.qc_driver.proc_requests()
 
@@ -366,6 +360,13 @@ class ReactionPathway(object):
             self.para_bead_forces[i] = para_force
 
         self.post_obj_func(grad)
+
+    def get_final_bead_ix(self, i):
+        """
+        Based on bead index |i|, returns final index once string is fully 
+        grown.
+        """
+        return i
 
     def record_energy(self):
         self.energy_history.append(sum(self.bead_pes_energies))
@@ -1340,6 +1341,21 @@ class GrowingString(ReactionPathway):
             new.shape = -1
         return new
 
+    def get_final_bead_ix(self, i):
+        """
+        Based on bead index |i|, returns final index once string is fully 
+        grown.
+        """
+        if self.growing and not self.grown():
+            assert self.beads_count % 2 == 0
+            end = self.beads_count / 2
+            if i >= end:
+                gap = self.__final_beads_count - self.beads_count
+                return i + gap
+
+        return i
+
+
     def grown(self):
         return self.beads_count == self.__final_beads_count
 
@@ -1442,16 +1458,16 @@ class GrowingString(ReactionPathway):
     def obj_func(self, new_state_vec = None):
         # growing string object needs to know how many beads should be added
         # for knowing the correct bead number _____AN
-        diffbeads = self.__final_beads_count - self.beads_count
-        ReactionPathway.obj_func(self, new_state_vec, diffinbeads=diffbeads)
+#        diffbeads = self.__final_beads_count - self.beads_count
+        ReactionPathway.obj_func(self, new_state_vec)
 
         return self.bead_pes_energies.sum()
 
     def obj_func_grad(self, new_state_vec = None):
         # growing string object needs to know how many beads should be added
         # for knowing the correct bead number _____AN
-        diffbeads = self.__final_beads_count - self.beads_count
-        ReactionPathway.obj_func(self, new_state_vec, grad=True, diffinbeads=diffbeads)
+        #diffbeads = self.__final_beads_count - self.beads_count
+        ReactionPathway.obj_func(self, new_state_vec, grad=True)
 
         result_bead_forces = zeros((self.beads_count, self.dimension))
         for i in range(self.beads_count):

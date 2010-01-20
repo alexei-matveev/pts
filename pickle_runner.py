@@ -84,7 +84,7 @@ def main(argv=None):
         # WAVECAR or blah.chk file here.
         if f != None:
             if not callable(f):
-                raise PickleRunnerException("Supplied function was neither callable or None.")
+                raise PickleRunnerException("Supplied function was neither callable nor None.")
             f(mol.get_calculator(), data)
 
 

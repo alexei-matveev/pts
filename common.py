@@ -104,13 +104,13 @@ class Job(object):
     num_bead was included for the creation of working directories per
     bead                        _____AN
     """
-    def __init__(self, v, l, num_bead, prev_calc_dir=None ):
+    def __init__(self, v, l, bead_ix=None, prev_calc_dir=None):
         self.v = v
         if not isinstance(l, list):
             l = [l]
         self.calc_list = l
         self.prev_calc_dir = prev_calc_dir
-        self.num_bead = num_bead
+        self.num_bead = bead_ix
     
     def __str__(self):
         s = ""
@@ -147,7 +147,6 @@ class Job(object):
 def fname():
     import sys
     return sys._getframe(1).f_code.co_name
-
 
 SAMENESS_THRESH_VECTORS = 1e-6
 SAMENESS_THRESH_ENERGIES = 1e-10

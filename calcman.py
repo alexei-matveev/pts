@@ -63,17 +63,16 @@ class CalcManager():
             s += j.__str__() + "\n"
         return s
 
-    def request_energy(self, vi, num):
-        # hand over number (num) of bead      ____AN
-        self.request_job(v, 'E', num)
+    def request_energy(self, vi, bead_ix):
+        self.request_job(v, 'E', bead_ix)
 
-    def request_gradient(self, v, num):
-        # hand over number (num) of bead      _______AN
-        self.request_job(v, 'G', num)
+    def request_gradient(self, v, bead_ix):
+        self.request_job(v, 'G', bead_ix)
 
-    def request_job(self, v, type, num):
-        # hand over number (num) of bead      ____AN
-        """Place into queue a request for calculations of type 'type'."""
+    def request_job(self, v, type, bead_ix):
+        """Place into queue a request for calculations of type |type|, 
+        corresponding to bead index |bead_ix|.
+        """
 
         result = self.__result_dict.get(v)
 
@@ -92,15 +91,15 @@ class CalcManager():
             return
 
         # find dir containing previous calc to use as guess for wavefunction
-        closest = self.__result_dict.get_closest(v)
+#        closest = self.__result_dict.get_closest(v)
         dir = None
-        if closest != None:
-            dir = closest.dir
+#        if closest != None:
+#           dir = closest.dir
 
         # calc is not already in list so must add
         # gives also num (number of bead, take care for growingstring)
         # as a hand over to the job ______AN
-        j = Job(v, type, num, prev_calc_dir=dir )
+        j = Job(v, type, bead_ix=bead_ix, prev_calc_dir=dir)
         self.__pending_jobs.append(j)
         lg.info("Requesting job " + str(j))
 

@@ -165,8 +165,13 @@ class MolInterface:
 
         tmp_dir = common.get_tmp_dir()
 
-        # Job_name is now related to the bead-number not the job_number
-        job_name = "asejob" + str("%2.2i" % job.num_bead)
+        # job_name will be related to the bead number if given
+        ix = self.__get_job_counter()
+        if job.num_bead != None:
+            ix = job.num_bead
+        job_name = "beadjob%2.2i" % ix
+        item.job_name = job_name
+
         mol_pickled = os.path.join(tmp_dir, job_name + common.INPICKLE_EXT)
         ase_stdout_file = os.path.join(tmp_dir, job_name + ".stdout")
         results_file = job_name + common.OUTPICKLE_EXT
