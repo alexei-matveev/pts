@@ -73,8 +73,6 @@ class Gaussian:
         self.chkpoint = None
 
     def set_chk(self, chkpoint):
-        if chkpoint != None and not os.path.isfile(chkpoint):
-            raise GaussDriverError("File " + chkpoint + " is not a file or does not exist")
         self.chkpoint = chkpoint
        
     def set_nprocs(self, nprocs):
@@ -114,9 +112,9 @@ class Gaussian:
             if self.runs > 0:
                 params.append("guess=read")
             elif self.chkpoint != None:
-                #shutil.copyfile(self.chkpoint, self.jobname + ".chk")
                 chkfile = self.chkpoint
-                params.append("guess=read")
+                if os.path.isfile(chkfile):
+                    params.append("guess=read")
 
         elif aggression == 1:
             print "Gaussian: aggression =", aggression
@@ -258,12 +256,17 @@ def pre_calc_function_g03(calc, data):
     assert isinstance(calc, Gaussian), "Using pre_calc_function_g03 for some other calculator: " + str(calc)
     item = data['item']
     lg.info("Running pre_calc_function_g03, data: " + str(data))
-    chkpoint_dir = item.job.prev_calc_dir
+#    chkpoint_dir = item.job.prev_calc_dir
 
     n = len(item.range_global)
     calc.set(nprocs=n)
 
-    filename = copy_chk_gaussian(chkpoint_dir)
-    calc.set(chkpoint=filename)
+#    filename = copy_chk_gaussian(chkpoint_dir)
+    chkpoint = item.job_name + '.chk'
+    calc.set(chkpoint=chkpoint)
+
+
+
+
 
 
