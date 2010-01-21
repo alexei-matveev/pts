@@ -58,7 +58,7 @@ else:
 def cb(x, tol=0.01):
     return aof.generic_callback(x, mi, CoS, params, tol=tol)
 
-runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.1)
+runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=maxstep)
 
 # main optimisation loop
 cb(CoS)

@@ -72,6 +72,8 @@ def runopt_inner(name, CoS, tol, maxit, callback, maxstep=0.2):
         else:
             assert False, ' '.join(["Unrecognised algorithm", name, "not in"] + names)
 
+        opt.string = CoS.string
+
         # attach optimiser to print out each step in
         opt.attach(lambda: callback(None), interval=1)
         opt.run(fmax=tol)

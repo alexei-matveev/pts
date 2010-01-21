@@ -58,6 +58,8 @@ class ReactionPathway(object):
     # no times path has been regenerated
     respaces = 0
 
+    string = False
+
     def __init__(self, reagents, beads_count, qc_driver, parallel, reporting=None):
 
         self.parallel = parallel
@@ -1230,6 +1232,7 @@ class GrowingString(ReactionPathway):
 
     """
 
+    string = True
     def __init__(self, reagents, qc_driver, beads_count = 10, 
         rho = lambda x: 1, growing=True, parallel=False, head_size=None, 
         max_sep_ratio = 0.1, reporting=None):
@@ -1292,8 +1295,6 @@ class GrowingString(ReactionPathway):
 
             self.update_path(x, respace = False)
 
-            # If bead spacings become too uneven, set a flag so that the string 
-            # is not modified until it is updated.
             lg.info("Lengths Disparate: %s" % self.lengths_disparate())
 
             self.__path_rep.state_vec = array(x).reshape(self.beads_count, -1)
@@ -1321,7 +1322,7 @@ class GrowingString(ReactionPathway):
     beads_count = property(get_beads_count, set_beads_count)
 
     def expand_internal_arrays(self, size):
-        # list of arrays which must be expanded if string is grown
+        # arrays which must be expanded if string is grown
 
         # Grr, no pointers in python, but can this be done better?
         self.bead_pes_gradients = self.expand(self.bead_pes_gradients, size)
@@ -1480,6 +1481,9 @@ class GrowingString(ReactionPathway):
         g = -result_bead_forces.flatten()
         return g
 
+
+    def respace(self):
+        self.update_path(respace=True)
 
     def update_path(self, state_vec = None, respace = True):
         """After each iteration of the optimiser this function must be called.
