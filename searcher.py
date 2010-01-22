@@ -188,22 +188,7 @@ class ReactionPathway(object):
         barrier_rev = e_max - e_product
 
         tab = lambda l: '\t'.join([str(i) for i in l])
-        format = lambda f, l: '\t'.join([f % i for i in l])
-
-        steps_cumm = 2
-        # max cummulative step over steps_cumm iterations
-        step_max_bead_cumm = self.history.step(1, steps_cumm).max()
-
-        arc = {'bc': self.beads_count,
-               'N': eg_calls,
-               'resp': self.respaces,
-               'cb': self.callbacks, 
-               'rmsf': rmsf_perp_total, 
-               'e': e_total,
-               'maxe': e_max,
-               's': step_total,
-               's_ts_cumm': step_max_bead_cumm,
-               'ixhigh': self.bead_pes_energies.argmax()}
+        format = lambda f, l: ' | '.join([f % i for i in l])
 
         f = '%.3e'
         s = ["Chain of States Summary",
@@ -217,7 +202,6 @@ class ReactionPathway(object):
              "Para Forces (RMS total)\t%f" % rmsf_para_total,
              "Para Forces (RMS bead)\t%s" % format(f, rmsf_para_beads),
              "Step Size (RMS total)\t%f" % step_total,
-             "Step Max For highest Bead (Cummulative over last %d)\t%f" % (steps_cumm, step_max_bead_cumm),
              "Step Size (RMS bead)\t%s" % format(f, step_beads),
              "Step Size (MAX)\t%f" % step_raw.max(),
 
@@ -226,8 +210,17 @@ class ReactionPathway(object):
              "State Summary (total)\t%s" % state_sum,
              "State Summary (beads)\t%s" % format('%s', beads_sum),
              "Barriers (Fwd, Rev)\t%f\t%f" % (barrier_fwd, barrier_rev),
-#             "Raw State Vector\n\t%s" % (self.state_vec),
-             "Archive %s" % arc]
+             "Raw State Vector\n\t%s" % (self.state_vec),
+             "Archive (bc, N, resp, cb, rmsf, e, maxe, s):\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f" % \
+                (self.beads_count,
+                 eg_calls,
+                 self.respaces,
+                 self.callbacks,
+                 rmsf_perp_total,
+                 e_total,
+                 e_max,
+                 step_total)
+             ]
 
 
         return '\n'.join(s)
@@ -237,7 +230,7 @@ class ReactionPathway(object):
             if grad:
                 self.reporting.write("***Gradient call (E was %f)***\n" % self.bead_pes_energies.sum())
             else:
-                self.reporting.write("***Energy call (E was %f)***\n" % self.bead_pes_energies.sum())
+                self.reporting.write("***Energy call   (E was %f)***\n" % self.bead_pes_energies.sum())
         """            if self.prev_state != None:
                 self.reporting.write("State Diff %s\n" % (self.state_vec - self.prev_state))
             else:
