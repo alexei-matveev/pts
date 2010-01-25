@@ -6,6 +6,8 @@ import sched
 import coord_sys
 import qcdrivers
 import pes
+import path
+import tools
 
 # locally modified l_bfgs_b optimiser from scipy
 import cosopt
@@ -48,7 +50,7 @@ class UsageException(Exception):
     pass
 
 def usage(n):
-    print "Usage: " + n + ": --params file.py [--path initial_path.txt] reagent1.xyz, reagent2.xyz, ..."
+    print "Usage: " + n + ": --params file.py [--path initial_path.txt] [--load previous_run.pickle] reagent1.xyz, reagent2.xyz, ..."
 
 def setup(argv):
 

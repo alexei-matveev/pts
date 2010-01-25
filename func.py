@@ -171,7 +171,7 @@ Derivatives wrt |d| == x[1,1]:
 
 __all__ = ["Func", "LinFunc", "QuadFunc", "SplineFunc", "CubicFunc"]
 
-from numpy import array, dot, hstack, linalg, atleast_1d
+from numpy import array, dot, hstack, linalg, atleast_1d, sqrt
 from numpy import empty, asarray, searchsorted
 from scipy.interpolate import interp1d, splrep, splev
 from scipy.integrate import quad
@@ -251,7 +251,7 @@ class CubicFunc(Func):
     >>> c.coeffs
     array([ 0.,  0.,  1.,  0.])
 
-   """
+    """
     def __init__(self, xs, ys, dydxs=None):
             assert len(xs) == len(ys)
             assert dydxs == None or len(xs) == 2 and len(dydxs) == 2
@@ -285,6 +285,7 @@ class CubicFunc(Func):
 
     def fprime(self, x):
         return dot(array((3*x**2, 2*x, 1., 0.)), self.coeffs)
+               
 
 class SplineFunc(Func):
     def __init__(self, xs, ys):

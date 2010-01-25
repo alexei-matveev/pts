@@ -82,29 +82,26 @@ def run(args, extra, maxit=50):
                 break
 
             if line[0:7] == 'Archive':
-                line = line.split(':')[1]
-                data = line.split()
-                if len(data) == 6:
-                    bc, N, rmsf, e, maxe, s = data
-
-                    # added for backward compatibility
-                    res = 0
-                    cb = 0
-                else:
-                    assert len(data) == 8, "This version of the plotter is no-longer compatible with the data you're feeding it. Tut mir leid."
-
-                    # bc:   bead count
-                    # N:    no iterations
-                    # res:  no respaces
-                    # cb:   no callbacks
-                    # rmsf: rms forces
-                    # e:    energy
-                    # maxe: max energy
-                    # s:    step size
-                    bc, N, res, cb, rmsf, e, maxe, s = data
-                bc, N, res, cb = [int(i) for i in bc, N, res, cb]
- 
-                rmsf, e, maxe, s = [float(i) for i in rmsf, e, maxe, s]
+                d = ' '.join(line.split(' ')[1:])
+                d = eval(d)
+                # bc:   bead count
+                # N:    no iterations
+                # res:  no respaces
+                # cb:   no callbacks
+                # rmsf: rms forces
+                # e:    energy
+                # maxe: max energy
+                # s:    step size
+                bc = d['bc']
+                N = d['N']
+                res = d['resp']
+                cb = d['cb']
+                rmsf = d['rmsf']
+                e = d['e']
+                maxe = d['maxe']
+                s = d['s']
+                s_ts_cumm = d['s_ts_cumm']
+                ixhigh = d['ixhigh']
 
                 if (rmsf, e, maxe) != prev:
                     line = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\n" % (bc, N, res, cb, rmsf, e, maxe, s, e/bc)

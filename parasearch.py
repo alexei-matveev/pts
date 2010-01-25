@@ -251,8 +251,8 @@ def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
 
     name = params['name'] + N
     dump_beads(molinterface, CoS, name + "-CoS")
-    CoS.record_ts_estim('splines_and_cubic')
-    l = CoS.ts_history
+    l = CoS.history.ts_estim(len(CoS.history))
+
     energies, history = zip(*l)
     mol_list_to_traj(molinterface, history, energies, name + "-evol")
     common.str2file(CoS.state_vec, name + "-state_vec" + common.LOGFILE_EXT)

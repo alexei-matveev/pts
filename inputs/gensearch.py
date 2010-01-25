@@ -61,11 +61,10 @@ def cb(x, tol=0.01):
 runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=maxstep)
 
 # main optimisation loop
-cb(CoS)
 print runopt()
 
 # get best estimate(s) of TS from band/string
-tss = CoS.ts_estims(mode='splines_and_cubic')
+tss = CoS.ts_estims()
 
 # print cartesian coordinates of all transition states that were found
 print "Dumping located transition states"

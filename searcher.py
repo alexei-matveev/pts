@@ -22,6 +22,8 @@ from common import * # TODO: must unify
 import aof.common as common
 import aof
 
+from history import History
+
 
 lg = logging.getLogger("aof.searcher")
 lg.setLevel(logging.INFO)
@@ -71,10 +73,7 @@ class ReactionPathway(object):
 
         self.initialise()
         
-        # TODO: can the following be removed?
-        self.history = []
-        self.energy_history = []
-        self.ts_history = []
+        self.history = History()
 
         # mask of gradients to update at each position
         self.grad_update_mask = [False] + [True for i in range(beads_count-2)] + [False]
@@ -191,6 +190,21 @@ class ReactionPathway(object):
         tab = lambda l: '\t'.join([str(i) for i in l])
         format = lambda f, l: '\t'.join([f % i for i in l])
 
+        steps_cumm = 2
+        # max cummulative step over steps_cumm iterations
+        step_max_bead_cumm = self.history.step(1, steps_cumm).max()
+
+        arc = {'bc': self.beads_count,
+               'N': eg_calls,
+               'resp': self.respaces,
+               'cb': self.callbacks, 
+               'rmsf': rmsf_perp_total, 
+               'e': e_total,
+               'maxe': e_max,
+               's': step_total,
+               's_ts_cumm': step_max_bead_cumm,
+               'ixhigh': self.bead_pes_energies.argmax()}
+
         f = '%.3e'
         s = ["Chain of States Summary",
              "Grad/Energy calls\t%d" % eg_calls,
@@ -203,6 +217,7 @@ class ReactionPathway(object):
              "Para Forces (RMS total)\t%f" % rmsf_para_total,
              "Para Forces (RMS bead)\t%s" % format(f, rmsf_para_beads),
              "Step Size (RMS total)\t%f" % step_total,
+             "Step Max For highest Bead (Cummulative over last %d)\t%f" % (steps_cumm, step_max_bead_cumm),
              "Step Size (RMS bead)\t%s" % format(f, step_beads),
              "Step Size (MAX)\t%f" % step_raw.max(),
 
@@ -211,22 +226,11 @@ class ReactionPathway(object):
              "State Summary (total)\t%s" % state_sum,
              "State Summary (beads)\t%s" % format('%s', beads_sum),
              "Barriers (Fwd, Rev)\t%f\t%f" % (barrier_fwd, barrier_rev),
-             "Raw State Vector\n\t%s" % (self.state_vec),
-             "Archive (bc, N, resp, cb, rmsf, e, maxe, s):\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f" % \
-                (self.beads_count,
-                 eg_calls,
-                 self.respaces,
-                 self.callbacks,
-                 rmsf_perp_total,
-                 e_total,
-                 e_max,
-                 step_total)
-             ]
+#             "Raw State Vector\n\t%s" % (self.state_vec),
+             "Archive %s" % arc]
+
 
         return '\n'.join(s)
-
-    def record(self):
-        pass
 
     def post_obj_func(self, grad):
         if self.reporting:
@@ -372,9 +376,18 @@ class ReactionPathway(object):
         """
         return i
 
-    def record_energy(self):
-        self.energy_history.append(sum(self.bead_pes_energies))
+    def record(self):
+        """Records snap-shot of chain."""
+        es = self.bead_pes_energies.copy()
+        state = self.state_vec.copy()
+        perp_forces = self.perp_bead_forces.copy()
+        para_forces = self.para_bead_forces.copy()
+        ts_estim = self.ts_estims()[-1]
 
+        a = [es, state, perp_forces, para_forces, ts_estim]
+
+        self.history.rec(a)
+        
     def update_bead_pes_energies(self):
         """
         Updates internal vector with the energy of each bead (based on energy 
@@ -388,140 +401,18 @@ class ReactionPathway(object):
 
         self.bead_pes_energies = array(bead_pes_energies)
 
-    def record_ts_estim(self, mode='splines_and_cubic'):
-        """Records the energy transition state estimate that can be formed 
-        from the current pathway.
-        """
-        estims = self.ts_estims(mode=mode)
+    def ts_estims(self):
+        pt = aof.tools.PathTools(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)
+
+        estims = pt.ts_splcub()
+
         if len(estims) < 1:
-            lg.warn("No transition state found.")
+            lg.warn("No transition state found, using highest bead.")
+            estims = pt.ts_highest()
         estims.sort()
-        self.ts_history.append(estims[-1])
+        return estims
+       
         
-    def ts_estims(self, tol=1e-10, mode='splines_and_cubic'):
-        """Returns list of all transition state(s) that appear to exist along
-        the reaction pathway."""
-
-        lg.info("Estimating the transition states along the pathway, mode = %s" % mode)
-        n = self.beads_count
-        Es = self.bead_pes_energies.reshape(n)
-        dofs = self.state_vec.reshape(n,-1)
-        assert len(dofs) == len(Es)
-
-        if mode == 'splines':
-            """Uses a spline representation of the energy/coordinates of the entire path."""
-            Es.shape = (n,-1)
-            ys = hstack([dofs, Es])
-
-            step = 1. / n
-            xs = arange(0., 1., step)
-
-            # TODO: using Alexei's isolated Path object, eventually must make the
-            # GrowingString object use it as well.
-            p = Path(ys, xs)
-
-            E_estim_neg = lambda s: -p(s)[-1]
-            E_prime_estim = lambda s: p.fprime(s)[-1]
-
-            ts_list = []
-            for x in xs[2:]:#-1]:
-                # For each pair of points along the path, find the minimum
-                # energy and check that the gradient is also zero.
-                E_0 = -E_estim_neg(x - step)
-                E_1 = -E_estim_neg(x)
-                x_min = fminbound(E_estim_neg, x - step, x, xtol=tol)
-                E_x = -E_estim_neg(x_min)
-    #            print x_min, abs(E_prime_estim(x_min)), E_0, E_x, E_1
-
-                # Use a looser tollerance when minimising the gradient than for 
-                # the energy function. FIXME: can this be done better?
-                E_prime_tol = tol * 1E4
-                if abs(E_prime_estim(x_min)) < E_prime_tol and (E_0 <= E_x >= E_1):
-                    p_ts = p(x_min)
-                    ts_list.append((p_ts[-1], p_ts[:-1]))
-
-        elif mode == 'splines_and_cubic':
-            """Uses a spline representation of the molecular coordinates and 
-            a cubic polynomial defined from the slope / value of the energy 
-            for pairs of points along the path.
-            """
-
-            ys = dofs.copy()
-
-            step = 1. / n
-            ss = arange(0., 1., step)
-
-            # build fresh functional representation of optimisation 
-            # coordinates as a function of a path parameter s
-            xs = Path(ys, ss)
-            print "ss",ss
-
-            ts_list = []
-
-            from numpy.linalg import norm
-            print "ys", norm(ys[2]-ys[1]), norm(ys[1]-ys[0])
-            for i in range(n)[1:]:#-1]:
-                # For each pair of points along the path, find the minimum
-                # energy and check that the gradient is also zero.
-                E_0 = Es[i-1]
-                E_1 = Es[i]
-                dEdx_0 = self.bead_pes_gradients[i-1]
-                dEdx_1 = self.bead_pes_gradients[i]
-                dxds_0 = xs.fprime(ss[i-1])
-                dxds_1 = xs.fprime(ss[i])
-                print "ang", common.vector_angle(ys[2]-ys[0], dxds_1)
-
-                #energy gradient at "left/right" bead along path
-                #print "dEdx_0, dxds_0", dEdx_0, dxds_0
-                #print "dEdx_1, dxds_1", dEdx_1, dxds_1
-                dEds_0 = dot(dEdx_0, dxds_0)
-                dEds_1 = dot(dEdx_1, dxds_1)
-
-                dEdss = array([dEds_0, dEds_1])
-                #print "i",i
-                print "dEdss", dEdss
-                #print "ss[i-1:i+1], Es[i-1:i+1]", ss[i-1:i+1], Es[i-1:i+1]
-
-                if dEds_0 >= 0 and dEds_1 < 0:
-                    cub = CubicFunc(ss[i-1:i+1], Es[i-1:i+1], dEdss)
-
-                    # Some versions of SciPy seem to give the function called 
-                    # by fminbound a 1d vector, and others give it a scalar.
-                    # The workaround here is to use the atleast_1d function.
-                    E_estim_neg = lambda s: -cub(atleast_1d(s)[0])
-                    E_prime_estim = lambda s: cub.fprime(atleast_1d(s)[0])
-
-                    s_min = fminbound(E_estim_neg, ss[i-1], ss[i], xtol=tol)
-                    print "s_min",s_min
-                    E_s = -E_estim_neg(s_min)
-
-                    print "E_s", E_s
-
-                    # Use a looser tollerance on the gradient than on minimisation of 
-                    # the energy function. FIXME: can this be done better?
-                    E_prime_tol = tol * 1E4
-                    if abs(E_prime_estim(s_min)) < E_prime_tol and (E_0 <= E_s >= E_1):
-                        #print "Found", i
-                        xs_ts = xs(s_min)
-                        ts_list.append((E_s, xs_ts))
-                #print "-------"
-
-        elif mode == 'highest':
-            """Just picks the highest energy from along the path.
-            """
-            i = Es.argmax()
-            ts_list = [(Es[i], dofs[i])]
-        else:
-            raise Exception("Unrecognised TS estimation mode " + mode)
-
-        if len(ts_list) < 1:
-            ix = self.beads_count/2
-            lg.warn("No transition state found, taking bead with index beads_count/2.")
-            ts_list = [(Es[ix], dofs[ix])]
-
-        return ts_list
-
- 
 def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
     """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
     returns a list of length N-1 where each element of the output array is 
@@ -724,6 +615,8 @@ class NEB(ReactionPathway):
 
             result_bead_forces[i] = total
 
+        print "EG", self.eg_calls, result_bead_forces[1][:3]
+        raw_input()
         g = -result_bead_forces.flatten()
         return g
 
