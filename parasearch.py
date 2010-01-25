@@ -441,7 +441,7 @@ def dump_beads(molinterface, chain_of_states, name):
     #print "States", chain_of_states
     ### SEEVALUES
     outputbeadafterbead = False 
-    seeforces =  numpy.array(chain_of_states.bead_forces )
+    seeforces =  numpy.array(chain_of_states.bead_pes_forces )
     seetangents = chain_of_states.tangents
     onedim, twodim = seetangents.shape
     dimsee = seeforces.shape[0]

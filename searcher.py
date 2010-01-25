@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-#from scipy import *
 import sys
 import inspect
 
@@ -190,6 +189,29 @@ class ReactionPathway(object):
         tab = lambda l: '\t'.join([str(i) for i in l])
         format = lambda f, l: ' | '.join([f % i for i in l])
 
+v v v v v v v
+        all_coordinates = ("%-24s : %s\n" % ("    Coordinate %3d " % 1 , format('%10.4f',(self.state_vec[:,0]))))
+        all_coordinates += ("%-24s : %s\n" % ("    Coordinate %3d " % (2) , format('%10.4f',self.state_vec[:,1])))
+        (coord_dim1, coord_dim2) = self.state_vec.shape
+        for i in range(1,coord_dim2 ):
+            all_coordinates += ("%-24s : %s\n" % ("    Coordinate %3d " % (i+1) , format('%10.4f',self.state_vec[:,i])))
+        print all_coordinates
+*************
+        steps_cumm = 2
+        # max cummulative step over steps_cumm iterations
+        step_max_bead_cumm = self.history.step(1, steps_cumm).max()
+
+        arc = {'bc': self.beads_count,
+               'N': eg_calls,
+               'resp': self.respaces,
+               'cb': self.callbacks, 
+               'rmsf': rmsf_perp_total, 
+               'e': e_total,
+               'maxe': e_max,
+               's': step_total,
+               's_ts_cumm': step_max_bead_cumm,
+               'ixhigh': self.bead_pes_energies.argmax()}
+
         f = '%.3e'
         s = ["Chain of States Summary",
              "Grad/Energy calls\t%d" % eg_calls,
@@ -202,15 +224,42 @@ class ReactionPathway(object):
              "Para Forces (RMS total)\t%f" % rmsf_para_total,
              "Para Forces (RMS bead)\t%s" % format(f, rmsf_para_beads),
              "Step Size (RMS total)\t%f" % step_total,
+             "Step Max For highest Bead (Cummulative over last %d)\t%f" % (steps_cumm, step_max_bead_cumm),
              "Step Size (RMS bead)\t%s" % format(f, step_beads),
              "Step Size (MAX)\t%f" % step_raw.max(),
+^ ^ ^ ^ ^ ^ ^
 
+v v v v v v v
              "Bead Angles\t%s" % format('%.0f', angles),
              "Bead Separations (Pythagorean)\t%s" % format(f, seps),
              "State Summary (total)\t%s" % state_sum,
              "State Summary (beads)\t%s" % format('%s', beads_sum),
              "Barriers (Fwd, Rev)\t%f\t%f" % (barrier_fwd, barrier_rev),
-             "Raw State Vector\n\t%s" % (self.state_vec),
+#             "Raw State Vector\n\t%s" % (self.state_vec),
+             "Archive %s" % arc]
+*************
+        f = '%10.3e'
+        s = [ "\n----------------------------------------------------------",
+             "Chain of States Summary for %d gradient/energy calculations" % eg_calls,
+             "VALUES FOR THE WHOLE STRING",
+             "%-24s : %10.4f" %  ("Total Energy"  , e_total) ,
+             "%-24s : %10.4f | %10.4f" % ("RMS Forces (perp|para)", rmsf_perp_total, rmsf_para_total),
+             "%-24s : %10.4f | %10.4f" %  ("Step Size (RMS|MAX)", step_total, step_raw.max()),
+             "VALUES FOR THE SINGLE BEADS",
+             "%-24s : %s" % ("Bead Energies",format('%10.4f', e_beads)) ,
+             "%-24s : %s" % ("RMS Perp Forces", format(f, rmsf_perp_beads)),
+             "%-24s : %s" % ("RMS Para Forces", format(f, rmsf_para_beads)),
+             "%-24s : %s" % ("RMS Step Size", format(f, step_beads)),
+             "%-24s : %12s %s |" % ("Bead Angles","|" , format('%10.0f', angles)),
+             "%-24s : %6s %s" % ("Bead Separations (Pythagorean)", "|", format(f, seps)),
+             "%-24s :" % ("Raw State Vector"),
+             all_coordinates,
+             "GENERAL ISSUES",
+             "%-24s : %10d" % ("Callbacks", self.callbacks),
+             "%-24s : %10d" % ("Beads Count", self.beads_count),
+             "%-24s : %10s" % ("State Summary (total)", state_sum),
+             "%-24s : %s" % ("State Summary (beads)", format('%10s', beads_sum)),
+             "%-24s : %10.4f | %10.4f " % ("Barriers (Fwd|Rev)", barrier_fwd, barrier_rev),
              "Archive (bc, N, resp, cb, rmsf, e, maxe, s):\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f" % \
                 (self.beads_count,
                  eg_calls,
@@ -221,6 +270,7 @@ class ReactionPathway(object):
                  e_max,
                  step_total)
              ]
+^ ^ ^ ^ ^ ^ ^
 
 
         return '\n'.join(s)
