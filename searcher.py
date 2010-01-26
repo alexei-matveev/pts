@@ -189,7 +189,7 @@ class ReactionPathway(object):
         tab = lambda l: '\t'.join([str(i) for i in l])
         format = lambda f, l: ' | '.join([f % i for i in l])
 
-:       all_coordinates = ("%-24s : %s\n" % ("    Coordinate %3d " % 1 , format('%10.4f',(self.state_vec[:,0]))))
+        all_coordinates = ("%-24s : %s\n" % ("    Coordinate %3d " % 1 , format('%10.4f',(self.state_vec[:,0]))))
         all_coordinates += ("%-24s : %s\n" % ("    Coordinate %3d " % (2) , format('%10.4f',self.state_vec[:,1])))
         (coord_dim1, coord_dim2) = self.state_vec.shape
         for i in range(1,coord_dim2 ):
@@ -622,7 +622,7 @@ class NEB(ReactionPathway):
             result_bead_forces[i] = total
 
         print "EG", self.eg_calls, result_bead_forces[1][:3]
-        raw_input()
+#        raw_input()
         g = -result_bead_forces.flatten()
         return g
 
