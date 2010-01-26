@@ -94,17 +94,25 @@ class History():
             return lambda n: [getattr(r, name) for r in self.list[-n:]]
 
     def step(self, n, recs):
-        """Returns the array of total step sizes or the |n| highest energy 
-        beads over the last |recs| records.
+        """Returns the array of total step sizes of the |n| highest energy 
+        beads over the last |recs| records. If n == 0, then return step sizes 
+        of the transition state estim.
         """
+        assert n >= 0
+
         if self.list == []:
             return np.array([0])
-        # use max bead ix's from last record
-        ixs = self.list[-1].maxixs[-n:]
 
         tmp = []
-        for r in self.list[-recs:]:
-            tmp.append(r.state.take(ixs, axis=0))
+        if n == 0:
+            for r in self.list[-recs:]:
+                tmp.append(r.ts_estim[1])
+        else:
+            # use max bead ix's from most recent record
+            ixs = self.list[-1].maxixs[-n:]
+
+            for r in self.list[-recs:]:
+                tmp.append(r.state.take(ixs, axis=0))
 
         tmp = np.array(tmp)
 

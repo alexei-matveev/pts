@@ -199,6 +199,7 @@ class ReactionPathway(object):
         steps_cumm = 2
         # max cummulative step over steps_cumm iterations
         step_max_bead_cumm = self.history.step(1, steps_cumm).max()
+        step_ts_estim_cumm = self.history.step(0, steps_cumm).max()
 
         arc = {'bc': self.beads_count,
                'N': eg_calls,
@@ -208,17 +209,21 @@ class ReactionPathway(object):
                'e': e_total,
                'maxe': e_max,
                's': step_total,
-               's_ts_cumm': step_max_bead_cumm,
+               's_ts_cumm': step_ts_estim_cumm,
+               's_max_cumm': step_max_bead_cumm,
                'ixhigh': self.bead_pes_energies.argmax()}
 
         f = '%10.3e'
         s = [ "\n----------------------------------------------------------",
              "Chain of States Summary for %d gradient/energy calculations" % eg_calls,
-             "VALUES FOR THE WHOLE STRING",
+             "VALUES FOR WHOLE STRING",
              "%-24s : %10.4f" %  ("Total Energy"  , e_total) ,
              "%-24s : %10.4f | %10.4f" % ("RMS Forces (perp|para)", rmsf_perp_total, rmsf_para_total),
              "%-24s : %10.4f | %10.4f" %  ("Step Size (RMS|MAX)", step_total, step_raw.max()),
-             "VALUES FOR THE SINGLE BEADS",
+             "%-24s : %10.4f" % ("Cumulative steps (max bead)", step_max_bead_cumm),
+             "%-24s : %10.4f" % ("Cumulative steps (ts estim)", step_ts_estim_cumm),
+
+             "VALUES FOR SINGLE BEADS",
              "%-24s : %s" % ("Bead Energies",format('%10.4f', e_beads)) ,
              "%-24s : %s" % ("RMS Perp Forces", format(f, rmsf_perp_beads)),
              "%-24s : %s" % ("RMS Para Forces", format(f, rmsf_para_beads)),
@@ -227,7 +232,7 @@ class ReactionPathway(object):
              "%-24s : %6s %s" % ("Bead Separations (Pythagorean)", "|", format(f, seps)),
              "%-24s :" % ("Raw State Vector"),
              all_coordinates,
-             "GENERAL ISSUES",
+             "GENERAL STATS",
              "%-24s : %10d" % ("Callbacks", self.callbacks),
              "%-24s : %10d" % ("Beads Count", self.beads_count),
              "%-24s : %10s" % ("State Summary (total)", state_sum),
