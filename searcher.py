@@ -189,14 +189,13 @@ class ReactionPathway(object):
         tab = lambda l: '\t'.join([str(i) for i in l])
         format = lambda f, l: ' | '.join([f % i for i in l])
 
-v v v v v v v
-        all_coordinates = ("%-24s : %s\n" % ("    Coordinate %3d " % 1 , format('%10.4f',(self.state_vec[:,0]))))
+:       all_coordinates = ("%-24s : %s\n" % ("    Coordinate %3d " % 1 , format('%10.4f',(self.state_vec[:,0]))))
         all_coordinates += ("%-24s : %s\n" % ("    Coordinate %3d " % (2) , format('%10.4f',self.state_vec[:,1])))
         (coord_dim1, coord_dim2) = self.state_vec.shape
         for i in range(1,coord_dim2 ):
             all_coordinates += ("%-24s : %s\n" % ("    Coordinate %3d " % (i+1) , format('%10.4f',self.state_vec[:,i])))
         print all_coordinates
-*************
+
         steps_cumm = 2
         # max cummulative step over steps_cumm iterations
         step_max_bead_cumm = self.history.step(1, steps_cumm).max()
@@ -212,32 +211,6 @@ v v v v v v v
                's_ts_cumm': step_max_bead_cumm,
                'ixhigh': self.bead_pes_energies.argmax()}
 
-        f = '%.3e'
-        s = ["Chain of States Summary",
-             "Grad/Energy calls\t%d" % eg_calls,
-             "Callbacks\t%d" % self.callbacks,
-             "Beads Count\t%d" % self.beads_count,
-             "Total Energy\t%f" % e_total,
-             "Bead Energies\t%s" % tab(e_beads),
-             "Perp Forces (RMS total)\t%f" % rmsf_perp_total,
-             "Perp Forces (RMS bead)\t%s" % format(f, rmsf_perp_beads),
-             "Para Forces (RMS total)\t%f" % rmsf_para_total,
-             "Para Forces (RMS bead)\t%s" % format(f, rmsf_para_beads),
-             "Step Size (RMS total)\t%f" % step_total,
-             "Step Max For highest Bead (Cummulative over last %d)\t%f" % (steps_cumm, step_max_bead_cumm),
-             "Step Size (RMS bead)\t%s" % format(f, step_beads),
-             "Step Size (MAX)\t%f" % step_raw.max(),
-^ ^ ^ ^ ^ ^ ^
-
-v v v v v v v
-             "Bead Angles\t%s" % format('%.0f', angles),
-             "Bead Separations (Pythagorean)\t%s" % format(f, seps),
-             "State Summary (total)\t%s" % state_sum,
-             "State Summary (beads)\t%s" % format('%s', beads_sum),
-             "Barriers (Fwd, Rev)\t%f\t%f" % (barrier_fwd, barrier_rev),
-#             "Raw State Vector\n\t%s" % (self.state_vec),
-             "Archive %s" % arc]
-*************
         f = '%10.3e'
         s = [ "\n----------------------------------------------------------",
              "Chain of States Summary for %d gradient/energy calculations" % eg_calls,
@@ -260,17 +233,7 @@ v v v v v v v
              "%-24s : %10s" % ("State Summary (total)", state_sum),
              "%-24s : %s" % ("State Summary (beads)", format('%10s', beads_sum)),
              "%-24s : %10.4f | %10.4f " % ("Barriers (Fwd|Rev)", barrier_fwd, barrier_rev),
-             "Archive (bc, N, resp, cb, rmsf, e, maxe, s):\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f" % \
-                (self.beads_count,
-                 eg_calls,
-                 self.respaces,
-                 self.callbacks,
-                 rmsf_perp_total,
-                 e_total,
-                 e_max,
-                 step_total)
-             ]
-^ ^ ^ ^ ^ ^ ^
+             "Archive %s" % arc]
 
 
         return '\n'.join(s)
