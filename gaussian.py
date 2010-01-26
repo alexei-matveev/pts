@@ -210,7 +210,8 @@ class Gaussian:
         if e == None or forces == []:
             raise GaussDriverError("File not parsed, check " + os.path.join(os.getcwd(), logfilename))
 
-        forces = numpy.array(forces) * common.ANGSTROMS_TO_BOHRS
+        forces = numpy.array(forces) * common.ANGSTROMS_TO_BOHRS * common.HARTREE_TO_ELECTRON_VOLTS
+        e *= common.HARTREE_TO_ELECTRON_VOLTS
         return e, forces
 
 class GaussDriverError(Exception):
