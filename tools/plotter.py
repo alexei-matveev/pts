@@ -103,8 +103,13 @@ def run(args, extra, maxit=50):
                 s_ts_cumm = d['s_ts_cumm']
                 ixhigh = d['ixhigh']
 
+                tuple = (bc,   N,   res,   cb,   rmsf,   e,   maxe,   s,   e/bc)
+                ids =  ['bc', 'N', 'res', 'cb', 'rmsf', 'e', 'maxe', 's', 'e/bc']
+                ixs = range(len(ids)+1)[1:]
+                d = dict(zip(ids, ixs))
+
                 if (rmsf, e, maxe) != prev:
-                    line = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\n" % (bc, N, res, cb, rmsf, e, maxe, s, e/bc)
+                    line = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\n" % tuple
                     f_out.write(line)
                     prev = rmsf, e, maxe
                     highestN = max(N, highestN)
@@ -133,30 +138,31 @@ def run(args, extra, maxit=50):
         f_grow.close()
 
     plot_files = ['"' + fn + '.out"' for fn in args]
-    energy_plots = [fn + ' using 2:9 with lines' for fn in plot_files]
+    energy_plots = [fn + ' using %(N)d:%(e)d with lines' % d for fn in plot_files]
     energy_plots = [p + ' title "' + t + '"' for (p,t) in zip(energy_plots, titles)]
     energy_plots = ','.join(energy_plots)
 
     grow_plots = ['"' + fn + '.grow.out"' for fn in args]
     titles = ['title "Growth"'] + ['notitle' for i in grow_plots[1:]]
-    grow_plots = ['%s using 2:9 %s with points lw 5 lt 7' % (fn,t) for (fn,t) in zip(grow_plots, titles)]
+    energy = '%(N)d:%(e)d' % d
+    grow_plots = ['%s using %s %s with points lw 5 lt 7' % (fn,energy,t) for (fn,t) in zip(grow_plots, titles)]
     grow_plots = ','.join(grow_plots)
 
     res_plots = ['"' + fn + '.res.out"' for fn in args]
     titles = ['title "Respace"'] + ['notitle' for i in res_plots[1:]]
-    res_plots = ['%s using 2:9 %s with points lw 3 lt 9' % (fn,t) for (fn,t) in zip(res_plots, titles)]
+    res_plots = ['%s using %s %s with points lw 3 lt 9' % (fn,energy,t) for (fn,t) in zip(res_plots, titles)]
     res_plots = ','.join(res_plots)
 
     cb_plots = ['"' + fn + '.cb.out"' for fn in args]
     titles = ['title "Callback"'] + ['notitle' for i in cb_plots[1:]]
-    cb_plots = ['%s using 2:9 %s with points lw 1 lt 11' % (fn,t) for (fn, t) in zip(cb_plots, titles)]
+    cb_plots = ['%s using %s %s with points lw 1 lt 11' % (fn,energy,t) for (fn, t) in zip(cb_plots, titles)]
     cb_plots = ','.join(cb_plots)
 
 
-    gradient_plots = [fn + ' using 2:5' for fn in plot_files]
+    gradient_plots = [fn + ' using %(N)d:%(rmsf)d' % d for fn in plot_files]
     gradient_plots = ','.join(gradient_plots)
 
-    step_plots = [fn + ' using 2:8' for fn in plot_files]
+    step_plots = [fn + ' using %(N)d:%(s)d' % d for fn in plot_files]
     step_plots = ','.join(step_plots)
 
     values = {'maxit': maxit, 

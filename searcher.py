@@ -179,6 +179,11 @@ class ReactionPathway(object):
         angles = self.angles
         seps = self.update_bead_separations()
 
+        total_len_pythag = seps.sum()
+        total_len_spline = 0
+        if self.string:
+            total_len_spline = self.__path_rep.get_bead_separations().sum()
+
         state_sum, beads_sum = self.state_summary
 
         e_reactant, e_product = e_beads[0], e_beads[-1]
@@ -196,7 +201,7 @@ class ReactionPathway(object):
             all_coordinates += ("%-24s : %s\n" % ("    Coordinate %3d " % (i+1) , format('%10.4f',self.state_vec[:,i])))
         print all_coordinates
 
-        steps_cumm = 2
+        steps_cumm = 3
         # max cummulative step over steps_cumm iterations
         step_max_bead_cumm = self.history.step(1, steps_cumm).max()
         step_ts_estim_cumm = self.history.step(0, steps_cumm).max()
@@ -208,7 +213,7 @@ class ReactionPathway(object):
                'rmsf': rmsf_perp_total, 
                'e': e_total,
                'maxe': e_max,
-               's': step_total,
+               's': abs(step_raw).max(),
                's_ts_cumm': step_ts_estim_cumm,
                's_max_cumm': step_max_bead_cumm,
                'ixhigh': self.bead_pes_energies.argmax()}
@@ -235,6 +240,7 @@ class ReactionPathway(object):
              "GENERAL STATS",
              "%-24s : %10d" % ("Callbacks", self.callbacks),
              "%-24s : %10d" % ("Beads Count", self.beads_count),
+             "%-24s : %.2f %.2f" % ("Total Length (Pythag|Spline)", total_len_pythag, total_len_spline),
              "%-24s : %10s" % ("State Summary (total)", state_sum),
              "%-24s : %s" % ("State Summary (beads)", format('%10s', beads_sum)),
              "%-24s : %10.4f | %10.4f " % ("Barriers (Fwd|Rev)", barrier_fwd, barrier_rev),
@@ -712,6 +718,8 @@ class PathRepresentation(object):
 
         self.__rho = self.set_rho(rho)
 
+        self.seps_stale = True
+
         # TODO check all beads have same dimensionality
 
     """def get_fs(self):
@@ -740,6 +748,7 @@ class PathRepresentation(object):
 
     def set_state_vec(self, new_state_vec):
         self.__state_vec = array(new_state_vec).reshape(self.beads_count, -1)
+        self.seps_stale = True
 
     state_vec = property(get_state_vec, set_state_vec)
 
@@ -801,13 +810,18 @@ class PathRepresentation(object):
         parameterisation.
         """
 
-        a = self.__normalised_positions
-        N = len(a)
-        seps = []
-        for i in range(N)[1:]:
-            l = scipy.integrate.quad(self.__arc_dist_func, a[i-1], a[i])
-            seps.append(l[0])
-        return array(seps)
+        while self.seps_stale:
+            a = self.__normalised_positions
+            N = len(a)
+            seps = []
+            for i in range(N)[1:]:
+                l = scipy.integrate.quad(self.__arc_dist_func, a[i-1], a[i])
+                seps.append(l[0])
+
+            self.seps = array(seps)
+
+            self.seps_stale = False
+        return self.seps
 
     def __get_total_str_len(self):
         """Returns the a duple of the total length of the string and a list of 
@@ -1202,7 +1216,6 @@ class GrowingString(ReactionPathway):
             lg.info("Lengths Disparate: %s" % self.lengths_disparate())
 
             self.__path_rep.state_vec = array(x).reshape(self.beads_count, -1)
-
 
     state_vec = property(get_state_vec, set_state_vec)
 
