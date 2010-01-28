@@ -7,6 +7,8 @@ import os
 import sys
 import getopt
 from os.path import basename
+import aof
+import numpy as np
 
 def sub(s, old, new):
     return new.join(s.split(old))
@@ -40,18 +42,30 @@ set logscale y
 set ylabel "RMS Stepsize
 plot [1:%(maxit)d] %(stepplots)s
 
+set origin 0, 0.166666
+set size 1, 0.166666
+set logscale y
+set ylabel "RMS Forces"
+plot [1:%(maxit)d] %(gradientplots)s
+
 set origin 0, 0
 set logscale y
-
-set ylabel "RMS Forces"
+set ylabel "TS Error"
 set xlabel "Chain Gradient Evaluations"
-plot [1:%(maxit)d] %(gradientplots)s
+plot [1:%(maxit)d] %(ts_estim_err)s, %(ts_max_err)s
 
 
 """
 #aseneb.txt.arch" using 2:4 title "ASE NEB", "myneb_aselbfgs-newe.txt.arch" using 2:4 title "My NEB (ASE-LBFGS)", "myneb_numpy
 
 def run(args, extra, maxit=50):
+
+    known_ts_aa_dists = None
+
+    archive_tag = 'Archive'
+    ts_tag = 'TS ESTIM CARTS:'
+    max_tag = 'HIGHEST CARTS:'
+
     titles = []
     for fn in args:
         f = open(fn)
@@ -75,13 +89,17 @@ def run(args, extra, maxit=50):
         prev_res = 0
         prev_cb = 0
 
+        ts_err_ts_estim = 0
+        ts_err_max = 0
+        ts_count = 0
+
         while True:
             line = f.readline()
             if not line:
 #                maxit = min(maxit, highestN)
                 break
 
-            if line[0:7] == 'Archive':
+            if line.startswith(archive_tag):
                 d = ' '.join(line.split(' ')[1:])
                 d = eval(d)
                 # bc:   bead count
@@ -104,32 +122,60 @@ def run(args, extra, maxit=50):
                 ixhigh = d['ixhigh']
 
                 tuple = (bc,   N,   res,   cb,   rmsf,   e,   maxe,   s,   e/bc)
-                ids =  ['bc', 'N', 'res', 'cb', 'rmsf', 'e', 'maxe', 's', 'e/bc']
-                ixs = range(len(ids)+1)[1:]
+
+                # Set up dictionary of indices of fields so that strings of 
+                # gnuplot syntax can access them.
+                ids =  ['bc', 'N', 'res', 'cb', 'rmsf', 'e', 'maxe', 's', 'e/bc', 'ts_estim_err', 'ts_max_err']
+                ixs = range(len(ids)+1)[1:] # [1,2,3...]
                 d = dict(zip(ids, ixs))
 
                 if (rmsf, e, maxe) != prev:
-                    line = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\n" % tuple
-                    f_out.write(line)
+                    outline = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f" % tuple
                     prev = rmsf, e, maxe
                     highestN = max(N, highestN)
+                else:
+                    assert False, "repeated data in output file, this must not occur if getting of cartesian geom is to work correctly."
 
                 # file of growth events
                 if bc > prev_bc and N > 1:
-                    f_grow.write(line)
+                    f_grow.write(outline)
 
                 # file of respace events
                 if res > prev_res and N > 1:
-                    f_res.write(line)
+                    f_res.write(outline)
 
                 # file of callback events
                 if cb > prev_cb and N > 1:
-                    f_cb.write(line)
+                    f_cb.write(outline)
 
 
                 prev_bc = bc
                 prev_res = res
                 prev_cb = cb
+
+            # This has become a dodyy hack. Sorry.
+            elif line.startswith(ts_tag) or line.startswith(max_tag):
+                if line.startswith(ts_tag):
+                    data = line[len(ts_tag):]
+                    a = eval(data)
+                    aa_dists = aof.common.atom_atom_dists(a)
+                    if known_ts_aa_dists == None:
+                        known_ts_aa_dists = aa_dists.copy()
+                    ts_err_ts_estim = np.linalg.norm(known_ts_aa_dists - aa_dists)
+                    ts_count += 1
+                else:
+                    data = line[len(max_tag):]
+                    a = eval(data)
+                    aa_dists = aof.common.atom_atom_dists(a)
+                    if known_ts_aa_dists == None:
+                        known_ts_aa_dists = aa_dists.copy()
+                    ts_err_max = np.linalg.norm(known_ts_aa_dists - aa_dists)
+                    ts_count += 1
+
+                if ts_count == 2:
+                    outline += '\t%f\t%f\n' % (ts_err_ts_estim, ts_err_max)
+                    f_out.write(outline)
+                    ts_count = 0
 
         f.close()
         f_res.close()
@@ -165,13 +211,21 @@ def run(args, extra, maxit=50):
     step_plots = [fn + ' using %(N)d:%(s)d' % d for fn in plot_files]
     step_plots = ','.join(step_plots)
 
+    ts_estim_err_plots = [fn + ' using %(N)d:%(ts_estim_err)d' % d for fn in plot_files]
+    ts_estim_err_plots = ','.join(ts_estim_err_plots)
+
+    ts_max_err_plots = [fn + ' using %(N)d:%(ts_max_err)d' % d for fn in plot_files]
+    ts_max_err_plots = ','.join(ts_max_err_plots)
+
     values = {'maxit': maxit, 
               'energyplots': energy_plots, 
               'gradientplots': gradient_plots, 
               'stepplots': step_plots, 
               'growplots': grow_plots,
               'resplots': res_plots,
-              'cbplots': cb_plots}
+              'cbplots': cb_plots,
+              'ts_estim_err': ts_max_err_plots,
+              'ts_max_err': ts_max_err_plots}
 
     values.update(extra)
     gnuplot_str = plot_str % values
@@ -180,7 +234,6 @@ def run(args, extra, maxit=50):
     out = open(gpfile, 'w')
     out.write(gnuplot_str)
     out.close()
-
     os.system('gnuplot ' + gpfile)
     os.system('gv plots.ps')
 
