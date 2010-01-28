@@ -75,7 +75,7 @@ class ReactionPathway(object):
         self.history = History()
 
         # mask of gradients to update at each position
-        self.grad_update_mask = [False] + [True for i in range(beads_count-2)] + [False]
+        self.bead_update_mask = [False] + [True for i in range(beads_count-2)] + [False]
 
         self._maxit = sys.maxint
         if reporting:
@@ -102,6 +102,18 @@ class ReactionPathway(object):
         self.prev_para_forces = None
         self.prev_energies = None
         self._step = zeros(shape)
+
+    def update_mask(self, perp_max=0.3):
+        top3 = self.bead_pes_energies.argsort()[-3:]
+        for i in range(self.beads_count)[1:-1]:
+            if i in top3:
+                print "Bead", i, "in top3"
+                self.bead_update_mask[i] = True
+                continue
+
+            self.bead_update_mask[i] = abs(self.perp_bead_forces[i]).max() > perp_max
+            print "Bead", i, self.bead_update_mask[i], abs(self.perp_bead_forces[i]).max()
+        lg.info("Update mask set to %s" % str(self.bead_update_mask))
 
     def lengths_disparate(self):
         return False
@@ -153,10 +165,12 @@ class ReactionPathway(object):
     def set_positions(self, x):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
 
+        tmp = x.flatten()[0:self.beads_count * self.dimension]
         self.state_vec = x.flatten()[0:self.beads_count * self.dimension]
 
     def get_positions(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates.""" 
+
         return common.make_like_atoms(self.state_vec.copy())
 
     positions = property(get_positions, set_positions)
@@ -235,6 +249,7 @@ class ReactionPathway(object):
              "%-24s : %s" % ("RMS Step Size", format(f, step_beads)),
              "%-24s : %12s %s |" % ("Bead Angles","|" , format('%10.0f', angles)),
              "%-24s : %6s %s" % ("Bead Separations (Pythagorean)", "|", format(f, seps)),
+             "%-24s : %6s %f" % ("Bead Sep ratio (Pythagorean)", "|", seps.max() / seps.min()),
              "%-24s :" % ("Raw State Vector"),
              all_coordinates,
              "GENERAL STATS",
@@ -255,12 +270,13 @@ class ReactionPathway(object):
                 self.reporting.write("***Gradient call (E was %f)***\n" % self.bead_pes_energies.sum())
             else:
                 self.reporting.write("***Energy call   (E was %f)***\n" % self.bead_pes_energies.sum())
-        """            if self.prev_state != None:
-                self.reporting.write("State Diff %s\n" % (self.state_vec - self.prev_state))
-            else:
-                self.reporting.write("Prev State was none")"""
+
         if self.prev_state == None:
+            # must be first iteration
+            assert self.eg_calls == 0
             self.prev_state = self.state_vec.copy()
+
+        # skip reporting if the state hasn't changed
         elif (self.state_vec == self.prev_state).all():
             return
 
@@ -268,16 +284,38 @@ class ReactionPathway(object):
         self._step = self.state_vec - self.prev_state
         self.prev_state = self.state_vec.copy()
 
+        self.record()
+
         if self.reporting:
             s = [str(self),
                  common.line()]
+
+            # Write out the cartesian coordinates of two transition state
+            # estimates: highest bead and from spline estimation.
+            if hasattr(self, 'bead2carts'):
+
+                # History.func(n) returns list of last n values of func
+                # as a tuple. For ts_estim values are a tuple: (energy, vector)
+                n = 1
+                which = 0
+                vec_ix = 1
+                tmp = self.history.ts_estim(n)[which][vec_ix]
+                ts_estim = self.bead2carts(tmp)
+                highest  = self.bead2carts(self.history.max(n)[-1])
+
+                a2s = lambda a: '[' + ', '.join(['%f'%f for f in a]) + ']'
+                s.append("TS ESTIM CARTS: %s" % a2s(ts_estim))
+                s.append("HIGHEST CARTS: %s" % a2s(highest))
+            else:
+                assert False
+
             s = '\n'.join(s) + '\n'
+
             self.reporting.write(s)
             self.reporting.flush()
         else:
             assert self.reporting == None
 
-        self.record()
 
     def grow_string(self):
         return False
@@ -338,12 +376,20 @@ class ReactionPathway(object):
         return self._state_vec.copy()
     def set_state_vec(self, x):
         if x != None:
-            self._state_vec = array(x).reshape(self.beads_count, -1)
+            tmp = array(x).reshape(self.beads_count, -1)
+
+            for i in range(self.beads_count):
+                if self.bead_update_mask[i]:
+                    self._state_vec[i] = tmp[i]
+
     state_vec = property(get_state_vec, set_state_vec)
 
     def obj_func(self, new_state_vec=None, grad=False):
         # diffinbeads is only needed for growing string, for everything else it
         # can be set to zero
+
+        # update mask of beads to freeze i.e. not move or recalc energy/grad for
+        self.update_mask()
 
         # NOTE: this automatically skips if None
         self.state_vec = new_state_vec
@@ -616,7 +662,7 @@ class NEB(ReactionPathway):
 
         result_bead_forces = zeros((self.beads_count, self.dimension))
         for i in range(self.beads_count):
-            if not self.grad_update_mask[i]:
+            if not self.bead_update_mask[i]:
                 continue
 
             spring_force_mag = 0
@@ -632,8 +678,6 @@ class NEB(ReactionPathway):
 
             result_bead_forces[i] = total
 
-        print "EG", self.eg_calls, result_bead_forces[1][:3]
-#        raw_input()
         g = -result_bead_forces.flatten()
         return g
 
@@ -1215,7 +1259,7 @@ class GrowingString(ReactionPathway):
 
             lg.info("Lengths Disparate: %s" % self.lengths_disparate())
 
-            self.__path_rep.state_vec = array(x).reshape(self.beads_count, -1)
+#            self.__path_rep.state_vec = array(x).reshape(self.beads_count, -1)
 
     state_vec = property(get_state_vec, set_state_vec)
 
@@ -1311,8 +1355,8 @@ class GrowingString(ReactionPathway):
         else:
             e = 1
         m = self.beads_count - 2 * e
-        self.grad_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
-        lg.debug("Bead Freezing MASK: " + str(self.grad_update_mask))
+        self.bead_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
+        lg.debug("Bead Freezing MASK: " + str(self.bead_update_mask))
 
         lg.info("******** String Grown to %d beads ********", self.beads_count)
 
@@ -1391,9 +1435,8 @@ class GrowingString(ReactionPathway):
 
         result_bead_forces = zeros((self.beads_count, self.dimension))
         for i in range(self.beads_count):
-            if not self.grad_update_mask[i]:
-                continue
-            result_bead_forces[i] = self.perp_bead_forces[i]
+            if self.bead_update_mask[i]:
+                result_bead_forces[i] = self.perp_bead_forces[i]
 
         g = -result_bead_forces.flatten()
         return g
@@ -1408,7 +1451,11 @@ class GrowingString(ReactionPathway):
         redestributes the beads according to the density function."""
 
         if state_vec != None:
-            self.__path_rep.state_vec = state_vec
+            tmp = array(state_vec).reshape(self.beads_count, -1)
+
+            for i in range(self.beads_count):
+                if self.bead_update_mask[i]:
+                    self.__path_rep.state_vec = tmp[i]
 
         # rebuild line, parabola or spline representation of path
         self.__path_rep.regen_path_func()

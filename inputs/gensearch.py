@@ -54,6 +54,9 @@ elif cos_type == 'neb':
 else:
     raise Exception('Unknown type: %s' % cos_type)
 
+# hack to enable the CoS to print in cartesians
+CoS.bead2carts = lambda x: mi.build_coord_sys(x).get_cartesians().flatten()
+
 # callback function
 def cb(x, tol=0.01):
     return aof.generic_callback(x, mi, CoS, params, tol=tol)

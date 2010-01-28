@@ -329,12 +329,8 @@ def place_str_dplace(tag):
     s = "dplace -c " + ','.join([str(cpu) for cpu in tag[0]])
     return s
 
-
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
-
 def important(s):
+    """Draws a box round important text."""
     n = len(s)
     rep = lambda c, j: ''.join([c for i in range(j)])
     line = '+' + rep('-', n) + '+'
@@ -342,4 +338,48 @@ def important(s):
     s = "%s\n%s\n%s" % (line, mid, line)
     return s
 
+def atom_atom_dists(v):
+    """Returns an array of all interatom distances.
+    
+    >>> atom_atom_dists([[1,0,0], [2,0,0]])
+    array([ 1.])
+
+    >>> atom_atom_dists([[1,0,0], [2,0,0], [3,0,0]])
+    array([ 1.,  2.,  1.])
+
+    >>> atom_atom_dists([1,0,0,2,0,0,3,0,0])
+    array([ 1.,  2.,  1.])
+
+    >>> len(atom_atom_dists([[1,0,0]]))
+    0
+    
+    """
+    v = numpy.array(v)
+    assert v.size % 3 == 0
+    v.shape = (-1,3)
+    N = len(v)
+
+    output = numpy.zeros(N*(N-1)/2)
+    k = 0
+    for i in range(N)[:-1]:
+        for j in range(N)[i+1:]:
+            d = v[i] - v[j]
+            d = numpy.dot(d,d)**(0.5)
+            output[k] = d
+            k += 1
+
+    assert (output != 0.0).all()
+
+    return output
+
+# Testing the examples in __doc__strings, execute
+# "python gxmatrix.py", eventualy with "-v" option appended:
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+
+# You need to add "set modeline" and eventually "set modelines=5"
+# to your ~/.vimrc for this to take effect.
+# Dont (accidentally) delete these lines! Unless you do it intentionally ...
+# Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
 
