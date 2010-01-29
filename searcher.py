@@ -123,7 +123,7 @@ class ReactionPathway(object):
         if self.lengths_disparate():
             raise aof.MustRegenerate
 
-    def test_convergence(self, f_tol, x_tol):
+    def test_convergence(self, f_tol, x_tol, steps_cumm=3):
         """
         Raises Converged if converged, applying weaker convergence 
         criterion if growing string is not fully grown.
@@ -138,8 +138,9 @@ class ReactionPathway(object):
             if rmsf < f_tol*10:
                 raise aof.Converged
         else:
-            lg.info("Testing Non-Growing Convergence to %f: %f" % (f_tol, rmsf))
-            if rmsf < f_tol or self.history.step(1, steps_cumm).max() < x_tol:
+            max_step = self.history.step(1, steps_cumm).max()
+            lg.info("Testing Non-Growing Convergence to f: %f / %f, x: %f / %f" % (rmsf, f_tol, max_step, x_tol))
+            if rmsf < f_tol or (self.eg_calls > 1 and max_step < x_tol):
                 raise aof.Converged
 
     @property
@@ -196,7 +197,7 @@ class ReactionPathway(object):
         total_len_pythag = seps.sum()
         total_len_spline = 0
         if self.string:
-            total_len_spline = self.__path_rep.get_bead_separations().sum()
+            total_len_spline = self._path_rep.get_bead_separations().sum()
 
         state_sum, beads_sum = self.state_summary
 
@@ -231,6 +232,25 @@ class ReactionPathway(object):
                's_ts_cumm': step_ts_estim_cumm,
                's_max_cumm': step_max_bead_cumm,
                'ixhigh': self.bead_pes_energies.argmax()}
+
+
+        # Write out the cartesian coordinates of two transition state
+        # estimates: highest bead and from spline estimation.
+        if hasattr(self, 'bead2carts'):
+
+            # History.func(n) returns list of last n values of func
+            # as a tuple. For ts_estim values are a tuple: (energy, vector)
+            n = 1
+            which = 0
+            ts_estim_energy, estim = self.history.ts_estim(n)[which]
+            ts_estim = self.bead2carts(estim)
+            bead_carts = [self.bead2carts(v) for v in self.state_vec]
+            bead_carts = zip(e_beads, bead_carts)
+
+            delnl = lambda a: ''.join(repr(a).split('\n'))
+            a2s = lambda a: '[' + ', '.join(['%.3f'%f for f in a]) + ']'
+            arc["ts_estim_carts"] = ts_estim_energy, delnl(ts_estim)
+            arc["bead_carts"] = delnl(bead_carts)
 
         f = '%10.3e'
         s = [ "\n----------------------------------------------------------",
@@ -290,24 +310,6 @@ class ReactionPathway(object):
             s = [str(self),
                  common.line()]
 
-            # Write out the cartesian coordinates of two transition state
-            # estimates: highest bead and from spline estimation.
-            if hasattr(self, 'bead2carts'):
-
-                # History.func(n) returns list of last n values of func
-                # as a tuple. For ts_estim values are a tuple: (energy, vector)
-                n = 1
-                which = 0
-                vec_ix = 1
-                tmp = self.history.ts_estim(n)[which][vec_ix]
-                ts_estim = self.bead2carts(tmp)
-                highest  = self.bead2carts(self.history.max(n)[-1])
-
-                a2s = lambda a: '[' + ', '.join(['%f'%f for f in a]) + ']'
-                s.append("TS ESTIM CARTS: %s" % a2s(ts_estim))
-                s.append("HIGHEST CARTS: %s" % a2s(highest))
-            else:
-                assert False
 
             s = '\n'.join(s) + '\n'
 
@@ -808,6 +810,7 @@ class PathRepresentation(object):
 
         self.__fs = []
 
+#        assert self.__state_vec.shape == (self.beads_count, self.__dimension), "%s" % str(self.__state_vec.shape)
         for i in range(self.__dimension):
 
             ys = self.__state_vec[:,i]
@@ -1210,7 +1213,7 @@ class GrowingString(ReactionPathway):
             initial_beads_count = self.__final_beads_count
 
         # create PathRepresentation object
-        self.__path_rep = PathRepresentation(reagents, initial_beads_count, rho)
+        self._path_rep = PathRepresentation(reagents, initial_beads_count, rho)
         ReactionPathway.__init__(self, reagents, initial_beads_count, qc_driver, parallel, reporting=reporting)
 
         # final bead spacing density function for grown string
@@ -1222,10 +1225,10 @@ class GrowingString(ReactionPathway):
         self.update_rho()
 
         # Build path function based on reagents
-        self.__path_rep.regen_path_func()
+        self._path_rep.regen_path_func()
 
         # Space beads along the path
-        self.__path_rep.generate_beads(update = True)
+        self._path_rep.generate_beads(update = True)
 
         self.parallel = parallel
 
@@ -1244,11 +1247,11 @@ class GrowingString(ReactionPathway):
         return len(common.make_like_atoms(self.state_vec))
 
     def pathfs(self):
-        return self.__path_rep.fs
+        return self._path_rep.fs
 
     def get_state_vec(self):
         assert not '_state_vec' in self.__dict__
-        return self.__path_rep.state_vec.copy()
+        return self._path_rep.state_vec.copy()
 
     def set_state_vec(self, x):
         assert not '_state_vec' in self.__dict__
@@ -1259,12 +1262,12 @@ class GrowingString(ReactionPathway):
 
             lg.info("Lengths Disparate: %s" % self.lengths_disparate())
 
-#            self.__path_rep.state_vec = array(x).reshape(self.beads_count, -1)
+#            self._path_rep.state_vec = array(x).reshape(self.beads_count, -1)
 
     state_vec = property(get_state_vec, set_state_vec)
 
     def update_tangents(self):
-        self.tangents = self.__path_rep.path_tangents
+        self.tangents = self._path_rep.path_tangents
 
     def get_forces(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -1275,10 +1278,10 @@ class GrowingString(ReactionPathway):
         return self.obj_func()
 
     def get_beads_count(self):
-        return self.__path_rep.beads_count
+        return self._path_rep.beads_count
 
     def set_beads_count(self, new):
-        self.__path_rep.beads_count = new
+        self._path_rep.beads_count = new
 
     beads_count = property(get_beads_count, set_beads_count)
 
@@ -1342,11 +1345,11 @@ class GrowingString(ReactionPathway):
         self.initialise()
 
 
-        self.__path_rep.beads_count = self.beads_count
+        self._path_rep.beads_count = self.beads_count
 
         # build new bead density function based on updated number of beads
         self.update_rho()
-        self.__path_rep.generate_beads(update = True)
+        self._path_rep.generate_beads(update = True)
 
         # Build mask of gradients to calculate, effectively freezing some if 
         # head_size, i.e. the size of the growing heads, is specified.
@@ -1374,7 +1377,7 @@ class GrowingString(ReactionPathway):
         from scipy.integrate import quad
 
         if self.beads_count == self.__final_beads_count:
-            self.__path_rep.set_rho(self.__final_rho)
+            self._path_rep.set_rho(self.__final_rho)
 
             return self.__final_rho
 
@@ -1392,7 +1395,7 @@ class GrowingString(ReactionPathway):
         assert a2 > a1
 
         pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
-        self.__path_rep.set_rho(pwr.f)
+        self._path_rep.set_rho(pwr.f)
 
       
     def lengths_disparate(self):
@@ -1400,7 +1403,7 @@ class GrowingString(ReactionPathway):
         shortest segments) to the average segment length is above a certain 
         value (self.__max_sep_ratio).
         """
-        seps = self.__path_rep.get_bead_separations()
+        seps = self._path_rep.get_bead_separations()
 
         # If string is incompletely grown, remove inter-bead distance, 
         # corresponding to the ungrown portion of the string.
@@ -1451,26 +1454,27 @@ class GrowingString(ReactionPathway):
         redestributes the beads according to the density function."""
 
         if state_vec != None:
+            assert state_vec.size == self.state_vec.size
             tmp = array(state_vec).reshape(self.beads_count, -1)
 
             for i in range(self.beads_count):
                 if self.bead_update_mask[i]:
-                    self.__path_rep.state_vec = tmp[i]
+                    self._path_rep.state_vec[i] = tmp[i]
 
         # rebuild line, parabola or spline representation of path
-        self.__path_rep.regen_path_func()
+        self._path_rep.regen_path_func()
 
         # respace the beads along the path
         if respace:
-            self.__path_rep.generate_beads(update = True)
+            self._path_rep.generate_beads(update = True)
             self.respaces += 1
 #            self.must_regenerate = False
         else:
-            self.__path_rep.update_tangents()
+            self._path_rep.update_tangents()
 
     def plot(self):
-#        self.__path_rep.generate_beads_exact()
-        plot2D(self.__path_rep)
+#        self._path_rep.generate_beads_exact()
+        plot2D(self._path_rep)
 
 def project_out(component_to_remove, vector):
     """Projects the component of 'vector' that list along 'component_to_remove'

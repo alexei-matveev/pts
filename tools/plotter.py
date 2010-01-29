@@ -9,6 +9,7 @@ import getopt
 from os.path import basename
 import aof
 import numpy as np
+from numpy import array # needed for eval to work
 
 def sub(s, old, new):
     return new.join(s.split(old))
@@ -60,7 +61,7 @@ plot [1:%(maxit)d] %(ts_estim_err)s, %(ts_max_err)s
 
 def run(args, extra, maxit=50):
 
-    known_ts_aa_dists = None
+    known_ts_aa_dists = 0
 
     archive_tag = 'Archive'
     ts_tag = 'TS ESTIM CARTS:'
@@ -121,7 +122,23 @@ def run(args, extra, maxit=50):
                 s_ts_cumm = d['s_ts_cumm']
                 ixhigh = d['ixhigh']
 
-                tuple = (bc,   N,   res,   cb,   rmsf,   e,   maxe,   s,   e/bc)
+
+                # get errors between estimated TSs and known TS
+                ts_estim_err = 1
+                ts_max_err = 1
+                if 'ts_estim_carts' in d:
+                    a_ts_estim = eval(d['ts_estim_carts'][1])
+                    aa_dists_ts_estim = aof.common.atom_atom_dists(a_ts_estim)
+                    ts_estim_err = np.linalg.norm(known_ts_aa_dists - aa_dists_ts_estim)
+
+                if 'bead_carts' in d:
+                    a_max = eval(d['bead_carts'])
+                    a_max.sort()
+                    a_max = a_max[-1][1]
+                    aa_dists_max = aof.common.atom_atom_dists(a_max)
+                    ts_max_err = np.linalg.norm(known_ts_aa_dists - aa_dists_max)
+
+                tuple = (bc,   N,   res,   cb,   rmsf,   e,   maxe,   s,   e/bc, ts_estim_err, ts_max_err)
 
                 # Set up dictionary of indices of fields so that strings of 
                 # gnuplot syntax can access them.
@@ -129,8 +146,10 @@ def run(args, extra, maxit=50):
                 ixs = range(len(ids)+1)[1:] # [1,2,3...]
                 d = dict(zip(ids, ixs))
 
+
                 if (rmsf, e, maxe) != prev:
-                    outline = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f" % tuple
+                    outline = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n" % tuple
+                    f_out.write(outline)
                     prev = rmsf, e, maxe
                     highestN = max(N, highestN)
                 else:
@@ -154,7 +173,7 @@ def run(args, extra, maxit=50):
                 prev_cb = cb
 
             # This has become a dodyy hack. Sorry.
-            elif line.startswith(ts_tag) or line.startswith(max_tag):
+            """elif line.startswith(ts_tag) or line.startswith(max_tag):
                 if line.startswith(ts_tag):
                     data = line[len(ts_tag):]
                     a = eval(data)
@@ -175,7 +194,7 @@ def run(args, extra, maxit=50):
                 if ts_count == 2:
                     outline += '\t%f\t%f\n' % (ts_err_ts_estim, ts_err_max)
                     f_out.write(outline)
-                    ts_count = 0
+                    ts_count = 0"""
 
         f.close()
         f_res.close()

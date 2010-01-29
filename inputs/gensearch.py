@@ -74,5 +74,6 @@ print "Dumping located transition states"
 for ts in tss:
     e, v = ts
     cs = mi.build_coord_sys(v)
+    print "Energy = %.4f eV" % e
     print cs.xyz_str()
 

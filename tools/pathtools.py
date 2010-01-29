@@ -129,6 +129,7 @@ class PathTools:
             dEdss = np.array([dEds_0, dEds_1])
 
             if (E_1 >= E_0 and dEds_1 < 0) or (E_1 <= E_0 and dEds_0 > 0):
+                print "Found: i = %d E_1 = %f E_0 = %f dEds_1 = %f dEds_0 = %f" % (i, E_1, E_0, dEds_1, dEds_0)
                 cub = func.CubicFunc(ss[i-1:i+1], Es[i-1:i+1], dEdss)
 
                 """    # TODO: delete?
