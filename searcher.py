@@ -123,7 +123,7 @@ class ReactionPathway(object):
         if self.lengths_disparate():
             raise aof.MustRegenerate
 
-    def test_convergence(self, tol):
+    def test_convergence(self, f_tol, x_tol):
         """
         Raises Converged if converged, applying weaker convergence 
         criterion if growing string is not fully grown.
@@ -134,12 +134,12 @@ class ReactionPathway(object):
             # because forces are always zero at zeroth iteration
             return
         elif self.growing and not self.grown():
-            lg.info("Testing During-Growth Convergence to %f: %f" % (tol*10, rmsf))
-            if rmsf < tol*10:
+            lg.info("Testing During-Growth Convergence to %f: %f" % (f_tol*10, rmsf))
+            if rmsf < f_tol*10:
                 raise aof.Converged
         else:
-            lg.info("Testing Non-Growing Convergence to %f: %f" % (tol, rmsf))
-            if rmsf < tol:
+            lg.info("Testing Non-Growing Convergence to %f: %f" % (f_tol, rmsf))
+            if rmsf < f_tol or self.history.step(1, steps_cumm).max() < x_tol:
                 raise aof.Converged
 
     @property

@@ -113,6 +113,8 @@ class Gaussian:
                 params.append("guess=read")
             elif self.chkpoint != None:
                 chkfile = self.chkpoint
+                print "chkfile", chkfile
+                os.system('ls *.chk')
                 if os.path.isfile(chkfile):
                     params.append("guess=read")
 

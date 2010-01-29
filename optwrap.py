@@ -12,13 +12,13 @@ __all__ = ["opt"]
 
 names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line']
 
-def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
+def runopt(name, CoS, ftol, xtol, maxit, callback, maxstep=0.2):
     assert name in names
 
     CoS.maxit = maxit
     def cb(x):
         y = callback(x)
-        CoS.test_convergence(tol)
+        CoS.test_convergence(ftol, xtol)
         return y
 
     while True:
@@ -26,7 +26,7 @@ def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
             # tol and maxit are scaled so that they are never reached.
             # Convergence is tested via the callback function.
             # Exceeding maxit is tested during an energy/gradient call.
-            runopt_inner(name, CoS, tol*0.01, maxit*100, cb, maxstep=maxstep)
+            runopt_inner(name, CoS, ftol*0.01, maxit*100, cb, maxstep=maxstep)
         except MustRegenerate:
             CoS.update_path()
             print important("Optimisation RESTARTED (respaced)")
@@ -45,14 +45,14 @@ def runopt(name, CoS, tol, maxit, callback, maxstep=0.2):
         else:
             break
 
-def runopt_inner(name, CoS, tol, maxit, callback, maxstep=0.2):
+def runopt_inner(name, CoS, ftol, maxit, callback, maxstep=0.2):
 
     if name == 'scipy_lbfgsb':
         opt, energy, dict = fmin_l_bfgs_b(CoS.obj_func,
                                   CoS.get_state_as_array(),
                                   fprime=CoS.obj_func_grad,
                                   callback=callback,
-                                  pgtol=tol,
+                                  pgtol=ftol,
                                   factr=10, # stops when step is < factr*machine_precision
                                   maxstep=maxstep)
         return dict
@@ -76,7 +76,7 @@ def runopt_inner(name, CoS, tol, maxit, callback, maxstep=0.2):
 
         # attach optimiser to print out each step in
         opt.attach(lambda: callback(None), interval=1)
-        opt.run(fmax=tol)
+        opt.run(fmax=ftol)
         x_opt = CoS.state_vec
         return None
 

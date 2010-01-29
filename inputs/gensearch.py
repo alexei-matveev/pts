@@ -61,7 +61,7 @@ CoS.bead2carts = lambda x: mi.build_coord_sys(x).get_cartesians().flatten()
 def cb(x, tol=0.01):
     return aof.generic_callback(x, mi, CoS, params, tol=tol)
 
-runopt = lambda: aof.runopt(opt_type, CoS, tol, maxit, cb, maxstep=maxstep)
+runopt = lambda: aof.runopt(opt_type, CoS, ftol, xtol, maxit, cb, maxstep=maxstep)
 
 # main optimisation loop
 print runopt()
