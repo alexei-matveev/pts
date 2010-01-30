@@ -85,7 +85,7 @@ def minimize(f, x):
 
     return xm, fm, stats
 
-def lbfgs(fg, x, stol=0.0001, ftol=0.0070, maxiter=100, maxstep=0.04, memory=10, alpha=70.0):
+def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, alpha=70.0):
     """Limited memory BFGS optimizer.
     
     A limited memory version of the bfgs algorithm. Unlike the bfgs algorithm,
@@ -130,7 +130,7 @@ def lbfgs(fg, x, stol=0.0001, ftol=0.0070, maxiter=100, maxstep=0.04, memory=10,
             # (1) geometry changes,
             # (2) gradient changes and
             # (3) their precalculated dot-products.
-            # (4) overall scaling?
+            # (4) initial (diagonal) inverse hessian
 
             # There is probably no (dr, dg) anyway in the first iteration:
             return hessian
@@ -139,17 +139,26 @@ def lbfgs(fg, x, stol=0.0001, ftol=0.0070, maxiter=100, maxstep=0.04, memory=10,
         # expand the hessian repr:
         s, y, rho, h0 = hessian
 
+        # this is positive on *convex* surfaces:
+        rho0 = 1.0 / dot(dr, dg)
+
+        if rho0 <= 0:
+            #rint "WARNING: dot(y, s) =", rho0, " <= 0 in L-BFGS"
+            #rint "         y =", dg, "(gradient diff.)"
+            #rint "         s =", dr, "(step)"
+            #rint "         Chances are the hessian will loose positive definiteness!"
+
+            # pretend there is a positive curvature (H0) in this direction:
+            dg   = h0 * dr
+            rho0 = 1.0 / dot(dg, dr) # == 1 / h0 / dot(dr, dr)
+            # FIXME: Only because we are doing MINIMIZATION here!
+            #        For a general search of stationary points, it
+            #        must be better to have accurate hessian.
+
         s.append(dr)
 
         y.append(dg)
         
-        rho0 = 1.0 / dot(dr, dg)
-        if rho0 <= 0:
-            print "WARNING: dot(y, s) =", rho0, " <= 0 in L-BFGS"
-            print "         y =", dg, "(gradient diff.)"
-            print "         s =", dr, "(step)"
-            print "         Chances are the hessian will loose positive definiteness!"
-
         rho.append(rho0)
 
         # forget the oldest:
@@ -175,6 +184,14 @@ def lbfgs(fg, x, stol=0.0001, ftol=0.0070, maxiter=100, maxstep=0.04, memory=10,
             R. H. Byrd, J. Nocedal and R. B. Schnabel, Representation of
             quasi-Newton matrices and their use in limited memory methods",
             Mathematical Programming 63, 4, 1994, pp. 129-156
+
+        In essence, this is an iterative implementation of the update scheme:
+
+            H    = ( 1 - y * s' / (y' * s) )' * H * ( 1 - y * s' / (y' * s) )
+             k+1                                 k
+                   + y * y' / (y' * s)
+
+        where s is the step and y is the corresponding change in the gradient.
         """
 
         # expand representaiton of hessian:
@@ -265,8 +282,9 @@ def lbfgs(fg, x, stol=0.0001, ftol=0.0070, maxiter=100, maxstep=0.04, memory=10,
         #     # the last step should better minimize the energy slightly:
         #     if e0 - e < etol: converged = True
 
-    return r, e, iteration
-
+    # also return number of interations, convergence status, and last values
+    # of the gradient and step:
+    return r, e, (iteration, converged, g, dr)
 
 # python fopt.py [-v]:
 if __name__ == "__main__":
