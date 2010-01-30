@@ -7,25 +7,29 @@ Test with the two-dimensional MB potential:
     >>> f = MB()
 
 Find the three minima, A, B and C as denoted in the original
-paper:
+paper (print them to finite precision to be able to exchange
+minimizers):
+
+    >>> from numpy import round
+    >>> n = 6
 
     >>> b, fb, _ = minimize(f, [0., 0.])
-    >>> b
-    array([ 0.62349942,  0.02803776])
-    >>> fb
-    -108.16672411685231
+    >>> round(b, n)
+    array([ 0.623499,  0.028038])
+    >>> round(fb, n)
+    -108.166724
 
     >>> a, fa, _ = minimize(f, [-1., 1.])
-    >>> a
-    array([-0.55822362,  1.44172583])
-    >>> fa
-    -146.6995172099532
+    >>> round(a, n)
+    array([-0.558224,  1.441726])
+    >>> round(fa, n)
+    -146.69951699999999
 
     >>> c, fc, _ = minimize(f, [0., 1.])
-    >>> c
-    array([-0.05001084,  0.46669421])
-    >>> fc
-    -80.767818129651545
+    >>> round(c, n)
+    array([-0.050011,  0.466694])
+    >>> round(fc, n)
+    -80.767818000000005
 
 """
 
