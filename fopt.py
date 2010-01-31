@@ -38,6 +38,8 @@ __all__ = ["minimize"]
 from numpy import asarray, empty, dot, max, abs
 from scipy.optimize import fmin_l_bfgs_b as minimize1D
 
+VERBOSE = False
+
 def minimize(f, x):
     """
     Minimizes a Func |f| starting with |x|.
@@ -159,11 +161,12 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
         # invoke objective function, also computes the gradient:
         e, g = fg(r)
 
-#       if e0 is not None:
-#           print "lbfgs: e - e0=", e - e0
-#       print "lbfgs: r=", r
-#       print "lbfgs: e=", e
-#       print "lbfgs: g=", g
+        if VERBOSE:
+            if e0 is not None:
+                print "lbfgs: e - e0=", e - e0
+            print "lbfgs: r=", r
+            print "lbfgs: e=", e
+            print "lbfgs: g=", g
 
         if iteration > 0: # only then r0 and g0 are meaningfull!
             hessian.update(r-r0, g-g0)
@@ -174,11 +177,13 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
         # restrict the maximum component of the step:
         longest = max(abs(dr))
         if longest > maxstep:
-#           print "lbfgs: dr=", dr, "(too long, scaling down)"
+            if VERBOSE:
+                print "lbfgs: dr=", dr, "(too long, scaling down)"
             dr *= maxstep / longest
 
-#       print "lbfgs: dr=", dr
-#       print "lbfgs: dot(dr, g)=", dot(dr, g)
+        if VERBOSE:
+            print "lbfgs: dr=", dr
+            print "lbfgs: dot(dr, g)=", dot(dr, g)
 
         # save for later comparison, need a copy, see "r += dr" below:
         r0 = r.copy()
@@ -192,13 +197,16 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
 
         # check convergence, if any:
         if max(abs(dr)) < stol:
-#           print "lbfgs: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
+            if VERBOSE:
+                print "lbfgs: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
             converged = True
         if max(abs(g))  < ftol:
-#           print "lbfgs: converged by force max(abs(g))=", max(abs(g)), '<', ftol
+            if VERBOSE:
+                print "lbfgs: converged by force max(abs(g))=", max(abs(g)), '<', ftol
             converged = True
         if iteration >= maxiter:
-#           print "lbfgs: exceeded number of iterations", maxiter
+            if VERBOSE:
+                print "lbfgs: exceeded number of iterations", maxiter
             converged = True
         # if e0 is not None:
         #     # the last step should better minimize the energy slightly:
