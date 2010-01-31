@@ -36,6 +36,8 @@ minimizers):
 __all__ = ["minimize"]
 
 from numpy import asarray, empty, dot, max, abs
+from numpy import eye, outer
+from numpy.linalg import eigh
 from scipy.optimize import fmin_l_bfgs_b as minimize1D
 
 VERBOSE = False
@@ -329,6 +331,76 @@ class LBFGS:
         for i in range(n):
             b = rho[i] * dot(y[i], z)
             z += s[i] * (a[i] - b)
+
+        return z
+
+class BFGS:
+    """Update scheme for the direct hessian:
+
+        B    = B - (B * s) * (B * s)' / (s' * B * s) + y * y' / (y' * s)
+         k+1    k    k         k               k
+
+    where s is the step and y is the corresponding change in the gradient.
+    """
+
+    def __init__(self, B0=70., positive=True):
+        """
+        Parameters:
+
+        B0      Initial approximation of direct Hessian.
+                Note that this is never changed!
+        """
+
+        self.B0 = B0
+
+        # should we maintain positive definitness?
+        self.positive = positive
+
+        # hessian matrix (dont know dimensions jet):
+        self.B = None
+
+    def update(self, dr, dg):
+        """Update scheme for the direct hessian:
+
+            B    = B - (B * s) * (B * s)' / (s' * B * s) + y * y' / (y' * s)
+             k+1    k    k         k               k
+
+        where s is the step and y is the corresponding change in the gradient.
+        """
+
+        # initial hessian (in case update is called first):
+        if self.B is None:
+            self.B = self.B0 * eye(len(s))
+
+        # this is positive on *convex* surfaces:
+        if self.positive and dot(dr, dg) <= 0:
+            # just skip the update:
+            return
+
+            # FIXME: Only when we are doing MINIMIZATION!
+            #        For a general search of stationary points, it
+            #        must be better to have accurate hessian.
+
+        # for the negative term:
+        Bdr = dot(self.B, dr)
+
+        self.B += outer(dg, dg) / dot(dr, dg) - outer(Bdr, Bdr) / dot(dr, Bdr)
+
+    def apply(self, g):
+        """Computes z = H * g using internal representation
+        of the inverse hessian, H = B^-1.
+        """
+
+        # initial hessian (in case apply is called first):
+        if self.B is None:
+            self.B = self.B0 * eye(len(g))
+
+        # quite an expensive way of solving linear equation
+        # B * z = g:
+        b, V = eigh(self.B)
+
+        # update procedure maintains positive defiitness, so b > 0:
+        z = dot(V, dot(g, V) / b)
 
         return z
 
