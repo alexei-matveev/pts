@@ -276,8 +276,8 @@ class LBFGS:
             #rint "         Chances are the hessian will loose positive definiteness!"
 
             # pretend there is a positive curvature (H0) in this direction:
-            dg   = h0 * dr
-            rho0 = 1.0 / dot(dg, dr) # == 1 / h0 / dot(dr, dr)
+            dg   = dr / h0
+            rho0 = 1.0 / dot(dg, dr) # == h0 / dot(dr, dr)
             # FIXME: Only because we are doing MINIMIZATION here!
             #        For a general search of stationary points, it
             #        must be better to have accurate hessian.
