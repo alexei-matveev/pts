@@ -66,8 +66,9 @@ def minimize(f, x):
     # flat version of inital point:
     y = x.flatten()
 
-    #xm, fm, stats =  minimize1D(fg, y)
-    xm, fm, stats =  lbfgs(fg, y) #, stol=1.e-6, ftol=1.e-5)
+    xm, fm, stats =  minimize1D(fg, y)
+    #xm, fm, stats =  fmin(fg, y, hess="LBFGS") #, stol=1.e-6, ftol=1.e-5)
+    #xm, fm, stats =  fmin(fg, y, hess="BFGS") #, stol=1.e-6, ftol=1.e-5)
 
     # return the result in original shape:
     xm.shape = xshape
@@ -110,12 +111,8 @@ def flatfunc(f, x):
     # return a new funciton:
     return fg
 
-def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, alpha=70.0):
-    """Limited memory BFGS optimizer.
-
-    A limited memory version of the bfgs algorithm. Unlike the bfgs algorithm,
-    the inverse of Hessian matrix is updated.  The inverse
-    (??) Hessian is represented only as a diagonal matrix to save memory (??)
+def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, hess="BFGS"):
+    """Search for a minimum of fg(x)[0] using the gradients fg(x)[1].
 
     Parameters:
 
@@ -127,24 +124,22 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
         calculations where wavefunctions can be reused if steps are small.
         Default is 0.04 Angstrom.
 
-    memory: int
-        Number of steps to be stored. Default value is 100. Three numpy
-        arrays of this length containing floats are stored.
-
     alpha: float
         Initial guess for the Hessian (curvature of energy surface). A
         conservative value of 70.0 is the default, but number of needed
         steps to converge might be less if a lower value is used. However,
         a lower value also means risk of instability.
 
+    hess: "LBFGS" or "BFGS"
+        A name of the class implementing hessian update scheme.
+        Has to support |update| and |apply| methods.
         """
 
-    H0 = 1. / alpha  # Initial approximation of inverse Hessian
-                     # 1./70. is to emulate the behaviour of BFGS
-                     # Note that this is never changed!
+    # interpret a string as a constructor name:
+    hess = eval(hess)
 
     # returns the default hessian:
-    hessian = LBFGS(H0, memory=memory)
+    hessian = hess(alpha)
 
     # geometry, energy and the gradient from previous iteration:
     r0 = None
@@ -170,6 +165,7 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
             print "lbfgs: e=", e
             print "lbfgs: g=", g
 
+        # update the hessian representation:
         if iteration > 0: # only then r0 and g0 are meaningfull!
             hessian.update(r-r0, g-g0)
 
@@ -209,10 +205,7 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
         if iteration >= maxiter:
             if VERBOSE:
                 print "lbfgs: exceeded number of iterations", maxiter
-            converged = True
-        # if e0 is not None:
-        #     # the last step should better minimize the energy slightly:
-        #     if e0 - e < etol: converged = True
+            break # out of the while loop
 
     # also return number of interations, convergence status, and last values
     # of the gradient and step:
@@ -243,12 +236,11 @@ class LBFGS:
     where s is the step and y is the corresponding change in the gradient.
     """
 
-    def __init__(self, H0=1./70., memory=10):
+    def __init__(self, B0=70., memory=10, positive=True):
         """
         Parameters:
 
-        H0      Initial approximation of inverse Hessian.
-                1./70. is to emulate the behaviour of BFGS
+        B0:     Initial (diagonal) approximation of *direct* Hessian.
                 Note that this is never changed!
 
         memory: int
@@ -256,10 +248,14 @@ class LBFGS:
                 arrays of this length containing floats are stored.
                 In original literatue there are claims that the values
                 <= 10 are  usual.
+
+        positive:
+                Should the positive definitness of the hessian be
+                maintained?
         """
 
         # compact repr of the hessian:
-        self.H = ([], [], [], H0)
+        self.H = ([], [], [], 1. / B0)
         # three lists for
         # (1) geometry changes,
         # (2) gradient changes and
@@ -267,6 +263,9 @@ class LBFGS:
         # (4) initial (diagonal) inverse hessian
 
         self.memory = memory
+
+        # should we maintain positive definitness?
+        self.positive = positive
 
     def update(self, dr, dg):
         """Update representation of the Hessian.
@@ -279,15 +278,16 @@ class LBFGS:
         # this is positive on *convex* surfaces:
         rho0 = 1.0 / dot(dr, dg)
 
-        if rho0 <= 0:
-            #rint "WARNING: dot(y, s) =", rho0, " <= 0 in L-BFGS"
-            #rint "         y =", dg, "(gradient diff.)"
-            #rint "         s =", dr, "(step)"
-            #rint "         Chances are the hessian will loose positive definiteness!"
+        if self.positive and rho0 <= 0:
+            # Chances are the hessian will loose positive definiteness!
 
-            # pretend there is a positive curvature (H0) in this direction:
-            dg   = dr / h0
-            rho0 = 1.0 / dot(dg, dr) # == h0 / dot(dr, dr)
+            # just skip the update:
+            return
+
+            #   # pretend there is a positive curvature (H0) in this direction:
+            #   dg   = dr / h0
+            #   rho0 = 1.0 / dot(dg, dr) # == h0 / dot(dr, dr)
+
             # FIXME: Only because we are doing MINIMIZATION here!
             #        For a general search of stationary points, it
             #        must be better to have accurate hessian.
