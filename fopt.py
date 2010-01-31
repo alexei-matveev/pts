@@ -54,6 +54,41 @@ def minimize(f, x):
     # save the shape of the actual argument:
     xshape = x.shape
 
+    # some optimizers (notably fmin_l_bfgs_b) work with funcitons
+    # of 1D arguments returning both the value and the gradient.
+    # Construct such from the given Func f:
+    fg = flatfunc(f, x)
+
+    # flat version of inital point:
+    y = x.flatten()
+
+    #xm, fm, stats =  minimize1D(fg, y)
+    xm, fm, stats =  lbfgs(fg, y) #, stol=1.e-6, ftol=1.e-5)
+
+    # return the result in original shape:
+    xm.shape = xshape
+
+    return xm, fm, stats
+
+def flatfunc(f, x):
+    """Returns a funciton of flat argument fg(y) that
+    properly reshapes y to x, and returns values and gradients
+    of f:
+
+        fg(y) = (f(x), f.fprime(x).flatten())
+
+    where y == x.flatten()
+
+    Only the shape of the argument x is used here, not the value.
+    """
+
+    # in case we are given a list instead of array:
+    # x = asarray(x)
+
+    # shape of the actual argument:
+    xshape = x.shape
+
+    # define a flattened function using f() and f.prime():
     def fg(y):
         "Returns both, value and gradient, treats argument as flat array."
 
@@ -62,28 +97,14 @@ def minimize(f, x):
 
         # restore the original shape:
         x.shape = xshape
-        #   print "x=", type(x), x
 
         fx = f(x)
         gx = f.fprime(x) # fprime returns nD!
 
         return fx, gx.flatten()
 
-    # flat version of inital point:
-    y = x.flatten()
-
-    # test only:
-    #   e, g = fg(y)
-    #   print "y=", type(y), y
-    #   print "e=", type(e), e
-    #   print "g=", type(g), g
-
-    xm, fm, stats =  minimize1D(fg, y)
-
-    # return the result in original shape:
-    xm.shape = xshape
-
-    return xm, fm, stats
+    # return a new funciton:
+    return fg
 
 def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, alpha=70.0):
     """Limited memory BFGS optimizer.
