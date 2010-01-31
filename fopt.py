@@ -108,7 +108,7 @@ def flatfunc(f, x):
 
 def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, alpha=70.0):
     """Limited memory BFGS optimizer.
-    
+
     A limited memory version of the bfgs algorithm. Unlike the bfgs algorithm,
     the inverse of Hessian matrix is updated.  The inverse
     (??) Hessian is represented only as a diagonal matrix to save memory (??)
@@ -132,7 +132,7 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
         conservative value of 70.0 is the default, but number of needed
         steps to converge might be less if a lower value is used. However,
         a lower value also means risk of instability.
-        
+
         """
 
     H0 = 1. / alpha  # Initial approximation of inverse Hessian
@@ -168,7 +168,7 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
         if iteration > 0: # only then r0 and g0 are meaningfull!
             hessian.update(r-r0, g-g0)
 
-        # Quasi-Newton step: df = - H^-1 * g:
+        # Quasi-Newton step: df = - H * g, H = B^-1:
         dr = - hessian.apply(g)
 
         # restrict the maximum component of the step:
@@ -223,8 +223,8 @@ class LBFGS:
         quasi-Newton matrices and their use in limited memory methods",
         Mathematical Programming 63, 4, 1994, pp. 129-156
 
-    In essence, this is an iterative implementation of the update scheme
-    for the inverse hessian:
+    In essence, this is a so called "two-loops" implementation of the update
+    scheme for the inverse hessian:
 
         H    = ( 1 - y * s' / (y' * s) )' * H * ( 1 - y * s' / (y' * s) )
          k+1                                 k
