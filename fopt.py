@@ -118,107 +118,8 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
                      # 1./70. is to emulate the behaviour of BFGS
                      # Note that this is never changed!
 
-    def update(hessian, dr, dg):
-        """Update representation of the Hessian.
-        See corresponding |apply|-function for more info.
-        """
-
-        if hessian is None:
-            # compact repr of the hessian:
-            hessian = ([], [], [], H0)
-            # three lists for
-            # (1) geometry changes,
-            # (2) gradient changes and
-            # (3) their precalculated dot-products.
-            # (4) initial (diagonal) inverse hessian
-
-            # There is probably no (dr, dg) anyway in the first iteration:
-            return hessian
-
-
-        # expand the hessian repr:
-        s, y, rho, h0 = hessian
-
-        # this is positive on *convex* surfaces:
-        rho0 = 1.0 / dot(dr, dg)
-
-        if rho0 <= 0:
-            #rint "WARNING: dot(y, s) =", rho0, " <= 0 in L-BFGS"
-            #rint "         y =", dg, "(gradient diff.)"
-            #rint "         s =", dr, "(step)"
-            #rint "         Chances are the hessian will loose positive definiteness!"
-
-            # pretend there is a positive curvature (H0) in this direction:
-            dg   = h0 * dr
-            rho0 = 1.0 / dot(dg, dr) # == 1 / h0 / dot(dr, dr)
-            # FIXME: Only because we are doing MINIMIZATION here!
-            #        For a general search of stationary points, it
-            #        must be better to have accurate hessian.
-
-        s.append(dr)
-
-        y.append(dg)
-        
-        rho.append(rho0)
-
-        # forget the oldest:
-        if len(s) > memory:
-            s.pop(0)
-            y.pop(0)
-            rho.pop(0)
-
-        # return updated hessian model:
-        return s, y, rho, h0
-
-    def apply(hessian, g):
-        """Computes z = H * g using internal representation
-        of the inverse hessian, H = B^-1.
-
-        This appears to be the update scheme described in
-
-            Jorge Nocedal, Updating Quasi-Newton Matrices with Limited Storage
-            Mathematics of Computation, Vol. 35, No. 151 (Jul., 1980), pp. 773-782
-
-        See also:
-
-            R. H. Byrd, J. Nocedal and R. B. Schnabel, Representation of
-            quasi-Newton matrices and their use in limited memory methods",
-            Mathematical Programming 63, 4, 1994, pp. 129-156
-
-        In essence, this is an iterative implementation of the update scheme:
-
-            H    = ( 1 - y * s' / (y' * s) )' * H * ( 1 - y * s' / (y' * s) )
-             k+1                                 k
-                   + y * y' / (y' * s)
-
-        where s is the step and y is the corresponding change in the gradient.
-        """
-
-        # expand representaiton of hessian:
-        s, y, rho, h0 = hessian
-
-        # amount of stored data points:
-        n = len(s)
-        # WAS: loopmax = min([memory, iteration])
-
-        a = empty((n,))
-
-        ### The algorithm itself:
-        q = g.copy() # needs it!
-        for i in range(n - 1, -1, -1): # range(n) in reverse order
-            a[i] = rho[i] * dot(s[i], q)
-            q -= a[i] * y[i]
-        z = h0 * q
-        
-        for i in range(n):
-            b = rho[i] * dot(y[i], z)
-            z += s[i] * (a[i] - b)
-
-        return z
-
-
     # returns the default hessian:
-    hessian = update(None, None, None)
+    hessian = LBFGS(H0, memory=memory)
 
     # geometry, energy and the gradient from previous iteration:
     r0 = None
@@ -242,12 +143,12 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
 #       print "lbfgs: r=", r
 #       print "lbfgs: e=", e
 #       print "lbfgs: g=", g
-    
+
         if iteration > 0: # only then r0 and g0 are meaningfull!
-            hessian = update(hessian, r-r0, g-g0)
+            hessian.update(r-r0, g-g0)
 
         # Quasi-Newton step: df = - H^-1 * g:
-        dr = - apply(hessian, g)
+        dr = - hessian.apply(g)
 
         # restrict the maximum component of the step:
         longest = max(abs(dr))
@@ -285,6 +186,122 @@ def lbfgs(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=100, maxstep=0.04, memory=10, a
     # also return number of interations, convergence status, and last values
     # of the gradient and step:
     return r, e, (iteration, converged, g, dr)
+
+#
+# Hessian models below should implement at least update() and apply() methods.
+#
+class LBFGS:
+    """This appears to be the update scheme described in
+
+        Jorge Nocedal, Updating Quasi-Newton Matrices with Limited Storage
+        Mathematics of Computation, Vol. 35, No. 151 (Jul., 1980), pp. 773-782
+
+    See also:
+
+        R. H. Byrd, J. Nocedal and R. B. Schnabel, Representation of
+        quasi-Newton matrices and their use in limited memory methods",
+        Mathematical Programming 63, 4, 1994, pp. 129-156
+
+    In essence, this is an iterative implementation of the update scheme
+    for the inverse hessian:
+
+        H    = ( 1 - y * s' / (y' * s) )' * H * ( 1 - y * s' / (y' * s) )
+         k+1                                 k
+               + y * y' / (y' * s)
+
+    where s is the step and y is the corresponding change in the gradient.
+    """
+
+    def __init__(self, H0=1./70., memory=10):
+        """
+        Parameters:
+
+        H0      Initial approximation of inverse Hessian.
+                1./70. is to emulate the behaviour of BFGS
+                Note that this is never changed!
+
+        memory: int
+                Number of steps to be stored. Three numpy
+                arrays of this length containing floats are stored.
+                In original literatue there are claims that the values
+                <= 10 are  usual.
+        """
+
+        # compact repr of the hessian:
+        self.H = ([], [], [], H0)
+        # three lists for
+        # (1) geometry changes,
+        # (2) gradient changes and
+        # (3) their precalculated dot-products.
+        # (4) initial (diagonal) inverse hessian
+
+        self.memory = memory
+
+    def update(self, dr, dg):
+        """Update representation of the Hessian.
+        See corresponding |apply|-function for more info.
+        """
+
+        # expand the hessian repr:
+        s, y, rho, h0 = self.H
+
+        # this is positive on *convex* surfaces:
+        rho0 = 1.0 / dot(dr, dg)
+
+        if rho0 <= 0:
+            #rint "WARNING: dot(y, s) =", rho0, " <= 0 in L-BFGS"
+            #rint "         y =", dg, "(gradient diff.)"
+            #rint "         s =", dr, "(step)"
+            #rint "         Chances are the hessian will loose positive definiteness!"
+
+            # pretend there is a positive curvature (H0) in this direction:
+            dg   = h0 * dr
+            rho0 = 1.0 / dot(dg, dr) # == 1 / h0 / dot(dr, dr)
+            # FIXME: Only because we are doing MINIMIZATION here!
+            #        For a general search of stationary points, it
+            #        must be better to have accurate hessian.
+
+        s.append(dr)
+
+        y.append(dg)
+
+        rho.append(rho0)
+
+        # forget the oldest:
+        if len(s) > self.memory:
+            s.pop(0)
+            y.pop(0)
+            rho.pop(0)
+
+        # update hessian model:
+        self.H = (s, y, rho, h0)
+
+    def apply(self, g):
+        """Computes z = H * g using internal representation
+        of the inverse hessian, H = B^-1.
+        """
+
+        # expand representaiton of hessian:
+        s, y, rho, h0 = self.H
+
+        # amount of stored data points:
+        n = len(s)
+        # WAS: loopmax = min([memory, iteration])
+
+        a = empty((n,))
+
+        ### The algorithm itself:
+        q = g.copy() # needs it!
+        for i in range(n - 1, -1, -1): # range(n) in reverse order
+            a[i] = rho[i] * dot(s[i], q)
+            q -= a[i] * y[i]
+        z = h0 * q
+
+        for i in range(n):
+            b = rho[i] * dot(y[i], z)
+            z += s[i] * (a[i] - b)
+
+        return z
 
 # python fopt.py [-v]:
 if __name__ == "__main__":
