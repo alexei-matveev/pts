@@ -35,7 +35,7 @@ minimizers):
 
 __all__ = ["minimize"]
 
-from numpy import asarray, empty, dot, max, abs
+from numpy import asarray, empty, dot, max, abs, shape
 from numpy import eye, outer
 from numpy.linalg import solve #, eigh
 from scipy.optimize import fmin_l_bfgs_b as minimize1D
@@ -62,7 +62,7 @@ def minimize(f, x):
     # some optimizers (notably fmin_l_bfgs_b) work with funcitons
     # of 1D arguments returning both the value and the gradient.
     # Construct such from the given Func f:
-    fg = flatfunc(f, x)
+    fg = _flatten(_fg(f), x)
 
     # flat version of inital point:
     y = x.flatten()
@@ -76,16 +76,63 @@ def minimize(f, x):
 
     return xm, fm, stats
 
-def flatfunc(f, x):
-    """Returns a funciton of flat argument fg(y) that
-    properly reshapes y to x, and returns values and gradients
-    of f:
+def _fg(f):
+    "Returns a tuple valued function: fg: f -> x -> (f(x), f.fprime(x))"
 
-        fg(y) = (f(x), f.fprime(x).flatten())
+    def fg(x): return f(x), f.fprime(x)
 
-    where y == x.flatten()
+    return fg
+
+def _flatten(fg, x):
+    """Returns a funciton of flat argument fg_(y) that
+    properly reshapes y to x, and returns values and gradients as by fg.
 
     Only the shape of the argument x is used here, not the value.
+
+    A length-two funciton of 2x2 argument:
+
+        >>> def fg(x):
+        ...     f1 = x[0,0] + x[0,1]
+        ...     f2 = x[1,0] + x[1,1]
+        ...     f  = array([f1, f2])
+        ...     g1 = array([[1., 1.], [0., 0.]])
+        ...     g2 = array([[0., 0.], [1., 1.]])
+        ...     g = array([g1, g2])
+        ...     return f, g
+
+        >>> from numpy import array
+        >>> x = array([[1., 2.], [3., 4.]])
+        >>> f, g = fg(x)
+
+    Returns two-vector:
+
+        >>> f
+        array([ 3.,  7.])
+
+    and 2 x (2x2) derivative:
+
+        >>> g
+        array([[[ 1.,  1.],
+                [ 0.,  0.]],
+        <BLANKLINE>
+               [[ 0.,  0.],
+                [ 1.,  1.]]])
+
+    A flat arument length two-funciton of length-four argument:
+
+        >>> fg = _flatten(fg, x)
+        >>> f, g = fg(x.flatten())
+
+    Same value:
+
+        >>> f
+        array([ 3.,  7.])
+
+    And 2 x 4 derivative:
+
+        >>> g
+        array([[ 1.,  1.,  0.,  0.],
+               [ 0.,  0.,  1.,  1.]])
     """
 
     # in case we are given a list instead of array:
@@ -93,9 +140,11 @@ def flatfunc(f, x):
 
     # shape of the actual argument:
     xshape = x.shape
+    xsize  = x.size
+    # print "xshape, xsize =", xshape, xsize
 
-    # define a flattened function using f() and f.prime():
-    def fg(y):
+    # define a flattened function based on original fg(x):
+    def fg_(y):
         "Returns both, value and gradient, treats argument as flat array."
 
         # need copy to avoid obscure error messages from fmin_l_bfgs_b:
@@ -104,13 +153,16 @@ def flatfunc(f, x):
         # restore the original shape:
         x.shape = xshape
 
-        fx = f(x)
-        gx = f.fprime(x) # fprime returns nD!
+        f, fprime = fg(x) # fprime is returned as nD!
 
-        return fx, gx.flatten()
+        # in case f is an array, preserve this structure:
+        fshape = shape(f) # () for scalars
 
-    # return a new funciton:
-    return fg
+        # still treat the arguments as 1D structure of xsize:
+        return f, fprime.reshape( fshape + (xsize,) )
+
+    # return new funciton:
+    return fg_
 
 def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, hess="BFGS"):
     """Search for a minimum of fg(x)[0] using the gradients fg(x)[1].
