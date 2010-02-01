@@ -37,7 +37,7 @@ __all__ = ["minimize"]
 
 from numpy import asarray, empty, dot, max, abs
 from numpy import eye, outer
-from numpy.linalg import eigh
+from numpy.linalg import solve #, eigh
 from scipy.optimize import fmin_l_bfgs_b as minimize1D
 
 VERBOSE = False
@@ -398,11 +398,12 @@ class BFGS:
             self.B = self.B0 * eye(len(g))
 
         # quite an expensive way of solving linear equation
-        # B * z = g:
-        b, V = eigh(self.B)
+        z = solve(self.B, g)
+        #   # B * z = g:
+        #   b, V = eigh(self.B)
 
-        # update procedure maintains positive defiitness, so b > 0:
-        z = dot(V, dot(g, V) / b)
+        #   # update procedure maintains positive defiitness, so b > 0:
+        #   z = dot(V, dot(g, V) / b)
 
         return z
 
