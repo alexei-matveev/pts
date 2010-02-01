@@ -114,6 +114,8 @@ def flatfunc(f, x):
 def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, hess="BFGS"):
     """Search for a minimum of fg(x)[0] using the gradients fg(x)[1].
 
+    TODO: dynamic trust radius, line search in QN direction (?)
+
     Parameters:
 
     fg: objective function x -> (f, g)
@@ -160,10 +162,10 @@ def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, he
 
         if VERBOSE:
             if e0 is not None:
-                print "lbfgs: e - e0=", e - e0
-            print "lbfgs: r=", r
-            print "lbfgs: e=", e
-            print "lbfgs: g=", g
+                print "fmin: e - e0=", e - e0
+            print "fmin: r=", r
+            print "fmin: e=", e
+            print "fmin: g=", g
 
         # update the hessian representation:
         if iteration > 0: # only then r0 and g0 are meaningfull!
@@ -176,12 +178,12 @@ def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, he
         longest = max(abs(dr))
         if longest > maxstep:
             if VERBOSE:
-                print "lbfgs: dr=", dr, "(too long, scaling down)"
+                print "fmin: dr=", dr, "(too long, scaling down)"
             dr *= maxstep / longest
 
         if VERBOSE:
-            print "lbfgs: dr=", dr
-            print "lbfgs: dot(dr, g)=", dot(dr, g)
+            print "fmin: dr=", dr
+            print "fmin: dot(dr, g)=", dot(dr, g)
 
         # save for later comparison, need a copy, see "r += dr" below:
         r0 = r.copy()
@@ -196,15 +198,15 @@ def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, he
         # check convergence, if any:
         if max(abs(dr)) < stol:
             if VERBOSE:
-                print "lbfgs: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
+                print "fmin: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
             converged = True
         if max(abs(g))  < ftol:
             if VERBOSE:
-                print "lbfgs: converged by force max(abs(g))=", max(abs(g)), '<', ftol
+                print "fmin: converged by force max(abs(g))=", max(abs(g)), '<', ftol
             converged = True
         if iteration >= maxiter:
             if VERBOSE:
-                print "lbfgs: exceeded number of iterations", maxiter
+                print "fmin: exceeded number of iterations", maxiter
             break # out of the while loop
 
     # also return number of interations, convergence status, and last values
