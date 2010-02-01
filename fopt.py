@@ -91,16 +91,14 @@ def _flatten(fg, x):
 
     A length-two funciton of 2x2 argument:
 
+        >>> from numpy import array
         >>> def fg(x):
         ...     f1 = x[0,0] + x[0,1]
         ...     f2 = x[1,0] + x[1,1]
-        ...     f  = array([f1, f2])
         ...     g1 = array([[1., 1.], [0., 0.]])
         ...     g2 = array([[0., 0.], [1., 1.]])
-        ...     g = array([g1, g2])
-        ...     return f, g
+        ...     return array([f1, f2]), array([g1, g2])
 
-        >>> from numpy import array
         >>> x = array([[1., 2.], [3., 4.]])
         >>> f, g = fg(x)
 
@@ -121,9 +119,11 @@ def _flatten(fg, x):
     A flat arument length two-funciton of length-four argument:
 
         >>> fg = _flatten(fg, x)
-        >>> f, g = fg(x.flatten())
+        >>> x = x.flatten()
 
-    Same value:
+        >>> f, g = fg(x)
+
+    Same two values values:
 
         >>> f
         array([ 3.,  7.])
