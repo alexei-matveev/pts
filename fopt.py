@@ -181,94 +181,6 @@ def minimize(f, x):
 
     return xm, fm, stats
 
-def _fg(f):
-    "Returns a tuple valued function: fg: f -> x -> (f(x), f.fprime(x))"
-
-    def fg(x): return f(x), f.fprime(x)
-
-    return fg
-
-def _flatten(fg, x):
-    """Returns a funciton of flat argument fg_(y) that
-    properly reshapes y to x, and returns values and gradients as by fg.
-
-    Only the shape of the argument x is used here, not the value.
-
-    A length-two funciton of 2x2 argument:
-
-        >>> from numpy import array
-        >>> def fg(x):
-        ...     f1 = x[0,0] + x[0,1]
-        ...     f2 = x[1,0] + x[1,1]
-        ...     g1 = array([[1., 1.], [0., 0.]])
-        ...     g2 = array([[0., 0.], [1., 1.]])
-        ...     return array([f1, f2]), array([g1, g2])
-
-        >>> x = array([[1., 2.], [3., 4.]])
-        >>> f, g = fg(x)
-
-    Returns two-vector:
-
-        >>> f
-        array([ 3.,  7.])
-
-    and 2 x (2x2) derivative:
-
-        >>> g
-        array([[[ 1.,  1.],
-                [ 0.,  0.]],
-        <BLANKLINE>
-               [[ 0.,  0.],
-                [ 1.,  1.]]])
-
-    A flat arument length two-funciton of length-four argument:
-
-        >>> fg = _flatten(fg, x)
-        >>> x = x.flatten()
-
-        >>> f, g = fg(x)
-
-    Same two values values:
-
-        >>> f
-        array([ 3.,  7.])
-
-    And 2 x 4 derivative:
-
-        >>> g
-        array([[ 1.,  1.,  0.,  0.],
-               [ 0.,  0.,  1.,  1.]])
-    """
-
-    # in case we are given a list instead of array:
-    x = asarray(x)
-
-    # shape of the actual argument:
-    xshape = x.shape
-    xsize  = x.size
-    # print "xshape, xsize =", xshape, xsize
-
-    # define a flattened function based on original fg(x):
-    def fg_(y):
-        "Returns both, value and gradient, treats argument as flat array."
-
-        # need copy to avoid obscure error messages from fmin_l_bfgs_b:
-        x = y.copy() # y is 1D
-
-        # restore the original shape:
-        x.shape = xshape
-
-        f, fprime = fg(x) # fprime is returned as nD!
-
-        # in case f is an array, preserve this structure:
-        fshape = shape(f) # () for scalars
-
-        # still treat the arguments as 1D structure of xsize:
-        return f, fprime.reshape( fshape + (xsize,) )
-
-    # return new funciton:
-    return fg_
-
 def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, hess="BFGS"):
     """Search for a minimum of fg(x)[0] using the gradients fg(x)[1].
 
@@ -544,6 +456,94 @@ def cmin(fg, x, cg, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, maxiter=50, maxstep=0.04
     # also return number of interations, convergence status, and last values
     # of the gradient and step:
     return r, e, (iteration, converged, g, dr)
+
+def _fg(f):
+    "Returns a tuple valued function: fg: f -> x -> (f(x), f.fprime(x))"
+
+    def fg(x): return f(x), f.fprime(x)
+
+    return fg
+
+def _flatten(fg, x):
+    """Returns a funciton of flat argument fg_(y) that
+    properly reshapes y to x, and returns values and gradients as by fg.
+
+    Only the shape of the argument x is used here, not the value.
+
+    A length-two funciton of 2x2 argument:
+
+        >>> from numpy import array
+        >>> def fg(x):
+        ...     f1 = x[0,0] + x[0,1]
+        ...     f2 = x[1,0] + x[1,1]
+        ...     g1 = array([[1., 1.], [0., 0.]])
+        ...     g2 = array([[0., 0.], [1., 1.]])
+        ...     return array([f1, f2]), array([g1, g2])
+
+        >>> x = array([[1., 2.], [3., 4.]])
+        >>> f, g = fg(x)
+
+    Returns two-vector:
+
+        >>> f
+        array([ 3.,  7.])
+
+    and 2 x (2x2) derivative:
+
+        >>> g
+        array([[[ 1.,  1.],
+                [ 0.,  0.]],
+        <BLANKLINE>
+               [[ 0.,  0.],
+                [ 1.,  1.]]])
+
+    A flat arument length two-funciton of length-four argument:
+
+        >>> fg = _flatten(fg, x)
+        >>> x = x.flatten()
+
+        >>> f, g = fg(x)
+
+    Same two values values:
+
+        >>> f
+        array([ 3.,  7.])
+
+    And 2 x 4 derivative:
+
+        >>> g
+        array([[ 1.,  1.,  0.,  0.],
+               [ 0.,  0.,  1.,  1.]])
+    """
+
+    # in case we are given a list instead of array:
+    x = asarray(x)
+
+    # shape of the actual argument:
+    xshape = x.shape
+    xsize  = x.size
+    # print "xshape, xsize =", xshape, xsize
+
+    # define a flattened function based on original fg(x):
+    def fg_(y):
+        "Returns both, value and gradient, treats argument as flat array."
+
+        # need copy to avoid obscure error messages from fmin_l_bfgs_b:
+        x = y.copy() # y is 1D
+
+        # restore the original shape:
+        x.shape = xshape
+
+        f, fprime = fg(x) # fprime is returned as nD!
+
+        # in case f is an array, preserve this structure:
+        fshape = shape(f) # () for scalars
+
+        # still treat the arguments as 1D structure of xsize:
+        return f, fprime.reshape( fshape + (xsize,) )
+
+    # return new funciton:
+    return fg_
 
 # python fopt.py [-v]:
 if __name__ == "__main__":
