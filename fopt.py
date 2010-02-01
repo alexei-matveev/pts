@@ -88,7 +88,7 @@ def flatfunc(f, x):
     """
 
     # in case we are given a list instead of array:
-    # x = asarray(x)
+    x = asarray(x)
 
     # shape of the actual argument:
     xshape = x.shape
@@ -149,7 +149,7 @@ def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, he
     g0 = None
 
     # initial value for the variable:
-    r = x
+    r = asarray(x).copy() # we are going to modify it!
 
     iteration = -1 # prefer to increment at the top of the loop
     converged = False
