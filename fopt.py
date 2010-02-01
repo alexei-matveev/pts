@@ -204,14 +204,14 @@ def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, he
     # initial value for the variable:
     r = asarray(x).copy() # we are going to modify it!
 
+    # invoke objective function, also computes the gradient:
+    e, g = fg(r)
+
     iteration = -1 # prefer to increment at the top of the loop
     converged = False
 
     while not converged:
         iteration += 1
-
-        # invoke objective function, also computes the gradient:
-        e, g = fg(r)
 
         if VERBOSE:
             if e0 is not None:
@@ -247,6 +247,9 @@ def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, he
 
         # actually update the variable:
         r += dr
+
+        # invoke objective function, also computes the gradient:
+        e, g = fg(r)
 
         # check convergence, if any:
         if max(abs(dr)) < stol:
