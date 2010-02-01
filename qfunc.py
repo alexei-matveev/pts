@@ -35,7 +35,7 @@ to the minimum):
     >>> from fopt import minimize
     >>> x = x * 0.4
     >>> xm, fm, _ = minimize(pes, x)
-    >>> fm
+    >>> round(fm, 7)
     -6.0
     >>> xm
     array([[ 0.39685026,  0.39685026,  0.39685026],
