@@ -141,7 +141,6 @@ give its orientation.
 __all__ = ["minimize"]
 
 from numpy import asarray, empty, dot, max, abs, shape
-from numpy import eye, outer
 from numpy.linalg import solve #, eigh
 from scipy.optimize import fmin_l_bfgs_b as minimize1D
 from bfgs import LBFGS, BFGS
