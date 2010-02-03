@@ -1,11 +1,14 @@
 """Classes, functions and variables common to all modules."""
 
 import copy
-import numpy
 import os
 import random
 import time
 import logging
+
+import numpy
+
+import aof
 
 lg = logging.getLogger("aof.common")
 
@@ -251,6 +254,15 @@ def file2str(f):
     mystr = f.read()
     f.close()
     return mystr
+
+def file2carts(f):
+    s = file2str(f)
+    if aof.coord_sys.XYZ.matches(s):
+        return aof.coord_sys.XYZ(s).get_cartesians()
+    elif aof.coord_sys.ZMatrix.matches(s):
+        return aof.coord_sys.ZMatrix(s).get_cartesians()
+    else:
+        raise False, "Unrecognised file format in:\n" + s
 
 def str2file(s, fn):
     """Returns contents file with name f as a string."""

@@ -49,8 +49,8 @@ set logscale y
 set ylabel "RMS Forces"
 plot [1:%(maxit)d] %(gradientplots)s
 
+unset logscale y
 set origin 0, 0
-set logscale y
 set ylabel "TS Error"
 set xlabel "Chain Gradient Evaluations"
 plot [1:%(maxit)d] %(ts_estim_err)s, %(ts_max_err)s
@@ -59,9 +59,7 @@ plot [1:%(maxit)d] %(ts_estim_err)s, %(ts_max_err)s
 """
 #aseneb.txt.arch" using 2:4 title "ASE NEB", "myneb_aselbfgs-newe.txt.arch" using 2:4 title "My NEB (ASE-LBFGS)", "myneb_numpy
 
-def run(args, extra, maxit=50):
-
-    known_ts_aa_dists = 0
+def run(args, extra, maxit=50, known_ts_aa_dists = 0):
 
     archive_tag = 'Archive'
     ts_tag = 'TS ESTIM CARTS:'
@@ -120,6 +118,7 @@ def run(args, extra, maxit=50):
                 maxe = d['maxe']
                 s = d['s']
                 s_ts_cumm = d['s_ts_cumm']
+                s_max_cumm = d['s_max_cumm']
                 ixhigh = d['ixhigh']
 
 
@@ -130,6 +129,7 @@ def run(args, extra, maxit=50):
                     a_ts_estim = eval(d['ts_estim_carts'][1])
                     aa_dists_ts_estim = aof.common.atom_atom_dists(a_ts_estim)
                     ts_estim_err = np.linalg.norm(known_ts_aa_dists - aa_dists_ts_estim)
+                    print "ts_estim_err", ts_estim_err
 
                 if 'bead_carts' in d:
                     a_max = eval(d['bead_carts'])
@@ -137,18 +137,19 @@ def run(args, extra, maxit=50):
                     a_max = a_max[-1][1]
                     aa_dists_max = aof.common.atom_atom_dists(a_max)
                     ts_max_err = np.linalg.norm(known_ts_aa_dists - aa_dists_max)
+                    print "ts_max_err", ts_max_err
 
-                tuple = (bc,   N,   res,   cb,   rmsf,   e,   maxe,   s,   e/bc, ts_estim_err, ts_max_err)
+                tuple = (bc,   N,   res,   cb,   rmsf,   e,   maxe,   s,   e/bc, ts_estim_err, ts_max_err, s_max_cumm)
 
                 # Set up dictionary of indices of fields so that strings of 
                 # gnuplot syntax can access them.
-                ids =  ['bc', 'N', 'res', 'cb', 'rmsf', 'e', 'maxe', 's', 'e/bc', 'ts_estim_err', 'ts_max_err']
+                ids =  ['bc', 'N', 'res', 'cb', 'rmsf', 'e', 'maxe', 's', 'e/bc', 'ts_estim_err', 'ts_max_err', 's_max_cumm']
                 ixs = range(len(ids)+1)[1:] # [1,2,3...]
                 d = dict(zip(ids, ixs))
 
 
                 if (rmsf, e, maxe) != prev:
-                    outline = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n" % tuple
+                    outline = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n" % tuple
                     f_out.write(outline)
                     prev = rmsf, e, maxe
                     highestN = max(N, highestN)
@@ -171,30 +172,6 @@ def run(args, extra, maxit=50):
                 prev_bc = bc
                 prev_res = res
                 prev_cb = cb
-
-            # This has become a dodyy hack. Sorry.
-            """elif line.startswith(ts_tag) or line.startswith(max_tag):
-                if line.startswith(ts_tag):
-                    data = line[len(ts_tag):]
-                    a = eval(data)
-                    aa_dists = aof.common.atom_atom_dists(a)
-                    if known_ts_aa_dists == None:
-                        known_ts_aa_dists = aa_dists.copy()
-                    ts_err_ts_estim = np.linalg.norm(known_ts_aa_dists - aa_dists)
-                    ts_count += 1
-                else:
-                    data = line[len(max_tag):]
-                    a = eval(data)
-                    aa_dists = aof.common.atom_atom_dists(a)
-                    if known_ts_aa_dists == None:
-                        known_ts_aa_dists = aa_dists.copy()
-                    ts_err_max = np.linalg.norm(known_ts_aa_dists - aa_dists)
-                    ts_count += 1
-
-                if ts_count == 2:
-                    outline += '\t%f\t%f\n' % (ts_err_ts_estim, ts_err_max)
-                    f_out.write(outline)
-                    ts_count = 0"""
 
         f.close()
         f_res.close()
@@ -227,7 +204,7 @@ def run(args, extra, maxit=50):
     gradient_plots = [fn + ' using %(N)d:%(rmsf)d' % d for fn in plot_files]
     gradient_plots = ','.join(gradient_plots)
 
-    step_plots = [fn + ' using %(N)d:%(s)d' % d for fn in plot_files]
+    step_plots = [fn + ' using %(N)d:%(s_max_cumm)d' % d for fn in plot_files]
     step_plots = ','.join(step_plots)
 
     ts_estim_err_plots = [fn + ' using %(N)d:%(ts_estim_err)d' % d for fn in plot_files]
@@ -258,11 +235,13 @@ def run(args, extra, maxit=50):
 
 
 def main(argv=None):
+    known_ts_aa_dists = 0
+
     if argv is None:
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "hp:", ["help"])
+            opts, args = getopt.getopt(argv[1:], "hp:", ["help", "ts="])
         except getopt.error, msg:
              raise Usage(msg)
         
@@ -274,8 +253,12 @@ def main(argv=None):
             if o == '-p':
                 section, code = a.split('=')
                 extra[section] = code
+            elif o == '--ts':
+                known_ts_file = a
+                known_ts_aa_dists = aof.common.atom_atom_dists(aof.common.file2carts(known_ts_file))
+                print "known_ts_aa_dists", known_ts_aa_dists
                 
-        run(args, extra)
+        run(args, extra, known_ts_aa_dists=known_ts_aa_dists)
 
     except Usage, err:
         print >>sys.stderr, err.msg

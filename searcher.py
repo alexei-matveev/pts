@@ -61,11 +61,18 @@ class ReactionPathway(object):
 
     string = False
 
-    def __init__(self, reagents, beads_count, qc_driver, parallel, reporting=None):
+    def __init__(self, reagents, beads_count, qc_driver, parallel, reporting=None, convergence_beads=3, steps_cumm=3):
+        """
+        convergence_beads: will consider |convergence_beads| highest beads when testing convergence
+        steps_cumm: will consider |steps_cumm| steps when testing convergence
+        """
 
         self.parallel = parallel
         self.qc_driver = qc_driver
         self.beads_count = beads_count
+
+        self.convergence_beads = convergence_beads
+        self.steps_cumm = steps_cumm
 
         self.__dimension = len(reagents[0])
         #TODO: check that all reagents are same length
@@ -123,7 +130,7 @@ class ReactionPathway(object):
         if self.lengths_disparate():
             raise aof.MustRegenerate
 
-    def test_convergence(self, f_tol, x_tol, steps_cumm=3):
+    def test_convergence(self, f_tol, x_tol):
         """
         Raises Converged if converged, applying weaker convergence 
         criterion if growing string is not fully grown.
@@ -138,9 +145,10 @@ class ReactionPathway(object):
             if rmsf < f_tol*10:
                 raise aof.Converged
         else:
-            max_step = self.history.step(1, steps_cumm).max()
+            max_step = self.history.step(self.convergence_beads, self.steps_cumm)
+            max_step = abs(max_step).max()
             lg.info("Testing Non-Growing Convergence to f: %f / %f, x: %f / %f" % (rmsf, f_tol, max_step, x_tol))
-            if rmsf < f_tol or (self.eg_calls > 1 and max_step < x_tol):
+            if rmsf < f_tol or (self.eg_calls > self.steps_cumm and max_step < x_tol and rmsf < 5*f_tol):
                 raise aof.Converged
 
     @property
@@ -216,10 +224,10 @@ class ReactionPathway(object):
             all_coordinates += ("%-24s : %s\n" % ("    Coordinate %3d " % (i+1) , format('%10.4f',self.state_vec[:,i])))
         print all_coordinates
 
-        steps_cumm = 3
+        ts_ix = 0
         # max cummulative step over steps_cumm iterations
-        step_max_bead_cumm = self.history.step(1, steps_cumm).max()
-        step_ts_estim_cumm = self.history.step(0, steps_cumm).max()
+        step_max_bead_cumm = self.history.step(self.convergence_beads, self.steps_cumm).max()
+        step_ts_estim_cumm = self.history.step(ts_ix, self.steps_cumm).max()
 
         arc = {'bc': self.beads_count,
                'N': eg_calls,
@@ -391,7 +399,7 @@ class ReactionPathway(object):
         # can be set to zero
 
         # update mask of beads to freeze i.e. not move or recalc energy/grad for
-        self.update_mask()
+        #self.update_mask()
 
         # NOTE: this automatically skips if None
         self.state_vec = new_state_vec
@@ -885,7 +893,7 @@ class PathRepresentation(object):
 
         (str_len_precise, error) = scipy.integrate.quad(self.__arc_dist_func, 0, 1, limit=100)
         lg.debug("String length integration error = " + str(error))
-        assert error < self.__max_integral_error
+        assert error < self.__max_integral_error, "error = %f" % error
 
         for i in range(self.__str_resolution):
             pos = (i + 0.5) * self.__step
