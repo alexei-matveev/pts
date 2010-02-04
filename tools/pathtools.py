@@ -29,6 +29,37 @@ class PathTools:
     >>> res1[0][0] > 3
     True
 
+    Tests on path generated from a parabola.
+
+    >>> xs = (np.arange(10) - 5) / 2.0
+    >>> f = lambda x: -x*x
+    >>> g = lambda x: -2*x
+    >>> ys = f(xs)
+    >>> gs = g(xs)
+    >>> pt = PathTools(xs, ys, gs)
+    >>> energy, pos = pt.ts_splcub()[0]
+    >>> np.round(energy) == 0
+    True
+    >>> (np.round(pos) == 0).all()
+    True
+    >>> type(str(pt))
+    <type 'str'>
+
+
+    Tests on path generated from a parabola, again, but shifted.
+
+    >>> xs = (np.arange(10) - 5.2) / 2.0
+    >>> f = lambda x: -x*x
+    >>> g = lambda x: -2*x
+    >>> ys = f(xs)
+    >>> gs = g(xs)
+    >>> pt = PathTools(xs, ys, gs)
+    >>> energy, pos = pt.ts_splcub()[0]
+    >>> np.round(energy) == 0
+    True
+    >>> (np.round(pos) == 0).all()
+    True
+
     """
     def __init__(self, state, energies, gradients=None):
 
@@ -48,8 +79,13 @@ class PathTools:
             x = self.state[i]
             x_ = self.state[i-1]
             self.steps[i] = np.linalg.norm(x -x_) + self.steps[i-1]
-        self.steps = self.steps / self.steps[-1]
-        print "self.steps", self.steps
+        self.steps = self.steps# / self.steps[-1]
+
+        # string for __str__ to print
+        self.s = []
+
+    def __str__(self):
+        return '\n'.join(self.s)
 
     def ts_spl(self, tol=1e-10):
         """Returns list of all transition state(s) that appear to exist along
@@ -103,7 +139,7 @@ class PathTools:
         step = 1. / self.n
         ss = self.steps
         Es = self.energies
-        print Es
+        self.s.append("Es: %s" % Es)
 
         # build fresh functional representation of optimisation 
         # coordinates as a function of a path parameter s
@@ -128,39 +164,18 @@ class PathTools:
 
             dEdss = np.array([dEds_0, dEds_1])
 
-            if (E_1 >= E_0 and dEds_1 < 0) or (E_1 <= E_0 and dEds_0 > 0):
-                print "Found: i = %d E_1 = %f E_0 = %f dEds_1 = %f dEds_0 = %f" % (i, E_1, E_0, dEds_1, dEds_0)
+            self.s.append("E_1 %s" % E_1)
+            if (E_1 >= E_0 and dEds_1 <= 0) or (E_1 <= E_0 and dEds_0 > 0):
+                self.s.append("Found: i = %d E_1 = %f E_0 = %f dEds_1 = %f dEds_0 = %f" % (i, E_1, E_0, dEds_1, dEds_0))
+
                 cub = func.CubicFunc(ss[i-1:i+1], Es[i-1:i+1], dEdss)
+                self.s.append("ss[i-1:i+1]: %s" % ss[i-1:i+1])
 
-                """    # TODO: delete?
-                if numerical:
-#                    print "cub",cub
-                    # Some versions of SciPy seem to give the function called 
-                    # by fminbound a 1d vector, and others give it a scalar.
-                    # The workaround here is to use the atleast_1d function.
-                    E_estim_neg = lambda s: -cub(np.atleast_1d(s)[0])
-                    E_prime_estim = lambda s: cub.fprime(np.atleast_1d(s)[0])
-
-  #                  print ss[i-1], ss[i]
-                    s_min = sp.optimize.fminbound(E_estim_neg, ss[i-1], ss[i], xtol=tol, disp=3)
-                    E_s = -E_estim_neg(s_min)
- #                   print "E_0, E_s, E_1, s_min", E_0, E_s, E_1, s_min
-    #                print np.abs(E_prime_estim(s_min)), tol
-                    E_prime_estim_sqr = lambda x: np.abs(E_prime_estim(x))
-                    s_min2 = sp.optimize.fmin(E_prime_estim_sqr, s_min, disp=0, xtol=tol)
-                    
-#                    print "%.15e %.15e" % (s_min, s_min2)
-#                    print (E_0 - E_s)
-
-                    if np.abs(s_min[0] - s_min2[0]) < 0.00001:
-                        #print "Found", i
-                        xs_ts = xs(s_min)
-                        print "s_min", s_min
-                        raw_input()
-                        ts_list.append((E_s, xs_ts))"""
+                self.s.append("cub: %s" % cub)
 
                 # find the stationary points of the cubic
                 statpts = cub.stat_points()
+                self.s.append("statpts: %s" % statpts)
                 assert statpts != []
                 found = 0
                 for p in statpts:

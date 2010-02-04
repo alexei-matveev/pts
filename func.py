@@ -171,7 +171,7 @@ Derivatives wrt |d| == x[1,1]:
 
 __all__ = ["Func", "LinFunc", "QuadFunc", "SplineFunc", "CubicFunc"]
 
-from numpy import array, dot, hstack, linalg, atleast_1d, sqrt
+from numpy import array, dot, hstack, linalg, atleast_1d, sqrt, abs
 from numpy import empty, asarray, searchsorted
 from scipy.interpolate import interp1d, splrep, splev
 from scipy.integrate import quad
@@ -289,32 +289,14 @@ class CubicFunc(Func):
 
     def __str__(self):
         a,b,c,d = self.coeffs
-        return "%.2fx^3 + %.2fx^2 + %.2fx + %.2f" % (a,b,c,d)
+        return "%.2ex^3 + %.2ex^2 + %.2ex + %.2e" % (a,b,c,d)
 
     def f(self, x):
         return dot(array((x**3, x**2, x, 1.)), self.coeffs)
 
     def fprime(self, x):
         return dot(array((3*x**2, 2*x, 1., 0.)), self.coeffs)
-
-    def fprimeprime(self, x):
-        return dot(array((6*x, 2, 0., 0.)), self.coeffs)
-
-    def stat_points(self):
-        """Returns the locations of the stationary points."""
-#        assert False, "Function stat_points untested."
-        quadratic_coeffs = array((3, 2, 1.)) * self.coeffs[:3]
-
-        a,b,c = quadratic_coeffs
-
-        delta = b**2 - 4*a*c
-        if delta < 0:
-            return []
-        elif delta == 0:
-            return [-b / 2 / a]
-        else:
-            return [(-b + delta**0.5) / 2 / a, (-b - delta**0.5) / 2 / a]
-
+               
 
 class SplineFunc(Func):
     def __init__(self, xs, ys):
