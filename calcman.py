@@ -87,7 +87,7 @@ class CalcManager():
 
         # calculation has aleady been performed, will use cached version
         elif result.has_field(type):
-            lg.info("Already have result for %s, using cached version." % vec_summarise(v))
+            lg.debug("Already have result for %s, using cached version." % vec_summarise(v))
             return
 
         # find dir containing previous calc to use as guess for wavefunction
@@ -101,10 +101,11 @@ class CalcManager():
         # as a hand over to the job ______AN
         j = Job(v, type, bead_ix=bead_ix, prev_calc_dir=dir)
         self.__pending_jobs.append(j)
-        lg.info("Requesting job " + str(j))
+        lg.debug("Requesting job " + str(j))
 
     def proc_requests(self):
         """Process all jobs in queue."""
+
         s_jobs = ' '.join([str(j) for j in self.__pending_jobs])
         lg.info(self.__class__.__name__ + "Queued Jobs (%d) %s" % (len(self.__pending_jobs), s_jobs))
 
@@ -130,7 +131,8 @@ class CalcManager():
         if self.__to_cache != None:
             pickle.dump(self.__result_dict, open(self.__to_cache, 'w'))
 
-
+    def eg_counts(self):
+        return self.__result_dict.eg_counts()
 
     def energy(self, v):
         """Returns the already computed energy of vector v."""
@@ -200,6 +202,15 @@ class ResultDict():
             return matches_list[0]
         else:
             return None
+
+    def eg_counts(self):
+        """Here it is assumed that every time we ask for a gradient we are 
+        also asking for an energy.
+        """
+        l = ''.join([r.type() for r in self.list])
+        e,g = l.count('E'), l.count('G')
+        assert e >= g
+        return e,g
 
 def test_CalcManager(qc_driver, inputs, procs, to_cache=None, from_cache=None):
     """Perform more comprehensive tests of CalcManager / ResultDict infrastructure.

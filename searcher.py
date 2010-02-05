@@ -61,10 +61,17 @@ class ReactionPathway(object):
 
     string = False
 
-    def __init__(self, reagents, beads_count, qc_driver, parallel, reporting=None, convergence_beads=3, steps_cumm=3):
+    def __init__(self, reagents, beads_count, qc_driver, parallel, reporting=None, convergence_beads=3, steps_cumm=3, freeze_beads=False):
         """
-        convergence_beads: will consider |convergence_beads| highest beads when testing convergence
-        steps_cumm: will consider |steps_cumm| steps when testing convergence
+        convergence_beads:
+            number of highest beads to consider when testing convergence
+
+        steps_cumm:
+            number of previous steps to consider when testing convergence
+
+        freeze_beads:
+            freeze some beads if they are not in the highest 3 or subject to low forces.
+
         """
 
         self.parallel = parallel
@@ -73,6 +80,7 @@ class ReactionPathway(object):
 
         self.convergence_beads = convergence_beads
         self.steps_cumm = steps_cumm
+        self.freeze_beads = freeze_beads
 
         self.__dimension = len(reagents[0])
         #TODO: check that all reagents are same length
@@ -242,6 +250,13 @@ class ReactionPathway(object):
                'ixhigh': self.bead_pes_energies.argmax()}
 
 
+        if hasattr(self.qc_driver, 'eg_counts'):
+            bead_es, bead_gs = self.qc_driver.eg_counts()
+        else:
+            bead_es = bead_gs = (self.beads_count - 2) * eg_calls + 2
+        arc['bead_es'] = bead_es
+        arc['bead_gs'] = bead_gs
+
         # Write out the cartesian coordinates of two transition state
         # estimates: highest bead and from spline estimation.
         if hasattr(self, 'bead2carts'):
@@ -399,7 +414,8 @@ class ReactionPathway(object):
         # can be set to zero
 
         # update mask of beads to freeze i.e. not move or recalc energy/grad for
-        #self.update_mask()
+        if self.freeze_beads:
+            self.update_mask()
 
         # NOTE: this automatically skips if None
         self.state_vec = new_state_vec
@@ -525,9 +541,6 @@ class NEB(ReactionPathway):
 
     >>> neb.obj_func_grad().round(3)
     array([-0.   , -0.   , -0.291, -0.309,  0.327,  0.073, -0.   , -0.   ])
-
-    >>> print str(neb)[:len('Chain of States Summary')]
-    Chain of States Summary
 
     >>> neb.step
     (0.0, array([ 0.,  0.,  0.,  0.]), array([[ 0.,  0.],
@@ -1181,9 +1194,6 @@ class GrowingString(ReactionPathway):
     >>> s.obj_func_grad().round(3)
     array([-0.   , -0.   ,  0.021, -0.021,  0.11 , -0.11 , -0.   , -0.   ])
 
-    >>> print str(s)[:len('Chain of States Summary')]
-    Chain of States Summary
-
     >>> s.step
     (0.0, array([ 0.,  0.,  0.,  0.]), array([[ 0.,  0.],
            [ 0.,  0.],
@@ -1462,12 +1472,15 @@ class GrowingString(ReactionPathway):
         redestributes the beads according to the density function."""
 
         if state_vec != None:
-            assert state_vec.size == self.state_vec.size
-            tmp = array(state_vec).reshape(self.beads_count, -1)
+            new = array(state_vec).reshape(self.beads_count, -1)
+            assert new.size == self.state_vec.size
+
+            state_vec_old = self._path_rep.state_vec.copy()
 
             for i in range(self.beads_count):
                 if self.bead_update_mask[i]:
-                    self._path_rep.state_vec[i] = tmp[i]
+                    state_vec_old[i] = new[i]
+            self._path_rep.state_vec = new
 
         # rebuild line, parabola or spline representation of path
         self._path_rep.regen_path_func()

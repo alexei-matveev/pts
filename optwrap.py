@@ -12,7 +12,7 @@ __all__ = ["opt"]
 
 names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line']
 
-def runopt(name, CoS, ftol, xtol, maxit, callback, maxstep=0.2):
+def runopt(name, CoS, ftol, xtol, maxit, callback, maxstep=0.2, extra=dict()):
     assert name in names
 
     CoS.maxit = maxit
@@ -26,7 +26,7 @@ def runopt(name, CoS, ftol, xtol, maxit, callback, maxstep=0.2):
             # tol and maxit are scaled so that they are never reached.
             # Convergence is tested via the callback function.
             # Exceeding maxit is tested during an energy/gradient call.
-            runopt_inner(name, CoS, ftol*0.01, maxit*100, cb, maxstep=maxstep)
+            runopt_inner(name, CoS, ftol*0.01, maxit*100, cb, extra, maxstep=maxstep)
         except MustRegenerate:
             CoS.update_path()
             print important("Optimisation RESTARTED (respaced)")
@@ -45,7 +45,7 @@ def runopt(name, CoS, ftol, xtol, maxit, callback, maxstep=0.2):
         else:
             break
 
-def runopt_inner(name, CoS, ftol, maxit, callback, maxstep=0.2):
+def runopt_inner(name, CoS, ftol, maxit, callback, extra, maxstep=0.2):
 
     if name == 'scipy_lbfgsb':
         opt, energy, dict = fmin_l_bfgs_b(CoS.obj_func,
@@ -60,7 +60,7 @@ def runopt_inner(name, CoS, ftol, maxit, callback, maxstep=0.2):
     elif name[0:4] == 'ase_':
 
         if name == 'ase_lbfgs':
-            opt = ase.LBFGS(CoS, maxstep=maxstep)
+            opt = ase.LBFGS(CoS, maxstep=maxstep, **extra)
         elif name == 'ase_lbfgs_line':
             opt = ase.LineSearchLBFGS(CoS, maxstep=maxstep)
         elif name == 'ase_fire':

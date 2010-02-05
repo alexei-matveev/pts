@@ -80,6 +80,14 @@ class Result():
         s += ", " + str(self.flags) + ")"
         return s
 
+    def type(self):
+        s = ''
+        if self.e != None:
+            s += 'E'
+        if self.e != None:
+            s += 'G'
+        return s
+
     def has_field(self, type):
         return type == 'G' and self.g != None \
             or type == 'E' and self.e != None
