@@ -102,11 +102,13 @@ Optimize the chain and enforce equal spacing:
 
 The optimized energies of the images:
 
-    >>> round(array([pes(x) for x in xm]), 4)
+    >>> es1 = array([pes(x) for x in xm])
+
+    >>> round(es1, 4)
     array([-6.    , -6.    , -5.0734, -6.    , -6.    ])
 
 Note that the actuall transition happens in the middle
-of the string. The two first and the two last images
+of the chain. The two first and the two last images
 differ (almost) exclusively by rotation in 3D.
 
 The average energy is very close to -6:
@@ -243,8 +245,8 @@ class Spacing(Func):
     """
     For an array of n geometries x, return the n-2 differences:
 
-       c(x) = ( d(x   , x ) - d(x , x  ) / 2, i = 1, ... n-2
-        i          i+1   i       i   i-1
+       c(x) = (d(x   , x ) - d(x , x  )) / 2, i = 1, ... n-2
+        i         i+1   i       i   i-1
 
     and a (sparse) array of their derivatives wrt x.
 
