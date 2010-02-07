@@ -188,21 +188,66 @@ class Chain(Func):
 
         return sum(fs), array(gs)
 
+class Norm2(Func):
+    """
+    For an array of 2 geometries x, return a measure of their
+    difference:
+
+                         2
+       f(x) = | x  -  x |
+                 1     0
+
+    and an array of their derivatives wrt x and x
+                                           0     1
+    An example:
+
+        >>> n2 = Norm2()
+
+        >>> x = array([(1., 1.,), (2., 1.), (2., 2.), (3.,2.)])
+
+    Differences between adjacent geoms:
+
+        >>> n2(x[0:2])
+        1.0
+        >>> n2(x[1:3])
+        1.0
+        >>> n2(x[2:4])
+        1.0
+
+    Note that x[0:2] stays for *two* adjacent geometries!
+
+        >>> from func import NumDiff
+        >>> N2 = NumDiff(n2)
+        >>> max(abs(n2.fprime(x[1:3]) - N2.fprime(x[1:3]))) < 1.e-10
+        True
+    """
+
+    def taylor(self, x):
+
+        assert len(x) == 2
+
+        # compute the difference of two geometries:
+        d = x[1] - x[0]
+
+        # the value:
+        f = sum(d**2)
+
+        # the derivative:
+        fprime = zeros(shape(x))
+        fprime[1] = + 2. * d
+        fprime[0] = - 2. * d
+
+        return f, fprime
+
 class Spacing(Func):
     """
     For an array of n geometries x, return the n-2 differences:
 
-                           2             2
-       c(x) = ( | x  -  x | - | x  -  x | ) / 2, i = 1, ... n-2
-        i          i+1   i       i     i-1
+       c(x) = ( d(x   , x ) - d(x , x  ) / 2, i = 1, ... n-2
+        i          i+1   i       i   i-1
 
-    and a (sparse) array of their derivatives wrt x
+    and a (sparse) array of their derivatives wrt x.
 
-                   ,
-                   |             + d(i, i+1), if j = i + 1
-        dc / dx = <  - d(i-1, i) - d(i, i+1), if j = i
-          i    j   | + d(i-1, i)            , if j = i - 1
-                   `
     An example:
 
         >>> cg = Spacing()
@@ -215,8 +260,14 @@ class Spacing(Func):
         >>> max(abs(cg.fprime(x) - cg1.fprime(x))) < 1.e-10
         True
     """
+    def __init__(self, dst=Norm2()):
+        # mesure of the distance between two geoms:
+        self.__dst = dst
 
     def taylor(self, x):
+
+        # abbreviation for the (differentiable) distance function:
+        dst = self.__dst.taylor
 
         n = len(x)
 
@@ -225,17 +276,20 @@ class Spacing(Func):
         cprime = []
         for i in range(1, n - 1):
 
-            dp = x[i+1] - x[i]
-            dm = x[i] - x[i-1]
+            # [i] and [i+1] one gets from [i:i+2]:
+            dp, dpg = dst(x[i:i+2])
+
+            # [i-1] and [i] one gets from [i-1:i+1]:
+            dm, dmg = dst(x[i-1:i+1])
 
             # constrain value:
-            c.append((sum(dp**2) - sum(dm**2)) / 2.0)
+            c.append((dp - dm) / 2.0)
 
             # constrain derivative:
             sparse = zeros(shape(x))
-            sparse[i+1] =      + dp 
-            sparse[i]   = - dm - dp
-            sparse[i-1] = + dm 
+            sparse[i+1] =  dpg[1]           / 2.
+            sparse[i]   = (dpg[0] - dmg[1]) / 2.
+            sparse[i-1] =         - dmg[0]  / 2.
 
             cprime.append(sparse)
 
