@@ -13,13 +13,31 @@ to vizualize a path in 3D with jmol.
 Alternatively
 
     >>> from aof.tools.jmol import jmol_view_path
-    >>> jmol_view_path(arrayNx3, atomic_symbolsi, refine=5, viewer=lambda x: print "starting jmol ...")
+    >>> geoms = [[(0., 0., 0.), (0., 0., 1.)],
+    ...          [(0., 0., 0.), (1., 0., 0.)]]
+
+Very simple ascii 3D-viewer:
+
+    >>> def ascii(fname):
+    ...     for line in open(fname):
+    ...         print line.rstrip()
+
+    >>> jmol_view_path(geoms, viewer=ascii)
+    2
+    frame 0.000000
+       X    0.00000000   0.00000000   0.00000000
+       X    0.00000000   0.00000000   1.00000000
+    2
+    frame 1.000000
+       X    0.00000000   0.00000000   0.00000000
+       X    1.00000000   0.00000000   0.00000000
 
 This was a doctest. Normally you will use the default
 viewer (jmol) like here:
 
-#   >>> jmol_view_path(arrayNx3, atomic_symbolsi, refine=5)
+#   >>> jmol_view_path(geoms, ["C", "O"], refine=5)
 """
+
 from __future__ import with_statement
 import sys
 import os
@@ -61,6 +79,11 @@ def jmol_write(xyz, syms=None, comment="", file=sys.stdout):
         write(line)
 
 def main():
+    if len(sys.argv) < 3:
+        # print usage and return:
+        print __doc__
+        return
+
     images = [ ase.read(file) for file in sys.argv[1:] ]
 
     geoms = [ im.get_positions() for im in images ]
@@ -70,6 +93,8 @@ def main():
     jmol_view_path(geoms, syms)
 
 if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
     main()
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
