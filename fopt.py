@@ -33,9 +33,9 @@ minimizers):
 
 Constrained minimization works with flat funcitons
 returning value and gradient as a tuple.
-Prepare one from MB-potential:
+Thus take the |taylor| method of the MB-Func:
 
-    >>> fg = _fg(f)
+    >>> fg = f.taylor
 
 Lets define a plane which will constrain the search
 for minimum:
@@ -166,7 +166,7 @@ def minimize(f, x):
     # some optimizers (notably fmin_l_bfgs_b) work with funcitons
     # of 1D arguments returning both the value and the gradient.
     # Construct such from the given Func f:
-    fg = _flatten(_fg(f), x)
+    fg = _flatten(f.taylor, x)
 
     # flat version of inital point:
     y = x.flatten()
@@ -455,13 +455,6 @@ def cmin(fg, x, cg, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, maxiter=50, maxstep=0.04
     # also return number of interations, convergence status, and last values
     # of the gradient and step:
     return r, e, (iteration, converged, g, dr)
-
-def _fg(f):
-    "Returns a tuple valued function: fg: f -> x -> (f(x), f.fprime(x))"
-
-    def fg(x): return f(x), f.fprime(x)
-
-    return fg
 
 def _flatten(fg, x):
     """Returns a funciton of flat argument fg_(y) that
