@@ -180,14 +180,25 @@ from ridders import dfridr
 
 class Func(object):
     def __init__(self, f=None, fprime=None):
-        self.f = f
-        self.fprime = fprime
+        if f is not None:
+            self.f = f
+        if fprime is not None:
+            self.fprime = fprime
+
+    # subclasses may choose to implement either (f, fprime) or just (taylor):
+    def f(self, *args, **kwargs):
+        return self.taylor(*args, **kwargs)[0]
+
+    def fprime(self, *args, **kwargs):
+        return self.taylor(*args, **kwargs)[1]
+
+    # alternatively, subclasses may choose to implement just one:
+    def taylor(self, *args, **kwargs):
+        return self.f(*args, **kwargs), self.fprime(*args, **kwargs)
 
     # make our Funcs callable:
     def __call__(self, *args, **kwargs):
         return self.f(*args, **kwargs)
-    # here you cannot do __call__ = f
-    # if you want subclasses to specialize!
 
 def compose(p, q):
     "Compose p*q, make p(x) = p(q(x))"
