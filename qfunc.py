@@ -58,21 +58,21 @@ class QFunc(Func):
         self.calc = calc
         self.atoms.set_calculator(calc)
 
-    def f(self, positions):
+    # (f, fprime) methods inherited from abstract Func and use this by default:
+    def taylor(self, positions):
+        "Energy and gradients"
 
         # update positions:
         self.atoms.set_positions(positions)
 
-        # request the energy:
-        return self.atoms.get_potential_energy()
+        # request energy:
+        e = self.atoms.get_potential_energy()
 
-    def fprime(self, positions):
+        # request forces. NOTE: forces are negative of the gradients:
+        g = - self.atoms.get_forces()
 
-        # update positions:
-        self.atoms.set_positions(positions)
-
-        # request the forces. NOTE: forces are negative of the gradients:
-        return  - self.atoms.get_forces()
+        # return both:
+        return e, g
 
 # python qfunc.py [-v]:
 if __name__ == "__main__":
