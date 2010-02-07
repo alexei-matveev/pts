@@ -167,7 +167,7 @@ def smin(ce, x, cs, **kwargs):
 
     # restore original shape:
     zm.shape = shape(z)
-    y[1:-1] = z
+    y[1:-1] = zm
 
     return y, fm, stats
 
