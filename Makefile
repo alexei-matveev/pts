@@ -24,4 +24,4 @@ test-all: $(src:.py=.doctest)
 
 # run a doctest on the module, return failure if any of the tests fail:
 %.doctest: %.py
-	python -c "import doctest, sys, $*; errs, _ = doctest.testmod($*); sys.exit(bool(errs))"
+	python -c "import $*, doctest, sys; errs, _ = doctest.testmod($*); sys.exit(bool(errs))"
