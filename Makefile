@@ -18,6 +18,7 @@ src =	\
 	bfgs.py \
 	fopt.py \
 	qfunc.py \
+	chain.py \
 
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.doctest)
