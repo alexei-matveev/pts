@@ -15,6 +15,9 @@ src =	\
 	zmat.py \
 	mueller_brown.py \
 	memoize.py \
+	bfgs.py \
+	fopt.py \
+	qfunc.py \
 
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.doctest)
