@@ -206,6 +206,7 @@ This is not much different from the previous result, 0.30661623.
 __all__ = ["energy", "gradient"] # "MuellerBrown"]
 
 from numpy import exp, array
+from func import Func
 
 # FIXME: how to mve them into class definiton out of global namespace?
 AA = (-200., -100., -170.,  15.)
@@ -215,7 +216,7 @@ cc = ( -10.,  -10.,   -6.5,  0.7)
 xx = (   1.,    0.,   -0.5, -1.)
 yy = (   0.,    0.5,   1.5,  1.)
 
-class MuellerBrown():
+class MuellerBrown(Func):
     """
     Mueller, Brown, Theoret. Chim. Acta (Berl.) 53, 75-93 (1979)
     Potential used in string method publications
@@ -295,9 +296,6 @@ class MuellerBrown():
             f += A * exp( a * (x - x0)**2 + b * (x - x0) * (y - y0) + c * (y - y0)**2 )
 
         return f
-
-    # make MB PES callable:
-    __call__ = f
 
     def fprime(self, v):
 
