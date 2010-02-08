@@ -127,7 +127,7 @@ You can visualize the path by executing:
 #   >>> jmol_view_path(xm, syms=["Ar"]*4, refine=5)
 """
 
-__all__ = ["smin", "Chain", "Spacing"]
+__all__ = ["smin", "Chain", "Spacing", "RCDiff"]
 
 from func import Func
 from numpy import array, asarray, zeros, shape, sum, max, abs
@@ -191,7 +191,9 @@ class Chain(Func):
         return sum(fs), array(gs)
 
 class Norm2(Func):
-    """
+    """Measure the "distance" between two geometries by
+    the square of the "cartesian" distance of the coordinates.
+
     For an array of 2 geometries x, return a measure of their
     difference:
 
@@ -238,6 +240,43 @@ class Norm2(Func):
         fprime = zeros(shape(x))
         fprime[1] = + 2. * d
         fprime[0] = - 2. * d
+
+        return f, fprime
+
+class RCDiff(Func):
+    """Measure the "distance" between two geometries based on the
+    values of some "reaction coordinate".
+
+    For an array of 2 geometries x, return a measure of their
+    difference:
+
+       f(x) = r( x ) - r( x )
+                  1        0
+
+    and an array of their derivatives wrt x and x
+                                           0     1
+    """
+    def __init__(self, r):
+        self.__r = r
+
+    def taylor(self, x):
+
+        assert len(x) == 2
+
+        # abbreviation for r-taylor series:
+        r = self.__r.taylor
+
+        # compute the difference of two geometries:
+        r1, g1 = r(x[1])
+        r0, g0 = r(x[0])
+
+        # the value:
+        f = r1 - r0
+
+        # the derivative:
+        fprime = zeros(shape(x))
+        fprime[1] = + g1
+        fprime[0] = - g0
 
         return f, fprime
 
