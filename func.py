@@ -171,7 +171,7 @@ Derivatives wrt |d| == x[1,1]:
 
 __all__ = ["Func", "LinFunc", "QuadFunc", "SplineFunc", "CubicFunc"]
 
-from numpy import array, dot, hstack, linalg, atleast_1d, sqrt, abs
+from numpy import array, dot, hstack, linalg, atleast_1d, sqrt, abs, column_stack, ones
 from numpy import empty, asarray, searchsorted
 from scipy.interpolate import interp1d, splrep, splev
 from scipy.integrate import quad
@@ -227,17 +227,44 @@ class LinFunc(Func):
         return self.grad
 
 class QuadFunc(Func):
-    def __init__(self, coefficients):
-        self.coefficients = coefficients
+    def __init__(self, xs, ys):
+        self.coeffs = self.calc_coeffs(xs,ys)
+
+    def calc_coeffs(self, xs, ys):
+        assert len(xs) == len(ys) == 3
+        xs_x_pow_2 = xs**2
+        xs_x_pow_1 = xs 
+
+        A = column_stack((xs_x_pow_2, xs_x_pow_1, ones(3)))
+
+        quadratic_coeffs = linalg.solve(A,ys)
+
+        return quadratic_coeffs
 
     def f(self, x):
         x = atleast_1d(x).item()
-        tmp = dot(array((x**2, x, 1)), self.coefficients)
+        tmp = dot(array((x**2, x, 1)), self.coeffs)
         return tmp
 
     def fprime(self, x):
         x = atleast_1d(x).item()
-        return 2 * self.coefficients[0] * x + self.coefficients[1]
+        return 2 * self.coeffs[0] * x + self.coeffs[1]
+
+    def stat_points(self):
+        """Returns the locations of the stationary points."""
+        lin_coeffs = array((2, 1.)) * self.coeffs[:2]
+
+        m,b = lin_coeffs
+
+        return [-b / m]
+
+    def fprimeprime(self, x):
+        return 2 * self.coeffs[0]
+
+    def __str__(self):
+        a,b,c = self.coeffs
+        return "%.4e*x**2 + %.4e*x + %.4e" % (a,b,c)
+
 
 class CubicFunc(Func):
     """
@@ -289,7 +316,7 @@ class CubicFunc(Func):
 
     def __str__(self):
         a,b,c,d = self.coeffs
-        return "%.2ex^3 + %.2ex^2 + %.2ex + %.2e" % (a,b,c,d)
+        return "%.4e*x**3 + %.4e*x**2 + %.4e*x + %.4e" % (a,b,c,d)
 
     def f(self, x):
         return dot(array((x**3, x**2, x, 1.)), self.coeffs)
