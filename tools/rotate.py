@@ -3,7 +3,7 @@
 import sys
 import getopt
 
-from numpy import cos, sin, array, hstack, dot, sqrt
+from numpy import cos, sin, array, hstack, dot, sqrt, zeros
 from numpy.linalg import norm
 import scipy.optimize as opt
 import numpy as np
@@ -101,13 +101,12 @@ def run(order_str, fn1, fn2, ixs=None):
 
     a1.set_positions(g1)
 
-    r = Rotate(g1.copy(), g2.copy(), ixs)
+    r = Rotate(g1.copy(), g2.copy(), ixs=ixs)
 
-    x0 = array([0.,0,0,0,0,.001])
-    x = opt.fmin_bfgs(r.diff, x0)
+    x, g2_new = r.align()
     print "Optimising vector:", x
 
-    g2_new = r.trans(g2, x)
+#    g2_new = r.trans(g2, x)
     a1.set_chemical_symbols(chem_symbols)
     a2.set_chemical_symbols(chem_symbols)
 
@@ -145,8 +144,8 @@ class Rotate:
                 self.g1.append(geom1[i])
                 self.g2.append(geom2[i])
 
-
-        
+        self.g1 = array(self.g1).reshape(-1,3)
+        self.g2 = array(self.g2).reshape(-1,3)
 
     def trans(self, geom, v):
         """Translates and rotates geometry geom based on v."""
@@ -172,11 +171,92 @@ class Rotate:
 
         g2_rot = self.trans(self.g2, x)
         diff = (self.g1 - g2_rot)**2
-        s = sum(diff.flatten())
-        #print s
+
+        diff.shape = (-1, 3)
+        diff = array([d.sum()**(0.5) for d in diff])
+
+        s = sum(diff.flatten()) / diff.size
         return s
 
+    def align(self, x0 = None):
+        
+        if x0 == None:
+            x0 = array([0., 0, 0, 0, 0, 0.001])
 
+#        prev = self.g2.copy()
+#        its = 0
+#        while True:
+#            its += 1
+        x, fopt, gopt, Hopt, func_calls, grad_calls, warnflag = \
+            opt.fmin_bfgs(self.diff, 
+                x0, 
+                gtol=1e-4, 
+                full_output=1, 
+                disp=0) 
+
+#        print "gopt",gopt
+        aligned = self.trans(self.g2, x)
+#            if abs(prev - aligned).max() < 1e-4 or its > 4:
+#                break
+#            prev = aligned.copy()
+
+        assert (self.diff(x) == fopt).all()
+        return x, self.diff(x), aligned, warnflag
+
+def cart_diff(c0, c1):
+    """Returns the average difference in atom positions for two sets of
+    cartesian coordinates.
+
+    No transformation at all:
+
+    >>> d, cs = cart_diff([0, 0, 1.0], [0, 0, 1.0])
+    >>> round(d)
+    0.0
+
+    Rotation but no translation:
+
+    >>> vec = array([[0,0,1]])
+    >>> d, cs = cart_diff(vec, [0,1,0])
+    >>> round(d)
+    0.0
+
+    Rotation and translation
+
+    >>> g1 = array([[0,0,1], [0,1,0]])
+    >>> g2 = array([[0,1,0], [1,0,0]]) + 0.2 + 100
+    >>> d, cs = cart_diff(g1, g2)
+    >>> d.round()
+    0.0
+
+
+    """
+    # Loop: for some reason complete allignment is not achieved
+    # after only a single optimisation run.
+    its = 0
+    changes = []
+    while True:
+        r = Rotate(c0, c1)
+        vars, err, new, warn = r.align()
+        its += 1
+        change = abs(c1-new).max()
+        changes.append(changes)
+        if warn == 0 or its > 10 or change < 1e-3:
+            break
+        c1 = new.copy()
+    return err, changes
+    
+
+# Testing the examples in __doc__strings, execute
+# "python gxmatrix.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+
     sys.exit(main())
+
+# You need to add "set modeline" and eventually "set modelines=5"
+# to your ~/.vimrc for this to take effect.
+# Dont (accidentally) delete these lines! Unless you do it intentionally ...
+# Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
+
 

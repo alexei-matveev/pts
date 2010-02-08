@@ -55,12 +55,16 @@ elif cos_type == 'neb':
 else:
     raise Exception('Unknown type: %s' % cos_type)
 
-# hack to enable the CoS to print in cartesians
-CoS.bead2carts = lambda x: mi.build_coord_sys(x).get_cartesians().flatten()
 
 # callback function
 def cb(x, tol=0.01):
     return aof.generic_callback(x, mi, CoS, params, tol=tol)
+
+# print out initial path
+cb(CoS.state_vec)
+
+# hack to enable the CoS to print in cartesians, even if opt is done in internals
+CoS.bead2carts = lambda x: mi.build_coord_sys(x).get_cartesians().flatten()
 
 runopt = lambda: aof.runopt(opt_type, CoS, ftol, xtol, maxit, cb, maxstep=maxstep, extra=extra_opt_params)
 
@@ -70,6 +74,13 @@ print runopt()
 # get best estimate(s) of TS from band/string
 tss = CoS.ts_estims()
 
+a,b,c = CoS.path_tuple()
+cs = mi.build_coord_sys(a[0])
+import pickle
+f = open("%s.path.pickle" % name, 'wb')
+pickle.dump((a,b,c,cs), f)
+f.close()
+
 # print cartesian coordinates of all transition states that were found
 print "Dumping located transition states"
 for ts in tss:
@@ -77,4 +88,5 @@ for ts in tss:
     cs = mi.build_coord_sys(v)
     print "Energy = %.4f eV" % e
     print cs.xyz_str()
+
 

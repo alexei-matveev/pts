@@ -154,7 +154,7 @@ def run(args, extra, maxit=50, known_ts_aa_dists = 0):
                     prev = rmsf, e, maxe
                     highestN = max(N, highestN)
                 else:
-                    assert False, "repeated data in output file, this must not occur if getting of cartesian geom is to work correctly."
+                    pass#assert False, "repeated data in output file, this must not occur if getting of cartesian geom is to work correctly."
 
                 # file of growth events
                 if bc > prev_bc and N > 1:

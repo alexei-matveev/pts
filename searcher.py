@@ -198,6 +198,10 @@ class ReactionPathway(object):
         s_beads = [common.vec_summarise(b) for b in self.state_vec]
         return s, s_beads
 
+    def path_tuple(self):
+        state, energies, gradients = (self.state_vec.reshape(self.beads_count,-1), self.bead_pes_energies.reshape(-1), self.bead_pes_gradients.reshape(self.beads_count,-1))
+        return state, energies, gradients
+        
     def __str__(self):
         e_total, e_beads = self.energies
         rmsf_perp_total, rmsf_perp_beads = self.rmsf_perp
@@ -393,7 +397,7 @@ class ReactionPathway(object):
     def get_maxit(self):
         return self._maxit
     def set_maxit(self, new):
-        assert new > 0
+        assert new >= 0
         self._maxit = new
     maxit = property(get_maxit, set_maxit)
 
@@ -494,6 +498,10 @@ class ReactionPathway(object):
         pt = aof.tools.PathTools(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)
 
         estims = pt.ts_splcub()
+        print str(pt)
+        f = open("tsplot.dat", "w")
+        f.write(pt.plot_str)
+        f.close()
 
         if len(estims) < 1:
             lg.warn("No transition state found, using highest bead.")
@@ -845,15 +853,15 @@ class PathRepresentation(object):
 
                 # FIXME: at present, transition state assumed to be half way ebtween reacts and prods
                 ps = array((0.0, 0.5, 1.0))
-                ps_x_pow_2 = ps**2
+                """ps_x_pow_2 = ps**2
                 ps_x_pow_1 = ps
                 ps_x_pow_0 = ones(len(ps_x_pow_1))
 
                 A = column_stack((ps_x_pow_2, ps_x_pow_1, ps_x_pow_0))
 
-                quadratic_coeffs = linalg.solve(A,ys)
+                quadratic_coeffs = linalg.solve(A,ys)"""
 
-                self.__fs.append(QuadFunc(quadratic_coeffs))
+                self.__fs.append(QuadFunc(ps, ys))
 
             else:
                 # spline path

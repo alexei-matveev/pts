@@ -95,8 +95,7 @@ class PathTools:
 
         lg.info("Estimating the transition states along the pathway, mode = %s" % mode)
         n = self.n
-        Es = self.energies.reshape(n,-1)
-        dofs = self.state
+        Es = self.energies
         assert len(dofs) == len(Es)
 
         """Uses a spline representation of the energy/coordinates of the entire path."""
@@ -136,10 +135,13 @@ class PathTools:
 
         ys = self.state.copy()
 
-        step = 1. / self.n
         ss = self.steps
         Es = self.energies
         self.s.append("Es: %s" % Es)
+
+        self.plot_str = ""
+        for s, e in zip(ss, Es):
+            self.plot_str += "%f\t%f\n" % (s, e)
 
         # build fresh functional representation of optimisation 
         # coordinates as a function of a path parameter s
@@ -169,6 +171,13 @@ class PathTools:
                 self.s.append("Found: i = %d E_1 = %f E_0 = %f dEds_1 = %f dEds_0 = %f" % (i, E_1, E_0, dEds_1, dEds_0))
 
                 cub = func.CubicFunc(ss[i-1:i+1], Es[i-1:i+1], dEdss)
+#                print ss[i-2:i+1], Es[i-2:i+1]
+#                print ss, Es
+#                print i
+#                if i < 2:
+#                    continue
+#                cub = func.QuadFunc(ss[i-2:i+1], Es[i-2:i+1])
+#                print ss[i], cub(ss[i]), Es[i]
                 self.s.append("ss[i-1:i+1]: %s" % ss[i-1:i+1])
 
                 self.s.append("cub: %s" % cub)
@@ -184,7 +193,9 @@ class PathTools:
                         ts_list.append((cub(p), xs(p)))
                         found += 1
 
-                assert found == 1, "Must be exactly 1 stationary points in cubic path segment but there were %d" % found
+#                assert found == 1, "Must be exactly 1 stationary points in cubic path segment but there were %d" % found
+
+                self.plot_str += "\n\n%f\t%f\n" % (p, cub(p))
 
         return ts_list
 

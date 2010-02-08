@@ -87,8 +87,8 @@ class History():
         e.g. history.bead_count(n) where |n| specifies to return the last n
         values in the history.
         """
-#        if len(self.list) == 0:
-#            return None
+        if len(self.list) == 0:
+            return lambda n: []
 
         if name in self.list[0].__dict__:
             return lambda n: [getattr(r, name) for r in self.list[-n:]]
