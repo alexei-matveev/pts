@@ -19,6 +19,7 @@ src =	\
 	fopt.py \
 	qfunc.py \
 	chain.py \
+	rc.py \
 
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.doctest)
