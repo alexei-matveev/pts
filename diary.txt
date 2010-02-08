@@ -331,3 +331,13 @@ JobQueue(Threads.queue):
 
  - TODO:
    - use write_trajectory() function to support dumping of band trajectories (DONE)
+
+07/02/2010
+----------
+ - thoughts about magnitude of spring constant in NEB
+   - look at force at start of optimisation
+   - 30% length disparity should lead to this inintial force perhaps
+
+ - max step should be equal to soem fraction of the inter-bead separation
+
+
