@@ -269,7 +269,7 @@ class ReactionPathway(object):
             # as a tuple. For ts_estim values are a tuple: (energy, vector)
             n = 1
             which = 0
-            ts_estim_energy, estim = self.history.ts_estim(n)[which]
+            ts_estim_energy, estim, _, _ = self.history.ts_estim(n)[which]
             ts_estim = self.bead2carts(estim)
             bead_carts = [self.bead2carts(v) for v in self.state_vec]
             bead_carts = zip(e_beads, bead_carts)

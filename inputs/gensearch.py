@@ -84,7 +84,7 @@ f.close()
 # print cartesian coordinates of all transition states that were found
 print "Dumping located transition states"
 for ts in tss:
-    e, v = ts
+    e, v, _, _ = ts
     cs = mi.build_coord_sys(v)
     print "Energy = %.4f eV" % e
     print cs.xyz_str()
