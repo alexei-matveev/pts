@@ -296,7 +296,7 @@ class CoordSys(object):
 
     def test_matches(self, s):
         if not self.matches(s):
-            raise CoordSysException("String:\n %s\n doesn't specify an object of type %s" % (s, self.__class__.__name))
+            raise CoordSysException("String:\n %s\n doesn't specify an object of type %s" % (s, self.__class__.__name__))
 
     def copy(self, new_coords=None):
         new = deepcopy(self)
@@ -462,6 +462,8 @@ class CoordSys(object):
         assert len(x) == self.dims
         x = self._demask(x)
 
+#        print "self._coords", self._coords, self.__class__.__name__
+#        assert False
         self._coords = x[:self._dims]
         anchor_coords = x[self._dims:]
         self._anchor.coords = anchor_coords
@@ -547,7 +549,7 @@ class CoordSys(object):
         """Returns the matrix of derivatives dCi/dIj where Ci is the ith cartesian coordinate
         and Ij is the jth internal coordinate, and the error."""
 
-        nd = numerical.NumDiff()
+        nd = numerical.NumDiff(method='simple')
         mat = nd.numdiff(self.int2cart, x)
         return mat
 
@@ -919,7 +921,9 @@ class ComplexCoordSys(CoordSys):
         except SyntaxError, err:
             pass
 
-        return isinstance(ccs, list) and reduce(operator.and_, [isinstance(i, CoordSys) for i in ccs])
+        return isinstance(ccs, list) and \
+            reduce(operator.and_, [isinstance(i, CoordSys) for i in ccs[:-1]]) and \
+            isinstance(ccs[-1], (CoordSys, numpy.ndarray))
 
     def __init__(self, s):
         """
@@ -941,10 +945,15 @@ class ComplexCoordSys(CoordSys):
         True
 
         """
+        cart_coords = None
         if isinstance(s, str):
             self.test_matches(s)
             exec(s)
-            self._parts = ccs
+            if isinstance(ccs[-1], numpy.ndarray):
+                self._parts = ccs[:-1]
+                cart_coords = ccs[-1]
+            else:
+                self._parts = ccs
         else:
             self._parts = s
 
@@ -956,8 +965,10 @@ class ComplexCoordSys(CoordSys):
         l_join = lambda a, b: a + b
         atom_symbols = reduce(l_join, [p.get_chemical_symbols() for p in self._parts])
 
-        cart_coords = self.get_cartesians()
+        if cart_coords == None:
+            cart_coords = self.get_cartesians()
         abstract_coords = numpy.hstack([p.get_internals() for p in self._parts])
+        print "abstract_coords", abstract_coords
 
         CoordSys.__init__(self, 
             atom_symbols, 
@@ -967,6 +978,9 @@ class ComplexCoordSys(CoordSys):
         # list of names of all constituent vars
         list = [p.var_names for p in self._parts]
         self.var_names = [n for ns in list for n in ns]
+
+        self.set_cartesians(cart_coords)
+        print "internals", self.get_internals()
 
         # list of all dihedral vars
         def addicts(x,y):
@@ -979,6 +993,7 @@ class ComplexCoordSys(CoordSys):
         ilist = [p.get_internals() for p in self._parts]
         iarray = numpy.hstack(ilist)
 
+        assert (iarray == self._coords).all()
         return self._mask(iarray).copy()
 
     """def set_var_mask(self, m):
@@ -1017,8 +1032,10 @@ class ComplexCoordSys(CoordSys):
         for p in self._parts:
             p.set_cartesians(x[asum:asum + p.atoms_count])
             asum += p.atoms_count
- 
 
+        assert (self.get_cartesians()  - x).sum().round(4) == 0, "%s" % (self.get_cartesians() - x)
+        self._coords = numpy.hstack([p.get_internals() for p in self._parts])
+ 
 class XYZ(CoordSys):
 
     __pattern = re.compile(r'(\d+[^\n]*\n[^\n]*\n)?(\s*\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+')
@@ -1032,7 +1049,10 @@ class XYZ(CoordSys):
         # Check if there is an energy specification, if so create a 
         # SinglePointCalculator to return this energy (or zero otherwise)
         molstr_lines = molstr.splitlines()
-        line2 = molstr_lines[1]
+        if len(molstr_lines) > 1:
+            line2 = molstr_lines[1]
+        else:
+            line2 = ''
         fp_nums = re.findall(r"-?\d+\.\d*", line2)
         energy = 0
         if len(fp_nums) == 1:
@@ -1137,9 +1157,8 @@ class ZMatrix2(CoordSys):
         >>> s = "C\\nH 1 ch1\\nH 1 ch2 2 hch1\\nH 1 ch3 2 hch2 3 hchh1\\nH 1 ch4 2 hch3 3 -hchh2\\n\\nch1    1.09\\nch2    1.09\\nch3    1.09\\nch4    1.09\\nhch1 109.5\\nhch2 109.5\\nhch3 109.5\\nhchh1  120.\\nhchh2  120.\\n"
 
         >>> z = ZMatrix2(s)
-        >>> z.get_internals()
-        array([ 1.09      ,  1.09      ,  1.09      ,  1.09      ,  1.91113553,
-                1.91113553,  1.91113553,  2.0943951 ,  2.0943951 ])
+        >>> z.get_internals().round(3)
+        array([ 1.09 ,  1.09 ,  1.09 ,  1.09 ,  1.911,  1.911,  1.911,  2.094,  2.094])
 
         >>> ints = z.get_internals()
 
@@ -1164,10 +1183,8 @@ class ZMatrix2(CoordSys):
         >>> ac = [0.,0.,0.,3.,1.,1.]
         >>> a = RotAndTrans(ac)
         >>> z = ZMatrix2(s, anchor=a)
-        >>> z.get_internals()
-        array([ 1.09      ,  1.09      ,  1.09      ,  1.09      ,  1.91113553,
-                1.91113553,  1.91113553,  2.0943951 ,  2.0943951 ,  0.        ,
-                0.        ,  0.        ,  3.        ,  1.        ,  1.        ])
+        >>> z.get_internals().round(3)
+        array([ 1.09 ,  1.09 ,  1.09 ,  1.09 ,  1.911,  1.911,  1.911,  2.094,  2.094,  0.   ,  0.   ,  0.   ,  3.   ,  1.   ,  1.   ])
 
         >>> ints = z.get_internals().copy()
 
