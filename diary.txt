@@ -340,4 +340,22 @@ JobQueue(Threads.queue):
 
  - max step should be equal to soem fraction of the inter-bead separation
 
+08/02/2010
+----------
+Paper plan
+
+ - overview of implementation, parallelism, scheduling, optimisation
+
+ - basic benchmarking
+   - NEB, string, growing string
+   - comparison with VASP
+
+ - scalability
+   - TS search
+   - frequency calc
+
+ - dependence of TS accuracy on number of beads
+   - methods of improving TS accuracy without increasing the number of beads
+
+ - mixed coordinate systems, z-matrices with cartesians
 
