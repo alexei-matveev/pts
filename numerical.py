@@ -126,16 +126,16 @@ class NumDiff():
                 df_on_dx = update_estim(dx, i)
                 norm = numpy.linalg.norm(prev_df_on_dx)
 
-                err = calc_err2(df_on_dx, prev_df_on_dx)
+                err = self.calc_err(df_on_dx, prev_df_on_dx)
                 if err < self.max_err:
                     break
 
             df_on_dX.append(df_on_dx)
 
-        return numpy.array(df_on_dX)
+        return numpy.array(df_on_dX), numpy.array([err])
 
-    def calc_err(estim1, estim2):
-        max_err = finfo(float64).max
+    def calc_err(self, estim1, estim2):
+        max_err = numpy.finfo(numpy.float64).max
         diff = estim1 - estim2
         return numpy.linalg.norm(diff, ord=numpy.inf)
 
