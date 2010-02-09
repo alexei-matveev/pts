@@ -49,19 +49,24 @@ def main(argv=None):
 
         ts = aof.coord_sys.XYZ(file2str(fn_ts))
         ts_carts = ts.get_cartesians()
+        ts_energy = ts.get_potential_energy()
 
         pt = aof.tools.PathTools(state, es, gs)
 
         estims = []
-        estims.append(pt.ts_splcub()[-1])
-        estims.append(pt.ts_highest()[-1])
+        estims.append(('Spling and cubic', pt.ts_splcub()[-1]))
+        estims.append(('Highest', pt.ts_highest()[-1]))
+        estims.append(('Spline only', pt.ts_spl()[-1]))
+        estims.append(('Spline and average', pt.ts_splavg()[-1]))
 
-        for e in estims:
-            cs.set_internals(e[1])
+        for name, est in estims:
+            energy, coords, s0, s1 = est
+            energy_err = energy - ts_energy
+            cs.set_internals(coords)
             carts = cs.get_cartesians()
             error = rot.cart_diff(carts, ts_carts)[0]
 
-            print error
+            print "%s: (E_est - E_corr) = %.3f Geom err = %.3f bracket = %.1f-%.1f" % (name.ljust(20), energy_err, error, s0, s1)
 
     except Usage, err:
         print >>sys.stderr, err
