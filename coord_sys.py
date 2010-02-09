@@ -1,8 +1,6 @@
 from __future__ import with_statement
 import re
 import ase
-from ase import Atoms
-
 
 import numpy # FIXME: unify
 from numpy import array, arange, abs
@@ -13,6 +11,9 @@ import os
 from copy import deepcopy
 import operator
 from scipy.optimize import fmin_bfgs, fmin
+
+from ase import Atoms
+from ase.calculators import SinglePointCalculator
 
 import common
 import zmat
@@ -1020,13 +1021,25 @@ class ComplexCoordSys(CoordSys):
 
 class XYZ(CoordSys):
 
-    __pattern = re.compile(r'(\d+\s+)?(\s*\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+')
+    __pattern = re.compile(r'(\d+[^\n]*\n[^\n]*\n)?(\s*\w\w?(\s+[+-]?\d+\.\d*){3}\s*)+')
 
     def __init__(self, mol):
 
         molstr = self._get_mol_str(mol)
         if molstr[-1] != '\n':
             molstr += '\n'
+
+        # Check if there is an energy specification, if so create a 
+        # SinglePointCalculator to return this energy (or zero otherwise)
+        molstr_lines = molstr.splitlines()
+        line2 = molstr_lines[1]
+        fp_nums = re.findall(r"-?\d+\.\d*", line2)
+        energy = 0
+        if len(fp_nums) == 1:
+            energy = float(fp_nums[0])
+            molstr = '\n'.join(molstr_lines[2:]) + '\n'
+        else:
+            assert len(fp_nums) in [0,3], "Bad line 2 of XYZ file: '%s'. Should be either blank, or an energy spec or cartesian coords of an atom." % line2
 
         if not self.matches(molstr):
             raise CoordSysException("String did not match pattern for XYZ:\n" + molstr)
@@ -1038,6 +1051,9 @@ class XYZ(CoordSys):
         CoordSys.__init__(self, atom_symbols, 
             self._coords.reshape(-1,3), 
             self._coords)
+
+        calc_tuple = SinglePointCalculator, [energy, None, None, None, self._atoms], {}
+        self.set_calculator(calc_tuple)
 
         self.dih_vars = dict()
 
