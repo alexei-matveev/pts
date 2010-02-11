@@ -3,7 +3,7 @@ import re
 import ase
 
 import numpy # FIXME: unify
-from numpy import array, arange, abs
+from numpy import array, arange, abs, ones
 
 import threading
 import numerical
@@ -128,7 +128,7 @@ class Dummy(Anchor):
 class RotAndTrans(Anchor):
     _dims = 6
 
-    def __init__(self, initial, parent = None):
+    def __init__(self, initial=ones(6), parent = None):
         """
         initial:
             initial value
@@ -496,11 +496,11 @@ class CoordSys(object):
 
         forces_cartesian = self._atoms.get_forces().flatten()
         transform_matrix, errors = self.get_transform_matrix(self._mask(self._coords))
+
         
-        print "numdiff errors", errors.max()
+        print "Numerical Differentiation max error", errors.max()
 
         forces_coord_sys = numpy.dot(transform_matrix, forces_cartesian)
-        print "forces_coord_sys", forces_coord_sys
         
         forces_coord_sys = self.apply_constraints(forces_coord_sys)
 
@@ -550,8 +550,19 @@ class CoordSys(object):
         and Ij is the jth internal coordinate, and the error."""
 
         nd = numerical.NumDiff(method='simple')
-        mat = nd.numdiff(self.int2cart, x)
-        return mat
+        mat, err = nd.numdiff(self.int2cart, x)
+        """nd2 = numerical.NumDiff()
+        mat2,err2 = nd2.numdiff(self.int2cart, x)
+        print "err2",err2.max()
+        m = abs(mat - mat2).max()
+        import func
+        alexei_nd = func.NumDiff(f=self.int2cart)
+        mat3 = alexei_nd.fprime(x)
+        m2 = abs(mat - mat3).max()
+        print "x",x
+        print "m",m
+        print "m2",m"""
+        return mat, err
 
     def int2cart(self, x):
         """Based on a vector x of new internal coordinates, returns a 
@@ -919,11 +930,18 @@ class ComplexCoordSys(CoordSys):
         try:
             exec(s)
         except SyntaxError, err:
-            pass
+            return False
 
-        return isinstance(ccs, list) and \
-            reduce(operator.and_, [isinstance(i, CoordSys) for i in ccs[:-1]]) and \
-            isinstance(ccs[-1], (CoordSys, numpy.ndarray))
+        # list of conditions
+        conds = []
+        conds.append(hasattr(ccs, 'parts'))
+        a = lambda x,y: operator.and_(x,y)
+
+        conds.append(reduce(a, [isinstance(i, CoordSys) for i in ccs.parts]))
+        conds.append(ccs.carts == None or isinstance(ccs.carts, numpy.ndarray))
+        conds.append(ccs.mask == None or isinstance(ccs.mask, list) and reduce(a, [isinstance(i,bool) for i in list]))
+
+        return reduce(a, conds)
 
     def __init__(self, s):
         """
@@ -945,17 +963,16 @@ class ComplexCoordSys(CoordSys):
         True
 
         """
-        cart_coords = None
         if isinstance(s, str):
             self.test_matches(s)
             exec(s)
-            if isinstance(ccs[-1], numpy.ndarray):
-                self._parts = ccs[:-1]
-                cart_coords = ccs[-1]
-            else:
-                self._parts = ccs
+            self._parts = ccs.parts
+            carts = ccs.carts
+            mask = ccs.mask
         else:
             self._parts = s
+            carts = None
+            mask = None
 
         has_no_anc = numpy.array([p._anchor == Dummy() for p in self._parts])
         wants_anc = numpy.array([p.wants_anchor for p in self._parts])
@@ -965,25 +982,26 @@ class ComplexCoordSys(CoordSys):
         l_join = lambda a, b: a + b
         atom_symbols = reduce(l_join, [p.get_chemical_symbols() for p in self._parts])
 
-        if cart_coords == None:
-            cart_coords = self.get_cartesians()
+        if carts == None:
+            carts = self.get_cartesians()
         abstract_coords = numpy.hstack([p.get_internals() for p in self._parts])
-        print "abstract_coords", abstract_coords
 
         CoordSys.__init__(self, 
             atom_symbols, 
-            cart_coords, 
+            carts, 
             abstract_coords)
 
         # list of names of all constituent vars
         list = [p.var_names for p in self._parts]
         self.var_names = [n for ns in list for n in ns]
 
-        self.set_cartesians(cart_coords)
-        print "internals", self.get_internals()
+        self.set_cartesians(carts)
+        self.set_var_mask(mask)
 
         # list of all dihedral vars
         def addicts(x,y):
+            for k in y.keys():
+                if k in x
             x.update(y)
             return x
         list = [p.dih_vars for p in self._parts]
