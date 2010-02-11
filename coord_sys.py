@@ -18,6 +18,14 @@ from ase.calculators import SinglePointCalculator
 import common
 import zmat
 
+numpy.set_printoptions(precision=3)
+
+class ccsspec():
+    def __init__(self, parts, carts=None, mask=None):
+        self.parts = parts
+        self.carts = carts
+        self.mask = mask
+
 # Some strings for testing
 testccs1 = """
 H2 =  "H  0.0 0.0 0.0\\n"
@@ -36,7 +44,7 @@ xyz = XYZ(H2)
 anchor = RotAndTrans([1.,0.,0.,3.,1.,1.], parent=xyz)
 zmt = ZMatrix2(H2O, anchor=anchor)
 
-ccs = [xyz, zmt]
+ccs = ccsspec([xyz, zmt])
 
 """
 
@@ -112,6 +120,7 @@ class Anchor(object):
 
 class Dummy(Anchor):
     _dims = 0
+    kinds = []
     def __init__(self, initial=numpy.array([])):
         Anchor.__init__(self, initial)
         self._coords = numpy.array([])
@@ -142,6 +151,7 @@ class RotAndTrans(Anchor):
 
         initial = numpy.array(initial)
         self._coords = initial
+        self.kinds = ['anc_q' for i in 1,2,3] + ['anc_c' for i in 1,2,3]
 
     def quaternion2rot_mat(self, quaternion):
         """See http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation"""
@@ -232,8 +242,6 @@ class RotAndTrans(Anchor):
 
 class CoordSys(object):
     """Abstract coordinate system. Sits on top of an ASE Atoms object."""
-
-    dih_vars = dict()
 
     def __init__(self, atom_symbols, atom_xyzs, abstract_coords, anchor=Dummy(), cell=None, pbc=None):
 
@@ -462,8 +470,6 @@ class CoordSys(object):
         assert len(x) == self.dims
         x = self._demask(x)
 
-#        print "self._coords", self._coords, self.__class__.__name__
-#        assert False
         self._coords = x[:self._dims]
         anchor_coords = x[self._dims:]
         self._anchor.coords = anchor_coords
@@ -481,6 +487,10 @@ class CoordSys(object):
         the given set of cartesians and the pure, non-rotated cartesians."""
         if self._anchor != None:
             self._anchor.set_cartesians(*args)
+
+    @property
+    def kinds(self):
+        return self._mask(self._kinds + self._anchor.kinds)
 
     def get_internals(self):
         raw = numpy.hstack([self._coords.copy(), self._anchor.coords])
@@ -685,202 +695,6 @@ def myenumerate(list, start=0):
     ixs = range(start, len(list) + start)
     return zip (ixs, list)
 
-class ZMatrix(CoordSys):
-    """Supports optimisations in terms of z-matrices.
-    
-    TODO: test angles given as constants. IS there a problem with radians/degrees?
-    """
-    @staticmethod
-    def matches(mol_text):
-        """Returns True if and only if mol_text matches a z-matrix. There must be at least one
-        variable in the variable list."""
-        zmt = re.compile(r"""\s*(\w\w?\s*
-                             \s*(\w\w?\s+\d+\s+\S+\s*
-                             \s*(\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s*
-                             ([ ]*\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s+\d+\s+\S+[ ]*\n)*)?)?)[ \t]*\n
-                             (([ ]*\w+\s+[+-]?\d+\.\d*[ \t\r\f\v]*\n)+)\s*$""", re.X)
-        return (zmt.match(mol_text) != None)
-
-    def __init__(self, mol, anchor=Dummy()):
-
-        molstr = self._get_mol_str(mol)
-
-        self.zmtatoms = []
-        self.vars = dict()
-        self.zmtatoms_dict = dict()
-        self._anchor = anchor
-
-        if not self.matches(molstr):
-            raise ZMatrixException("Z-matrix not found in string:\n" + molstr)
-
-        parts = re.search(r"(?P<zmt>.+?)\n\s*\n(?P<vars>.+)", molstr, re.S)
-
-        # z-matrix text, specifies connection of atoms
-        zmt_spec = parts.group("zmt")
-
-        # variables text, specifies values of variables
-        variables_text = parts.group("vars")
-        self.var_names = re.findall(r"(\w+).*?\n", variables_text)
-        coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
-        self._coords = numpy.array([float(c) for c in coords])
-    
-        # Create data structure of atoms. There is both an ordered list and an 
-        # unordered dictionary with atom index as the key.
-        lines = zmt_spec.split("\n")
-        for ix, line in myenumerate(lines, start=1):
-            a = ZMTAtom(line, ix)
-            self.zmtatoms.append(a)
-            self.zmtatoms_dict[ix] = a
-
-        # Dictionaries of (a) dihedral angles and (b) angles
-        self.dih_vars = dict()
-        self.angles = dict()
-        for atom in self.zmtatoms:
-            if atom.dih_var() != None:
-                self.dih_vars[atom.dih_var()] = 1
-                self.angles[atom.dih_var()] = 1
-            if atom.ang != None:
-                self.angles[atom.ang] = 1
-
-        #print "self.dih_vars", self.dih_vars
-        # flags = True/False indicating whether variables are dihedrals or not
-        # DO I NEED THIS?
-        #self.dih_flags = numpy.array([(var in self.dih_vars) for var in self.var_names])
-
-        # TODO: check that z-matrix is ok, e.g. A, B 1 ab, etc...
-
-        # Create dictionary of variable values (unordered) and an 
-        # ordered list of variable names.
-        #print "Molecule"
-        for i in range(len(self.var_names)):
-            key = self.var_names[i]
-            if key in self.angles:
-                self._coords[i] *= common.DEG_TO_RAD
-            val = float(self._coords[i])
-
-            self.vars[key] = val
-
-        # check that z-matrix is fully specified
-        self.zmt_ordered_vars = []
-        for atom in self.zmtatoms:
-            self.zmt_ordered_vars += atom.all_vars()
-        for var in self.zmt_ordered_vars:
-            if not var in self.vars:
-                raise ZMatrixException("Variable '" + var + "' not given in z-matrix")
-
-        #self.state_mod_lock = thread.allocate_lock()
-
-        #print self.zmtatoms
-        symbols = [a.name for a in self.zmtatoms]
-        CoordSys.__init__(self, symbols, 
-            self.get_cartesians(), 
-            self._coords,
-            anchor)
-
-    def __repr__(self):
-        return self.zmt_str()
-
-    @property
-    def wants_anchor(self):
-        return True
-
-    def get_var(self, var):
-        """If var is numeric, return it, otherwise look it's value up 
-        in the dictionary of variable values."""
-
-        if type(var) == str:
-            if var[0] == "-":
-                return -1 * self.vars[var[1:]]
-            else:
-                return self.vars[var]
-        else:
-            return var
-
-    def zmt_str(self):
-        """Returns a z-matrix format molecular representation in a string."""
-        mystr = ""
-        for atom in self.zmtatoms:
-            mystr += str(atom) + "\n"
-        mystr += "\n"
-        for var in self.var_names:
-            if var in self.angles:
-                mystr += var + "\t" + str(self.vars[var] * common.RAD_TO_DEG) + "\n"
-            else:
-                mystr += var + "\t" + str(self.vars[var]) + "\n"
-        return mystr
-
-    def set_internals(self, internals):
-        """Update stored list of variable values."""
-
-        #internals = numpy.array(internals[0:self._dims])
-        CoordSys.set_internals(self, internals)
-
-        for i, var in zip( internals[0:self._dims], self.var_names ):
-            self.vars[var] = i
-
-    def get_cartesians(self):
-        """Generates cartesian coordinates from z-matrix and the current set of 
-        internal coordinates. Based on code in OpenBabel."""
-        
-        r = numpy.float64(0)
-        sum = numpy.float64(0)
-
-        xyz_coords = []
-        for atom in self.zmtatoms:
-            if atom.a == None:
-                atom.vector = numpy.zeros(3)
-                if atom.not_dummy():
-                    xyz_coords.append(atom.vector)
-                continue
-            else:
-                avec = self.zmtatoms_dict[atom.a].vector
-                dst = self.get_var(atom.dst)
-
-            if atom.b == None:
-                atom.vector = numpy.array((dst, 0.0, 0.0))
-                if atom.not_dummy():
-                    xyz_coords.append(atom.vector)
-                continue
-            else:
-                bvec = self.zmtatoms_dict[atom.b].vector
-                ang = self.get_var(atom.ang) # * DEG_TO_RAD
-
-            if atom.c == None:
-                cvec = common.VY
-                dih = 90. * common.DEG_TO_RAD
-            else:
-                cvec = self.zmtatoms_dict[atom.c].vector
-                dih = self.get_var(atom.dih) # * DEG_TO_RAD
-
-            v1 = avec - bvec
-            v2 = avec - cvec
-
-            n = numpy.cross(v1,v2)
-            nn = numpy.cross(v1,n)
-            n = common.normalise(n)
-            nn = common.normalise(nn)
-
-            n *= -numpy.sin(dih)
-            nn *= numpy.cos(dih)
-            v3 = n + nn
-            v3 = common.normalise(v3)
-            v3 *= dst * numpy.sin(ang)
-            v1 = common.normalise(v1)
-            v1 *= dst * numpy.cos(ang)
-            v2 = avec + v3 - v1
-
-            atom.vector = v2
-
-            if atom.not_dummy():
-                xyz_coords.append(atom.vector)
-        
-        xyz_coords = numpy.array(xyz_coords)
-        xyz_coords.shape = (-1,3)
-
-        if self._anchor != None:
-            xyz_coords = self._anchor.reposition(xyz_coords)
-
-        return xyz_coords
 
 class ComplexCoordSys(CoordSys):
     """Object to support the combination of multiple CoordSys objects into one.
@@ -918,41 +732,45 @@ class ComplexCoordSys(CoordSys):
         """Text format to create this object is any valid Python syntax that 
         will result in a variable sys_list pointing to an instance.
 
-        >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nccs = [XYZ(xyz1), XYZ(xyz2)]"
+        >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nccs = ccsspec([XYZ(xyz1), XYZ(xyz2)])"
         >>> ComplexCoordSys.matches(s)
         True
 
-        >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nwrong_name = [XYZ(xyz1), XYZ(xyz2)]"
+        >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nwrong_name = ccsspec([XYZ(xyz1), XYZ(xyz2)])"
         >>> ComplexCoordSys.matches(s)
         False
         """
+
         ccs = None
         try:
             exec(s)
         except SyntaxError, err:
             return False
 
+        if ccs == None:
+            return False
+
         # list of conditions
         conds = []
         conds.append(hasattr(ccs, 'parts'))
-        a = lambda x,y: operator.and_(x,y)
 
-        conds.append(reduce(a, [isinstance(i, CoordSys) for i in ccs.parts]))
+        conds.append(reduce(operator.and_, [isinstance(i, CoordSys) for i in ccs.parts]))
         conds.append(ccs.carts == None or isinstance(ccs.carts, numpy.ndarray))
-        conds.append(ccs.mask == None or isinstance(ccs.mask, list) and reduce(a, [isinstance(i,bool) for i in list]))
+        conds.append(ccs.mask == None or isinstance(ccs.mask, list) and \
+            reduce(operator.and_, [isinstance(i,bool) for i in ccs.mask]))
 
-        return reduce(a, conds)
+        return reduce(operator.and_, conds)
 
     def __init__(self, s):
         """
-        >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nccs = [XYZ(xyz1), XYZ(xyz2)]"
+        >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nccs = ccsspec([XYZ(xyz1), XYZ(xyz2)])"
         >>> ccs = ComplexCoordSys(s)
         >>> ccs.get_cartesians()
         array([[ 0.  ,  0.  ,  0.  ],
                [ 0.  ,  0.  ,  1.08]])
         
         >>> exec(s)
-        >>> ccs = ComplexCoordSys(ccs)
+        >>> ccs = ComplexCoordSys(ccs.parts)
         >>> ccs.get_cartesians()
         array([[ 0.  ,  0.  ,  0.  ],
                [ 0.  ,  0.  ,  1.08]])
@@ -998,14 +816,9 @@ class ComplexCoordSys(CoordSys):
         self.set_cartesians(carts)
         self.set_var_mask(mask)
 
-        # list of all dihedral vars
-        def addicts(x,y):
-            for k in y.keys():
-                if k in x
-            x.update(y)
-            return x
-        list = [p.dih_vars for p in self._parts]
-        self.dih_vars = reduce(addicts, list)
+        # list of variables types
+        list = [p.kinds for p in self._parts]
+        self._kinds = reduce(operator.add, list)
 
     def get_internals(self):
         ilist = [p.get_internals() for p in self._parts]
@@ -1093,7 +906,8 @@ class XYZ(CoordSys):
         calc_tuple = SinglePointCalculator, [energy, None, None, None, self._atoms], {}
         self.set_calculator(calc_tuple)
 
-        self.dih_vars = dict()
+        self._kinds = ['cart' for i in range(len(coords) * 3)]
+
 
     def __repr__(self):
         return self.xyz_str()
@@ -1180,13 +994,12 @@ class ZMatrix2(CoordSys):
 
         >>> ints = z.get_internals()
 
-        >>> from numpy import round
-        >>> print round(z.get_cartesians(), 7)
-        [[ 0.         0.         0.       ]
-         [ 1.09       0.         0.       ]
-         [ 0.504109   0.        -0.9664233]
-         [-0.3638495 -0.9685445  0.3429796]
-         [-0.9555678 -1.4333516  0.827546 ]]
+        >>> z.get_cartesians()
+        array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
+               [  1.09000000e+00,   0.00000000e+00,   0.00000000e+00],
+               [  5.04109050e-01,   5.91763623e-17,  -9.66423337e-01],
+               [ -3.63849477e-01,  -9.68544549e-01,   3.42979613e-01],
+               [ -9.55567765e-01,  -1.43335165e+00,   8.27545960e-01]])
         >>> cs = z.get_cartesians() + 1000
         >>> z.set_cartesians(cs)
         >>> from numpy import abs
@@ -1246,7 +1059,7 @@ class ZMatrix2(CoordSys):
         molstr = self._get_mol_str(mol)
 
         self.zmtatoms = []
-        self.vars = dict()
+        #self.vars = dict()
         self.zmtatoms_dict = dict()
         self._anchor = anchor
 
@@ -1263,6 +1076,7 @@ class ZMatrix2(CoordSys):
         self.var_names = re.findall(r"(\w+).*?\n", variables_text)
         coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
         self._coords = numpy.array([float(c) for c in coords])
+        N = len(self._coords)
     
         # Create data structure of atoms. There is both an ordered list and an 
         # unordered dictionary with atom index as the key.
@@ -1272,36 +1086,46 @@ class ZMatrix2(CoordSys):
             self.zmtatoms.append(a)
 
         # Dictionaries of (a) dihedral angles and (b) angles
-        self.dih_vars = dict()
-        self.angles = dict()
+        kinds = list(self.var_names)
+        isvar = lambda v: isinstance(v, str)
+        d = dict()
+        def f(s):
+            if s[0] == '-':
+                s = s[1:]
+            return s
+
         for atom in self.zmtatoms:
-            if atom.dih_var() != None:
-                self.dih_vars[atom.dih_var()] = 1
-                self.angles[atom.dih_var()] = 1
-            if atom.ang != None:
-                self.angles[atom.ang] = 1
+            if isvar(atom.dst):
+                d[f(atom.dst)] = 'dst'
+            if isvar(atom.ang):
+                d[f(atom.ang)] = 'ang'
+            if isvar(atom.dih):
+                d[f(atom.dih)] = 'dih'
+        kinds = [d[k] for k in kinds]
 
         # Create dictionary of variable values (unordered) and an 
         # ordered list of variable names.
-        #print "Molecule"
-        for i in range(len(self.var_names)):
-            key = self.var_names[i]
-            if key in self.angles:
-                self._coords[i] *= common.DEG_TO_RAD
-            val = float(self._coords[i])
+        for i in range(N):
+            #key = self.var_names[i]
+            if kinds[i] in ('ang', 'dih'):
+                self._coords[i] = common.DEG_TO_RAD * self._coords[i]
+            #val = float(self._coords[i])
+            #self.vars[key] = val
 
-            self.vars[key] = val
-
+        self._kinds = kinds
         # check that z-matrix is fully specified
         self.zmt_ordered_vars = []
         for atom in self.zmtatoms:
             self.zmt_ordered_vars += atom.all_vars()
         for var in self.zmt_ordered_vars:
-            if not var in self.vars:
+            if not var in self.var_names:
                 raise ZMatrixException("Variable '" + var + "' not given in z-matrix")
+
+        assert len(kinds) == len(self.var_names) == len(self._coords)
 
         symbols = [a.name for a in self.zmtatoms]
 
+        # setup object which actually does zmt <-> cartesian conversion
         spec = self.make_spec(self.zmtatoms)
         self._zmt = zmat.ZMat(spec)
         CoordSys.__init__(self, symbols, 
@@ -1309,7 +1133,6 @@ class ZMatrix2(CoordSys):
             self._coords,
             anchor)
         
-
     def make_spec(self, zmtatoms):
         l = []
         for a in zmtatoms:
@@ -1338,11 +1161,11 @@ class ZMatrix2(CoordSys):
         for atom in self.zmtatoms:
             mystr += str(atom) + "\n"
         mystr += "\n"
-        for var in self.var_names:
-            if var in self.angles:
-                mystr += var + "\t" + str(self.vars[var] * common.RAD_TO_DEG) + "\n"
+        for i, var in enumerate(self.var_names):
+            if self._kinds[i] in ('dih', 'ang'):
+                mystr += var + "\t" + str(self._coords[i] * common.RAD_TO_DEG) + "\n"
             else:
-                mystr += var + "\t" + str(self.vars[var]) + "\n"
+                mystr += var + "\t" + str(self._coords[i]) + "\n"
         return mystr
 
     def set_internals(self, internals):
@@ -1350,8 +1173,8 @@ class ZMatrix2(CoordSys):
 
         CoordSys.set_internals(self, internals)
 
-        for i, var in zip( internals[0:self._dims], self.var_names ):
-            self.vars[var] = i
+        #for i, var in zip( internals[0:self._dims], self.var_names ):
+        #    self.vars[var] = i
 
     def set_cartesians(self, carts):
         """Calculates internal coordinates based on given cartesians."""

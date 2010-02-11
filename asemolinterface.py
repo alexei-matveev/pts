@@ -59,7 +59,7 @@ class MolInterface:
         coord_vec_lens = [len(m.get_internals()) for m in mols]
 
         all_var_names = [m.var_names for m in mols]
-        all_dih_vars = [m.dih_vars for m in mols]
+        all_kinds = [m.kinds for m in mols]
 
         if not common.all_equal(atoms_lists):
             raise MolInterfaceException("Input molecules do not have consistent atoms.")
@@ -70,14 +70,14 @@ class MolInterface:
         if not common.all_equal(all_var_names):
             raise MolInterfaceException("Input molecules did not have the same variable names.")
         
-        if not common.all_equal(all_dih_vars):
-            raise MolInterfaceException("Input molecules did not have the same dihedral variables.")
+        if not common.all_equal(all_kinds):
+            raise MolInterfaceException("Input molecules did not have the same variable types.")
 
         self.var_names = all_var_names[0]
 
         [m.set_var_mask(params['mask']) for m in mols]
-        self.reagent_coords = [m.get_internals() for m in mols]
-        print self.reagent_coords[0]
+
+        N = len(m.get_internals())
 
         # Make sure that when interpolating between the dihedral angles of reactants 
         # and reagents, that this is done using the shortest possible arc length
@@ -90,10 +90,9 @@ class MolInterface:
         if len(self.reagent_coords) == 2:
             react = self.reagent_coords[0]
             prod  = self.reagent_coords[1]
-            for i in range(len(react)):
-                if self.var_names[i] in mols[0].dih_vars:
+            for i in range(N):
+                if self.kinds[i] == 'dih':
                     if abs(react[i] - prod[i]) > 180.0 * common.DEG_TO_RAD:
-#                        assert self.var_names[i] in self.mols[0].dih_vars
                         if react[i] > prod[i]:
                             prod[i] += 360.0 * common.DEG_TO_RAD
                         else:
