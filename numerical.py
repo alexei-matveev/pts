@@ -2,7 +2,7 @@ import numpy
 
 class NumDiff():
     """Some functions to numerically differential vector functions."""
-    def __init__(self, simpleerr=1e-4, init_h=0.1, method="numrec"):
+    def __init__(self, simpleerr=1e-5, init_h=0.1, method="numrec"):
         """
         method is either
             numrec: modified method from Numerical Recipes
@@ -116,26 +116,29 @@ class NumDiff():
             estim = (f1 - f2) / (2*dx)
             return estim
 
+        it = 0
         for i in range(N):
-            dx = 1e-1
+            dx = self.init_h
             df_on_dx = update_estim(dx, i)
             while True:
                 prev_df_on_dx = df_on_dx
 
                 dx /= 2.0
                 df_on_dx = update_estim(dx, i)
-                norm = numpy.linalg.norm(prev_df_on_dx)
+                #norm = numpy.linalg.norm(prev_df_on_dx)
 
                 err = self.calc_err(df_on_dx, prev_df_on_dx)
-                if err < self.max_err:
+                it += 1
+                if err/dx < self.max_err:
                     break
 
             df_on_dX.append(df_on_dx)
 
+        print "Average iterations per variable", it*1.0/N
         return numpy.array(df_on_dX), numpy.array([err])
 
     def calc_err(self, estim1, estim2):
-        max_err = numpy.finfo(numpy.float64).max
+        #max_err = numpy.finfo(numpy.float64).max
         diff = estim1 - estim2
         return numpy.linalg.norm(diff, ord=numpy.inf)
 
