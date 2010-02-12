@@ -296,7 +296,7 @@ def ps_map(g, xs):
 #               depending on what is choosen as Worker and Queue
 #               in the import part
 
-def pa_map(g, xs):
+def pa_map(f, xs):
     """
     Variant of map which works both with Threads or Processes (of
     the processing/multiprocessing module)
@@ -310,34 +310,31 @@ def pa_map(g, xs):
     outcome = [None] * len(xs)
 
     # each process should do a job on a single geometry and
-    # store the result somewhere reachable (in the result queue)
-    def worksingle(i,place , result):
-        work = g(place)
-        result.put([i, work])
+    # store the result somewhere reachable (in the queue "q")
+    def worksingle(i, x, q):
+        q.put((i, f(x)))
 
     # here I can put the results and get them back
-    result = Queue()
+    q = Queue()
+
     # Initialize the porcesses that should be used
-    workers = [ Worker(target=worksingle, args=(i,place, result )) for i, place in enumerate(xs) ]
+    workers = [ Worker(target=worksingle, args=(i, x, q)) for i, x in enumerate(xs) ]
 
     # start all processes
-    for wo in workers:
-        wo.start()
+    for w in workers:
+        w.start()
 
     # finish all processes
-    for wo in workers:
-        wo.join()
+    for w in workers:
+        w.join()
 
-    # put the results in the return value
-    # so far I'm not sure if they would be in the correct oder
-    # by themselves
-    for i in range(len(workers)):
-          j, res = result.get()
-          outcome[j] = res
+        # put the results in the return value
+        # so far I'm not sure if they would be in the correct oder
+        # by themselves
+        i, res = q.get()
+        outcome[i] = res
 
     return outcome
-
-
 
 if __name__ == "__main__":
     import doctest
