@@ -18,9 +18,10 @@
        >>> def g3(x):
        ...     return [ 2 * x[0] * x[1] ]
 
+       >>> from time import sleep
        >>> def g4(x):
        ...     print "I take a nap"
-       ...     sleep(2)
+       ...     sleep(1)
        ...     print "I'm back"
        ...     return g(x)
 
@@ -70,7 +71,7 @@
        [[40, 16, 5], [16, 4, 2], [0.89999999999999991, 2.25, 0.29999999999999999], [140, 25, 7], [0, 0, 0]]
 
    To see the time it takes: Same function as before but with
-   sleep(3) between I take a nap and I'm back
+   sleep(1) between I take a nap and I'm back
 
        >>> map(g4, x1)
        I take a nap
@@ -168,7 +169,6 @@ from threading import Thread
 from processing  import Process as Worker
 from processing import Queue
 from processing import Process
-from time import sleep
 from math import sqrt
 
 # -------- Variante with own thread class-
