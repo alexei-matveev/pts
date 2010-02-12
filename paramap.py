@@ -142,14 +142,12 @@
         [ 2.  4.  0.]
         [ 4.  0.  1.]]
 """
-import numpy as np
 from threading import Thread
 #from threading import Thread as Worker
 #from Queue import Queue
 from processing  import Process as Worker
 from processing import Queue
 from processing import Process
-from math import sqrt
 
 # -------- Variante with own thread class-
 class Mythread(Thread):
