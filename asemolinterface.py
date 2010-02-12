@@ -40,12 +40,12 @@ class MolInterface:
         assert "calculator" in params
 
         first = mol_strings[0]
-        if csys.ZMatrix.matches(first):
-            mols = [csys.ZMatrix(s) for s in mol_strings]
+        if csys.ZMatrix2.matches(first):
+            mols = [csys.ZMatrix2(s) for s in mol_strings]
         elif csys.XYZ.matches(first):
             mols = [csys.XYZ(s) for s in mol_strings]
         elif csys.ComplexCoordSys.matches(first):
-            mols = [csys.parse_and_return(s) for s in mol_strings]
+            mols = [csys.ComplexCoordSys(s) for s in mol_strings]
         else:
             raise MolInterfaceException("Unrecognised geometry string:\n" + first)
 
@@ -57,6 +57,7 @@ class MolInterface:
         # lists of various properties for input reagents
         atoms_lists    = [m.get_chemical_symbols() for m in mols]
         coord_vec_lens = [len(m.get_internals()) for m in mols]
+        self.reagent_coords = [m.get_internals() for m in mols]
 
         all_var_names = [m.var_names for m in mols]
         all_kinds = [m.kinds for m in mols]
@@ -91,7 +92,7 @@ class MolInterface:
             react = self.reagent_coords[0]
             prod  = self.reagent_coords[1]
             for i in range(N):
-                if self.kinds[i] == 'dih':
+                if mols[0].kinds[i] == 'dih':
                     if abs(react[i] - prod[i]) > 180.0 * common.DEG_TO_RAD:
                         if react[i] > prod[i]:
                             prod[i] += 360.0 * common.DEG_TO_RAD
