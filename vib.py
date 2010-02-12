@@ -59,9 +59,9 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
     >>> w=0.39685026
     >>> A = ([[ w,  w,  w],
-    ...            [-w, -w,  w],
-    ...            [ w, -w, -w],
-    ...            [-w,  w, -w]])
+    ...       [-w, -w,  w],
+    ...       [ w, -w, -w],
+    ...       [-w,  w, -w]])
 
     >>> ar4 = Atoms("Ar4", A)
 
@@ -69,7 +69,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
     >>> from qfunc import QFunc
 
-    >>> pes = QFunc(Atoms("Ar4"))
+    >>> pes = QFunc(ar4)
     >>> fun = pes.fprime
 
   Calculate the vibration modes
@@ -99,7 +99,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
     >>> n2 = Atoms('N2', [(0, 0, 0), (0, 0, 1.1)])
 
-    >>> pes = QFunc(Atoms("N2"),EMT() )
+    >>> pes = QFunc(n2, EMT())
     >>> fun = pes.fprime
     >>> vibmodes(n2, fun)
     ====================================================
@@ -114,20 +114,21 @@ Ar4 Cluster as first simple atomic/molecule test system with
     ----------------------------------------------------
 
 
-    >>> n2.set_positions([[  0.00000000e+00,   0.00000000e+00,  -1.48015778e-02],
-    ...                   [  1.49425969e-19,   0.00000000e+00,   1.11480158e+00]])
+    >>> n2.set_positions([[  0.0, 0.0, 0.000],
+    ...                   [  0.0, 0.0, 1.130]])
 
     >>> vibmodes(n2, fun)
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      0       no       0.0000000          0.0000001
-      1       no       0.0000000          0.0000121
-      2       no       0.0000000          0.0000294
-      3       no       0.0016245         13.1023923
-      4       no       0.0016245         13.1023923
-      5       no       0.2327449       1877.2138914
+      0       no       0.0000000          0.0000000
+      1       no       0.0000000          0.0000000
+      2       no       0.0000000          0.0000040
+      3       no       0.0046502         37.5060049
+      4       no       0.0046502         37.5060049
+      5       no       0.2324660       1874.9643134
     ----------------------------------------------------
+
 """
 import numpy as np
 from math import sqrt
