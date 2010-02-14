@@ -109,7 +109,7 @@ as a reaction coordinate. You may want to specify the
 four indices in such case, the order does matter,
 of course:
 
-    >>> v1 = Volume((0,1,3,2))
+    >>> v1 = Volume([0,1,3,2])
     >>> round(v1(A), 7), round(v(A), 7)
     (1.0, -1.0)
 
@@ -144,7 +144,8 @@ The equal spacing is enforced:
 
 """
 
-__all__ = ["Volume", "Distance", "Angle", "Dihedral"]
+__all__ = ["volume", "distance", "angle", "dihedral", \
+           "Volume", "Distance", "Angle", "Dihedral"]
 
 from func import Func
 from numpy import array, zeros, shape, cross, dot, max, abs
@@ -184,28 +185,38 @@ class Volume(Func):
     def taylor(self, x):
 
         # indices of four points in 3D to use:
-        i0, i1, i2, i3 = self.__four
-
-        a = x[i1] - x[i0]
-        b = x[i2] - x[i1]
-        c = x[i3] - x[i2]
-
-        # the value:
-        f = dot(cross(a, b), c)
-
-        # the derivatives wrt a, b, and c:
-        fc = cross(a, b)
-        fb = cross(c, a)
-        fa = cross(b, c)
+        four = self.__four
 
         # final derivatives:
         fprime = zeros(shape(x))
-        fprime[i0] =    - fa
-        fprime[i1] = fa - fb
-        fprime[i2] = fb - fc
-        fprime[i3] = fc
+
+        f, fprime[four] = volume(x[four])
 
         return f, fprime
+
+def volume(x):
+
+    a = x[1] - x[0]
+    b = x[2] - x[1]
+    c = x[3] - x[2]
+
+    # the value:
+    f = dot(cross(a, b), c)
+
+    # the derivatives wrt a, b, and c:
+    fc = cross(a, b)
+    fb = cross(c, a)
+    fa = cross(b, c)
+
+    # final derivatives:
+    fprime = zeros(shape(x))
+    fprime[0] =    - fa
+    fprime[1] = fa - fb
+    fprime[2] = fb - fc
+    fprime[3] = fc
+
+    return f, fprime
+
 
 class Distance(Func):
     """Cartesian distance between two points
@@ -231,23 +242,32 @@ class Distance(Func):
 
     def taylor(self, x):
 
-        # indices of four points in 3D to use:
-        i0, i1 = self.__two
-
-        d = x[i1] - x[i0]
-
-        # the value:
-        f = sqrt(dot(d, d))
-
-        # the derivatives wrt d:
-        fd = d / f
+        # indices of two points to use:
+        two = self.__two
 
         # final derivatives:
         fprime = zeros(shape(x))
-        fprime[i0] = - fd
-        fprime[i1] = + fd
+
+        f, fprime[two] = distance(x[two])
 
         return f, fprime
+
+def distance(x):
+
+    d = x[1] - x[0]
+
+    # the value:
+    f = sqrt(dot(d, d))
+
+    # the derivatives wrt d:
+    fd = d / f
+
+    # final derivatives:
+    fprime = zeros(shape(x))
+    fprime[0] = - fd
+    fprime[1] = + fd
+
+    return f, fprime
 
 class Angle(Func):
     """Angle between three points
@@ -275,47 +295,56 @@ class Angle(Func):
     def taylor(self, x):
 
         # indices of four points in 3D to use:
-        i0, i1, i2 = self.__three
-
-        a = x[i0] - x[i1]
-        b = x[i2] - x[i1]
-
-        la = sqrt(dot(a, a))
-        lb = sqrt(dot(b, b))
-
-        a /= la
-        b /= lb
-
-        # cosine:
-        cs = dot(a, b)
-
-        # it happens:
-        if cs > 1.:
-            assert cs - 1. < 1.e-10
-            cs = 1.
-
-        if cs < -1.:
-            assert -1. - cs < 1.e-10
-            cs = -1.
-
-        # the value:
-        f = arccos(cs)
-
-        # sine:
-        si = sin(f)
-
-        # the derivatives wrt a, b:
-        fa = (cs * a - b) / (la * si)
-        fb = (cs * b - a) / (lb * si)
-        # FIXME: small angles?
+        three = self.__three
 
         # final derivatives:
         fprime = zeros(shape(x))
-        fprime[i0] = + fa
-        fprime[i1] = - fa - fb
-        fprime[i2] = + fb
+
+        f, fprime[three] = angle(x[three])
 
         return f, fprime
+
+def angle(x):
+
+    a = x[0] - x[1]
+    b = x[2] - x[1]
+
+    la = sqrt(dot(a, a))
+    lb = sqrt(dot(b, b))
+
+    a /= la
+    b /= lb
+
+    # cosine:
+    cs = dot(a, b)
+
+    # it happens:
+    if cs > 1.:
+        assert cs - 1. < 1.e-10
+        cs = 1.
+
+    if cs < -1.:
+        assert -1. - cs < 1.e-10
+        cs = -1.
+
+    # the value:
+    f = arccos(cs)
+
+    # sine:
+    si = sin(f)
+
+    # the derivatives wrt a, b:
+    fa = (cs * a - b) / (la * si)
+    fb = (cs * b - a) / (lb * si)
+    # FIXME: small angles?
+
+    # final derivatives:
+    fprime = zeros(shape(x))
+    fprime[0] = + fa
+    fprime[1] = - fa - fb
+    fprime[2] = + fb
+
+    return f, fprime
 
 class Dihedral(Func):
     """Dihedral angle formed by four points
@@ -396,62 +425,74 @@ class Dihedral(Func):
         self.__four = four
 
     def taylor(self, x):
-        # code uses the stable recipie for derivatives
-        # see, e.g. http://bcr.musc.edu/manuals/MODELLER6v0/manual/node180.html
 
         # indices of four points in 3D to use:
-        i, j, k, l = self.__four
+        four = self.__four
 
-        a = x[j] - x[i]
-        b = x[j] - x[k] # intended
-        c = x[l] - x[k]
+        # final derivatives stored here:
+        fprime = zeros(shape(x))
 
-        # one plane normal:
-        M = cross(a, b)
-        LM = sqrt(dot(M, M))
-        M /= LM
-
-        # another plane normal:
-        N = cross(b, c)
-        LN = sqrt(dot(N, N))
-        N /= LN
-
-        # cosine:
-        cs = dot(M, N)
-
-        # it happens:
-        if cs > 1.:
-            assert cs - 1. < 1.e-10
-            cs = 1.
-
-        if cs < -1.:
-            assert -1. - cs < 1.e-10
-            cs = -1.
-
-        # angle between two planes:
-        f = arccos(cs)
-
-        # numerically stable code for derivatives:
-        if True:
-            # base length:
-            lb = sqrt(dot(b, b))
-
-            # weights:
-            wa = dot(a, b) / lb**2
-            wc = dot(c, b) / lb**2
-
-            fprime = zeros(shape(x))
-            fprime[i] = + M * lb / LM
-            fprime[l] = - N * lb / LN
-            fprime[j] = (wa - 1.) * fprime[i] - wc * fprime[l]
-            fprime[k] = (wc - 1.) * fprime[l] - wa * fprime[i]
-
-        # see if 0-1-2-3-skew is (anti)parallel to the base:
-        if dot(a, cross(b, c)) > 0:
-            f = -f
-            # NO!: fprime = -fprime
+        f, fprime[four] = dihedral(x[four])
 
         return f, fprime
+
+def dihedral(x):
+    # code uses the stable recipie for derivatives
+    # see, e.g. http://bcr.musc.edu/manuals/MODELLER6v0/manual/node180.html
+
+    # indices of four points in 3D to use:
+    i, j, k, l = (0, 1, 2, 3)
+
+    a = x[j] - x[i]
+    b = x[j] - x[k] # intended
+    c = x[l] - x[k]
+
+    # one plane normal:
+    M = cross(a, b)
+    LM = sqrt(dot(M, M))
+    M /= LM
+
+    # another plane normal:
+    N = cross(b, c)
+    LN = sqrt(dot(N, N))
+    N /= LN
+
+    # cosine:
+    cs = dot(M, N)
+
+    # it happens:
+    if cs > 1.:
+        assert cs - 1. < 1.e-10
+        cs = 1.
+
+    if cs < -1.:
+        assert -1. - cs < 1.e-10
+        cs = -1.
+
+    # angle between two planes:
+    f = arccos(cs)
+
+    # numerically stable code for derivatives:
+    if True:
+        # base length:
+        lb = sqrt(dot(b, b))
+
+        # weights:
+        wa = dot(a, b) / lb**2
+        wc = dot(c, b) / lb**2
+
+        fprime = zeros(shape(x))
+        fprime[i] = + M * lb / LM
+        fprime[l] = - N * lb / LN
+        fprime[j] = (wa - 1.) * fprime[i] - wc * fprime[l]
+        fprime[k] = (wc - 1.) * fprime[l] - wa * fprime[i]
+
+    # see if 0-1-2-3-skew is (anti)parallel to the base:
+    if dot(a, cross(b, c)) > 0:
+        f = -f
+        # NO!: fprime = -fprime
+
+    return f, fprime
 
 # python rc.py [-v]:
 if __name__ == "__main__":
