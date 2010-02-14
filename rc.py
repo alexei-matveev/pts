@@ -132,7 +132,7 @@ class Volume(Func):
 
         >>> v = Volume()
 
-        >>> x = array([(0., 0., 0), (2., 0., 0), (0., 2., 0), (0., 0., 2)])
+        >>> x = array([(0., 0., 0.), (2., 0., 0.), (0., 2., 0.), (0., 0., 2.)])
 
     Volume of the cube with side 2:
 
@@ -146,21 +146,14 @@ class Volume(Func):
         >>> max(abs(v.fprime(x) - v1.fprime(x))) < 1.e-10
         True
     """
-    def __init__(self, four=(0, 1, 2, 3)):
+    def __init__(self, four=[0, 1, 2, 3]):
         # indices of four points in 3D to use:
         self.__four = four
 
     def taylor(self, x):
 
-        assert len(x) >= 4
-
         # indices of four points in 3D to use:
         i0, i1, i2, i3 = self.__four
-
-        assert len(x) > i0
-        assert len(x) > i1
-        assert len(x) > i2
-        assert len(x) > i3
 
         a = x[i1] - x[i0]
         b = x[i2] - x[i1]
