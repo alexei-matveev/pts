@@ -96,8 +96,8 @@ an therefore relatively high in energy. Is there a reason for it?
 
 The equal spacing is enforced:
 
-    >>> round(spc(xm), 10)
-    array([ 0., -0., -0.])
+    >>> max(abs(spc(xm))) < 1.e-8
+    True
 
 You can visualize the path by executing:
 
@@ -112,6 +112,36 @@ of course:
     >>> v1 = Volume((0,1,3,2))
     >>> round(v1(A), 7), round(v(A), 7)
     (1.0, -1.0)
+
+Here we use dihedral angle for image spacing:
+
+    >>> dih = Dihedral()
+
+Optimize the chain and enforce equal spacing:
+
+    >>> xm, fm, stats = smin(cha, x5, Spacing(RCDiff(dih)))
+
+The optimized energies of the images:
+
+    >>> es2 = array(map(pes, xm))
+
+    >>> print es2
+    [-6.         -5.10464043 -4.48062016 -5.10464043 -6.        ]
+
+Different energy profile, same planar TS approximation:
+
+    >>> print xm[2]
+    [[-0.39337054  0.39337054  0.5563097 ]
+     [ 0.39337054 -0.39337054  0.5563097 ]
+     [ 0.39337054 -0.39337054 -0.5563097 ]
+     [-0.39337054  0.39337054 -0.5563097 ]]
+
+The equal spacing is enforced:
+
+    >>> from numpy import pi
+    >>> print array(map(dih, xm)) * 180. / pi
+    [-70.52877937 -35.26438968   0.          35.26438968  70.52877937]
+
 """
 
 __all__ = ["Volume", "Distance", "Angle", "Dihedral"]
