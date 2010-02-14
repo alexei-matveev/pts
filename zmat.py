@@ -404,10 +404,12 @@ def pos3(dst, ang, dih, A=None, B=None, C=None):
     """
 
     # default origin:
-    if A is None: return array((0.0, 0.0, 0.0))
+    if A is None:
+        return array((0.0, 0.0, 0.0))
 
     # default X-axis:
-    if B is None: return array((dst, 0.0, 0.0)) # FXIME: X-axis
+    if B is None:
+        return array((dst, 0.0, 0.0)) # FXIME: X-axis
 
     # default plane here:
     if C is None:
@@ -415,29 +417,37 @@ def pos3(dst, ang, dih, A=None, B=None, C=None):
         dih = pi / 2.0
 
     # normalize vector:
-    def normalise(v):
+    def unit(v):
         n = sqrt(dot(v, v))
         # numpy will just return NaNs:
         if n == 0.0: raise ZMError("divide by zero")
         return v / n
 
-    v1 = A - B
-    v2 = A - C
+    # two vectors in ABC-plane:
+    ab = A - B
+    ac = A - C
 
-    n = cross(v1, v2)
-    nn = cross(v1, n)
+    #
+    # Unit vectors for local coordiante system:
+    #
 
-    n = normalise(n)
-    nn = normalise(nn)
+    # unit vector in AB-direciton:
+    i = unit(ab)
 
-    n *= -sin(dih)
-    nn *= cos(dih)
-    v3 = n + nn
-    v3 = normalise(v3)
-    v3 *= dst * sin(ang)
-    v1 = normalise(v1)
-    v1 *= dst * cos(ang)
-    X = A + v3 - v1
+    # orthogonal to ABC plane:
+    k = unit(cross(ab, ac))
+
+    # in ABC-plane, orthogonal to AB:
+    j = unit(cross(ab, k))
+
+    #
+    # Unit vector in jk-plane, along the intersection
+    # line with the dihedral plane:
+    #
+    l = unit(j * cos(dih) - k * sin(dih))
+
+    # il-plane is the dihedral plane:
+    X = A - dst * (i * cos(ang) - l * sin(ang))
 
     return X
 
