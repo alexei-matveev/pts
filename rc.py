@@ -130,17 +130,17 @@ The optimized energies of the images:
 
 Different energy profile, same planar TS approximation:
 
-    >>> print xm[2]
-    [[-0.39337054  0.39337054  0.5563097 ]
-     [ 0.39337054 -0.39337054  0.5563097 ]
-     [ 0.39337054 -0.39337054 -0.5563097 ]
-     [-0.39337054  0.39337054 -0.5563097 ]]
+    >>> print round(xm[2], 4)
+    [[-0.3934  0.3934  0.5563]
+     [ 0.3934 -0.3934  0.5563]
+     [ 0.3934 -0.3934 -0.5563]
+     [-0.3934  0.3934 -0.5563]]
 
 The equal spacing is enforced:
 
     >>> from numpy import pi
-    >>> print array(map(dih, xm)) * 180. / pi
-    [-70.52877937 -35.26438968   0.          35.26438968  70.52877937]
+    >>> print round(array(map(dih, xm)) * 180. / pi, 2)
+    [-70.53 -35.26  -0.    35.26  70.53]
 
 """
 
