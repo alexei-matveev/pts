@@ -118,8 +118,8 @@ Test consistency with the inverse transformation:
            [ -2.32750153e+00,  -7.88354946e-01,   2.02969795e+00]])
 
     >>> from numpy import max, abs, round
-    >>> max(abs(d2-d1))
-    0.004525006862505121
+    >>> print round(max(abs(d2-d1)), 4)
+    0.0045
 
 (these are not real breathing modes as we scale also angles).
 
