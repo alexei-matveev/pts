@@ -325,67 +325,42 @@ class ZMat(NumDiff):
             # pick the ZM entry from array:
             a, b, c, idst, iang, idih = self.__zm[x]
 
-            # default origin:
-            if a is None: return array((0.0, 0.0, 0.0))
+            # print "z-entry =", a, b, c, idst, iang, idih
 
-            # sanity:
-            if a == x: raise ZMError("same x&a")
+            # default values:
+            dst, ang, dih, A, B, C = (None,) * 6
 
-            # position of a, and x-a distance:
-            avec = pos(a)
-            distance = vars[idst]
+            if a is not None:
+                # sanity:
+                if a == x: raise ZMError("same x&a")
 
-            # default X-axis:
-            if b is None: return array((distance, 0.0, 0.0)) # FXIME: X-axis
+                # position of a, and x-a distance:
+                A = pos(a)
+                dst = vars[idst]
 
-            # sanity:
-            if b == a: raise ZMError("same x&b")
-            if b == x: raise ZMError("same x&b")
+            if b is not None:
+                # sanity:
+                if b == a: raise ZMError("same x&b")
+                if b == x: raise ZMError("same x&b")
 
-            # position of b, and x-a-b angle:
-            bvec = pos(b)
-            angle = vars[iang]
+                # position of b, and x-a-b angle:
+                B = pos(b)
+                ang = vars[iang]
 
-            # position of c, and x-a-b-c dihedral angle:
-            if c is None:
-                # default plane here:
-                cvec = array((0.0, 1.0, 0.0))
-                dihedral = pi / 2.0
-            else:
-                cvec = pos(c)
-                dihedral = vars[idih]
+            if c is not None:
+                # sanity:
+                if c == b: raise ZMError("same b&c")
+                if c == a: raise ZMError("same a&c")
+                if c == x: raise ZMError("same x&c")
 
-            # sanity:
-            if c == b: raise ZMError("same b&c")
-            if c == a: raise ZMError("same a&c")
-            if c == x: raise ZMError("same x&c")
+                C = pos(c)
+                dih = vars[idih]
 
-            # normalize vector:
-            def normalise(v):
-                n = sqrt(dot(v, v))
-                # numpy will just return NaNs:
-                if n == 0.0: raise ZMError("divide by zero")
-                return v / n
+            # actuall computation with proper defaults
+            # in case some of arguments are not set:
+            X = pos3(dst, ang, dih, A, B, C)
 
-            v1 = avec - bvec
-            v2 = avec - cvec
-
-            n = cross(v1,v2)
-            nn = cross(v1,n)
-
-            n = normalise(n)
-            nn = normalise(nn)
-
-            n *= -sin(dihedral)
-            nn *= cos(dihedral)
-            v3 = n + nn
-            v3 = normalise(v3)
-            v3 *= distance * sin(angle)
-            v1 = normalise(v1)
-            v1 *= distance * cos(angle)
-            p = avec + v3 - v1
-
-            return p
+            return X
 
         # force evaluation of all positions:
         for x in range(na + ne):
@@ -422,6 +397,49 @@ class ZMat(NumDiff):
             x += 1
 
         return vars
+
+def pos3(dst, ang, dih, A=None, B=None, C=None):
+    """Compute atomic position X, given the distance, angle,
+    and dihedral coordinates for X in the four-chain X-A-B-C.
+    """
+
+    # default origin:
+    if A is None: return array((0.0, 0.0, 0.0))
+
+    # default X-axis:
+    if B is None: return array((dst, 0.0, 0.0)) # FXIME: X-axis
+
+    # default plane here:
+    if C is None:
+        C = array((0.0, 1.0, 0.0))
+        dih = pi / 2.0
+
+    # normalize vector:
+    def normalise(v):
+        n = sqrt(dot(v, v))
+        # numpy will just return NaNs:
+        if n == 0.0: raise ZMError("divide by zero")
+        return v / n
+
+    v1 = A - B
+    v2 = A - C
+
+    n = cross(v1, v2)
+    nn = cross(v1, n)
+
+    n = normalise(n)
+    nn = normalise(nn)
+
+    n *= -sin(dih)
+    nn *= cos(dih)
+    v3 = n + nn
+    v3 = normalise(v3)
+    v3 *= dst * sin(ang)
+    v1 = normalise(v1)
+    v1 *= dst * cos(ang)
+    X = A + v3 - v1
+
+    return X
 
 
 # "python zmap.py", eventualy with "-v" option appended:
