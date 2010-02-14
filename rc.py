@@ -342,10 +342,14 @@ class Dihedral(Func):
         ...     if max(abs(h.fprime(x) - h1.fprime(x))) > 1.e-8:
         ...         print "derivatives fail for x = "
         ...         print x
+        ...         print "h(x) =", h(x) / pi * 180.
         ...         print "numerical:"
         ...         print h1.fprime(x)
         ...         print "analytical:"
         ...         print h.fprime(x)
+
+#       ...     else:
+#       ...         print "h(x) =", h(x) / pi * 180., "ok"
 
         >>> check(xp)
         >>> check(xm)
@@ -392,26 +396,28 @@ class Dihedral(Func):
         self.__four = four
 
     def taylor(self, x):
+        # code uses the stable recipie for derivatives
+        # see, e.g. http://bcr.musc.edu/manuals/MODELLER6v0/manual/node180.html
 
         # indices of four points in 3D to use:
-        i0, i1, i2, i3 = self.__four
+        i, j, k, l = self.__four
 
-        a = x[i1] - x[i0]
-        b = x[i2] - x[i1]
-        c = x[i3] - x[i2]
+        a = x[j] - x[i]
+        b = x[j] - x[k] # intended
+        c = x[l] - x[k]
 
-        # one plane normal, A=A(a,b):
-        A = cross(a, b)
-        LA = sqrt(dot(A, A))
-        A /= LA
+        # one plane normal:
+        M = cross(a, b)
+        LM = sqrt(dot(M, M))
+        M /= LM
 
-        # another plane normal, B=B(b,c):
-        B = cross(b, c)
-        LB = sqrt(dot(B, B))
-        B /= LB
+        # another plane normal:
+        N = cross(b, c)
+        LN = sqrt(dot(N, N))
+        N /= LN
 
         # cosine:
-        cs = dot(A, B)
+        cs = dot(M, N)
 
         # it happens:
         if cs > 1.:
@@ -422,62 +428,28 @@ class Dihedral(Func):
             assert -1. - cs < 1.e-10
             cs = -1.
 
-        # angle between two planes, f=f(A,B):
+        # angle between two planes:
         f = arccos(cs)
 
-        #if True:
-        #if False:
-        if abs(sin(f)) > 0.1: # division by sin(f)
+        # numerically stable code for derivatives:
+        if True:
+            # base length:
+            lb = sqrt(dot(b, b))
 
-            # sine:
-            si = sin(f)
+            # weights:
+            wa = dot(a, b) / lb**2
+            wc = dot(c, b) / lb**2
 
-            # derivatives wrt A, B, note: cos(f) = dot(A, B):
-            fA = (cs * A - B) / (LA * si)
-            fB = (cs * B - A) / (LB * si)
-            # FIXME: small angles?
-
-            # derivatives wrt a, b, c:
-            fa = cross(b, fA)
-            fb = cross(fA, a) + cross(c, fB)
-            fc = cross(fB, b)
-
-        else: # division by cos(f):
-
-            # 90-deg rotated A, C=C(a,b):
-            C = cross(b, cross(a, b)) # = a * (b,b) - b * (a,b)
-            LC = sqrt(dot(C, C))
-            C /= LC
-
-            # sine:
-            si = dot(C, B)
-
-            #ssert abs(dot(C, B) - si) < 1.0e-10
-
-            # derivatives wrt B, C, note: sin(f) = dot(C, B)
-            fB = (C - si * B) / (LB * cs)
-            fC = (B - si * C) / (LC * cs)
-
-            # derivatives wrt a, b, c:
-            fa = dot(b, b) * fC - b * dot(b, fC)
-            fb = 2. * b * dot(a, fC) - a * dot(b, fC) - fC * dot(a, b) \
-               + cross(c, fB)
-            fc = cross(fB, b)
-
-            # FXIME: this magic I cannot understand:
-            if dot(a, cross(b, c)) < 0:
-                fa, fb, fc = -fa, -fb, -fc
+            fprime = zeros(shape(x))
+            fprime[i] = + M * lb / LM
+            fprime[l] = - N * lb / LN
+            fprime[j] = (wa - 1.) * fprime[i] - wc * fprime[l]
+            fprime[k] = (wc - 1.) * fprime[l] - wa * fprime[i]
 
         # see if 0-1-2-3-skew is (anti)parallel to the base:
-        if dot(a, cross(b, c)) < 0:
-            f, fa, fb, fc = -f, -fa, -fb, -fc
-
-        # final derivatives:
-        fprime = zeros(shape(x))
-        fprime[i0] =    - fa
-        fprime[i1] = fa - fb
-        fprime[i2] = fb - fc
-        fprime[i3] = fc
+        if dot(a, cross(b, c)) > 0:
+            f = -f
+            # NO!: fprime = -fprime
 
         return f, fprime
 
