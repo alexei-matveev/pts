@@ -452,13 +452,9 @@ class ZMat(NumDiff):
         return vars
 
 
-# Testing the examples in __doc__strings, execute
-# "python gxmatrix.py", eventualy with "-v" option appended:
+# "python zmap.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
 
-# You need to add "set modeline" and eventually "set modelines=5"
-# to your ~/.vimrc for this to take effect.
-# Dont (accidentally) delete these lines! Unless you do it intentionally ...
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
