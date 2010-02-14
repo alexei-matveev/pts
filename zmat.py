@@ -171,6 +171,7 @@ from numpy import array, asarray, empty
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
 from func import NumDiff
+from rc import distance, angle, dihedral
 
 class ZMError(Exception):
     pass
@@ -401,52 +402,23 @@ class ZMat(NumDiff):
     def pinv(self, atoms):
         "Pseudoinverse of ZMat, returns internal coordinates"
 
-        def dst(x, a):
-            "Distance x-a"
-            ax = atoms[x] - atoms[a]
-            return sqrt(dot(ax, ax))
-
-        def ang(x, a, b):
-            "Angle x-a-b"
-            ax = atoms[x] - atoms[a]
-            ab = atoms[b] - atoms[a]
-
-            ax /= sqrt(dot(ax, ax))
-            ab /= sqrt(dot(ab, ab))
-
-            return arccos(dot(ax, ab))
-
-        def dih(x, a, b, c):
-            "Dihedral angle x-a-b-c"
-            v12 = atoms[a] - atoms[x] # arm1
-            v23 = atoms[b] - atoms[a] # base
-            v34 = atoms[c] - atoms[b] # arm2
-
-            n1 = cross(v12, v23) # arm1 x base
-            n1 /= sqrt(dot(n1, n1))
-
-            n2 = cross(v23, v34) # base x arm2
-            n2 /= sqrt(dot(n2, n2))
-
-            # angle between two planes:
-            angle = arccos(dot(n1, n2))
-
-            # see if 1-2-3-4-skew is (anti)parallel to the base:
-            skew = cross(v12, v34)
-            if dot(v23, skew) > 0:
-                return -angle
-            else:
-                return angle
-
         vars = empty(self.__dim) # array
         x = 0
         for a, b, c, idst, iang, idih in self.__zm:
+            #
+            # Note: distance/angle/dihedral from rc.py return
+            # a tuple of a value and derivative, so far
+            # only the value is used. Also these funcitons
+            # expect the 3D coordiantes of involved atoms
+            # in a single array. We provide them by list-indexing
+            # into the array "atoms".
+            #
             if a is not None:
-                vars[idst] = dst(x, a)
+                vars[idst] = distance(atoms[[x, a]])[0]
             if b is not None:
-                vars[iang] = ang(x, a, b)
+                vars[iang] = angle(atoms[[x, a, b]])[0]
             if c is not None:
-                vars[idih] = dih(x, a, b, c)
+                vars[idih] = dihedral(atoms[[x, a, b, c]])[0]
             x += 1
 
         return vars
