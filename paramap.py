@@ -145,7 +145,7 @@
 from threading import Thread
 #from threading import Thread as Worker
 #from Queue import Queue
-from processing  import Process as Worker
+from processing import Process as Worker
 from processing import Queue
 from processing import Process
 
