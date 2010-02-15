@@ -20,6 +20,8 @@ src =	\
 	qfunc.py \
 	chain.py \
 	rc.py \
+	paramap.py \
+	vib.py \
 
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.doctest)
