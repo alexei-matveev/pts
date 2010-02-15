@@ -42,6 +42,9 @@ Differentiation also works for univariate vector functions:
     >>> rprime, err = dfridr(r, pi / 4.)
     >>> round(rprime, 12), err < 1e-12
     (array([-0.70710678,  0.70710678]), True)
+
+However, I am not sure if Ridders extrapolation works equally well
+for vector valued functions.
 """
 
 __all__ = ["dfridr"]
