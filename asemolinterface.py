@@ -21,6 +21,112 @@ lg = logging.getLogger('aof.asemolinterface') #common.PROGNAME)
 
 numpy.set_printoptions(linewidth=180)
 
+zmt1 = """H
+O 1 oh
+O 2 oo 1 ooh
+H 3 ho 2 hoo 1 hooh
+
+oh 1.
+ho 1.
+oo 1.2
+ooh 109.
+hoo 109.
+hooh 60.
+"""
+
+zmt2 = """H
+O 1 oh
+O 2 oo 1 ooh
+H 3 ho 2 hoo 1 hooh
+
+oh  1.
+ho 1.
+oo 1.2
+ooh 109.
+hoo 109.
+hooh -60.
+"""
+
+zmt3 = """H
+O 1 oh
+O 2 oo 1 ooh
+H 3 ho 2 hoo 1 -hooh
+
+oh  1.
+ho 1.
+oo 1.2
+ooh 109.
+hoo 109.
+hooh 60.
+"""
+
+zmt4 = """H
+O 1 oh
+O 2 oo 1 ooh
+H 3 ho 2 hoo 1 hooh
+
+oh  1.
+ho 1.
+oo 1.2
+ooh -109.
+hoo 109.
+hooh -121.
+"""
+
+zmt_template = """H
+O 1 oh
+O 2 oo 1 ooh
+H 3 ho 2 hoo 1 hooh
+
+oh  1.
+ho 1.
+oo 1.2
+ooh -109.
+hoo 109.
+hooh %f
+"""
+
+ccs1 = r"""
+xyz = "C 0. 0. 0.\n"
+x = XYZ(xyz)
+zmt = "H\nO 1 oh\nO 2 oo 1 ooh\nH 3 ho 2 hoo 1 hooh\n\noh 1.\nho 1.\noo 1.2\nooh 109.\nhoo 109.\nhooh 60.\n"
+z = ZMatrix2(zmt, RotAndTrans())
+ccs = ccsspec([x,z])
+"""
+
+ccs2 = r"""
+xyz = "C 0. 0. 0.\n"
+x = XYZ(xyz)
+zmt = "H\nO 1 oh\nO 2 oo 1 ooh\nH 3 ho 2 hoo 1 hooh\n\noh 1.\nho 1.\noo 1.2\nooh 109.\nhoo 109.\nhooh -121.\n"
+z = ZMatrix2(zmt, RotAndTrans())
+ccs = ccsspec([x,z])
+"""
+
+ccs3 = r"""
+xyz = "C 0. 0. 0.\n"
+x = XYZ(xyz)
+zmt1 = "H\nO 1 oh\nO 2 oo 1 ooh\nH 3 ho 2 hoo 1 hooh\n\noh 1.\nho 1.\noo 1.2\nooh 109.\nhoo 109.\nhooh 60.\n"
+zmt2 = "H\nO 1 oh\nO 2 oo 1 ooh\nH 3 ho 2 hoo 1 hooh\n\noh 1.\nho 1.\noo 1.2\nooh 109.\nhoo 109.\nhooh 60.\n"
+
+z1 = ZMatrix2(zmt1, RotAndTrans())
+z2 = ZMatrix2(zmt2, RotAndTrans())
+
+ccs = ccsspec([x,z1,z2])
+"""
+
+ccs4 = r"""
+xyz = "C 0. 0. 0.\n"
+x = XYZ(xyz)
+zmt1 = "H\nO 1 oh\nO 2 oo 1 ooh\nH 3 ho 2 hoo 1 hooh\n\noh 1.\nho 1.\noo 1.2\nooh 109.\nhoo 109.\nhooh -120.1\n"
+zmt2 = "H\nO 1 oh\nO 2 oo 1 ooh\nH 3 ho 2 hoo 1 hooh\n\noh 1.\nho 1.\noo 1.2\nooh 109.\nhoo 109.\nhooh 160.\n"
+
+z1 = ZMatrix2(zmt1, RotAndTrans())
+z2 = ZMatrix2(zmt2, RotAndTrans())
+
+ccs = ccsspec([x,z1,z2])
+"""
+
+
 class MolInterfaceException(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -32,12 +138,63 @@ class MolInterface:
     providing also functionality to run a energy/gradient calculation of a
     particular vector under a separate python interpreter instance."""
 
-    def __init__(self, mol_strings, params = dict()):
+    def __init__(self, 
+            mol_strings, 
+            calculator=None, 
+            mask=None, 
+            placement=None,
+            pbc=None, 
+            cell=None,
+            name=None):
+
         """mol_strings: list of strings, each of which describes a molecule, 
-        format can be z-matrix or xyz format, but formats must be consistent."""
+        format can be z-matrix or xyz format, but formats must be consistent.
+        
+        Note: zmt3 has negated variable, and is technically a different zmatrix to 
+        zmt1; this should raise an error at some point.
+        (test not yet implemented however)
+        >>> mi = MolInterface([zmt1, zmt3])
+        Error
+
+        >>> mi = MolInterface([zmt1, zmt2])
+        
+        >>> mi = MolInterface([zmt1, zmt4])
+        >>> rc = mi.reagent_coords
+        >>> dih1, dih2 = rc[0][-1], rc[1][-1]
+        >>> numpy.abs(dih1 - dih2) * common.RAD_TO_DEG < 180
+        True
+
+        >>> many = [zmt_template % dih for dih in range(-360,360,20)]
+        >>> from random import choice
+        >>> randoms = [[choice(many), choice(many)] for i in range(20)]
+        >>> mis = [MolInterface(l) for l in randoms]
+        >>> dih_pairs = [(m.reagent_coords[0][-1], m.reagent_coords[1][-1]) for m in mis]
+        >>> diffs = [numpy.abs(a-b) for a,b in dih_pairs]
+        >>> max(diffs) < 180
+        True
+
+        >>> def too_bigs(m):
+        ...     r = m.reagent_coords
+        ...     dih_ixs = [i for i in range(len(r[0])) if m.mol.kinds[i] == 'dih']
+        ...     l = [numpy.abs(r[0][i] - r[1][i]) for i in dih_ixs]
+        ...     return [i for i in l if i * common.RAD_TO_DEG >= 180]
+
+        >>> mi = MolInterface([ccs1, ccs2])
+        >>> too_bigs(mi)
+        []
+
+        >>> mi = MolInterface([ccs1, ccs3])
+        Traceback (most recent call last):
+           ...
+        MolInterfaceException: Input molecules do not have consistent atoms.
+
+        >>> mi = MolInterface([ccs3, ccs4])
+        >>> too_bigs(mi)
+        []
+
+        """
 
         assert len(mol_strings) > 1
-        assert "calculator" in params
 
         first = mol_strings[0]
         if csys.ZMatrix2.matches(first):
@@ -76,7 +233,7 @@ class MolInterface:
 
         self.var_names = all_var_names[0]
 
-        [m.set_var_mask(params['mask']) for m in mols]
+        [m.set_var_mask(mask) for m in mols]
 
         N = len(m.get_internals())
 
@@ -101,8 +258,8 @@ class MolInterface:
 
         # setup function that generates
         self.place_str = None
-        if 'placement' in params and params['placement'] != None:
-            f = params['placement']
+        if placement != None:
+            f = placement
             assert callable(f), "Function to generate placement command was not callable."
 
             # perform test to make sure command is in path
@@ -111,16 +268,17 @@ class MolInterface:
             self.place_str = f
 
 
-        a,b,c,d = params["calculator"]
-        self.calc_tuple = a,b,c
-        self.pre_calc_function = d
+        if calculator != None:
+            a,b,c,d = calculator
+            self.calc_tuple = a,b,c
+            self.pre_calc_function = d
 
         self.mol = mols[0]
 
-        if 'cell' in params and params['cell'] != None:
-            self.mol.set_cell(params['cell'])
-        if 'pbc' in params and params['pbc'] != None:
-            self.mol.set_pbc(params['pbc'])
+        if cell != None:
+            self.mol.set_cell(cell)
+        if pbc != None:
+            self.mol.set_pbc(pbc)
 
 
     def __str__(self):
@@ -230,4 +388,15 @@ class MolInterface:
         self.job_counter_lock.release()
 
         return counter
+
+# Testing the examples in __doc__strings, execute
+# "python gxmatrix.py", eventualy with "-v" option appended:
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+
+# You need to add "set modeline" and eventually "set modelines=5"
+# to your ~/.vimrc for this to take effect.
+# Dont (accidentally) delete these lines! Unless you do it intentionally ...
+# Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
 

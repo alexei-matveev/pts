@@ -21,7 +21,7 @@ print params_file_str
 exec(params_file_str)
 
 # set up some objects
-mi          = aof.MolInterface(mol_strings, params)
+mi          = aof.MolInterface(mol_strings, **params)
 calc_man    = aof.CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=prev_results_file)
 
 # setup searcher i.e. String or NEB

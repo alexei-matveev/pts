@@ -278,6 +278,9 @@ class CoordSys(object):
             return s
 
     def set_calculator(self, calc_tuple):
+#        print "set_calc",type(self), calc_tuple
+
+        self.calc_tuple = calc_tuple
         if calc_tuple == None:
             return
 
@@ -286,7 +289,6 @@ class CoordSys(object):
         assert type(args) == list
         assert type(kwargs) == dict
 
-        self.calc_tuple = calc_tuple
         try:
             calc = con(*args, **kwargs)
         except TypeError, e:
@@ -327,6 +329,8 @@ class CoordSys(object):
     dims = property(get_dims)
     def __getstate__(self):
         odict = self.__dict__.copy()
+#        print self.__dict__
+#        assert False
         del odict["_atoms"]
         del odict["_state_lock"]
 
@@ -346,6 +350,7 @@ class CoordSys(object):
         return odict
 
     def __setstate__(self, idict):
+        #print type(self)
         pickled_atoms = idict.pop("pickled_atoms")
         # temp
         """kwargs = [('ismear', '1'),
@@ -729,7 +734,8 @@ class ComplexCoordSys(CoordSys):
 
     @staticmethod
     def matches(s):
-        """Text format to create this object is any valid Python syntax that 
+        """ Tests whether string |s| can correctly specify a ComplexCoordSys object.
+        Text format to create this object is any valid Python syntax that 
         will result in a variable sys_list pointing to an instance.
 
         >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nccs = ccsspec([XYZ(xyz1), XYZ(xyz2)])"
@@ -741,6 +747,8 @@ class ComplexCoordSys(CoordSys):
         False
         """
 
+        #TODO: even better would be if this function returned Boolean, "reason"
+
         ccs = None
         try:
             exec(s)
@@ -751,15 +759,25 @@ class ComplexCoordSys(CoordSys):
             return False
 
         # list of conditions
-        conds = []
-        conds.append(hasattr(ccs, 'parts'))
+        if not hasattr(ccs, 'parts'):
+            print "There was no 'ccs' object defined in molecule input, or it had no field 'parts'."
+            return False
 
-        conds.append(reduce(operator.and_, [isinstance(i, CoordSys) for i in ccs.parts]))
-        conds.append(ccs.carts == None or isinstance(ccs.carts, numpy.ndarray))
-        conds.append(ccs.mask == None or isinstance(ccs.mask, list) and \
-            reduce(operator.and_, [isinstance(i,bool) for i in ccs.mask]))
+        if not reduce(operator.and_, [isinstance(i, CoordSys) for i in ccs.parts]):
+            print "Not every member of 'ccs.parts' was a CoordSys object."
+            return False
 
-        return reduce(operator.and_, conds)
+        if ccs.carts != None and not isinstance(ccs.carts, XYZ):
+            print "The specified object containing the Cartesian coordinates had type %s but it must be either an XYZ object or None." % type(ccs.carts)
+            return False
+            
+        if ccs.mask != None and not isinstance(ccs.mask, list) and \
+            not reduce(operator.and_, [isinstance(i,bool) for i in ccs.mask]):
+            
+            print "A variable mask was given as 'ccs.mask' but it was not a list of booleans"
+            return False
+
+        return True
 
     def __init__(self, s):
         """
@@ -781,15 +799,17 @@ class ComplexCoordSys(CoordSys):
         True
 
         """
-        if isinstance(s, str):
+        from_str = isinstance(s, str)
+        carts = None
+        if from_str:
             self.test_matches(s)
             exec(s)
             self._parts = ccs.parts
-            carts = ccs.carts
+            if ccs.carts != None:
+                carts = ccs.carts.get_cartesians()
             mask = ccs.mask
         else:
             self._parts = s
-            carts = None
             mask = None
 
         has_no_anc = numpy.array([p._anchor == Dummy() for p in self._parts])
@@ -799,6 +819,9 @@ class ComplexCoordSys(CoordSys):
 
         l_join = lambda a, b: a + b
         atom_symbols = reduce(l_join, [p.get_chemical_symbols() for p in self._parts])
+        if carts != None and atom_symbols != ccs.carts.get_chemical_symbols():
+            s = "%s\nand\n%s" % (str(atom_symbols), str(ccs.carts.get_chemical_symbols()))
+            raise ComplexCoordSysException("Atomic symbols of given Cartesian geometry do not match those specified for construction of the ComplexCoordSystem:\n" + s)
 
         if carts == None:
             carts = self.get_cartesians()
@@ -873,6 +896,7 @@ class XYZ(CoordSys):
 
     def __init__(self, mol):
 
+        assert isinstance(mol, str), "'mol' had type %s" % type(mol)
         molstr = self._get_mol_str(mol)
         if molstr[-1] != '\n':
             molstr += '\n'
@@ -885,7 +909,7 @@ class XYZ(CoordSys):
         else:
             line2 = ''
         fp_nums = re.findall(r"-?\d+\.\d*", line2)
-        energy = 0
+        energy = None
         if len(fp_nums) == 1:
             energy = float(fp_nums[0])
             molstr = '\n'.join(molstr_lines[2:]) + '\n'
@@ -903,8 +927,9 @@ class XYZ(CoordSys):
             self._coords.reshape(-1,3), 
             self._coords)
 
-        calc_tuple = SinglePointCalculator, [energy, None, None, None, self._atoms], {}
-        self.set_calculator(calc_tuple)
+        if energy != None:
+            calc_tuple = SinglePointCalculator, [energy, None, None, None, self._atoms], {}
+            self.set_calculator(calc_tuple)
 
         self._kinds = ['cart' for i in range(len(coords) * 3)]
 
@@ -1056,6 +1081,7 @@ class ZMatrix2(CoordSys):
 
     def __init__(self, mol, anchor=Dummy()):
 
+        assert isinstance(anchor, Anchor)
         molstr = self._get_mol_str(mol)
 
         self.zmtatoms = []
