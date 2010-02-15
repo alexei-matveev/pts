@@ -371,12 +371,13 @@ class ZMat(NumDiff):
             #
             # Orthogonal basis using the three anchor points:
             #
-            i, j, k = reper(A, B, C)
+            ijk = reper(A, B, C)
 
             # The default settings for the anchor points (see above)
             # together with the (custom) implementation of the reper()
             # function will lead to:
             #
+            #    i, j, k = reper(A, B, C)
             #    i = [ 0.  1.  0.]
             #    j = [ 0.  0. -1.]
             #    k = [ 1.  0.  0.]
@@ -390,7 +391,7 @@ class ZMat(NumDiff):
             #        with legacy code?
             #
 
-            X = A + v[0] * i + v[1] * j + v[2] * k
+            X = A + dot(v, ijk) # v[0] * i + v[1] * j + v[2] * k
 
             return X
 
