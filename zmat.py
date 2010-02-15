@@ -328,8 +328,20 @@ class ZMat(NumDiff):
 
             # print "z-entry =", a, b, c, idst, iang, idih
 
-            # default values:
-            dst, ang, dih, A, B, C = (None,) * 6
+            # default values for internal coordinates:
+            dst = 0.0
+            ang = 0.0
+            dih = 0.0
+
+            #
+            # Default values for anchor points (see also how reper()
+            # is constructed from these). These settings ensure that
+            # by default position start in x-direction, with bending
+            # moving them down in z-direction as in legacy implemetations.
+            #
+            A = array((0.,  0.,  0.))
+            B = array((1.,  0.,  0.))
+            C = array((0.,  0., -1.))
 
             if a is not None:
                 # sanity:
@@ -357,9 +369,32 @@ class ZMat(NumDiff):
                 C = pos(c)
                 dih = vars[idih]
 
-            # actuall computation with proper defaults
-            # in case some of arguments are not set:
-            X = pos3(dst, ang, dih, A, B, C)
+            # spherical to cartesian transformation here:
+            v = r3(dst, ang, dih) # = r3(r, theta, phi)
+
+            #
+            # Orthogonal basis using the three anchor points:
+            #
+            i, j, k = reper(A, B, C)
+
+            # The default settings for the anchor points (see above)
+            # together with the (custom) implementation of the reper()
+            # function will lead to:
+            #
+            #    i = [ 0.  1.  0.]
+            #    j = [ 0.  0. -1.]
+            #    k = [ 1.  0.  0.]
+            #
+            # For general values of (A, B, C) one has
+            #
+            #    k ~ AB, j ~ [AC x k], i = [k x j]
+            #
+            # FIXME: This appears to be a left-reper, e.g [i x j] = -k,
+            #        is there a better way to achive compatibility
+            #        with legacy code?
+            #
+
+            X = A + v[0] * i + v[1] * j + v[2] * k
 
             return X
 
@@ -398,58 +433,71 @@ class ZMat(NumDiff):
 
         return vars
 
-def pos3(dst, ang, dih, A=None, B=None, C=None):
-    """Compute atomic position X, given the distance, angle,
-    and dihedral coordinates for X in the four-chain X-A-B-C.
+def unit(v):
+    "Normalize a vector"
+    n = sqrt(dot(v, v))
+    # numpy will just return NaNs:
+    if n == 0.0: raise ZMError("divide by zero")
+    return v / n
+
+def reper(A, B, C):
+    """Returns orthogonal basis [i, j, k] where
+    "k" is parallel to AB
+    "i" is in ABC plane and
+    "j" is orthogonal to that plane
+
+    Example:
+
+        >>> A = array((0., 0., 0.))
+        >>> B = array((1., 0., 0.))
+        >>> C = array((0., 1., 0.))
+        >>> print reper(A, B, C)
+        [[-0.  1.  0.]
+         [ 0.  0. -1.]
+         [ 1.  0.  0.]]
     """
 
-    # default origin:
-    if A is None:
-        return array((0.0, 0.0, 0.0))
-
-    # default X-axis:
-    if B is None:
-        return array((dst, 0.0, 0.0)) # FXIME: X-axis
-
-    # default plane here:
-    if C is None:
-        C = array((0.0, 1.0, 0.0))
-        dih = pi / 2.0
-
-    # normalize vector:
-    def unit(v):
-        n = sqrt(dot(v, v))
-        # numpy will just return NaNs:
-        if n == 0.0: raise ZMError("divide by zero")
-        return v / n
-
     # two vectors in ABC-plane:
-    ab = A - B
-    ac = A - C
+    ab = B - A
+    ac = C - A
 
     #
     # Unit vectors for local coordiante system:
     #
 
     # unit vector in AB-direciton:
-    i = unit(ab)
+    k = unit(ab)
 
     # orthogonal to ABC plane:
-    k = unit(cross(ab, ac))
+    j = unit(cross(ac, k))
 
     # in ABC-plane, orthogonal to AB:
-    j = unit(cross(ab, k))
+    # i = unit(cross(j, k))
+    i = unit(cross(k, j))
+    # This appears to be a left-reper compatible with legacy code!
 
-    #
-    # Unit vector in jk-plane, along the intersection
-    # line with the dihedral plane:
-    #
-    l = unit(j * cos(dih) - k * sin(dih))
+    return array([i, j, k])
 
-    # il-plane is the dihedral plane:
-    X = A - dst * (i * cos(ang) - l * sin(ang))
+def r3(r, theta, phi):
+    """Spherical to cartesian transformation.
 
-    return X
+        >>> from numpy import round
+
+        >>> print r3(8., 0., 0.)
+        [ 0.  0.  8.]
+
+        >>> print round(r3(8., pi/2., 0.), 4)
+        [ 8.  0.  0.]
+
+        >>> print round(r3(8., pi/2., pi/2.), 4)
+        [ 0.  8.  0.]
+    """
+
+    z = r * cos(theta)
+    x = r * sin(theta) * cos(phi)
+    y = r * sin(theta) * sin(phi)
+
+    return array([x, y, z])
 
 
 # "python zmap.py", eventualy with "-v" option appended:
