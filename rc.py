@@ -190,11 +190,14 @@ class Volume(Func):
         # final derivatives:
         fprime = zeros(shape(x))
 
-        f, fprime[four] = volume(x[four])
+        f, fprime[four] = _volume(x[four])
 
         return f, fprime
 
-def volume(x):
+# one instance of Volume(Func):
+volume = Volume()
+
+def _volume(x):
 
     a = x[1] - x[0]
     b = x[2] - x[1]
@@ -248,11 +251,14 @@ class Distance(Func):
         # final derivatives:
         fprime = zeros(shape(x))
 
-        f, fprime[two] = distance(x[two])
+        f, fprime[two] = _distance(x[two])
 
         return f, fprime
 
-def distance(x):
+# one instance of Distance(Func):
+distance = Distance()
+
+def _distance(x):
 
     d = x[1] - x[0]
 
@@ -300,11 +306,14 @@ class Angle(Func):
         # final derivatives:
         fprime = zeros(shape(x))
 
-        f, fprime[three] = angle(x[three])
+        f, fprime[three] = _angle(x[three])
 
         return f, fprime
 
-def angle(x):
+# one instance of Angle(Func):
+angle = Angle()
+
+def _angle(x):
 
     a = x[0] - x[1]
     b = x[2] - x[1]
@@ -432,11 +441,14 @@ class Dihedral(Func):
         # final derivatives stored here:
         fprime = zeros(shape(x))
 
-        f, fprime[four] = dihedral(x[four])
+        f, fprime[four] = _dihedral(x[four])
 
         return f, fprime
 
-def dihedral(x):
+# one instance of Dihedral(Func):
+dihedral = Dihedral()
+
+def _dihedral(x):
     # code uses the stable recipie for derivatives
     # see, e.g. http://bcr.musc.edu/manuals/MODELLER6v0/manual/node180.html
 

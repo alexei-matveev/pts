@@ -416,19 +416,17 @@ class ZMat(NumDiff):
         x = 0
         for a, b, c, idst, iang, idih in self.__zm:
             #
-            # Note: distance/angle/dihedral from rc.py return
-            # a tuple of a value and derivative, so far
-            # only the value is used. Also these funcitons
+            # Note: distance/angle/dihedral from rc.py 
             # expect the 3D coordiantes of involved atoms
             # in a single array. We provide them by list-indexing
             # into the array "atoms".
             #
             if a is not None:
-                vars[idst] = distance(atoms[[x, a]])[0]
+                vars[idst] = distance(atoms[[x, a]])
             if b is not None:
-                vars[iang] = angle(atoms[[x, a, b]])[0]
+                vars[iang] = angle(atoms[[x, a, b]])
             if c is not None:
-                vars[idih] = dihedral(atoms[[x, a, b, c]])[0]
+                vars[idih] = dihedral(atoms[[x, a, b, c]])
             x += 1
 
         return vars
