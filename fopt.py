@@ -285,7 +285,7 @@ def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, he
     # of the gradient and step:
     return r, e, (iteration, converged, g, dr)
 
-def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, maxiter=50, maxstep=0.04, alpha=70.0, hess="BFGS"):
+def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, maxiter=50, maxstep=0.04, alpha=70.0, hess="LBFGS"):
     """Search for a minimum of fg(x)[0] using the gradients fg(x)[1]
     subject to constrains cg(x)[0] = const.
 
