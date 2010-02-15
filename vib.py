@@ -158,76 +158,66 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central' ):
     The gradient/derivative given back can also be an array
     '''
     assert direction in ['central', 'forward', 'backward']
+    x0 = np.asarray(x0)
 
     if direction =='backward':
     # change sign of delta if other direction is wanted
          delta = -delta
-    xs = []
+
     # find out how many geoemtry elements there are
     # different treatments for arrays, lists of single
     # elements
     # if x was an array, the system has to remember it
     # to converge x back for the function calculation
+
     try:
         (dirone, dirtwo) = x0.shape
-        geolen = dirone * dirtwo
-        isarray = True
-    except AttributeError:
-        isarray = False
-        try:
-           geolen = len(x0)
-        except TypeError:
-           geolen = 1
-           x0 = [x0]
+    except ValueError:
+         dirtwo = 1
+         try:
+             (dirone,) = x0.shape
+         except ValueError:
+             dirone = 1
+         x0.shape = (dirone, dirtwo)
 
-    def newgeo( xmidd, num, delta, plus, isarr):
-        # makes a new element for the lists of
-        # requiered geometries, considers
-        # array treatment, and directions for the
-        # displacement of the i'th element
-        xwk = []
-        if isarr:
-            xwk.extend(xmidd.flatten())
-        else:
-            xwk.extend(xmidd)
-        if plus:
-            xwk[num] += delta
-        else:
-            xwk[num] -= delta
-        if isarr:
-            xwk = np.array(xwk)
-            xwk = np.reshape(xwk,(dirone, dirtwo))
-        return xwk
+    geolen = dirone * dirtwo
 
     # building up the list of wanted geometries
     # consider the different directions
     if direction == 'central':
+        xs = np.zeros([geolen * 2, dirone, dirtwo])
         # two inputs per geometry values
         # one in each direction
-        for  i in range(0, geolen):
-            xwork = newgeo(x0, i, delta, True, isarray )
-            xs.append(xwork)
-            xwork = newgeo(x0, i, delta, False, isarray )
-            xs.append(xwork)
+        elem = 0
+        for  i in range(0, dirone):
+            for j in range(0, dirtwo):
+                xs[elem] = x0
+                xs[elem][i, j] += delta
+                elem += 1
+                xs[elem] = x0
+                xs[elem][i, j] -= delta
+                elem += 1
     else:
+        xs = np.empty([geolen + 1, dirone, dirtwo])
         # first for the middle geometry the value is
         # needed
-        xs.append(x0)
+        xs[0] = x0
+        elem = 1
         # for the rest only one per geometry
-        for  i in range(0, geolen):
-            xwork = newgeo(x0, i, delta, True, isarray )
-            xs.append(xwork)
+        for  i in range(0, dirone):
+            for j in range(0, dirtwo):
+                xs[elem] = x0
+                xs[elem][i, j] += delta
+                elem += 1
 
     # calculation of the functionvalues for all the geometries
     # at the same time
     g1 = p_map(g0, xs)
+    g1 = np.asarray(g1)
     # now it is possible to find out, how big g1 is
     # g1 may be an array (then we want the total length
     # not only in one direction
-    try:
-        derlen = len(g1[0].flatten())
-    except AttributeError:
-        derlen = len(g1[0])
+    derlen = len(g1[0].flatten())
 
     # deriv is the matrix with the derivatives
     # for g = deriv * geo
@@ -239,33 +229,17 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central' ):
         for i in range(0, geolen):
         # alternate the values for plus and minus are stored
         # if the g elements are arrays they have to be converged
-            try:
-                gplus = g1[2*i].flatten()
-                gminus = g1[2*i+1].flatten()
-            except AttributeError:
-                gplus = g1[2*i]
-                gminus = g1[2*i+1]
-
-            for j in range(0,len(gplus)):
-                 deriv[i,j] = ( gplus[j] - gminus[j]) / (2 * delta)
+            gplus = g1[2*i].flatten()
+            gminus = g1[2*i+1].flatten()
+            deriv[i,:] = (gplus - gminus) / ( 2 * delta)
     else:
-        # first one is the middle one, then the others in a line
         gmiddle = g1[0]
-        # if gmiddle is an array:
-        try:
-            gmiddle = gmiddle.flatten()
-        except AttributeError:
-            pass
+        gmiddle = gmiddle.flatten()
 
         for i, gval  in enumerate(g1[1:]):
-            # if g is an array
-            try:
-                 gval = gval.flatten()
-            except AttributeError:
-                 pass
+            gval = gval.flatten()
+            deriv[i,:] = (gval - gmiddle) / delta
 
-            for j in range(0,len(gval)):
-                 deriv[i,j] = (gval[j] - gmiddle[j]) / delta
     return deriv
 
 def vibmodes(atoms, func, delta = 0.01, p_map = pa_map, direction = 'central', alsovec = False):
