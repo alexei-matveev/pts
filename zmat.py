@@ -255,23 +255,19 @@ class ZMat(NumDiff):
             # 0x3 array:
             self.__fixed = array([]).reshape(0, 3)
 
-
-    def f(self, v):
-        "Use the input array |v| as values for internal coordinates and return cartesians"
-
-        # use ZM representation and values for internal coords
-        # to compute cartesians:
-        return self.__z2c(v)
-
     # For the time without separate implementation
     # inherit from NumDiff:
 #   def fprime(self, v):
 #       # either num-diff or anything better goes here:
 #       raise NotImplemented
 
-    def __z2c(self, vars):
-        """Generates cartesian coordinates from z-matrix and the current set of
-        internal coordinates. Based on code in OpenBabel."""
+    def f(self, vars):
+        """Use the input array |vars| as values for internal coordinates
+        and return cartesians. Based on code in OpenBabel.
+        """
+
+        # use ZM representation and values for internal coords
+        # to compute cartesians:
 
         # number of atoms in z-part
         na = len(self.__zm)
