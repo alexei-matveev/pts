@@ -53,8 +53,8 @@ class QFunc(Func):
     def __init__(self, atoms, calc=LennardJones()):
 
         # we are going to repeatedly set_positions() for this instance,
-        # do we make a copy to avoid effects visible outside?
-        self.atoms = atoms # .copy() ?
+        # So we make a copy to avoid effects visible outside:
+        self.atoms = atoms.copy()
         self.calc = calc
         self.atoms.set_calculator(calc)
 
