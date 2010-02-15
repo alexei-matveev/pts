@@ -168,10 +168,10 @@ positions, including those of the "surface" atoms:
 """
 
 from numpy import pi, sin, cos, cross, dot, sqrt, arccos
-from numpy import array, asarray, empty
+from numpy import array, asarray, empty, max, abs
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
-from func import NumDiff
+from func import Func, NumDiff
 from rc import distance, angle, dihedral
 
 class ZMError(Exception):
@@ -366,7 +366,7 @@ class ZMat(NumDiff):
                 dih = vars[idih]
 
             # spherical to cartesian transformation here:
-            v = r3(dst, ang, dih) # = r3(r, theta, phi)
+            v = r3((dst, ang, dih)) # = r3(r, theta, phi)
 
             #
             # Orthogonal basis using the three anchor points:
@@ -473,26 +473,75 @@ def reper(A, B, C):
 
     return array([i, j, k])
 
-def r3(r, theta, phi):
+class R3(Func):
     """Spherical to cartesian transformation.
 
         >>> from numpy import round
 
-        >>> print r3(8., 0., 0.)
+        >>> r3 = R3()
+
+        >>> vz = (8., 0., 0.)
+        >>> vx = (8., pi/2., 0.)
+        >>> vy = (8., pi/2., pi/2.)
+
+        >>> print r3(vz)
         [ 0.  0.  8.]
 
-        >>> print round(r3(8., pi/2., 0.), 4)
+        >>> print round(r3(vx), 4)
         [ 8.  0.  0.]
 
-        >>> print round(r3(8., pi/2., pi/2.), 4)
+        >>> print round(r3(vy), 4)
         [ 0.  8.  0.]
+
+        >>> r4 = NumDiff(r3)
+        >>> max(abs(r3.fprime(vz) - r4.fprime(vz))) < 1e-10
+        True
+        >>> max(abs(r3.fprime(vx) - r4.fprime(vx))) < 1e-10
+        True
+        >>> max(abs(r3.fprime(vy) - r4.fprime(vy))) < 1e-10
+        True
     """
 
-    z = r * cos(theta)
-    x = r * sin(theta) * cos(phi)
-    y = r * sin(theta) * sin(phi)
+    def f(self, args):
 
-    return array([x, y, z])
+        r, theta, phi = args
+
+        z = r * cos(theta)
+        x = r * sin(theta) * cos(phi)
+        y = r * sin(theta) * sin(phi)
+
+        return array([x, y, z])
+
+    def fprime(self, args):
+
+        r, theta, phi = args
+
+        ct, st =  cos(theta), sin(theta)
+        cp, sp =  cos(phi),   sin(phi)
+
+        z = ct
+        x = st * cp
+        y = st * sp
+
+        fr = array([x, y, z])
+
+        z = - st
+        x = + ct * cp
+        y = + ct * sp
+
+        ft = array([x, y, z]) * r
+
+        z = 0.0
+        x = - st * sp
+        y = + st * cp
+
+        fp = array([x, y, z]) * r
+
+        # convention: fprime[i, k] = df_i / dx_k
+        return array([fr, ft, fp]).transpose()
+
+# one instance of R3(Func):
+r3 = R3()
 
 
 # "python zmap.py", eventualy with "-v" option appended:
