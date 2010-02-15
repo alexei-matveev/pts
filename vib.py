@@ -243,6 +243,12 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central' ):
     return deriv
 
 def vibmodes(atoms, func, delta = 0.01, p_map = pa_map, direction = 'central', alsovec = False):
+     xcenter = atoms.get_positions()
+     mass1 = atoms.get_masses()
+     massvec = np.repeat(mass1**-0.5, 3)
+     vibmod( xcenter, massvec, func, delta = delta, p_map = p_map, direction = direction, alsovec = alsovec)
+
+def vibmod(xcenter, massvec, func, delta = 0.01, p_map = pa_map, direction = 'central', alsovec = False):
      """
      calculates the vibration modes in harmonic approximation
 
@@ -261,17 +267,15 @@ def vibmodes(atoms, func, delta = 0.01, p_map = pa_map, direction = 'central', a
      alsovec says that not only the frequencies of the mode but also the eigenvectors are 
      wanted
      """
+     massvec = np.asarray(massvec)
 
      # define the place where the calculation should run
-     xcenter = atoms.get_positions()
      # the derivatives are needed
      hessian = derivatef( func, xcenter, delta = delta, p_map = p_map, direction = direction )
      # make sure that the hessian is hermitian:
      hessian = 0.5 * (hessian + hessian.T)
 
      # include the mass elements
-     mass1 = atoms.get_masses()
-     massvec = np.repeat(mass1**-0.5, 3)
      eigvalues, eigvectors = np.linalg.eigh(massvec.T * hessian * massvec)
 
      # scale eigenvalues in different units:
