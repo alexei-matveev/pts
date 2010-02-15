@@ -13,19 +13,19 @@ minimizers):
     >>> from numpy import round
     >>> n = 6
 
-    >>> b, fb, _ = minimize(f, [0., 0.])
+    >>> b, fb, stats = minimize(f, [0., 0.])
     >>> round(b, n)
     array([ 0.623499,  0.028038])
     >>> round(fb, n)
     -108.166724
 
-    >>> a, fa, _ = minimize(f, [-1., 1.])
+    >>> a, fa, stats = minimize(f, [-1., 1.])
     >>> round(a, n)
     array([-0.558224,  1.441726])
     >>> round(fa, n)
     -146.69951699999999
 
-    >>> c, fc, _ = minimize(f, [0., 1.])
+    >>> c, fc, stats = minimize(f, [0., 1.])
     >>> round(c, n)
     array([-0.050011,  0.466694])
     >>> round(fc, n)
