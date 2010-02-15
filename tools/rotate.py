@@ -61,7 +61,7 @@ def main(argv=None):
             raise Usage("Must specify two files")
 
         sep_str = args[2]
-        run(sep_str, args[0], args[1], [0,1,2,3])
+        run(sep_str, args[0], args[1], [0,1,2,3,4])
 
     except Usage, err:
         print >>sys.stderr, err.msg
@@ -121,10 +121,11 @@ def run(order_str, fn1, fn2, ixs=None):
 
     r = Rotate(g1.copy(), g2.copy(), ixs=ixs)
 
-    x, g2_new = r.align()
+    x, err, g2_new, _ = r.align()
     print "Optimising vector:", x
+    print "Alignment error:", err
 
-#    g2_new = r.trans(g2, x)
+    g2_new = r.trans(g2, x)
     a1.set_chemical_symbols(chem_symbols)
     a2.set_chemical_symbols(chem_symbols)
 
@@ -279,8 +280,10 @@ def cart_diff(c0, c1):
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
+    if len(sys.argv) == 1:
+        import doctest
+        doctest.testmod()
+        exit()
 
     sys.exit(main())
 

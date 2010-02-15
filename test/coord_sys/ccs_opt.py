@@ -19,7 +19,7 @@ ccs = ComplexCoordSys(file2str(fn))
 #exit()
 
 g = Gaussian()
-ccs.set_calculator((Gaussian, [], {'charge': -1}))
+ccs.set_calculator((Gaussian, [], {'charge': 0, 'mult': 3}))
 
 opt = ase.LBFGS(ccs)
 pt = PickleTrajectory("test.traj", mode='w')
