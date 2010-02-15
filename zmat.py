@@ -16,10 +16,11 @@ for empty tuple, 1-tuple, and a 2-tuple as:
 Values of internal coordinates have to be provided separately:
 
     >>> h2o = (0.96, 0.96, 104.5 * pi / 180.0)
-    >>> zm(h2o)
-    array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
-           [  9.60000000e-01,   0.00000000e+00,   0.00000000e+00],
-           [ -2.40364804e-01,   5.69106676e-17,  -9.29421735e-01]])
+    >>> from numpy import round
+    >>> print round(zm(h2o), 7)
+    [[ 0.         0.         0.       ]
+     [ 0.96       0.         0.       ]
+     [-0.2403648  0.        -0.9294217]]
 
 The entries may come in any order, but cross-referencing should
 be correct:
@@ -30,10 +31,10 @@ be correct:
 The order of internal variables is "left to right":
 
     >>> h2o = (0.96, 104.5 * pi / 180.0, 0.96)
-    >>> zm(h2o)
-    array([[ -2.40364804e-01,   5.69106676e-17,  -9.29421735e-01],
-           [  9.60000000e-01,   0.00000000e+00,   0.00000000e+00],
-           [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00]])
+    >>> print round(zm(h2o), 7)
+    [[-0.2403648  0.        -0.9294217]
+     [ 0.96       0.         0.       ]
+     [ 0.         0.         0.       ]]
 
 The |pinv| (pseudo-inverse) method of the ZMat() given the cartesian coordinates
 returns the internals according to the definition of connectivities
@@ -85,12 +86,12 @@ Internal coordinates:
 
 Cartesian geometry:
 
-    >>> z4(ch4)
-    array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
-           [  1.09000000e+00,   0.00000000e+00,   0.00000000e+00],
-           [ -3.63849477e-01,   6.29149572e-17,  -1.02747923e+00],
-           [ -3.63849477e-01,  -8.89823111e-01,   5.13739613e-01],
-           [ -3.63849477e-01,   8.89823111e-01,   5.13739613e-01]])
+    >>> print round(z4(ch4), 7)
+    [[ 0.         0.         0.       ]
+     [ 1.09       0.         0.       ]
+     [-0.3638495  0.        -1.0274792]
+     [-0.3638495 -0.8898231  0.5137396]
+     [-0.3638495  0.8898231  0.5137396]]
 
 Test consistency with the inverse transformation:
 
@@ -100,24 +101,24 @@ Test consistency with the inverse transformation:
 "Breathing" mode derivative (estimate by num. diff.):
 
     >>> d1 = (z4(ch4 * 1.001) - z4(ch4)) / 0.001
-    >>> d1
-    array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
-           [  1.09000000e+00,   0.00000000e+00,   0.00000000e+00],
-           [ -2.32879885e+00,   2.01785263e-17,  -3.29540342e-01],
-           [ -2.32879885e+00,   7.92879953e-01,   2.02788058e+00],
-           [ -2.32879885e+00,  -7.92879953e-01,   2.02788058e+00]])
+    >>> print round(d1, 7)
+    [[ 0.         0.         0.       ]
+     [ 1.09       0.         0.       ]
+     [-2.3287989  0.        -0.3295403]
+     [-2.3287989  0.79288    2.0278806]
+     [-2.3287989 -0.79288    2.0278806]]
 
 "Breathing" mode derivative (estimate using zm.fprime):
 
     >>> d2 = dot(z4.fprime(ch4), ch4)
-    >>> d2
-    array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
-           [  1.09000000e+00,   0.00000000e+00,   0.00000000e+00],
-           [ -2.32750153e+00,   2.03360906e-17,  -3.32113563e-01],
-           [ -2.32750153e+00,   7.88354946e-01,   2.02969795e+00],
-           [ -2.32750153e+00,  -7.88354946e-01,   2.02969795e+00]])
+    >>> print round(d2, 7)
+    [[ 0.         0.         0.       ]
+     [ 1.09       0.         0.       ]
+     [-2.3275015  0.        -0.3321136]
+     [-2.3275015  0.7883549  2.0296979]
+     [-2.3275015 -0.7883549  2.0296979]]
 
-    >>> from numpy import max, abs, round
+    >>> from numpy import max, abs
     >>> print round(max(abs(d2-d1)), 4)
     0.0045
 
@@ -365,8 +366,7 @@ class ZMat(NumDiff):
         # force evaluation of all positions:
         for x in range(na + ne):
             # calling pos(x) will set xyz[x] and xyz[y] for all y's
-            # that are required to compute pos(x). Here we assume
-            # left-to-right evaluation order:
+            # that are required to compute pos(x).
             p = pos(x)
             q = xyz[x]
             if (p != q).any():
