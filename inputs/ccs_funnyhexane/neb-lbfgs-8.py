@@ -64,7 +64,7 @@ params = {
 beads_count = 8  # number of beads
 ftol = 0.1       # optimiser force tolerance
 xtol = 0.03      # opt step tolerance
-maxit = 50       # max iterations
+maxit = 1       # max iterations
 spr_const = 5.0  # NEB spring constant (ignored for string)
 maxstep = 0.1
 

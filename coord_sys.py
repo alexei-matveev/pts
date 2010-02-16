@@ -448,6 +448,17 @@ class CoordSys(object):
         return newx
         
     def _mask(self, x):
+        if self._var_mask == None:
+            return x
+
+        assert len(x) == len(self._var_mask)
+        l = [x[i] for i in range(len(x)) if self._var_mask[i]]
+        if isinstance(x, list):
+            return l
+        else:
+            return numpy.array(l)
+
+    def _mask_old(self, x):
         """Builds a vector of internal variables by only including those that 
         are specified."""
         if self._var_mask == None:
@@ -455,7 +466,7 @@ class CoordSys(object):
 
         j = 0
         output = numpy.zeros(self.dims) * numpy.nan
-        assert len(self._var_mask) == len(x)
+        assert len(self._var_mask) == len(x), "%d != %d" % (len(self._var_mask), len(x))
         for m, xi in zip (self._var_mask, x):
             if m:
                 output[j] = xi
@@ -931,7 +942,8 @@ class XYZ(CoordSys):
             calc_tuple = SinglePointCalculator, [energy, None, None, None, self._atoms], {}
             self.set_calculator(calc_tuple)
 
-        self._kinds = ['cart' for i in range(len(coords) * 3)]
+        assert len(self._coords) == self._coords.size
+        self._kinds = ['cart' for i in self._coords]
 
 
     def __repr__(self):
