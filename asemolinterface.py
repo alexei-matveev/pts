@@ -154,7 +154,7 @@ class MolInterface:
         zmt1; this should raise an error at some point.
         (test not yet implemented however)
         >>> mi = MolInterface([zmt1, zmt3])
-        Error
+        TODO: need to add an extra test so that this fails.
 
         >>> mi = MolInterface([zmt1, zmt2])
         

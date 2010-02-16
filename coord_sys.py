@@ -18,8 +18,6 @@ from ase.calculators import SinglePointCalculator
 import common
 import zmat
 
-numpy.set_printoptions(precision=3)
-
 class ccsspec():
     def __init__(self, parts, carts=None, mask=None):
         self.parts = parts
@@ -887,7 +885,9 @@ class ComplexCoordSys(CoordSys):
             p.set_cartesians(x[asum:asum + p.atoms_count])
             asum += p.atoms_count
 
-        assert (self.get_cartesians()  - x).sum().round(4) == 0, "%s" % (self.get_cartesians() - x)
+        assert (self.get_cartesians()  - x).sum().round(4) == 0, \
+            "Convergence not reached when numerically setting internals from \
+            Cartesians, errors were: %s" % (self.get_cartesians() - x)
         self._coords = numpy.hstack([p.get_internals() for p in self._parts])
  
 class XYZ(CoordSys):
@@ -1019,12 +1019,14 @@ class ZMatrix2(CoordSys):
 
         >>> ints = z.get_internals()
 
-        >>> z.get_cartesians()
-        array([[  0.00000000e+00,   0.00000000e+00,   0.00000000e+00],
-               [  1.09000000e+00,   0.00000000e+00,   0.00000000e+00],
-               [  5.04109050e-01,   5.91763623e-17,  -9.66423337e-01],
-               [ -3.63849477e-01,  -9.68544549e-01,   3.42979613e-01],
-               [ -9.55567765e-01,  -1.43335165e+00,   8.27545960e-01]])
+        >>> from numpy import round
+        >>> print round(z.get_cartesians(), 7)
+        [[ 0.         0.         0.       ]
+         [ 1.09       0.         0.       ]
+         [ 0.504109   0.        -0.9664233]
+         [-0.3638495 -0.9685445  0.3429796]
+         [-0.9555678 -1.4333516  0.827546 ]]
+
         >>> cs = z.get_cartesians() + 1000
         >>> z.set_cartesians(cs)
         >>> from numpy import abs
