@@ -274,7 +274,10 @@ def ps_map(g, xs):
 #               depending on what is choosen as Worker and Queue
 #               in the import part
 
-def pa_map(f, xs):
+def pacd_map(f, xs):
+    return pa_map(f, xs, chadir = True)
+
+def pa_map(f, xs, chadir = False):
     """
     Variant of map which works both with Threads or Processes (of
     the processing/multiprocessing module)
@@ -292,11 +295,17 @@ def pa_map(f, xs):
     def worksingle(i, x, q):
         q.put((i, f(x)))
 
+    def worksinglecd(i, x, q):
+        q.put((i, f(x,i)))
+
     # here I can put the results and get them back
     q = Queue()
 
     # Initialize the porcesses that should be used
-    workers = [ Worker(target=worksingle, args=(i, x, q)) for i, x in enumerate(xs) ]
+    if chadir:
+        workers = [ Worker(target=worksinglecd, args=(i, x, q)) for i, x in enumerate(xs) ]
+    else:
+        workers = [ Worker(target=worksingle, args=(i, x, q)) for i, x in enumerate(xs) ]
 
     # start all processes
     for w in workers:
