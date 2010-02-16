@@ -78,18 +78,18 @@ Ar4 Cluster as first simple atomic/molecule test system with
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      0       yes      0.0021796         17.5798776
-      1       yes      0.0021796         17.5798776
-      2       yes      0.0021796         17.5798776
-      3       yes      0.0000000          0.0000058
-      4       no       0.0000000          0.0000106
-      5       no       0.0000000          0.0000141
-      6       no       0.0773558        623.9162798
-      7       no       0.0773558        623.9162798
-      8       no       0.1094714        882.9459913
-      9       no       0.1094714        882.9459913
-     10       no       0.1094714        882.9459913
-     11       no       0.1548129       1248.6494855
+      0       no       0.1548129       1248.6494855
+      1       no       0.1094714        882.9459913
+      2       no       0.1094714        882.9459913
+      3       no       0.1094714        882.9459913
+      4       no       0.0773558        623.9162798
+      5       no       0.0773558        623.9162798
+      6       no       0.0000000          0.0000076
+      7       no       0.0000000          0.0000064
+      8       yes      0.0000000          0.0000056
+      9       yes      0.0021796         17.5798776
+     10       yes      0.0021796         17.5798776
+     11       yes      0.0021796         17.5798776
     ----------------------------------------------------
 
 
@@ -105,12 +105,12 @@ Ar4 Cluster as first simple atomic/molecule test system with
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      0       yes      0.0398776        321.6345510
-      1       yes      0.0398776        321.6345510
-      2       yes      0.0000000          0.0000048
+      0       no       0.2540363       2048.9398454
+      1       no       0.0000000          0.0000000
+      2       no       0.0000000          0.0000000
       3       no       0.0000000          0.0000000
-      4       no       0.0000000          0.0000000
-      5       no       0.2540363       2048.9398454
+      4       yes      0.0398776        321.6345510
+      5       yes      0.0398776        321.6345510
     ----------------------------------------------------
 
 
@@ -121,20 +121,22 @@ Ar4 Cluster as first simple atomic/molecule test system with
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      0       no       0.0000000          0.0000000
-      1       no       0.0000000          0.0000000
-      2       no       0.0000000          0.0000040
-      3       no       0.0046502         37.5060049
-      4       no       0.0046502         37.5060049
-      5       no       0.2324660       1874.9643134
+      0       no       0.2324660       1874.9643134
+      1       no       0.0046502         37.5060049
+      2       no       0.0046502         37.5060049
+      3       no       0.0000000          0.0000000
+      4       no       0.0000000          0.0000000
+      5       no       0.0000000          0.0000000
     ----------------------------------------------------
 
 """
 import numpy as np
+from scipy.linalg import eig
 from math import sqrt
-import ase
+import ase.atoms
 import ase.units as units
 from aof.paramap import pa_map, ps_map, td_map, pmap
+from sys import stdout
 
 def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central' ):
     '''
@@ -242,11 +244,11 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central' ):
 
     return deriv
 
-def vibmodes(atoms, func, delta = 0.01, p_map = pa_map, direction = 'central', alsovec = False):
+def vibmodes(atoms, func, **kwargs ):
      xcenter = atoms.get_positions()
      mass1 = atoms.get_masses()
-     massvec = np.repeat(mass1**-0.5, 3)
-     vibmod( xcenter, massvec, func, delta = delta, p_map = p_map, direction = direction, alsovec = alsovec)
+     massvec = np.eye(len(mass1) * 3) *  np.repeat(mass1, 3)
+     vibmod( xcenter, massvec, func, **kwargs)
 
 def vibmod(xcenter, massvec, func, delta = 0.01, p_map = pa_map, direction = 'central', alsovec = False):
      """
@@ -274,9 +276,13 @@ def vibmod(xcenter, massvec, func, delta = 0.01, p_map = pa_map, direction = 'ce
      hessian = derivatef( func, xcenter, delta = delta, p_map = p_map, direction = direction )
      # make sure that the hessian is hermitian:
      hessian = 0.5 * (hessian + hessian.T)
+     # and also the massvec
+     massvec = 0.5 * (massvec + massvec.T)
 
-     # include the mass elements
-     eigvalues, eigvectors = np.linalg.eigh(massvec.T * hessian * massvec)
+     # solves the eigenvalue problem w, vr = eig(a,b)
+     #   a * vr[:,i] = w[i] * b * vr[:,i]
+     eigvalues, eigvectors = eig(hessian, massvec)
+     eigvalues, eigvectors = normandsort(eigvalues, eigvectors, massvec)
 
      # scale eigenvalues in different units:
      # E = hbar * omega [eV] = hvar * [1/s]
@@ -295,11 +301,49 @@ def vibmod(xcenter, massvec, func, delta = 0.01, p_map = pa_map, direction = 'ce
      print "----------------------------------------------------"
 
      if (alsovec):
-          print "The corresponding eigenvectors are:"
+          writevec = stdout.write
+
+          # we want the eigenvector as EV[eigenvalue,:]:
+          eigvectors = eigvectors.T
+
+          # the eigenvectors are not normed, therefore:
+
+          # we don't know if they are cartesian
+          print "The corresponding eigenvectors  are:"
           print "Number   Vector"
-          for i, mode_e  in enumerate(modeenerg):
-               print "%3d     " % i, eigvectors[i]
+          for i, ev  in enumerate(eigvectors):
+               writevec("%3d :    " % i)
+               for j in range(int(len(ev)/3)):
+                    for k in [0,1,2]:
+                        writevec("  %10.7f" % (ev[j * 3 + k]))
+                    writevec("\n         " )
+               for k in range(int(len(ev)/3)*3,len(ev)):
+                    writevec("  %10.7f" % (ev[k]))
+               writevec("\n")
           print "----------------------------------------------------"
+          print "kinetic energy distribution"
+          ekin_ev = np.diag(np.dot(eigvectors, np.dot( massvec, eigvectors.T)))
+          print ekin_ev
+          print "Mode        %Ekin"
+          for i, ekin_e in enumerate(ekin_ev):
+              print "%3d :     %12.10f" % (i, ekin_e)
+          print "----------------------------------------------------"
+
+def normandsort(eigval, eigvec, metric):
+    # normingconstants for  the eigvec:
+    nor = np.diag(np.dot(eigvec.T, np.dot(metric, eigvec)))
+    # storage of eigenvalues and eigenvec
+    eigdata = np.zeros((len(eigval), len(eigval)+1))
+    # order after the eigvalues:
+    sorter = np.argsort(eigval.real, kind='mergesort')
+    # revert order (start with the biggest one)
+    # and order the eigenvectors with the same cheme
+    for i in range(len(eigval)):
+        eigdata[len(eigval)-1-i,0] = eigval[sorter[i]]
+        eigdata[len(eigval)-1-i,1:] =  eigvec[sorter[i]] / nor[sorter[i]]
+
+    return eigdata[:,0], eigdata[:,1:]
+
 
 # python vib.py [-v]:
 if __name__ == "__main__":
