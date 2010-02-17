@@ -1389,7 +1389,7 @@ class GrowingString(ReactionPathway):
 
         lg.info("******** String Grown to %d beads ********", self.beads_count)
 
-        self.prev_state = None
+        self.prev_state = self.state_vec.copy()
 
         return True
 
