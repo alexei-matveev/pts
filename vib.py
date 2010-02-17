@@ -138,7 +138,7 @@ import ase.units as units
 from aof.paramap import pa_map, ps_map, td_map, pmap
 from sys import stdout
 
-def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central' ):
+def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central', mask = None ):
     '''
     Derivates another function numerically,
 
@@ -158,6 +158,13 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central' ):
     and it will be made sure, that the input also gives arrays to the qc-calculators/functions
 
     The gradient/derivative given back can also be an array
+
+    mask decides on which variables from x0 the derivatives are wanted
+    default is mask= None, where for each element of x0 the calculation
+    takes place
+    else mask should have the length corresponding to the number of elements in x0
+    True stands for calculate derivative for this element, False stands for not
+    calculating
     '''
     assert direction in ['central', 'forward', 'backward']
     x0 = np.asarray(x0)
@@ -183,33 +190,54 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central' ):
          x0.shape = (dirone, dirtwo)
 
     geolen = dirone * dirtwo
+    # mask ==None is actually not was is wanted
+    # in this case it is reset to True for all
+    if mask == None:
+         mask = [True for i in range(geolen)]
+    # the length of the mask should be the number of geo_elements
+    assert len(mask) == geolen
+    # cnt_act_elem gives the number of geo_elements for which to
+    # calculate something
+    cnt_act_elem = mask.count(True)
 
     # building up the list of wanted geometries
     # consider the different directions
     if direction == 'central':
-        xs = np.zeros([geolen * 2, dirone, dirtwo])
+        xs = np.zeros([cnt_act_elem * 2, dirone, dirtwo])
         # two inputs per geometry values
         # one in each direction
+        # elem counts over all elements in x0
+        # act_elem only over those, which are wanted via the mask
         elem = 0
+        act_elem = 0
         for  i in range(0, dirone):
             for j in range(0, dirtwo):
-                xs[elem] = x0
-                xs[elem][i, j] += delta
-                elem += 1
-                xs[elem] = x0
-                xs[elem][i, j] -= delta
+                if mask[elem]:
+                    xs[act_elem] = x0
+                    xs[act_elem][i, j] += delta
+                    act_elem += 1
+                    xs[act_elem] = x0
+                    xs[act_elem][i, j] -= delta
+                    act_elem += 1
                 elem += 1
     else:
-        xs = np.empty([geolen + 1, dirone, dirtwo])
+        xs = np.empty([cnt_act_elem + 1, dirone, dirtwo])
         # first for the middle geometry the value is
         # needed
         xs[0] = x0
-        elem = 1
+        elem = 0
+        act_elem = 1
+        # elem counts over all elements in x0
+        # act_elem only over those, which are wanted via the mask
+        # act_elem starts as 1 as the geometry for the center is
+        # needed anyway
         # for the rest only one per geometry
         for  i in range(0, dirone):
             for j in range(0, dirtwo):
-                xs[elem] = x0
-                xs[elem][i, j] += delta
+                if mask[elem]:
+                    xs[act_elem] = x0
+                    xs[act_elem][i, j] += delta
+                    act_elem += 1
                 elem += 1
 
     # calculation of the functionvalues for all the geometries
@@ -223,12 +251,12 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central' ):
 
     # deriv is the matrix with the derivatives
     # for g = deriv * geo
-    deriv = np.zeros([geolen, derlen])
+    deriv = np.zeros([cnt_act_elem, derlen])
 
     # again the direction makes a difference
     # compare the formulas given above
     if direction == 'central':
-        for i in range(0, geolen):
+        for i in range(0, cnt_act_elem):
         # alternate the values for plus and minus are stored
         # if the g elements are arrays they have to be converged
             gplus = g1[2*i].flatten()
@@ -241,8 +269,16 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central' ):
         for i, gval  in enumerate(g1[1:]):
             gval = gval.flatten()
             deriv[i,:] = (gval - gmiddle) / delta
+    derivact = np.zeros([cnt_act_elem, cnt_act_elem])
 
-    return deriv
+    # the derivatives are only interesting regarding those
+    # coordinates which are active.
+    act_elem = 0
+    for i in range(len(mask)):
+        if mask[i]:
+            derivact[:,act_elem] = deriv[:,i]
+            act_elem += 1
+    return derivact
 
 def vibmodes(atoms, func, **kwargs ):
      xcenter = atoms.get_positions()
@@ -250,7 +286,7 @@ def vibmodes(atoms, func, **kwargs ):
      massvec = np.eye(len(mass1) * 3) *  np.repeat(mass1, 3)
      vibmod( xcenter, massvec, func, **kwargs)
 
-def vibmod(xcenter, massvec, func, delta = 0.01, p_map = pa_map, direction = 'central', alsovec = False):
+def vibmod(xcenter, massvec, func, delta = 0.01, p_map = pa_map, direction = 'central', alsovec = False, mask = None):
      """
      calculates the vibration modes in harmonic approximation
 
@@ -273,16 +309,33 @@ def vibmod(xcenter, massvec, func, delta = 0.01, p_map = pa_map, direction = 'ce
 
      # define the place where the calculation should run
      # the derivatives are needed
-     hessian = derivatef( func, xcenter, delta = delta, p_map = p_map, direction = direction )
+     hessian = derivatef( func, xcenter, delta = delta, p_map = p_map, direction = direction, mask = mask )
      # make sure that the hessian is hermitian:
      hessian = 0.5 * (hessian + hessian.T)
+
+     # change the mass vector according to the need
+     imax, jmax = massvec.shape
+     if mask == None:
+         mask = [True for i in range(imax)]
+     cnt_act_elem = mask.count(True)
+     mass = np.zeros([cnt_act_elem, cnt_act_elem])
+     i_mass = 0
+     for i in range(imax):
+         j_mass = 0
+         if mask[i]:
+              for j in range(jmax):
+                   if mask[j]:
+                       mass[i_mass, j_mass] = massvec[i,j]
+                       j_mass += 1
+              i_mass += 1
+
      # and also the massvec
-     massvec = 0.5 * (massvec + massvec.T)
+     mass = 0.5 * (mass + mass.T)
 
      # solves the eigenvalue problem w, vr = eig(a,b)
      #   a * vr[:,i] = w[i] * b * vr[:,i]
-     eigvalues, eigvectors = eig(hessian, massvec)
-     eigvalues, eigvectors = normandsort(eigvalues, eigvectors, massvec)
+     eigvalues, eigvectors = eig(hessian, mass)
+     eigvalues, eigvectors = normandsort(eigvalues, eigvectors, mass)
 
      # scale eigenvalues in different units:
      # E = hbar * omega [eV] = hvar * [1/s]
@@ -322,8 +375,7 @@ def vibmod(xcenter, massvec, func, delta = 0.01, p_map = pa_map, direction = 'ce
                writevec("\n")
           print "----------------------------------------------------"
           print "kinetic energy distribution"
-          ekin_ev = np.diag(np.dot(eigvectors, np.dot( massvec, eigvectors.T)))
-          print ekin_ev
+          ekin_ev = np.diag(np.dot(eigvectors, np.dot( mass, eigvectors.T)))
           print "Mode        %Ekin"
           for i, ekin_e in enumerate(ekin_ev):
               print "%3d :     %12.10f" % (i, ekin_e)
