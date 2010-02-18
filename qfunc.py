@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import with_statement # need to be at the beginning
 """
     >>> from ase import Atoms
     >>> ar4 = Atoms("Ar4")
@@ -140,6 +141,110 @@ class QFunc(Func):
 
         # return both:
         return e, g
+
+# a list of restartfiles that might be usefull to copy-in
+# for a warm-start of a calculation, if it is complete, no
+# modifications to ASE are necessary:
+RESTARTFILES = ["WAVECAR", "saved_scfstate.dat", "*.testme"]
+
+class QContext(object):
+    """For the option of working in a workingdirectory different to
+    the one used, and the possibility to use old stored datafiles
+    for restart some extra parameters are needed
+
+    WARNING: this will create and remove a directory |dir|:
+
+    This does not need to be an absolute path, of course:
+
+        >>> dir = "/tmp/666777888999000111"
+        >>> preparations = QContext(wd=dir)
+
+    The commands in the block will be executed with |dir| as $CWD:
+
+        >>> with preparations:
+        ...     print getcwd()
+        /tmp/666777888999000111
+
+        >>> system("rmdir " + dir)
+        0
+    """
+    def __init__(self, wd = None, restartdir = None):
+
+        # working directory (may not yet exist):
+        self.wd = wd
+
+        # restart files copied from or put there:
+        self.restartdir = restartdir
+
+    def __enter__(self):
+        # the number is used to get a unique working directory, if several tasks are
+        # performed in parallel, this might be useful. As a default the working directory
+        # is not changed:
+        if self.wd is None: return
+
+        # save for __exit__ to chdir back:
+        self.__cwd = getcwd()
+
+        # first the working directory is changed to
+        # If it does not exist, it is
+        # created, make sure that if it exists, there is
+        # no grabage inside
+
+        # print "QContext: change directory"
+        # print "QContext: chdir to", self.wd
+        if not path.exists(self.wd):
+            mkdir(self.wd)
+        chdir(self.wd)
+
+        # if the restart flag is set, there may exist some
+        # files stored elsewere (in self.restartdir) which might be
+        # useful, restartdir is supposed to be a subdirectory from
+        # the main working directory
+        if self.restartdir is not None and path.exists(self.restartdir):
+            # print "QContext: using data for restarting from directory", self.restartdir
+
+            # files being in self.restartdir are copied in
+            # the current working directory
+            cmd = "echo cp " + self.restartdir + '/*  .'
+            system(cmd)
+            # FIXME: we should copy only RESTARTFILES
+
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # FIXME: do we ignore exceptions passed to us here?
+
+        # if number exists, there are things going on with the subdirectories
+        if self.wd is None: return True
+
+        # the files stored in the restartdir may be of course be there before
+        # the calculation and be stored by hand or another code, but if they
+        # do not exist yet and there are several calculations going on, then
+        # they can be done now
+        if self.restartdir is not None:
+            # The calculations we are considering are all very near each other
+            # so the starting values may be from any other finished calculation
+            # if any has stored one, there is no need for anymore storage
+            # and the code uses the threadsavenes of the path.exists function
+
+            if not path.exists(self.restartdir):
+                # so here build the function
+                mkdir(self.restartdir)
+                print "QContext: store data for restarting"
+                # the altered ASE framework includes a function
+                # for the calculators, which gives back the names
+                # of interesting files for a restart as a string
+                # this function is not included in standard ASE
+                # it is not implemented for all calculators yet
+                for element in RESTARTFILES:
+                    # copy the interesting files of interest in the
+                    # working directory
+                    cmd = "echo cp " + element + " " + self.restartdir
+                    system(cmd)
+        # it is safer to return to the last working directory, so
+        # the code does not affect too many things
+        chdir(self.__cwd)
+
+        return True
 
 # python qfunc.py [-v]:
 if __name__ == "__main__":
