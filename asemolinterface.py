@@ -6,6 +6,7 @@ import thread
 import logging
 import threading
 import string
+import time
 import os
 import sys
 from copy import deepcopy
@@ -214,7 +215,6 @@ class MolInterface:
         # lists of various properties for input reagents
         atoms_lists    = [m.get_chemical_symbols() for m in mols]
         coord_vec_lens = [len(m.get_internals()) for m in mols]
-        self.reagent_coords = [m.get_internals() for m in mols]
 
         all_var_names = [m.var_names for m in mols]
         all_kinds = [m.kinds for m in mols]
@@ -234,6 +234,8 @@ class MolInterface:
         self.var_names = all_var_names[0]
 
         [m.set_var_mask(mask) for m in mols]
+
+        self.reagent_coords = [m.get_internals() for m in mols]
 
         N = len(m.get_internals())
 
@@ -335,6 +337,7 @@ class MolInterface:
         results_file = job_name + common.OUTPICKLE_EXT
         results_file = os.path.join(tmp_dir, results_file)
 
+        print "HERE", tmp_dir, job_name
         # compile package of extra data
         extra_data = dict()
         extra_data['item'] = item
@@ -355,9 +358,13 @@ class MolInterface:
             cmd = placement.split() + cmd
             lg.info("Running with placement command %s" % placement)
         print "Final command", ' '.join(cmd)
+        t0 = time.time()
         p = Popen(cmd, stdout=open(ase_stdout_file, "w"), stderr=STDOUT)
 
         (pid, ret_val) = os.waitpid(p.pid, 0)
+
+        t1 = time.time()
+        print "Time taken to run job %s was %.1f" % (job_name, (t1 - t0))
         if ret_val != 0:
             raise MolInterfaceException("pickle_runner.py returned with " + str(ret_val)
                 + "\nwhen attempting to run " + ' '.join(cmd)

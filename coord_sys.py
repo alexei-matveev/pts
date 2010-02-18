@@ -444,7 +444,7 @@ class CoordSys(object):
                 newx[i] = x[j]
                 j += 1
 
-        assert j == len(x)
+        assert j == len(x), "%d %d" % (j, len(x))
         return newx
         
     def _mask(self, x):
@@ -480,6 +480,7 @@ class CoordSys(object):
     def set_internals(self, x):
 
         assert not numpy.isnan(x).any()
+
 
         assert len(x) == self.dims
         x = self._demask(x)
