@@ -110,9 +110,13 @@ class History():
         else:
             # use max bead ix's from most recent record
             ixs = self.list[-1].maxixs[-n:]
+            reference_len = len(self.list[-1].state)
 
             for r in self.list[-recs:]:
-                tmp.append(r.state.take(ixs, axis=0))
+                if len(r.state) < reference_len:
+                    tmp.append(np.zeros(self.list[-1].state.shape).take(ixs, axis=0))
+                else:
+                    tmp.append(r.state.take(ixs, axis=0))
 
         tmp = np.array(tmp)
 
