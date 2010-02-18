@@ -169,6 +169,7 @@ positions, including those of the "surface" atoms:
 
 from numpy import pi, sin, cos, cross, dot, sqrt, arccos
 from numpy import array, asarray, empty, max, abs
+from numpy import eye, zeros, outer, hstack, vstack
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
 from func import Func, NumDiff
@@ -371,13 +372,13 @@ class ZMat(NumDiff):
             #
             # Orthogonal basis using the three anchor points:
             #
-            ijk = reper(A, B, C)
+            ijk = reper([B - A, C - A])
 
             # The default settings for the anchor points (see above)
             # together with the (custom) implementation of the reper()
             # function will lead to:
             #
-            #    i, j, k = reper(A, B, C)
+            #    i, j, k = reper([B - A, C - A])
             #    i = [ 0.  1.  0.]
             #    j = [ 0.  0. -1.]
             #    k = [ 1.  0.  0.]
@@ -413,7 +414,7 @@ class ZMat(NumDiff):
         x = 0
         for a, b, c, idst, iang, idih in self.__zm:
             #
-            # Note: distance/angle/dihedral from rc.py 
+            # Note: distance/angle/dihedral from rc.py
             # expect the 3D coordiantes of involved atoms
             # in a single array. We provide them by list-indexing
             # into the array "atoms".
@@ -435,48 +436,122 @@ def unit(v):
     if n == 0.0: raise ZMError("divide by zero")
     return v / n
 
-def reper(A, B, C):
+def M(x):
+    "M_ij = delta_ij - x_i * x_j / x**2"
+    n = unit(x)
+    return eye(3) - outer(n, n)
+
+def E(x):
+    """E_ij = epsilon_ijk * x_k (sum over k)
+
+        >>> print E([1, 2, 3])
+        [[ 0.  3. -2.]
+         [-3.  0.  1.]
+         [ 2. -1.  0.]]
+    """
+    e = zeros((3,3))
+
+    e[0, 1] = x[2]
+    e[1, 2] = x[0]
+    e[2, 0] = x[1]
+
+    e[1, 0] = - e[0, 1]
+    e[2, 1] = - e[1, 2]
+    e[0, 2] = - e[2, 0]
+    return e
+
+class Reper(Func):
     """Returns orthogonal basis [i, j, k] where
-    "k" is parallel to AB
-    "i" is in ABC plane and
+    "k" is parallel to U
+    "i" is in UV plane and
     "j" is orthogonal to that plane
+
+    FIXME: there must be a better way to do this ...
 
     Example:
 
-        >>> A = array((0., 0., 0.))
-        >>> B = array((1., 0., 0.))
-        >>> C = array((0., 1., 0.))
-        >>> print reper(A, B, C)
+        >>> r = Reper()
+        >>> u = array((1., 0., 0.))
+        >>> v = array((0., 1., 0.))
+        >>> print r([u, v])
         [[-0.  1.  0.]
          [ 0.  0. -1.]
          [ 1.  0.  0.]]
+
+        >>> u = array((1.1, 0.3, 0.7))
+        >>> v = array((0.5, 1.9, 0.8))
+        >>> uv = [u, v]
+
+        >>> r1 = NumDiff(r)
+        >>> max(abs(r.fprime(uv) - r1.fprime(uv))) < 1e-10
+        True
     """
 
-    # two vectors in ABC-plane:
-    ab = B - A
-    ac = C - A
+    def taylor(self, args):
 
-    #
-    # Unit vectors for local coordiante system:
-    #
+        u, v = args
 
-    # unit vector in AB-direciton:
-    k = unit(ab)
+        lu = sqrt(dot(u, u))
+        lv = sqrt(dot(v, v))
 
-    # orthogonal to ABC plane:
-    j = unit(cross(ac, k))
+        if lu == 0.0: raise ZMError("divide by zero")
+        if lv == 0.0: raise ZMError("divide by zero")
 
-    # in ABC-plane, orthogonal to AB:
-    # i = unit(cross(j, k))
-    i = unit(cross(k, j))
-    # This appears to be a left-reper compatible with legacy code!
+        #
+        # Unit vectors for local coordiante system:
+        #
 
-    return array([i, j, k])
+        # unit vector in U-direciton:
+        k = u / lu
+
+        # dk/du:
+        ku = M(k) / lu
+
+        # dk/dv:
+        kv = zeros((3,3))
+
+        # orthogonal to UV plane:
+        w = cross(v, u)
+        lw = sqrt(dot(w, w))
+
+        j = w / lw
+
+        # dj/dw
+        jw = M(j) / lw
+
+        # dj/du:
+        jv = dot(jw, E(u))
+
+        # dj/dv:
+        ju = dot(jw, E(-v))
+
+        # in UV-plane, orthogonal to U:
+        i = cross(k, j) # FIXME: not cross(j, k)!
+
+        # di/du = di/dk * dk/du + di/dj * dj/du:
+        iu = dot(E(j), ku) + dot(E(-k), ju)
+
+        # di/du =                 di/dj * dj/du:
+        iv =                 dot(E(-k), jv)
+
+        f = array([i, j, k])
+
+        # convention: fprime[i, k] = df_i / dx_k
+        iprime = hstack((iu, iv))
+        jprime = hstack((ju, jv))
+        kprime = hstack((ku, kv))
+
+        fprime = vstack((iprime,\
+                         jprime,\
+                         kprime))
+
+        return f, fprime.reshape((3, 3, 2, 3))
+
+# instance of Reper(Func):
+reper = Reper()
 
 class R3(Func):
     """Spherical to cartesian transformation.
-
-        >>> from numpy import round
 
         >>> r3 = R3()
 
@@ -486,6 +561,8 @@ class R3(Func):
 
         >>> print r3(vz)
         [ 0.  0.  8.]
+
+        >>> from numpy import round
 
         >>> print round(r3(vx), 4)
         [ 8.  0.  0.]
