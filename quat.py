@@ -63,11 +63,18 @@ def uquat(v):
 
     assert len(v) == 3 # (axial) vector
 
-    phi = sqrt(dot(v, v))
+    #
+    # Exponential of a purely imaginary quaternion:
+    #
+    # q = exp(v) = cos(phi/2) + (v/|v|) * sin(phi/2), phi = |v|
+    #
+    # Note that:
+    #
+    #   (v/|v|) * sin(phi/2) = (v/2) * sin(phi/2) / (phi/2)
+    #                        = (v/2) * sinc(phi/2)
+    #
 
-    #   u = v * sin(phi/2) / phi
-    #     = (v/2) * sin(phi/2) / (phi/2)
-    #     = (v/2) * sinc(phi/2)
+    phi = sqrt(dot(v, v))
 
     # real component of the quaternion:
     w = cos(phi/2.)
@@ -160,12 +167,22 @@ class Quat(object):
         >>> i = Quat((0., 1., 0., 0.))
         >>> j = Quat((0., 0., 1., 0.))
         >>> k = Quat((0., 0., 0., 1.))
+
+        >>> i * j == k, j * k == i, k * i == j
+        (True, True, True)
+
+        >>> j * i
+        Quat((0.0, 0.0, 0.0, -1.0))
+
         >>> e * i == i, e * j == j, e * k == k
         (True, True, True)
+
         >>> i * i
         Quat((-1.0, 0.0, 0.0, 0.0))
+
         >>> j * j
         Quat((-1.0, 0.0, 0.0, 0.0))
+
         >>> k * k
         Quat((-1.0, 0.0, 0.0, 0.0))
     """
@@ -177,6 +194,8 @@ class Quat(object):
     def __getitem__(self, i): return self.__q[i]
 
     def __mul__(self, other):
+        "Multiplication of self * other in that order"
+
         p = self.__q
         q = other.__q
 
