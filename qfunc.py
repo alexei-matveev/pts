@@ -177,9 +177,7 @@ class QContext(object):
         self.restartdir = restartdir
 
     def __enter__(self):
-        # the number is used to get a unique working directory, if several tasks are
-        # performed in parallel, this might be useful. As a default the working directory
-        # is not changed:
+        # As a default the working directory is not changed:
         if self.wd is None: return
 
         # save for __exit__ to chdir back:
@@ -190,16 +188,13 @@ class QContext(object):
         # created, make sure that if it exists, there is
         # no grabage inside
 
-        # print "QContext: change directory"
         # print "QContext: chdir to", self.wd
         if not path.exists(self.wd):
             mkdir(self.wd)
         chdir(self.wd)
 
-        # if the restart flag is set, there may exist some
-        # files stored elsewere (in self.restartdir) which might be
-        # useful, restartdir is supposed to be a subdirectory from
-        # the main working directory
+        # there may exist some files stored self.restartdir
+        # which might be useful
         if self.restartdir is not None and path.exists(self.restartdir):
             # print "QContext: using data for restarting from directory", self.restartdir
 
@@ -213,7 +208,7 @@ class QContext(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         # FIXME: do we ignore exceptions passed to us here?
 
-        # if number exists, there are things going on with the subdirectories
+        # As a default the working directory is not changed:
         if self.wd is None: return True
 
         # the files stored in the restartdir may be of course be there before
@@ -229,16 +224,12 @@ class QContext(object):
             if not path.exists(self.restartdir):
                 # so here build the function
                 mkdir(self.restartdir)
-                print "QContext: store data for restarting"
-                # the altered ASE framework includes a function
-                # for the calculators, which gives back the names
-                # of interesting files for a restart as a string
-                # this function is not included in standard ASE
-                # it is not implemented for all calculators yet
-                for element in RESTARTFILES:
-                    # copy the interesting files of interest in the
-                    # working directory
-                    cmd = "echo cp " + element + " " + self.restartdir
+                # print "QContext: store data for restarting"
+
+                # make sure RESTARTFILES lists files essential for restart:
+                for file in RESTARTFILES:
+                    # copy the interesting files of in to working directory
+                    cmd = "echo cp " + file + " " + self.restartdir
                     system(cmd)
         # it is safer to return to the last working directory, so
         # the code does not affect too many things
