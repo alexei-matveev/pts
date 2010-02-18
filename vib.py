@@ -84,9 +84,9 @@ Ar4 Cluster as first simple atomic/molecule test system with
       3       no       0.1094714        882.9459913
       4       no       0.0773558        623.9162798
       5       no       0.0773558        623.9162798
-      6       no       0.0000000          0.0000076
-      7       no       0.0000000          0.0000064
-      8       yes      0.0000000          0.0000056
+      6       no       0.0000000          0.0000071
+      7       no       0.0000000          0.0000060
+      8       no       0.0000000          0.0000057
       9       yes      0.0021796         17.5798776
      10       yes      0.0021796         17.5798776
      11       yes      0.0021796         17.5798776
@@ -280,13 +280,43 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central', ma
             act_elem += 1
     return derivact
 
-def vibmodes(atoms, func, **kwargs ):
+def vibmodes(atoms, func, mask = None, alsovec = False, **kwargs ):
+     """
+     Wrapper around vibmode, which used the atoms objects
+     """
      xcenter = atoms.get_positions()
      mass1 = atoms.get_masses()
      massvec = np.eye(len(mass1) * 3) *  np.repeat(mass1, 3)
-     vibmod( xcenter, massvec, func, **kwargs)
+     # change the mass vector according to the need
+     mass = reducemass(massvec, mask)
+     # the derivatives are needed
+     hessian = derivatef( func, xcenter, mask = mask, **kwargs )
+     vibmod( mass, hessian, alsovec)
 
-def vibmod(xcenter, massvec, func, delta = 0.01, p_map = pa_map, direction = 'central', alsovec = False, mask = None):
+def reducemass(massvec, mask):
+     """
+     gives back a massvec, containing only the elements
+     which are True in mask * mask, therefore giving
+     only back the massvector relevant for the active
+     elements
+     """
+     imax, jmax = massvec.shape
+     if mask == None:
+         mask = [True for i in range(imax)]
+     cnt_act_elem = mask.count(True)
+     mass = np.zeros([cnt_act_elem, cnt_act_elem])
+     i_mass = 0
+     for i in range(imax):
+         j_mass = 0
+         if mask[i]:
+              for j in range(jmax):
+                   if mask[j]:
+                       mass[i_mass, j_mass] = massvec[i,j]
+                       j_mass += 1
+              i_mass += 1
+     return mass
+
+def vibmod(mass, hessian, alsovec = False):
      """
      calculates the vibration modes in harmonic approximation
 
@@ -305,29 +335,10 @@ def vibmod(xcenter, massvec, func, delta = 0.01, p_map = pa_map, direction = 'ce
      alsovec says that not only the frequencies of the mode but also the eigenvectors are 
      wanted
      """
-     massvec = np.asarray(massvec)
+     mass = np.asarray(mass)
 
-     # define the place where the calculation should run
-     # the derivatives are needed
-     hessian = derivatef( func, xcenter, delta = delta, p_map = p_map, direction = direction, mask = mask )
      # make sure that the hessian is hermitian:
      hessian = 0.5 * (hessian + hessian.T)
-
-     # change the mass vector according to the need
-     imax, jmax = massvec.shape
-     if mask == None:
-         mask = [True for i in range(imax)]
-     cnt_act_elem = mask.count(True)
-     mass = np.zeros([cnt_act_elem, cnt_act_elem])
-     i_mass = 0
-     for i in range(imax):
-         j_mass = 0
-         if mask[i]:
-              for j in range(jmax):
-                   if mask[j]:
-                       mass[i_mass, j_mass] = massvec[i,j]
-                       j_mass += 1
-              i_mass += 1
 
      # and also the massvec
      mass = 0.5 * (mass + mass.T)
