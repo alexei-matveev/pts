@@ -141,7 +141,25 @@ class ReactionPathway(object):
     def test_convergence(self, f_tol, x_tol):
         """
         Raises Converged if converged, applying weaker convergence 
-        criterion if growing string is not fully grown.
+        criteria if growing string is not fully grown.
+
+        During growth: rmsf < 10 * f_tol
+        When grown:    rmsf < f_tol OR
+                       max_step < x_tol AND rmsf < 5*f_tol
+
+                       where max_step is max step in optimisation coordinates 
+                           taken by H highest beads and C cummulative beads,
+
+                       where H is self.convergence_beads
+                       and C is self.steps_cumm
+
+                       both set by __init__
+
+                       At time of writing (19/02/2010): convergence is tested 
+                       in callback function which is called after every 
+                       iteration, not including backtracks. The state is 
+                       recorded at every 
+
         """
 
         rmsf = self.rmsf_perp[0]
