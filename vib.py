@@ -84,9 +84,9 @@ Ar4 Cluster as first simple atomic/molecule test system with
       3       no       0.1094714        882.9459913
       4       no       0.0773558        623.9162798
       5       no       0.0773558        623.9162798
-      6       no       0.0000000          0.0000071
-      7       no       0.0000000          0.0000060
-      8       no       0.0000000          0.0000057
+      6       no       0.0000000          0.0000076
+      7       no       0.0000000          0.0000064
+      8       yes      0.0000000          0.0000056
       9       yes      0.0021796         17.5798776
      10       yes      0.0021796         17.5798776
      11       yes      0.0021796         17.5798776
@@ -269,16 +269,7 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central', ma
         for i, gval  in enumerate(g1[1:]):
             gval = gval.flatten()
             deriv[i,:] = (gval - gmiddle) / delta
-    derivact = np.zeros([cnt_act_elem, cnt_act_elem])
-
-    # the derivatives are only interesting regarding those
-    # coordinates which are active.
-    act_elem = 0
-    for i in range(len(mask)):
-        if mask[i]:
-            derivact[:,act_elem] = deriv[:,i]
-            act_elem += 1
-    return derivact
+    return deriv
 
 def vibmodes(atoms, func, mask = None, alsovec = False, **kwargs ):
      """
@@ -288,9 +279,18 @@ def vibmodes(atoms, func, mask = None, alsovec = False, **kwargs ):
      mass1 = atoms.get_masses()
      massvec = np.eye(len(mass1) * 3) *  np.repeat(mass1, 3)
      # change the mass vector according to the need
-     mass = reducemass(massvec, mask)
+     mass, mask = reducemass(massvec, mask)
+     cnt_act_elem = mask.count(True)
      # the derivatives are needed
      hessian = derivatef( func, xcenter, mask = mask, **kwargs )
+     derivact = np.zeros([cnt_act_elem, cnt_act_elem])
+     # the derivatives are only interesting regarding those
+     # coordinates which are active.
+     act_elem = 0
+     for i in range(len(mask)):
+         if mask[i]:
+             derivact[:,act_elem] = hessian[:,i]
+             act_elem += 1
      vibmod( mass, hessian, alsovec)
 
 def reducemass(massvec, mask):
@@ -314,7 +314,7 @@ def reducemass(massvec, mask):
                        mass[i_mass, j_mass] = massvec[i,j]
                        j_mass += 1
               i_mass += 1
-     return mass
+     return mass, mask
 
 def vibmod(mass, hessian, alsovec = False):
      """
