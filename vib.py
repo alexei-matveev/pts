@@ -291,7 +291,7 @@ def vibmodes(atoms, func, mask = None, alsovec = False, **kwargs ):
          if mask[i]:
              derivact[:,act_elem] = hessian[:,i]
              act_elem += 1
-     vibmod( mass, hessian, alsovec)
+     vibmod( mass, derivact, alsovec)
 
 def reducemass(massvec, mask):
      """
