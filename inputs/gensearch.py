@@ -5,8 +5,9 @@ import os
 import aof
 from aof.common import file2str
 import ase
-from numpy import zeros # temporary
+import numpy as np
 
+force_cart_opt = False
 name, params_file, mol_strings, init_state_vec, prev_results_file = aof.setup(sys.argv)
 
 # TODO: setup circular re-naming to prevent accidental overwrites
@@ -14,20 +15,23 @@ logfile = open(name + '.log', 'w')
 disk_result_cache = '%s.ResultDict.pickle' % name
 
 # bring in custom parameters
-
 extra_opt_params = dict()
 params_file_str = file2str(params_file)
 print params_file_str
 exec(params_file_str)
 
 # set up some objects
-mi          = aof.MolInterface(mol_strings, **params)
-calc_man    = aof.CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=prev_results_file)
+mi = aof.MolInterface(mol_strings, **params)
 
-# setup searcher i.e. String or NEB
+if force_cart_opt:
+    # generate initial path using specified coord system but perform interpolation in cartesians
+    mi, init_state_vec = mi.to_cartesians(beads_count)
+calc_man = aof.CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=prev_results_file)
+
 if init_state_vec == None:
     init_state_vec = mi.reagent_coords
 
+# setup searcher i.e. String or NEB
 cos_type = cos_type.lower()
 if cos_type == 'string':
     CoS = aof.searcher.GrowingString(init_state_vec, 
@@ -88,5 +92,21 @@ for ts in tss:
     cs = mi.build_coord_sys(v)
     print "Energy = %.4f eV" % e
     print cs.xyz_str()
+
+refine_search=False
+if refine_search:
+    highest_ts = tss[-1]
+    _, _, bead0, bead1 = highest_ts
+    path_ref = np.array([bead0, bead1])
+    beads_ref = 6
+    CoS_ref = aof.searcher.NEB(path_ref, 
+          calc_man, 
+          spr_const,
+          beads_ref,
+          parallel=True,
+          reporting=logfile)
+    
+    print runopt()
+    tss_ref = CoS.ts_estims()
 
 

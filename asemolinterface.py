@@ -12,6 +12,7 @@ import sys
 from copy import deepcopy
 from subprocess import Popen, STDOUT
 import pickle
+import path
 
 import numpy
 
@@ -141,12 +142,7 @@ class MolInterface:
 
     def __init__(self, 
             mol_strings, 
-            calculator=None, 
-            mask=None, 
-            placement=None,
-            pbc=None, 
-            cell=None,
-            name=None):
+            **kwargs):
 
         """mol_strings: list of strings, each of which describes a molecule, 
         format can be z-matrix or xyz format, but formats must be consistent.
@@ -206,6 +202,14 @@ class MolInterface:
             mols = [csys.ComplexCoordSys(s) for s in mol_strings]
         else:
             raise MolInterfaceException("Unrecognised geometry string:\n" + first)
+
+        self._kwargs = kwargs
+        calculator = kwargs.get('calculator', None)
+        mask       = kwargs.get('mask', None)
+        placement  = kwargs.get('placement', None)
+        pbc        = kwargs.get('pbc', None)
+        cell       = kwargs.get('cell', None)
+        name       = kwargs.get('name', None)
 
         # used to number input files as they are created and run
         self.job_counter = 0
@@ -270,6 +274,7 @@ class MolInterface:
             self.place_str = f
 
 
+        self.calc_tuple = self.pre_calc_function = None
         if calculator != None:
             a,b,c,d = calculator
             self.calc_tuple = a,b,c
@@ -281,6 +286,30 @@ class MolInterface:
             self.mol.set_cell(cell)
         if pbc != None:
             self.mol.set_pbc(pbc)
+
+
+    def to_cartesians(self, beads_count):
+        """Returns a MolInterface object and a (linear) path, both in cartesians, but 
+        generated using the specified coordinate system.
+        
+        >>> g1 = "C 1.0 1.0 1.0\\nH 0.0 0.0 0.0\\n"
+        >>> g2 = "C 3.0 3.0 3.0\\nH 0.0 0.0 0.0\\n"
+
+        >>> mi = MolInterface([g1, g2])
+        >>> mi.to_cartesians(4)
+
+        """
+
+        pr = path.PathRepresentation(self.reagent_coords, beads_count, lambda x: 1)
+        f = self.build_coord_sys
+        mol_path = [f(v) for v in pr.generate_beads()]
+        cart_path = numpy.array([m.get_cartesians().flatten() for m in mol_path])
+
+        xyz_reagents = [mol_path[0].xyz_str(), mol_path[-1].xyz_str()]
+
+        new_mi = MolInterface(xyz_reagents, **self._kwargs)
+
+        return new_mi, cart_path
 
 
     def __str__(self):
