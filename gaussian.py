@@ -185,6 +185,7 @@ class Gaussian:
     def read(self):
         """Read results from Gaussian's text-output file."""
         logfilename = self.jobname + '.log'
+        print "GAUSS_DIRS: Working Dir:", os.getcwd(), "logfile path:", logfilename
         logfile = open(logfilename, 'r')
 
         line = logfile.readline()

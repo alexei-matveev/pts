@@ -87,7 +87,6 @@ def main(argv=None):
                 raise PickleRunnerException("Supplied function was neither callable nor None.")
             f(mol.get_calculator(), data)
 
-
         result_file = os.path.join(tmp_dir, jobname + common.OUTPICKLE_EXT)
 
         if mode == "calc_eg":

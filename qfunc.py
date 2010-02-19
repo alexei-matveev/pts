@@ -76,14 +76,14 @@ class QFunc(Func):
         "Energy and gradients"
 
         # only if number exists, there is done something
-        if not number == None:
+        if number != None:
              # first the working directory is changed to
              # to the number, as a subdirectory of the current
              # one; if it does not exist, it is
              # created, make sure that if it exists, there is
              # no grabage inside
              print "Qfunc: change directory"
-             wodir = self.basdir + '/' + str("%03d" % number)
+             wodir = self.basdir + '/' + "%03d" % number
              print "from", self.basdir, "change to", wodir
              if not path.exists(wodir):
                  mkdir(wodir)
@@ -97,7 +97,7 @@ class QFunc(Func):
                  print self.startdir
                  # all the files being in self.startdir are copied in
                  # the current working directory
-                 cmd = "cp " + self.startdir + '/*  .'
+                 cmd = "cp " + self.startdir + '/*  .' #FIXME: better to use Python's copy files, otherwise it is non-portable
                  system(cmd)
 
 
@@ -111,7 +111,7 @@ class QFunc(Func):
         g = - self.atoms.get_forces()
 
         # if number exists, there are things going on with the subdirectories
-        if not number == None:
+        if number != None:
             # the files stored in the startdir may be of course be there before
             # the calculation and be stored by hand or another code, but if they
             # do not exist yet and there are several calculations going on, then
@@ -120,7 +120,7 @@ class QFunc(Func):
                 # The calculations we are considering are all very near each other
                 # so the starting values may be from any other finished calculation
                 # if any has stored one, there is no need for anymore storage
-                # and the code uses the threadsavenes of the path.exists function
+                # and the code uses the threadsafenes of the path.exists function
                 if not path.exists(self.startdir):
                     # so here build the function
                     mkdir(self.startdir)
@@ -135,7 +135,7 @@ class QFunc(Func):
                         # working directory
                         cmd2 = "cp " + element + " " + self.startdir
                         system(cmd2)
-            # it is saver to return to the last working directory, so
+            # it is safer to return to the last working directory, so
             # the code does not affect too many things
             chdir(self.basdir)
 

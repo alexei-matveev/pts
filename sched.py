@@ -710,6 +710,15 @@ class ParaJobLauncher():
                                       mol_interface.placement_arg
         mol_interface.run_job(j.v, params)
 
+def hugh_pmap(f, l, processors):
+    """Parallel map using the scheduling infrastructure in this module."""
+    assert False, "work in progress"
+
+    ps = ParaSched(f, procesors)
+    ps.batch_run(l)
+    return ps.get_results()
+    
+
 class ParaSched(object):
     """Manages the threads responsible for running programs that perform 
     electronic structure calculations. Builds queues and generates sceduling
