@@ -16,7 +16,7 @@ class PathTools:
     array([ 0.,  1.,  2.,  3.])
 
     >>> pt.ts_highest()
-    [(3, array([2]))]
+    [(3, array([2]), 2.0, 2.0)]
 
     >>> pt = PathTools([0,1,2,3], [1,2,3,2], [0,1,-0.1,0])
     >>> res1 = pt.ts_splcub()
@@ -39,7 +39,7 @@ class PathTools:
     >>> ys = f(xs)
     >>> gs = g(xs)
     >>> pt = PathTools(xs, ys, gs)
-    >>> energy, pos = pt.ts_splcub()[0]
+    >>> energy, pos, _, _ = pt.ts_splcub()[0]
     >>> np.round(energy) == 0
     True
     >>> (np.round(pos) == 0).all()
@@ -56,7 +56,7 @@ class PathTools:
     >>> ys = f(xs)
     >>> gs = g(xs)
     >>> pt = PathTools(xs, ys, gs)
-    >>> energy, pos = pt.ts_splcub()[0]
+    >>> energy, pos, _, _ = pt.ts_splcub()[0]
     >>> np.round(energy) == 0
     True
     >>> (np.round(pos) == 0).all()
@@ -98,10 +98,10 @@ class PathTools:
         diff = lambda a,b:np.abs(a-b)
         arc = Integral(self.xs.tangent_length)
         l = np.array([arc(x) for x in self.xs.xs])
-        print "Path length:", l[-1]
+        self.s.append("Path length: %s" % l[-1])
         err = l - self.steps
         err = [diff(err[i], err[i-1]) for i in range(len(err))[1:]]
-        print "Difference between Pythag v.s. spline positions:", np.array(err).round(4)
+        self.s.append("Difference between Pythag v.s. spline positions: %s" % np.array(err).round(4))
 
         
  
@@ -128,8 +128,8 @@ class PathTools:
             dEds_1 = E.fprime(s1)
 
             if dEds_0 > 0 and dEds_1 < 0:
-                print "ts_spl: TS in %f %f" % (s0,s1)
-                f = lambda x: E.fprime(x)**2
+                #print "ts_spl: TS in %f %f" % (s0,s1)
+                f = lambda x: E.fprime(np.atleast_1d(x))**2
                 assert s0 < s1, "%f %f" % (s0, s1)
                 s_ts, fval, ierr, numfunc = sp.optimize.fminbound(f, s0, s1, full_output=1)
 
@@ -185,7 +185,7 @@ class PathTools:
 
             self.s.append("E_1 %s" % E_1)
             if (E_1 >= E_0 and dEds_1 <= 0) or (E_1 <= E_0 and dEds_0 > 0):
-                print "ts_splcub_avg: TS in %f %f" % (ss[i-1],ss[i])
+                #print "ts_splcub_avg: TS in %f %f" % (ss[i-1],ss[i])
 
                 E_ts = (E_1 + E_0) / 2
                 s_ts = (s1 + s0) / 2
@@ -237,7 +237,7 @@ class PathTools:
 
             self.s.append("E_1 %s" % E_1)
             if (E_1 >= E_0 and dEds_1 <= 0) or (E_1 <= E_0 and dEds_0 > 0):
-                print "ts_splcub: TS in %f %f" % (ss[i-1],ss[i])
+                #print "ts_splcub: TS in %f %f" % (ss[i-1],ss[i])
                 self.s.append("Found: i = %d E_1 = %f E_0 = %f dEds_1 = %f dEds_0 = %f" % (i, E_1, E_0, dEds_1, dEds_0))
 
                 cub = func.CubicFunc(ss[i-1:i+1], Es[i-1:i+1], dEdss)
