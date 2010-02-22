@@ -1,3 +1,5 @@
+import pickle
+
 from aof.path import Path
 import numpy as np
 from aof.common import vector_angle
@@ -111,7 +113,6 @@ class PathTools:
         err = l - self.steps
         err = [diff(err[i], err[i-1]) for i in range(len(err))[1:]]
         self.s.append("Difference between Pythag v.s. spline positions: %s" % np.array(err).round(4))
-
         
  
     def __str__(self):
@@ -138,7 +139,7 @@ class PathTools:
 
             if dEds_0 > 0 and dEds_1 < 0:
                 #print "ts_spl: TS in %f %f" % (s0,s1)
-                f = lambda x: E.fprime(np.atleast_1d(x))**2
+                f = lambda x: np.atleast_1d(E.fprime(x)**2)[0]
                 assert s0 < s1, "%f %f" % (s0, s1)
                 s_ts, fval, ierr, numfunc = sp.optimize.fminbound(f, s0, s1, full_output=1)
 
@@ -148,7 +149,7 @@ class PathTools:
                 assert ts_e.size == 1
                 ts_e = ts_e[0]
                 ts = self.xs(s_ts)
-                ts_list.append((ts_e, ts, s0, s1))
+                ts_list.append((ts_e, ts, s0, s1, i-1, i))
 
         ts_list.sort()
         return ts_list
@@ -198,7 +199,7 @@ class PathTools:
 
                 E_ts = (E_1 + E_0) / 2
                 s_ts = (s1 + s0) / 2
-                ts_list.append((E_ts, self.xs(s_ts), s0, s1))
+                ts_list.append((E_ts, self.xs(s_ts), s0, s1, i-1, i))
 
         return ts_list
 
@@ -269,7 +270,7 @@ class PathTools:
                 for p in statpts:
                     # test curvature
                     if cub.fprimeprime(p) < 0:
-                        ts_list.append((cub(p), self.xs(p), ss[i-1], ss[i]))
+                        ts_list.append((cub(p), self.xs(p), ss[i-1], ss[i], i-1, i))
                         found += 1
 
 #                assert found == 1, "Must be exactly 1 stationary points in cubic path segment but there were %d" % found
@@ -283,9 +284,18 @@ class PathTools:
         Just picks the highest energy from along the path.
         """
         i = self.energies.argmax()
-        ts_list = [(self.energies[i], self.state[i], self.steps[i], self.steps[i])]
+        ts_list = [(self.energies[i], self.state[i], self.steps[i], self.steps[i], i, i)]
 
         return ts_list
+
+
+def pickle_path(mi, CoS, file):
+    a,b,c = CoS.path_tuple()
+    cs = mi.build_coord_sys(a[0])
+    f = open(file, 'wb')
+    pickle.dump((a,b,c,cs), f)
+    f.close()
+
 
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:

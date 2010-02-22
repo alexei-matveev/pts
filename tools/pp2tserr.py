@@ -60,7 +60,7 @@ def main(argv=None):
         estims.append(('Spline and average', pt.ts_splavg()[-1]))
 
         for name, est in estims:
-            energy, coords, s0, s1 = est
+            energy, coords, s0, s1, _, _ = est
             energy_err = energy - ts_energy
             cs.set_internals(coords)
             carts = cs.get_cartesians()
