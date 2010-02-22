@@ -4,8 +4,6 @@ from aof.common import vector_angle
 import aof.func as func
 import scipy as sp
 
-from func import Integral
-
 class PathTools:
     """
     Implements operations on reaction pathways, such as estimation of 
@@ -96,7 +94,7 @@ class PathTools:
         # present, calculation of string length is too slow, so it's only done 
         # once and a simple comaprison is made.
         diff = lambda a,b:np.abs(a-b)
-        arc = Integral(self.xs.tangent_length)
+        arc = func.Integral(self.xs.tangent_length)
         l = np.array([arc(x) for x in self.xs.xs])
         self.s.append("Path length: %s" % l[-1])
         err = l - self.steps
