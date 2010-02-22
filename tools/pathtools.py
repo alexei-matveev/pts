@@ -60,6 +60,17 @@ class PathTools:
     >>> (np.round(pos) == 0).all()
     True
 
+    >>> pt = PathTools([0,1,2,3,4], [1,2,3,2,1])
+    >>> e, p, s0, s1 = pt.ts_spl()[0]
+    >>> np.round([e,p])
+    array([ 3.,  2.])
+
+    >>> pt = PathTools([0,1,2,3,4], [1,2,3,2,1], [0,1,-0.1,0,1])
+    >>> pt.ts_spl()[0] == (e, p, s0, s1)
+    True
+
+
+
     """
     def __init__(self, state, energies, gradients=None):
 
