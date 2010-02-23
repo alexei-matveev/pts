@@ -31,10 +31,13 @@ def main(argv=None):
         except getopt.error, msg:
              usage()
         
+        dump = False
         for o, a in opts:
             if o in ("-h", "--help"):
                 usage()
                 return 
+            if o in ("-d"):
+                dump = True
             else:
                 usage()
                 return -1

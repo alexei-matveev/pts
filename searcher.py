@@ -183,6 +183,11 @@ class ReactionPathway(object):
         return common.rms(self.perp_bead_forces[1:-1]), [common.rms(f) for f in self.perp_bead_forces]
 
     @property
+    def maxf_perp(self):
+        """RMS forces, not including those of end beads."""
+        return abs(self.perp_bead_forces[1:-1]).max()
+
+    @property
     def rmsf_para(self):
         """RMS forces, not including those of end beads."""
         return common.rms(self.para_bead_forces), [common.rms(f) for f in self.para_bead_forces]
@@ -264,13 +269,13 @@ class ReactionPathway(object):
                'resp': self.respaces,
                'cb': self.callbacks, 
                'rmsf': rmsf_perp_total, 
+               'maxf': self.maxf_perp,
                'e': e_total,
                'maxe': e_max,
                's': abs(step_raw).max(),
                's_ts_cumm': step_ts_estim_cumm,
                's_max_cumm': step_max_bead_cumm,
                'ixhigh': self.bead_pes_energies.argmax()}
-
 
         if hasattr(self.qc_driver, 'eg_counts'):
             bead_es, bead_gs = self.qc_driver.eg_counts()
@@ -287,7 +292,7 @@ class ReactionPathway(object):
             # as a tuple. For ts_estim values are a tuple: (energy, vector)
             n = 1
             which = 0
-            ts_estim_energy, estim, _, _ = self.history.ts_estim(n)[which]
+            ts_estim_energy, estim, _, _, _, _ = self.history.ts_estim(n)[which]
             ts_estim = self.bead2carts(estim)
             bead_carts = [self.bead2carts(v) for v in self.state_vec]
             bead_carts = zip(e_beads, bead_carts)
@@ -513,17 +518,19 @@ class ReactionPathway(object):
         self.bead_pes_energies = array(bead_pes_energies)
 
     def ts_estims(self):
-        pt = aof.tools.PathTools(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)
+        """TODO: Maybe this whole function should be made external."""
 
-        estims = pt.ts_splcub()
-        print str(pt)
+        self.pt = aof.tools.PathTools(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)
+
+        estims = self.pt.ts_splcub()
+        print str(self.pt)
         f = open("tsplot.dat", "w")
-        f.write(pt.plot_str)
+        f.write(self.pt.plot_str)
         f.close()
 
         if len(estims) < 1:
             lg.warn("No transition state found, using highest bead.")
-            estims = pt.ts_highest()
+            estims = self.pt.ts_highest()
         estims.sort()
         return estims
        

@@ -1,2 +1,2 @@
-from pathtools import PathTools
+from pathtools import PathTools, pickle_path
 
