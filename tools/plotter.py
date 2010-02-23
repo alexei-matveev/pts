@@ -33,33 +33,32 @@ set style data linespoints
 set ylabel "Energy per bead"
 set origin 0,0.67
 %(pre_energy)s
-plot [1:%(maxit)d] %(energyplots)s, %(growplots)s, %(resplots)s, %(cbplots)s
+plot [1:] %(energyplots)s, %(growplots)s, %(resplots)s, %(cbplots)s
 %(post_energy)s
 
 set nokey
 set origin 0,0.333 
 set logscale y
 
-set ylabel "RMS Stepsize
-plot [1:%(maxit)d] %(stepplots)s
+set ylabel "Max Stepsize"
+plot [1:] %(stepplots)s
 
 set origin 0, 0.166666
 set size 1, 0.166666
 set logscale y
-set ylabel "RMS Forces"
-plot [1:%(maxit)d] %(gradientplots)s
+set ylabel "RMS Force"
+plot [1:] %(gradientplots)s
 
-unset logscale y
 set origin 0, 0
-set ylabel "TS Error"
-set xlabel "Chain Gradient Evaluations"
-plot [1:%(maxit)d] %(ts_estim_err)s, %(ts_max_err)s
+set ylabel "Max Force"
+set xlabel "Bead Gradient Evaluations"
+plot [1:] %(maxfplots)s
 
 
 """
 #aseneb.txt.arch" using 2:4 title "ASE NEB", "myneb_aselbfgs-newe.txt.arch" using 2:4 title "My NEB (ASE-LBFGS)", "myneb_numpy
 
-def run(args, extra, maxit=50, known_ts_aa_dists = 0):
+def run(args, extra, maxit=500, known_ts_aa_dists = 0):
 
     archive_tag = 'Archive'
     ts_tag = 'TS ESTIM CARTS:'
@@ -109,17 +108,20 @@ def run(args, extra, maxit=50, known_ts_aa_dists = 0):
                 # e:    energy
                 # maxe: max energy
                 # s:    step size
+                # Nb:   number of bead gradient calls
                 bc = d['bc']
                 N = d['N']
                 res = d['resp']
                 cb = d['cb']
                 rmsf = d['rmsf']
+                maxf = d.get('maxf', rmsf)
                 e = d['e']
                 maxe = d['maxe']
                 s = d['s']
                 s_ts_cumm = d['s_ts_cumm']
                 s_max_cumm = d['s_max_cumm']
                 ixhigh = d['ixhigh']
+                Nb = d.get('bead_gs', N)
 
 
                 # get errors between estimated TSs and known TS
@@ -139,17 +141,17 @@ def run(args, extra, maxit=50, known_ts_aa_dists = 0):
                     ts_max_err = np.linalg.norm(known_ts_aa_dists - aa_dists_max)
                     print "ts_max_err", ts_max_err
 
-                tuple = (bc,   N,   res,   cb,   rmsf,   e,   maxe,   s,   e/bc, ts_estim_err, ts_max_err, s_max_cumm)
+                tuple = (bc,   N,   Nb,   res,   cb,   maxf,   rmsf,   e,   maxe,   s,   e/bc, ts_estim_err, ts_max_err, s_max_cumm)
 
                 # Set up dictionary of indices of fields so that strings of 
                 # gnuplot syntax can access them.
-                ids =  ['bc', 'N', 'res', 'cb', 'rmsf', 'e', 'maxe', 's', 'e/bc', 'ts_estim_err', 'ts_max_err', 's_max_cumm']
+                ids =  ['bc', 'N', 'Nb', 'res', 'cb', 'maxf', 'rmsf', 'e', 'maxe', 's', 'e/bc', 'ts_estim_err', 'ts_max_err', 's_max_cumm']
                 ixs = range(len(ids)+1)[1:] # [1,2,3...]
                 d = dict(zip(ids, ixs))
 
 
                 if (rmsf, e, maxe) != prev:
-                    outline = "%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n" % tuple
+                    outline = "%d\t%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n" % tuple
                     f_out.write(outline)
                     prev = rmsf, e, maxe
                     highestN = max(N, highestN)
@@ -180,13 +182,13 @@ def run(args, extra, maxit=50, known_ts_aa_dists = 0):
         f_grow.close()
 
     plot_files = ['"' + fn + '.out"' for fn in args]
-    energy_plots = [fn + ' using %(N)d:%(e)d with lines' % d for fn in plot_files]
+    energy_plots = [fn + ' using %(Nb)d:%(e)d with lines' % d for fn in plot_files]
     energy_plots = [p + ' title "' + t + '"' for (p,t) in zip(energy_plots, titles)]
     energy_plots = ','.join(energy_plots)
 
     grow_plots = ['"' + fn + '.grow.out"' for fn in args]
     titles = ['title "Growth"'] + ['notitle' for i in grow_plots[1:]]
-    energy = '%(N)d:%(e)d' % d
+    energy = '%(Nb)d:%(e)d' % d
     grow_plots = ['%s using %s %s with points lw 5 lt 7' % (fn,energy,t) for (fn,t) in zip(grow_plots, titles)]
     grow_plots = ','.join(grow_plots)
 
@@ -201,16 +203,16 @@ def run(args, extra, maxit=50, known_ts_aa_dists = 0):
     cb_plots = ','.join(cb_plots)
 
 
-    gradient_plots = [fn + ' using %(N)d:%(rmsf)d' % d for fn in plot_files]
+    gradient_plots = [fn + ' using %(Nb)d:%(rmsf)d' % d for fn in plot_files]
     gradient_plots = ','.join(gradient_plots)
 
-    step_plots = [fn + ' using %(N)d:%(s_max_cumm)d' % d for fn in plot_files]
+    step_plots = [fn + ' using %(Nb)d:%(s_max_cumm)d' % d for fn in plot_files]
     step_plots = ','.join(step_plots)
 
-    ts_estim_err_plots = [fn + ' using %(N)d:%(ts_estim_err)d' % d for fn in plot_files]
-    ts_estim_err_plots = ','.join(ts_estim_err_plots)
+    maxf_plots = [fn + ' using %(Nb)d:%(maxf)d' % d for fn in plot_files]
+    maxf_plots = ','.join(maxf_plots)
 
-    ts_max_err_plots = [fn + ' using %(N)d:%(ts_max_err)d' % d for fn in plot_files]
+    ts_max_err_plots = [fn + ' using %(Nb)d:%(ts_max_err)d' % d for fn in plot_files]
     ts_max_err_plots = ','.join(ts_max_err_plots)
 
     values = {'maxit': maxit, 
@@ -221,7 +223,8 @@ def run(args, extra, maxit=50, known_ts_aa_dists = 0):
               'resplots': res_plots,
               'cbplots': cb_plots,
               'ts_estim_err': ts_max_err_plots,
-              'ts_max_err': ts_max_err_plots}
+              'ts_max_err': ts_max_err_plots,
+              'maxfplots': maxf_plots}
 
     values.update(extra)
     gnuplot_str = plot_str % values
