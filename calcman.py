@@ -63,7 +63,7 @@ class CalcManager():
             s += j.__str__() + "\n"
         return s
 
-    def request_energy(self, vi, bead_ix):
+    def request_energy(self, v, bead_ix):
         self.request_job(v, 'E', bead_ix)
 
     def request_gradient(self, v, bead_ix):
@@ -233,12 +233,13 @@ def test_CalcManager(qc_driver, inputs, procs, to_cache=None, from_cache=None):
     cm = CalcManager(qc_driver, procs, from_cache=from_cache, to_cache=to_cache)
 
     # request gradients, energies and both
+    dummy_bead_ix = 0
     N = len(inputs)
     for i in range(N):
         if i > N * 6 / 10:
-            cm.request_energy(inputs[i])
+            cm.request_energy(inputs[i], dummy_bead_ix)
         if i > N * 3 / 10:
-            cm.request_gradient(inputs[i])
+            cm.request_gradient(inputs[i], dummy_bead_ix)
 
     cm.proc_requests()
 
