@@ -12,12 +12,14 @@ import sys
 import getopt
 import pickle
 
+import numpy as np
+
 import aof
 import aof.tools.rotate as rot
 from aof.common import file2str
 
 def usage():
-    print "Usage: " + sys.argv[0] + " [options] file.pickle ts-actual.xyz"
+    print "Usage: " + sys.argv[0] + " [options] file.pickle [ts-actual.xyz]"
 
 class Usage(Exception):
     pass
@@ -27,9 +29,10 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "h", ["help"])
+            opts, args = getopt.getopt(argv[1:], "hd", ["help"])
         except getopt.error, msg:
              usage()
+             return
         
         dump = False
         for o, a in opts:
@@ -42,14 +45,19 @@ def main(argv=None):
                 usage()
                 return -1
 
-        if len(args) != 2:
-            raise Usage("Requires two arguments.")
+        if len(args) < 1 or len(args) > 2:
+            raise Usage("Requires either one or two arguments.")
 
         fn_pickle = args[0]
-        fn_ts = args[1]
         f_ts = open(fn_pickle)
         state, es, gs, cs = pickle.load(f_ts)
+        max_coord_change = np.abs(state[0] - state[-1]).max()
+        print "Max change in any one coordinate was %.2f" % max_coord_change
+        print "                            Per bead %.2f" % (max_coord_change / len(state))
 
+        if len(args) < 2:
+            return
+        fn_ts = args[1]
         ts = aof.coord_sys.XYZ(file2str(fn_ts))
         ts_carts = ts.get_cartesians()
         ts_energy = ts.get_potential_energy()
@@ -66,6 +74,12 @@ def main(argv=None):
             energy, coords, s0, s1, _, _ = est
             energy_err = energy - ts_energy
             cs.set_internals(coords)
+            if dump:
+                print name
+                print cs.xyz_str()
+                print cs.get_internals()
+                print
+
             carts = cs.get_cartesians()
             error = rot.cart_diff(carts, ts_carts)[0]
 
