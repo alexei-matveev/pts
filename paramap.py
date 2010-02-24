@@ -148,6 +148,9 @@ from threading import Thread
 from processing import Process as Worker
 from processing import Queue
 from processing import Process
+from processing import Pool
+from qfunc import fwrapper
+from os import getcwd
 
 # -------- Variante with own thread class-
 class Mythread(Thread):
@@ -310,11 +313,9 @@ def pa_map(f, xs, chadir = False):
     # start all processes
     for w in workers:
         w.start()
-
-    # finish all processes
-    for w in workers:
         w.join()
 
+    for w in workers:
         # put the results in the return value
         # so far I'm not sure if they would be in the correct oder
         # by themselves
@@ -322,6 +323,40 @@ def pa_map(f, xs, chadir = False):
         outcome[i] = res
 
     return outcome
+
+
+MAXPROCS = 12
+
+def pool_map(f, xs, processes=None, startdir = None ):
+    """
+    variant of map using the map function of the pool module
+    Here a pool with MAXPROCS or user defined number of processes
+    is initialized, which work on the function in parallel
+    a wrapper function makes the surounding things like working
+    directory changes
+
+    the pool object (of our python version at least) has some
+    problems with interactive use, therefore there are no tests
+    for it in the doctests of this module
+    """
+    # it should also work with processes= None, that's the default of
+    # pool, then it should take cpuCount which seems to be only two
+    # on my computer?
+    if processes == None:
+        processes = MAXPROCS
+    # initializes the pool object
+    pool = Pool(processes=processes )
+    # to make sure the function really returns to here: store cwd
+    workplace = getcwd()
+    # fwrapper function does: changes in own workingdirectory
+    #  copies startdata if available in it, stores startdata
+    # if startdir not None
+    fwrap = fwrapper(f,workplace,startdir )
+
+    return pool.map(fwrap.perform, xs)
+
+
+
 
 if __name__ == "__main__":
     import doctest

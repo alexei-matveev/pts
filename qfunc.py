@@ -50,7 +50,8 @@ __all__ = ["QFunc"]
 from func import Func
 from ase import LennardJones
 from os import path, mkdir, chdir, getcwd, system
-
+from processing import currentProcess
+from shutil import copy2 as cp
 
 class QFunc(Func):
     def __init__(self, atoms, calc=LennardJones(), startdir = 'restarthelp', restart = False):
@@ -66,6 +67,9 @@ class QFunc(Func):
         self.basdir = getcwd()
         self.startdir = self.basdir + '/' + startdir
         self.restart = restart
+
+    def getstartdir(self):
+         return self.startdir
 
     # (f, fprime) methods inherited from abstract Func and use this by default:
     # the number is used to get a unique working directory, if several tasks are
@@ -145,7 +149,85 @@ class QFunc(Func):
 # a list of restartfiles that might be usefull to copy-in
 # for a warm-start of a calculation, if it is complete, no
 # modifications to ASE are necessary:
-RESTARTFILES = ["WAVECAR", "saved_scfstate.dat", "*.testme"]
+RESTARTFILES = ["WAVECAR", "CHG","CHGCAR" , "saved_scfstate.dat", "*.testme"]
+
+
+class fwrapper(object):
+    """
+    Wrapper around a function which changes in
+    a workingdirectory special for the processes
+    it works in and handles startdata for the qm-solver
+    if self.start is not None
+    """
+    def __init__(self, fun, wopl, start = None):
+        self.start = start
+        # start directory may be stored in fun
+        # we only need the gradients, but this way
+        # fun has to be a qfunc, if this is not
+        # the case, hopefully fun gives the (gradients)
+        # we want
+        try:
+            self.fun = fun.fprime
+            if self.start == None:
+                 self.start = fun.getstartdir()
+        except AttributeError:
+            self.fun = fun
+        # the working directory before changed, thus where
+        # to return lateron
+        self.wopl = wopl
+
+    def perform(self,x):
+        # if called instead of the fun itself via name.perform
+        # the name of the working directory is just the name
+        # of the current Process
+        wx = currentProcess().getName()
+        if not path.exists(wx):
+            mkdir(wx)
+        chdir(wx)
+        print "FWRAPPER: Entering working directory:", wx
+        # if there is a startingdirectory named, now is the time
+        # to have a look, if there is something useful inside
+        if self.start is not None and path.exists(self.start):
+             wh = getcwd()
+             # in RESTARTFILES are the names of all the files for all
+             # the quantum chemistry calculators useful for a restart
+             for singfile in RESTARTFILES:
+                # copy every one of them, which is available to the
+                # current directory
+                try:
+                   filename = self.start + "/" + singfile
+                   cp(filename,wh)
+                   print "FWRAPPER: Copying start file",filename
+                except IOError:
+                   pass
+        # the actual call of the original function
+        res = self.fun(x)
+        # if the startingdirectory does not exist yet but has a
+        # resonable name, it now can be created
+        if self.start is not None and not path.exists(self.start):
+             try:
+                 # Hopefully the next line is thread save
+                 mkdir(self.start)
+                 # if this process was alowed to create the starting
+                 # directory it can also put its restartfiles in,
+                 # the same thing than above but in the other direction
+                 wh = getcwd()
+                 for singfile in RESTARTFILES:
+                     try:
+                          filename = wh + "/" + singfile
+                          cp(filename, self.start)
+                          print "FWRAPPER: Storing file",filename,"in start directory"
+                          print self.start, "for further use"
+                     except IOError:
+                          pass
+             except OSError:
+                 print "FWRAPPER: not make new path", wx
+        # it is safer to return to the last working directory, so
+        # the code does not affect too many things
+        chdir(self.wopl)
+        # the result of the function call:
+        return res
+
 
 class QContext(object):
     """For the option of working in a workingdirectory different to
