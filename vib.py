@@ -359,9 +359,9 @@ def vibmod(mass, hessian, alsovec = False):
      print "----------------------------------------------------"
      for i, mode_e  in enumerate(modeenerg):
            if mode_e.imag != 0:
-               print "%3d       yes     %10.7f       %12.7f" % (i,  mode_e.imag, modeincm[i].imag)
+               print "%3d       yes     %10.7f       %12.7f" % (i+1,  mode_e.imag, modeincm[i].imag)
            else:
-               print "%3d       no      %10.7f       %12.7f" % (i,  mode_e.real, modeincm[i].real)
+               print "%3d       no      %10.7f       %12.7f" % (i+1,  mode_e.real, modeincm[i].real)
      print "----------------------------------------------------"
 
      if (alsovec):
@@ -389,7 +389,7 @@ def vibmod(mass, hessian, alsovec = False):
           ekin_ev = np.diag(np.dot(eigvectors, np.dot( mass, eigvectors.T)))
           print "Mode        %Ekin"
           for i, ekin_e in enumerate(ekin_ev):
-              print "%3d :     %12.10f" % (i, ekin_e)
+              print "%3d :     %12.10f" % (i+1, ekin_e)
           print "----------------------------------------------------"
 
 def normandsort(eigval, eigvec, metric):
