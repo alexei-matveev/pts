@@ -253,7 +253,6 @@ class ReactionPathway(object):
         format = lambda f, l: ' | '.join([f % i for i in l])
 
         all_coordinates = ("%-24s : %s\n" % ("    Coordinate %3d " % 1 , format('%10.4f',(self.state_vec[:,0]))))
-        all_coordinates += ("%-24s : %s\n" % ("    Coordinate %3d " % (2) , format('%10.4f',self.state_vec[:,1])))
         (coord_dim1, coord_dim2) = self.state_vec.shape
         for i in range(1,coord_dim2 ):
             all_coordinates += ("%-24s : %s\n" % ("    Coordinate %3d " % (i+1) , format('%10.4f',self.state_vec[:,i])))
