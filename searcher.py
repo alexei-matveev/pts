@@ -229,6 +229,7 @@ class ReactionPathway(object):
         e_total, e_beads = self.energies
         rmsf_perp_total, rmsf_perp_beads = self.rmsf_perp
         rmsf_para_total, rmsf_para_beads = self.rmsf_para
+        maxf_beads = [abs(f).max() for f in self.bead_pes_gradients]
 
         eg_calls = self.eg_calls
 
@@ -315,6 +316,7 @@ class ReactionPathway(object):
              "%-24s : %s" % ("Bead Energies",format('%10.4f', e_beads)) ,
              "%-24s : %s" % ("RMS Perp Forces", format(f, rmsf_perp_beads)),
              "%-24s : %s" % ("RMS Para Forces", format(f, rmsf_para_beads)),
+             "%-24s : %s" % ("MAX Forces", format(f, maxf_beads)),
              "%-24s : %s" % ("RMS Step Size", format(f, step_beads)),
              "%-24s : %12s %s |" % ("Bead Angles","|" , format('%10.0f', angles)),
              "%-24s : %6s %s" % ("Bead Separations (Pythagorean)", "|", format(f, seps)),
