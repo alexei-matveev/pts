@@ -92,18 +92,18 @@
 
        >>> from aof.vib import derivatef
 
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0] )
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], p_map = ps_map )
        >>> print hessian
        [[ 4.  0.  0.]
         [ 2.  4.  0.]
         [ 4.  0.  1.]]
 
   Here is a test for a single argument to single argument test
-       >>> derivatef(g2, 2.4)
+       >>> derivatef(g2, 2.4, p_map = ps_map)
        array([[ 4.]])
 
   test also 2 (3) -> 1
-       >>> derivatef(g3, [1.0, 2.0, 1.0] )
+       >>> derivatef(g3, [1.0, 2.0, 1.0], p_map = ps_map)
        array([[ 4.],
               [ 2.],
               [ 0.]])
@@ -195,6 +195,10 @@ def td_map(g, xs):
         outcome[i] = t.result
 
     return outcome
+
+def s_map(g,xs):
+    return [g(x, i) for i,x in enumerate(xs)]
+
 
 # ------------ Variant with original thread----
 def pmap(f, xs):
@@ -327,7 +331,7 @@ def pa_map(f, xs, chadir = False):
 
 MAXPROCS = 12
 
-def pool_map(f, xs, processes=None, startdir = None ):
+def pool_map(f, xs, processes=None):
     """
     variant of map using the map function of the pool module
     Here a pool with MAXPROCS or user defined number of processes
@@ -346,16 +350,11 @@ def pool_map(f, xs, processes=None, startdir = None ):
         processes = MAXPROCS
     # initializes the pool object
     pool = Pool(processes=processes )
-    # to make sure the function really returns to here: store cwd
-    workplace = getcwd()
-    # fwrapper function does: changes in own workingdirectory
-    #  copies startdata if available in it, stores startdata
-    # if startdir not None
-    fwrap = fwrapper(f,workplace,startdir )
 
-    return pool.map(fwrap.perform, xs)
+    res = pool.map(f, xs)
+    pool.close()
 
-
+    return res
 
 
 if __name__ == "__main__":

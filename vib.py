@@ -31,19 +31,19 @@
        ...     return [ 2 * x[0] * x[1] * x[2]  , x[1]**2 , x[2] ]
 
 
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0],direction = 'forward' )
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], p_map = ps_map,direction = 'forward' )
        >>> print hessian
        [[ 4.    0.    0.  ]
         [ 2.    4.01  0.  ]
         [ 4.    0.    1.  ]]
 
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0] )
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], p_map = ps_map )
        >>> print hessian
        [[ 4.  0.  0.]
         [ 2.  4.  0.]
         [ 4.  0.  1.]]
 
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0],direction = 'backward' )
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0],p_map = ps_map,direction = 'backward' )
        >>> print hessian
        [[ 4.   -0.   -0.  ]
         [ 2.    3.99 -0.  ]
@@ -67,31 +67,29 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
   Define LJ-PES:
 
-    >>> from qfunc import QFunc
+    >>> from ase.calculators.lj import LennardJones
 
-    >>> pes = QFunc(ar4)
-    >>> fun = pes.fprime
+    >>> ar4.set_calculator(LennardJones())
 
   Calculate the vibration modes
 
-    >>> vibmodes(ar4, fun)
+    >>> vibmodes(ar4, workhere = True)
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      0       no       0.1548129       1248.6494855
-      1       no       0.1094714        882.9459913
+      1       no       0.1548129       1248.6494855
       2       no       0.1094714        882.9459913
       3       no       0.1094714        882.9459913
-      4       no       0.0773558        623.9162798
+      4       no       0.1094714        882.9459913
       5       no       0.0773558        623.9162798
-      6       no       0.0000000          0.0000076
-      7       no       0.0000000          0.0000064
-      8       yes      0.0000000          0.0000056
-      9       yes      0.0021796         17.5798776
+      6       no       0.0773558        623.9162798
+      7       no       0.0000000          0.0000076
+      8       no       0.0000000          0.0000064
+      9       yes      0.0000000          0.0000056
      10       yes      0.0021796         17.5798776
      11       yes      0.0021796         17.5798776
+     12       yes      0.0021796         17.5798776
     ----------------------------------------------------
-
 
   second test System: N-N with EMT calculator
 
@@ -99,34 +97,33 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
     >>> n2 = Atoms('N2', [(0, 0, 0), (0, 0, 1.1)])
 
-    >>> pes = QFunc(n2, EMT())
-    >>> fun = pes.fprime
-    >>> vibmodes(n2, fun)
+    >>> n2.set_calculator( EMT())
+    >>> vibmodes(n2, workhere = True )
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      0       no       0.2540363       2048.9398454
-      1       no       0.0000000          0.0000000
+      1       no       0.2540363       2048.9398454
       2       no       0.0000000          0.0000000
       3       no       0.0000000          0.0000000
-      4       yes      0.0398776        321.6345510
+      4       no       0.0000000          0.0000000
       5       yes      0.0398776        321.6345510
+      6       yes      0.0398776        321.6345510
     ----------------------------------------------------
 
 
     >>> n2.set_positions([[  0.0, 0.0, 0.000],
     ...                   [  0.0, 0.0, 1.130]])
 
-    >>> vibmodes(n2, fun)
+    >>> vibmodes(n2, workhere = True)
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      0       no       0.2324660       1874.9643134
-      1       no       0.0046502         37.5060049
+      1       no       0.2324660       1874.9643134
       2       no       0.0046502         37.5060049
-      3       no       0.0000000          0.0000000
+      3       no       0.0046502         37.5060049
       4       no       0.0000000          0.0000000
       5       no       0.0000000          0.0000000
+      6       no       0.0000000          0.0000000
     ----------------------------------------------------
 
 """
@@ -135,10 +132,11 @@ from scipy.linalg import eig
 from math import sqrt
 import ase.atoms
 import ase.units as units
-from aof.paramap import pa_map, ps_map, td_map, pmap
+from aof.paramap import pa_map, ps_map, td_map, pmap, pool_map
 from sys import stdout
+from aof.qfunc import fwrapper
 
-def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central', mask = None ):
+def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' ):
     '''
     Derivates another function numerically,
 
@@ -153,92 +151,45 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central', ma
     gives back the derivatives as a matrix
     nabla gi/ nabla x0j
 
-    There are two possibilities tested as types for x which work: x is a list
-    or x is an array, if it is an array, the isarray Flag will be set by the system
-    and it will be made sure, that the input also gives arrays to the qc-calculators/functions
-
     The gradient/derivative given back can also be an array
-
-    mask decides on which variables from x0 the derivatives are wanted
-    default is mask= None, where for each element of x0 the calculation
-    takes place
-    else mask should have the length corresponding to the number of elements in x0
-    True stands for calculate derivative for this element, False stands for not
-    calculating
     '''
     assert direction in ['central', 'forward', 'backward']
-    x0 = np.asarray(x0)
 
     if direction =='backward':
     # change sign of delta if other direction is wanted
          delta = -delta
 
-    # find out how many geoemtry elements there are
-    # different treatments for arrays, lists of single
-    # elements
-    # if x was an array, the system has to remember it
-    # to converge x back for the function calculation
-
+    xs = []
     try:
-        (dirone, dirtwo) = x0.shape
-    except ValueError:
-         dirtwo = 1
-         try:
-             (dirone,) = x0.shape
-         except ValueError:
-             dirone = 1
-         x0.shape = (dirone, dirtwo)
-
-    geolen = dirone * dirtwo
-    # mask ==None is actually not was is wanted
-    # in this case it is reset to True for all
-    if mask == None:
-         mask = [True for i in range(geolen)]
-    # the length of the mask should be the number of geo_elements
-    assert len(mask) == geolen
-    # cnt_act_elem gives the number of geo_elements for which to
-    # calculate something
-    cnt_act_elem = mask.count(True)
+        geolen = len(x0)
+    except TypeError:
+        geolen = 1
+        x0 = [x0]
 
     # building up the list of wanted geometries
     # consider the different directions
     if direction == 'central':
-        xs = np.zeros([cnt_act_elem * 2, dirone, dirtwo])
         # two inputs per geometry values
         # one in each direction
-        # elem counts over all elements in x0
-        # act_elem only over those, which are wanted via the mask
-        elem = 0
-        act_elem = 0
-        for  i in range(0, dirone):
-            for j in range(0, dirtwo):
-                if mask[elem]:
-                    xs[act_elem] = x0
-                    xs[act_elem][i, j] += delta
-                    act_elem += 1
-                    xs[act_elem] = x0
-                    xs[act_elem][i, j] -= delta
-                    act_elem += 1
-                elem += 1
+        for i in range(geolen):
+            xinter = []
+            xinter = x0[:]
+            xinter[i] += delta
+            xs.append(xinter)
+            xinter = []
+            xinter = x0[:]
+            xinter[i] -= delta
+            xs.append(xinter)
     else:
-        xs = np.empty([cnt_act_elem + 1, dirone, dirtwo])
         # first for the middle geometry the value is
         # needed
-        xs[0] = x0
-        elem = 0
-        act_elem = 1
-        # elem counts over all elements in x0
-        # act_elem only over those, which are wanted via the mask
-        # act_elem starts as 1 as the geometry for the center is
-        # needed anyway
+        xs.append(x0[:])
         # for the rest only one per geometry
-        for  i in range(0, dirone):
-            for j in range(0, dirtwo):
-                if mask[elem]:
-                    xs[act_elem] = x0
-                    xs[act_elem][i, j] += delta
-                    act_elem += 1
-                elem += 1
+        for  i in range(geolen):
+            xinter = []
+            xinter = x0[:]
+            xinter[i] += delta
+            xs.append(xinter)
 
     # calculation of the functionvalues for all the geometries
     # at the same time
@@ -251,70 +202,39 @@ def derivatef( g0, x0, delta = 0.01, p_map = ps_map  , direction = 'central', ma
 
     # deriv is the matrix with the derivatives
     # for g = deriv * geo
-    deriv = np.zeros([cnt_act_elem, derlen])
-
     # again the direction makes a difference
     # compare the formulas given above
     if direction == 'central':
-        for i in range(0, cnt_act_elem):
+        geolen = len(g1)/2
+        deriv = np.zeros([geolen, derlen])
+        for i in range(0, geolen):
         # alternate the values for plus and minus are stored
         # if the g elements are arrays they have to be converged
             gplus = g1[2*i].flatten()
             gminus = g1[2*i+1].flatten()
             deriv[i,:] = (gplus - gminus) / ( 2 * delta)
     else:
+        geolen = len(g1)-1
+        deriv = np.zeros([geolen, derlen])
         gmiddle = g1[0]
         gmiddle = gmiddle.flatten()
-
         for i, gval  in enumerate(g1[1:]):
             gval = gval.flatten()
             deriv[i,:] = (gval - gmiddle) / delta
     return deriv
 
-def vibmodes(atoms, func, mask = None, alsovec = False, **kwargs ):
+def vibmodes(atoms, startdir = None, mask = None, workhere = False, alsovec = False, **kwargs ):
      """
      Wrapper around vibmode, which used the atoms objects
+     The hessian is calculated by derivatef
+     qfunc.fwrapper is used as a wrapper to calulate the gradients
      """
-     xcenter = atoms.get_positions()
-     mass1 = atoms.get_masses()
-     massvec = np.eye(len(mass1) * 3) *  np.repeat(mass1, 3)
-     # change the mass vector according to the need
-     mass, mask = reducemass(massvec, mask)
-     cnt_act_elem = mask.count(True)
+     func = fwrapper(atoms, startdir = startdir, mask = mask, workhere = workhere )
+     xcenter = func.getpositionsfromatoms()
+     mass = func.getmassfromatoms()
      # the derivatives are needed
-     hessian = derivatef( func, xcenter, mask = mask, **kwargs )
-     derivact = np.zeros([cnt_act_elem, cnt_act_elem])
-     # the derivatives are only interesting regarding those
-     # coordinates which are active.
-     act_elem = 0
-     for i in range(len(mask)):
-         if mask[i]:
-             derivact[:,act_elem] = hessian[:,i]
-             act_elem += 1
-     vibmod( mass, derivact, alsovec)
-
-def reducemass(massvec, mask):
-     """
-     gives back a massvec, containing only the elements
-     which are True in mask * mask, therefore giving
-     only back the massvector relevant for the active
-     elements
-     """
-     imax, jmax = massvec.shape
-     if mask == None:
-         mask = [True for i in range(imax)]
-     cnt_act_elem = mask.count(True)
-     mass = np.zeros([cnt_act_elem, cnt_act_elem])
-     i_mass = 0
-     for i in range(imax):
-         j_mass = 0
-         if mask[i]:
-              for j in range(jmax):
-                   if mask[j]:
-                       mass[i_mass, j_mass] = massvec[i,j]
-                       j_mass += 1
-              i_mass += 1
-     return mass, mask
+     hessian = derivatef( func.perform, xcenter,**kwargs )
+     vibmod( mass, hessian, alsovec)
 
 def vibmod(mass, hessian, alsovec = False):
      """

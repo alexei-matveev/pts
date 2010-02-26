@@ -52,6 +52,7 @@ from ase import LennardJones
 from os import path, mkdir, chdir, getcwd, system
 from processing import currentProcess
 from shutil import copy2 as cp
+import numpy as np
 
 class QFunc(Func):
     def __init__(self, atoms, calc=LennardJones(), startdir = 'restarthelp', restart = False):
@@ -159,32 +160,131 @@ class fwrapper(object):
     it works in and handles startdata for the qm-solver
     if self.start is not None
     """
-    def __init__(self, fun, wopl, start = None):
-        self.start = start
-        # start directory may be stored in fun
-        # we only need the gradients, but this way
-        # fun has to be a qfunc, if this is not
-        # the case, hopefully fun gives the (gradients)
-        # we want
-        try:
-            self.fun = fun.fprime
-            if self.start == None:
-                 self.start = fun.getstartdir()
-        except AttributeError:
-            self.fun = fun
+    def __init__(self, atoms, startdir = None, mask = None, workhere = True):
+        self.start = startdir
+        self.mask = mask
+        self.workhere = workhere
+        self.atoms = atoms
+        self.fun = QFunc(self.atoms, calc = self.atoms.get_calculator()).fprime
         # the working directory before changed, thus where
         # to return lateron
-        self.wopl = wopl
+        self.wopl = getcwd()
+        if self.atoms == None:
+             print "WARNING: Your function needs an atom object!"
+             print "Make sure it's there, when calculation starts!"
+        if startdir is not None:
+             if startdir.startswith('/'):
+                  pass
+             elif startdir.startswith('~'):
+                  pass
+             else:
+                 self.start = self.wopl + '/' + startdir
+
+
+    def getmassfromatoms(self):
+        """
+        gives back the masses form the atoms as a vector
+        filtered through the mask
+        """
+        mass1 = self.atoms.get_masses()
+        massvec = np.eye(len(mass1) * 3) *  np.repeat(mass1, 3)
+        if self.mask is not None:
+            massvec = self.reducevecm(massvec, self.mask)
+        return massvec
+
+    def reducevecm(self, vec, mask):
+        """
+        gives back a massvec, containing only the elements
+        which are True in mask * mask, therefore giving
+        only back the massvector relevant for the active
+        elements
+        """
+        imax, jmax = vec.shape
+        cnt_act_elem = mask.count(True)
+        vec2 = np.zeros([cnt_act_elem, cnt_act_elem])
+        i_count = 0
+        for i in range(imax):
+            j_count = 0
+            if mask[i]:
+                 for j in range(jmax):
+                      if mask[j]:
+                          vec2[i_count, j_count] = vec[i,j]
+                          j_count += 1
+                 i_count += 1
+        return vec2
+
+    def getpositionsfromatoms(self):
+        """
+        Gives all the coordinates of the atom object
+        for which a vibration is wanted
+        they are given back as a list
+        """
+        self.xcore = self.atoms.get_positions()
+        if self.mask is not None:
+            xcen = self.reducevecx(self.xcore, self.mask)
+        else:
+            xcen = self.xcore
+            xcen = (xcen.flatten()).tolist()
+        return xcen
+
+    def reducevecx(self, x, mask):
+        """
+        From a vector (like the coordinates ore gradients)
+        the coordinates are extracted (and given back as a
+        list) which are True in mask
+        """
+        imax, jmax = x.shape
+        cnt_act_elem = mask.count(True)
+        xout = []
+        m_count = 0
+        for i in range(imax):
+             for j in range(jmax):
+                 if mask[m_count] == True:
+                     xout.append(x[i,j])
+                 m_count += 1
+        return xout
+
+    def enlargex(self, x, mask):
+        """
+        The list, containing the geometry coordinates
+        are extenced to the full coordinates, by using
+        self.xcore values for all elementes which are
+        False in the mask, the others are set by x
+        gives back a vector if the shape of xcore
+        """
+        mar = mask
+        if mar == None:
+            mar = [True for i in range(len(x))]
+        imax, jmax = self.xcore.shape
+        xout = self.xcore
+        l_count = 0
+        m_count = 0
+        for i in range(imax):
+                 for j in range(jmax):
+                     if mar[m_count] == True:
+                         xout[i, j] = x[l_count]
+                         l_count += 1
+                     m_count += 1
+        return xout
 
     def perform(self,x):
+        """
+        This is the function which should be called by the
+        processes for mapping and so on
+        If wanted it changes the current working directory/back
+        and copies starting files, when called, the result
+        is given back as a list and contain only derivatives
+        for the elements which are True in self.mask
+        """
         # if called instead of the fun itself via name.perform
         # the name of the working directory is just the name
         # of the current Process
-        wx = currentProcess().getName()
-        if not path.exists(wx):
-            mkdir(wx)
-        chdir(wx)
-        print "FWRAPPER: Entering working directory:", wx
+        if not self.workhere:
+            wx = currentProcess().getName()
+            if not path.exists(wx):
+                mkdir(wx)
+            chdir(wx)
+            print "FWRAPPER: Entering working directory:", wx
         # if there is a startingdirectory named, now is the time
         # to have a look, if there is something useful inside
         if self.start is not None and path.exists(self.start):
@@ -200,8 +300,13 @@ class fwrapper(object):
                    print "FWRAPPER: Copying start file",filename
                 except IOError:
                    pass
+        xvec = self.enlargex(x, self.mask)
         # the actual call of the original function
-        res = self.fun(x)
+        res = self.fun(xvec)
+        if self.mask is not None:
+            res = self.reducevecx(res, self.mask)
+        else:
+            res = (res.flatten()).tolist()
         # if the startingdirectory does not exist yet but has a
         # resonable name, it now can be created
         if self.start is not None and not path.exists(self.start):
@@ -224,7 +329,8 @@ class fwrapper(object):
                  print "FWRAPPER: not make new path", wx
         # it is safer to return to the last working directory, so
         # the code does not affect too many things
-        chdir(self.wopl)
+        if not self.workhere:
+            chdir(self.wopl)
         # the result of the function call:
         return res
 
