@@ -91,6 +91,25 @@ Ar4 Cluster as first simple atomic/molecule test system with
      12       yes      0.0021796         17.5798776
     ----------------------------------------------------
 
+    >>> from ase.constraints import FixAtoms
+
+    >>> c = FixAtoms([1, 2])
+    >>> ar4.set_constraint(c)
+
+    >>> vibmodes(ar4, workhere = True)
+    FWRAPPER: The following mask has been obtained from the constraints of the atoms
+    [True, True, True, False, False, False, False, False, False, True, True, True]
+    ====================================================
+     Number  imag.   Energy in eV      Energy in cm^-1
+    ----------------------------------------------------
+      1       no       0.1290803       1041.1023467
+      2       no       0.0948029        764.6368238
+      3       no       0.0656182        529.2459223
+      4       no       0.0547248        441.3854810
+      5       no       0.0546771        441.0002676
+      6       yes      0.0017797         14.3542260
+    ----------------------------------------------------
+
   second test System: N-N with EMT calculator
 
     >>> from ase.calculators.emt import EMT

@@ -170,8 +170,9 @@ class fwrapper(object):
         # to return lateron
         self.wopl = getcwd()
         if self.atoms == None:
-             print "WARNING: Your function needs an atom object!"
+             print "FWRAPPER_WARNING: Your function needs an atom object!"
              print "Make sure it's there, when calculation starts!"
+             print "This way you have to set any constraints by hand!"
         if startdir is not None:
              if startdir.startswith('/'):
                   pass
@@ -179,7 +180,25 @@ class fwrapper(object):
                   pass
              else:
                  self.start = self.wopl + '/' + startdir
-
+        if mask == None and not self.atoms == None:
+            fix = self.atoms._get_constraints()
+            if not fix == []:
+                mask0 = [True for i in range(len(self.atoms.get_positions().flatten()))]
+                for fix1 in fix:
+                        fixstr = str(fix1)
+                        if fixstr.startswith("FixScaled"):
+                             num = fix1.a
+                             mask1 = fix1.mask
+                             mask1 -= True
+                             mask0[num * 3: num * 3 + 3] = mask1
+                        elif fixstr.startswith("FixAtoms"):
+                             nums = fix1.index
+                             for num in nums:
+                                 mask1 = [False for i in range(3)]
+                                 mask0[num * 3: num * 3 + 3] = mask1
+                print "FWRAPPER: The following mask has been obtained from the constraints of the atoms"
+                print mask0
+                self.mask = mask0
 
     def getmassfromatoms(self):
         """
