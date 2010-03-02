@@ -296,7 +296,7 @@ def vibmod(mass, hessian, alsovec = False):
           print "The corresponding eigenvectors  are:"
           print "Number   Vector"
           for i, ev  in enumerate(eigvectors):
-               writevec("%3d :    " % i)
+               writevec("%3d :    " % (i+1)  )
                for j in range(int(len(ev)/3)):
                     for k in [0,1,2]:
                         writevec("  %10.7f" % (ev[j * 3 + k]))
