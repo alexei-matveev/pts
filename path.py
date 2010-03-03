@@ -328,7 +328,17 @@ class Path(Func):
             # parabolic path
             elif self.__node_count == 3:
 
-                self.__fs.append(QuadFunc(self.__xs, ys))
+                # TODO: at present, transition state assumed to be half way ebtween reacts and prods
+                ps = array((0.0, 0.5, 1.0))
+                ps_x_pow_2 = ps**2
+                ps_x_pow_1 = ps
+                ps_x_pow_0 = ones(len(ps_x_pow_1))
+
+                A = column_stack((ps_x_pow_2, ps_x_pow_1, ps_x_pow_0))
+
+                quadratic_coeffs = linalg.solve(A,ys)
+
+                self.__fs.append(QuadFunc(quadratic_coeffs))
 
             else:
                 # spline path

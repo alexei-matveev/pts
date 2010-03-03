@@ -9,9 +9,10 @@ import ase
 
 import aof
 from aof.common import file2str
+from os.path import exists
 from aof.tools import pickle_path
 
-name, params_file, mol_strings, init_state_vec, prev_results_file = aof.setup(sys.argv)
+name, params_file, mol_strings, init_state_vec, prev_results_file, overrides = aof.setup(sys.argv)
 
 # TODO: setup circular re-naming to prevent accidental overwrites
 logfile = open(name + '.log', 'w')
@@ -20,12 +21,24 @@ disk_result_cache = '%s.ResultDict.pickle' % name
 # setup all default parameters
 refine_search=False
 force_cart_opt = False
+beads_count_refine = 6
 
 # bring in custom parameters
 extra_opt_params = dict()
 params_file_str = file2str(params_file)
+
 print params_file_str
 exec(params_file_str)
+
+# HACK to allow locally defined calc
+if exists('calc.txt'):
+    params['calculator'] = eval(file2str('calc.txt'))
+    print "Using locally defined calculator:", str(params['calculator'])
+
+# overwrite parameters as necessary
+print "The following overrides were specified..."
+print overrides
+exec(overrides)
 
 # set up some objects
 mi = aof.MolInterface(mol_strings, **params)
@@ -66,9 +79,14 @@ elif cos_type == 'neb':
 else:
     raise Exception('Unknown type: %s' % cos_type)
 
+cb_count_debug = 0
 while True:
     # callback function
     def cb(x, tol=0.01):
+
+        global cb_count_debug
+        pickle_path(mi, CoS, "%s.debug%d.path.pickle" % (name, cb_count_debug))
+        cb_count_debug += 1
         return aof.generic_callback(x, mi, CoS, params, tol=tol)
 
     # print out initial path
@@ -77,7 +95,7 @@ while True:
     # hack to enable the CoS to print in cartesians, even if opt is done in internals
     CoS.bead2carts = lambda x: mi.build_coord_sys(x).get_cartesians().flatten()
 
-    runopt = lambda CoS_: aof.runopt(opt_type, CoS_, ftol, xtol, maxit, cb, maxstep=maxstep, extra=extra_opt_params)
+    runopt = lambda CoS_: aof.runopt(opt_type, CoS_, ftol, xtol, etol, maxit, cb, maxstep=maxstep, extra=extra_opt_params)
 
     # main optimisation loop
     print runopt(CoS)
@@ -96,7 +114,7 @@ while True:
         print "Energy = %.4f eV, between beads %d and %d." % (e, bead0_i, bead1_i)
         print cs.xyz_str()
 
-    if not refine_search:
+    if not refine_search or beads_count_refine < 3:
         break
 
     refine_search = False
@@ -116,13 +134,12 @@ while True:
     print "Performing refined search between beads %d and %d." % (bead0_i, bead1_i)
     print "Max change in any optimisation coordinate", max_change
 
-    beads_ref = 6
 
     path_ref = np.array([bead0, bead1])
     CoS = aof.searcher.NEB(path_ref, 
           calc_man, 
           spr_const,
-          beads_ref,
+          beads_count_refine,
           parallel=True,
           reporting=logfile)
     

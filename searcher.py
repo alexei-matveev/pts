@@ -12,10 +12,11 @@ import logging
 from copy import deepcopy
 import pickle
 
+# TODO: change to import numpy as np???
 from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot, eye, outer, inf, isnan, isfinite, size, vstack, atleast_1d
 
 from path import Path
-from func import CubicFunc
+from func import CubicFunc, QuadFunc
 
 from common import * # TODO: must unify
 import aof.common as common
@@ -46,6 +47,30 @@ def _functionId(nFramesUp):
     args = [str(a) for a in args]
     lg.info("**** " + sys._getframe(1).f_code.co_name + ' '.join(args))"""
 
+def masked_assign(mask, x, y):
+    """Assigns y to x if mask allows it.
+
+    >>> m = [True, True]
+    >>> orig = arange(4).reshape(2,-1)
+    >>> x = orig.copy()
+    >>> y = array([5,4,3,2]).reshape(2,-1)
+    >>> masked_assign(m, x, y)
+    >>> (x == y).all()
+    True
+    >>> m = [False, False]
+    >>> x = orig.copy()
+    >>> masked_assign(m, x, y)
+    >>> (x != y).all()
+    True
+    """
+
+    assert len(mask) == len(x) == len(y)
+
+    for i, y_ in enumerate(y):
+        if mask[i]:
+            x[i] = y_
+
+
 class ReactionPathway(object):
     """Abstract object for chain-of-state reaction pathway."""
     dimension = -1
@@ -61,7 +86,7 @@ class ReactionPathway(object):
 
     string = False
 
-    def __init__(self, reagents, beads_count, qc_driver, parallel, reporting=None, convergence_beads=3, steps_cumm=3, freeze_beads=False):
+    def __init__(self, reagents, beads_count, qc_driver, parallel, reporting=None, convergence_beads=3, steps_cumm=3, freeze_beads=False, conv_mode='gradstep'):
         """
         convergence_beads:
             number of highest beads to consider when testing convergence
@@ -77,6 +102,7 @@ class ReactionPathway(object):
         self.parallel = parallel
         self.qc_driver = qc_driver
         self.beads_count = beads_count
+        self.prev_beads_count = beads_count
 
         self.convergence_beads = convergence_beads
         self.steps_cumm = steps_cumm
@@ -96,6 +122,10 @@ class ReactionPathway(object):
         if reporting:
             assert type(reporting) == file
         self.reporting = reporting
+
+        legal_conv_modes = ('gradstep', 'energy')
+        assert conv_mode in legal_conv_modes
+        self.conv_mode = conv_mode
 
     def initialise(self):
         beads_count = self.beads_count
@@ -119,15 +149,12 @@ class ReactionPathway(object):
         self._step = zeros(shape)
 
     def update_mask(self, perp_max=0.3):
+#        self.bead_update_mask = [False, False, False, True, True, False, False, False]
+#        return
         top3 = self.bead_pes_energies.argsort()[-3:]
-        for i in range(self.beads_count)[1:-1]:
-            if i in top3:
-                print "Bead", i, "in top3"
-                self.bead_update_mask[i] = True
-                continue
-
-            self.bead_update_mask[i] = abs(self.perp_bead_forces[i]).max() > perp_max
-            print "Bead", i, self.bead_update_mask[i], abs(self.perp_bead_forces[i]).max()
+        max_f = abs(self.perp_bead_forces[i]).max()
+        self.bead_update_mask[i] = max_f > perp_max or i in top3
+        print "Bead", i, self.bead_update_mask[i], abs(self.perp_bead_forces[i]).max()
         lg.info("Update mask set to %s" % str(self.bead_update_mask))
 
     def lengths_disparate(self):
@@ -138,7 +165,38 @@ class ReactionPathway(object):
         if self.lengths_disparate():
             raise aof.MustRegenerate
 
-    def test_convergence(self, f_tol, x_tol):
+    def test_convergence(self, etol, ftol, xtol):
+        
+        if self.conv_mode == 'gradstep':
+            return self.test_convergence_GS(ftol, xtol)
+        if self.conv_mode == 'energy':
+            return self.test_convergence_E(etol)
+
+        assert False, "Should have been prevented by test in constructor."
+            
+    def test_convergence_E(self, etol):
+        if self.eg_calls < 2:
+            # because forces are always zero at zeroth iteration
+            return
+
+        bc_history = self.history.bead_count(2)
+        print "bc_history", str(self.history)
+        if bc_history[1] != bc_history[0]:
+            lg.info("Testing Convergence: string just grown, so skipping.")
+            return
+
+
+        es = array(self.history.e(2)) / (self.beads_count - 2)
+        print "es[0] =", es[0]
+        # TODO: should remove abs(), only converged if energy went down
+        # Or maybe should look at difference between lowest energies so far.
+        diff = abs(es[0] - es[1]) 
+
+        lg.info("Testing Convergence of %f to %f eV / moving bead / step." % (diff, etol))
+        if diff < etol:
+            raise aof.Converged
+        
+    def test_convergence_GS(self, f_tol, x_tol):
         """
         Raises Converged if converged, applying weaker convergence 
         criteria if growing string is not fully grown.
@@ -348,13 +406,15 @@ class ReactionPathway(object):
             self.prev_state = self.state_vec.copy()
 
         # skip reporting if the state hasn't changed
-        elif (self.state_vec == self.prev_state).all():
+        elif (self.state_vec == self.prev_state).all() and self.beads_count == self.prev_beads_count:
+            print "DB state didn't change"
             return
 
         self.eg_calls += 1
         self._step = self.state_vec - self.prev_state
         self.prev_state = self.state_vec.copy()
 
+        print "DB len(self.state_vec)", len(self.state_vec)
         self.record()
 
         if self.reporting:
@@ -368,6 +428,8 @@ class ReactionPathway(object):
             self.reporting.flush()
         else:
             assert self.reporting == None
+
+        self.prev_beads_count = self.beads_count
 
 
     def grow_string(self):
@@ -496,12 +558,15 @@ class ReactionPathway(object):
     def record(self):
         """Records snap-shot of chain."""
         es = self.bead_pes_energies.copy()
+        print "len(es) before", len(es)
+
         state = self.state_vec.copy()
         perp_forces = self.perp_bead_forces.copy()
         para_forces = self.para_bead_forces.copy()
         ts_estim = self.ts_estims()[-1]
 
         a = [es, state, perp_forces, para_forces, ts_estim]
+        print "len(es)", len(es)
 
         self.history.rec(a)
         
@@ -512,11 +577,13 @@ class ReactionPathway(object):
         parallel mode).
         """
         bead_pes_energies = []
+        print "len(self.state_vec)", len(self.state_vec)
         for bead_vec in self.state_vec:
             e = self.qc_driver.energy(bead_vec)
             bead_pes_energies.append(e)
 
         self.bead_pes_energies = array(bead_pes_energies)
+        print "len(self.bead_pes_energies)", len(self.bead_pes_energies)
 
     def ts_estims(self):
         """TODO: Maybe this whole function should be made external."""
@@ -635,7 +702,6 @@ class NEB(ReactionPathway):
            [ 0.,  1.],
            [ 1.,  0.]])
 
-    
     """
 
     growing = False
@@ -764,6 +830,7 @@ class LinFunc():
     def fprime(self, x):
         return self.grad
 
+"""
 class QuadFunc(Func):
     def __init__(self, coefficients):
         self.coefficients = coefficients
@@ -773,6 +840,7 @@ class QuadFunc(Func):
 
     def fprime(self, x):
         return 2 * self.coefficients[0] * x + self.coefficients[1]
+"""
 
 class SplineFunc(Func):
     def __init__(self, xs, ys):
@@ -1416,6 +1484,7 @@ class GrowingString(ReactionPathway):
         lg.info("******** String Grown to %d beads ********", self.beads_count)
 
         self.prev_state = self.state_vec.copy()
+        print "DB grow", len(self.state_vec)
 
         return True
 
@@ -1532,7 +1601,7 @@ class GrowingString(ReactionPathway):
         plot2D(self._path_rep)
 
 def project_out(component_to_remove, vector):
-    """Projects the component of 'vector' that list along 'component_to_remove'
+    """Projects the component of 'vector' that lies along 'component_to_remove'
     out of 'vector' and returns it."""
     projection = dot(component_to_remove, vector)
     removed = projection * component_to_remove

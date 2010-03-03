@@ -12,13 +12,13 @@ __all__ = ["opt"]
 
 names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line']
 
-def runopt(name, CoS, ftol, xtol, maxit, callback, maxstep=0.2, extra=dict()):
+def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict()):
     assert name in names
 
     CoS.maxit = maxit
     def cb(x):
         y = callback(x)
-        CoS.test_convergence(ftol, xtol)
+        CoS.test_convergence(etol, ftol, xtol)
         return y
 
     while True:
