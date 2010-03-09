@@ -54,17 +54,25 @@ def main(argv=None):
         max_coord_change = np.abs(state[0] - state[-1]).max()
         print "Max change in any one coordinate was %.2f" % max_coord_change
         print "                            Per bead %.2f" % (max_coord_change / len(state))
+        print "Energy of all beads    %s" % es
+        print "Energy of highest bead %.2f" % es.max()
 
-        if len(args) < 2:
-            return
-        fn_ts = args[1]
-        ts = aof.coord_sys.XYZ(file2str(fn_ts))
-        ts_carts = ts.get_cartesians()
-        ts_energy = ts.get_potential_energy()
+
+        if len(args) == 2:
+            fn_ts = args[1]
+            ts = aof.coord_sys.XYZ(file2str(fn_ts))
+            ts_carts = ts.get_cartesians()
+            ts_energy = ts.get_potential_energy()
 
         pt = aof.tools.PathTools(state, es, gs)
 
         estims = []
+        pt.ts_splcub()
+
+        #print pt
+        print pt.para_forces
+        print pt.para_forces_fd
+        exit()
         estims.append(('Spling and cubic', pt.ts_splcub()[-1]))
         estims.append(('Highest', pt.ts_highest()[-1]))
         estims.append(('Spline only', pt.ts_spl()[-1]))

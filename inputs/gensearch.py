@@ -134,7 +134,6 @@ while True:
     print "Performing refined search between beads %d and %d." % (bead0_i, bead1_i)
     print "Max change in any optimisation coordinate", max_change
 
-
     path_ref = np.array([bead0, bead1])
     CoS = aof.searcher.NEB(path_ref, 
           calc_man, 
@@ -142,7 +141,7 @@ while True:
           beads_count_refine,
           parallel=True,
           reporting=logfile)
-    
+
     # write out path to a file
     pickle_path(mi, CoS, "%s.path.pickle" % name)
 

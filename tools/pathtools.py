@@ -16,7 +16,7 @@ class PathTools:
     array([ 0.,  1.,  2.,  3.])
 
     >>> pt.ts_highest()
-    [(3, array([2]), 2.0, 2.0)]
+    [(3, array([2]), 2.0, 2.0, 2, 2)]
 
     >>> pt = PathTools([0,1,2,3], [1,2,3,2], [0,1,-0.1,0])
     >>> res1 = pt.ts_splcub()
@@ -39,7 +39,7 @@ class PathTools:
     >>> ys = f(xs)
     >>> gs = g(xs)
     >>> pt = PathTools(xs, ys, gs)
-    >>> energy, pos, _, _ = pt.ts_splcub()[0]
+    >>> energy, pos, _, _, _, _ = pt.ts_splcub()[0]
     >>> np.round(energy) == 0
     True
     >>> (np.round(pos) == 0).all()
@@ -56,14 +56,14 @@ class PathTools:
     >>> ys = f(xs)
     >>> gs = g(xs)
     >>> pt = PathTools(xs, ys, gs)
-    >>> energy, pos, _, _ = pt.ts_splcub()[0]
+    >>> energy, pos, _, _, _, _ = pt.ts_splcub()[0]
     >>> np.round(energy) == 0
     True
     >>> (np.round(pos) == 0).all()
     True
 
     >>> pt = PathTools([0,1,2,3,4], [1,2,3,2,1])
-    >>> e, p, s0, s1 = pt.ts_spl()[0]
+    >>> e, p, s0, s1, _, _ = pt.ts_spl()[0]
     >>> np.round([e,p])
     array([ 3.,  2.])
 
@@ -71,12 +71,18 @@ class PathTools:
     >>> pt.ts_spl()[0] == (e, p, s0, s1)
     True
 
-
+    >>> pt = PathTools([0,1,2,3,4], [1,2,3,2,1], [0,1,-0.1,0,1])
+    >>> pt.ts_bell()
 
     """
+
     def __init__(self, state, energies, gradients=None):
 
+        # string for __str__ to print
+        self.s = []
+
         self.n = len(energies)
+        self.s.append("Beads: %d" % self.n)
         self.state = np.array(state).reshape(self.n, -1)
         self.energies = np.array(energies)
 
@@ -88,14 +94,24 @@ class PathTools:
 
         self.steps = np.zeros(self.n)
 
+        # set up array of tangents, not based on a spline representation of the path
+        self.non_spl_grads = []
+        x = self.state[1]
+        x_ = self.state[0]
+        l = np.linalg.norm(x - x_)
+        self.non_spl_grads.append((x - x_) / l)
+
         for i in range(self.n)[1:]:
             x = self.state[i]
             x_ = self.state[i-1]
-            self.steps[i] = np.linalg.norm(x -x_) + self.steps[i-1]
-        self.steps = self.steps# / self.steps[-1]
+            l = np.linalg.norm(x - x_)
+            self.non_spl_grads.append((x - x_) / l)
 
-        # string for __str__ to print
-        self.s = []
+            self.steps[i] = np.linalg.norm(x -x_) + self.steps[i-1]
+
+        #self.steps = self.steps / self.steps[-1]
+        self.non_spl_grads = np.array(self.non_spl_grads)
+        assert len(self.non_spl_grads) == self.n
 
         # build fresh functional representation of optimisation 
         # coordinates as a function of a path parameter s
@@ -107,14 +123,31 @@ class PathTools:
         # present, calculation of string length is too slow, so it's only done 
         # once and a simple comaprison is made.
         diff = lambda a,b:np.abs(a-b)
-        arc = func.Integral(self.xs.tangent_length)
-        l = np.array([arc(x) for x in self.xs.xs])
+        self.arc = func.Integral(self.xs.tangent_length)
+        l = np.array([self.arc(x) for x in self.xs.xs])
         self.s.append("Path length: %s" % l[-1])
         err = l - self.steps
         err = [diff(err[i], err[i-1]) for i in range(len(err))[1:]]
         self.s.append("Difference between Pythag v.s. spline positions: %s" % np.array(err).round(4))
-        
- 
+
+        # There have been some problems with the calculation of the slope along the path
+        # This calculates it via an alternate method
+        self.para_forces_fd = []
+        self.use_energy_based_dEds_calc = False
+        if self.use_energy_based_dEds_calc:
+            ss = self.steps
+            Es = self.energies
+            self.dEds_all = np.zeros(self.n)
+            for i in range(self.n):
+                if i == 0:
+                    tmp = (Es[i+1] - Es[i]) / np.linalg.norm(ss[i+1] - ss[i])
+                elif i == self.n - 1:
+                    tmp = (Es[i] - Es[i-1]) / np.linalg.norm(ss[i] - ss[i-1])
+                else:
+                    tmp = (Es[i+1] - Es[i-1]) / np.linalg.norm(ss[i+1] - ss[i-1])
+                self.para_forces_fd.append(tmp)
+                self.dEds_all[i] = tmp
+
     def __str__(self):
         return '\n'.join(self.s)
 
@@ -164,6 +197,7 @@ class PathTools:
         ys = self.state.copy()
         ss = self.steps
         Es = self.energies
+        self.s.append("Begin ts_splavg()")
         self.s.append("Es: %s" % Es)
 
         self.plot_str = ""
@@ -191,6 +225,10 @@ class PathTools:
             dEds_0 = np.dot(dEdx_0, dxds_0)
             dEds_1 = np.dot(dEdx_1, dxds_1)
 
+            if self.use_energy_based_dEds_calc:
+                dEds_0 = self.dEds_all[i-1]
+                dEds_1 = self.dEds_all[i]
+
             dEdss = np.array([dEds_0, dEds_1])
 
             self.s.append("E_1 %s" % E_1)
@@ -204,6 +242,38 @@ class PathTools:
         return ts_list
 
 
+    def ts_bell(self):
+        ys = self.state.copy()
+
+        ss = self.steps
+        Es = self.energies
+        E = Path(Es, ss)
+
+        samples = np.arange(0, 1, 0.001) * ss[-1]
+        E_points = np.array([E(p) for p in samples])
+        assert (np.array([E(p) for p in ss]) - Es).round().sum() == 0, "%s\n%s" % ([E(p) for p in ss], Es)
+
+        sTS = samples[E_points.argmax()]
+        yTS = self.xs(sTS)
+
+        l = []
+        for i in range(len(ss))[1:]:
+            print ss[i-1], sTS, ss[i]
+            if ss[i-1] < sTS <= ss[i]:
+                sL = ss[i-1]
+                sR = ss[i]
+                yR = ys[i]
+                yL = ys[i-1]
+                if sTS - sL < sR - sTS:
+                    yTS = yL + (sTS - sL) / (sR - sL) * (yR - yL)
+                else:
+                    yTS = yR + (sTS - sR) / (sR - sL) * (yR - yL)
+                l.append((E_points.max(), yTS, sL, sR, i-1, i))
+                break
+
+        return l
+
+
     def ts_splcub(self, tol=1e-10):
         """
         Uses a spline representation of the molecular coordinates and 
@@ -215,6 +285,8 @@ class PathTools:
 
         ss = self.steps
         Es = self.energies
+        self.s.append("Begin ts_splcub()")
+
         self.s.append("Es: %s" % Es)
 
         self.plot_str = ""
@@ -227,6 +299,9 @@ class PathTools:
         
         ts_list = []
 
+        self.para_forces = []
+
+              
         for i in range(self.n)[1:]:#-1]:
             # For each pair of points along the path, find the minimum
             # energy and check that the gradient is also zero.
@@ -240,15 +315,25 @@ class PathTools:
             # energy gradient at "left/right" bead along path
             dEds_0 = np.dot(dEdx_0, dxds_0)
             dEds_1 = np.dot(dEdx_1, dxds_1)
+            
+            # debugging
+            dEds_0_ = np.dot(dEdx_0, self.non_spl_grads[i-1])
+            dEds_1_ = np.dot(dEdx_1, self.non_spl_grads[i])
 
+            self.para_forces.append(dEds_1)
 
-
+            if self.use_energy_based_dEds_calc:
+                dEds_0 = self.dEds_all[i-1]
+                dEds_1 = self.dEds_all[i]
             dEdss = np.array([dEds_0, dEds_1])
 
             self.s.append("E_1 %s" % E_1)
+            self.s.append("Checking: i = %d E_1 = %f E_0 = %f dEds_1 = %f dEds_0 = %f" % (i, E_1, E_0, dEds_1, dEds_0))
+            self.s.append("Non-spline dEds_1 = %f dEds_0 = %f" % (dEds_1_, dEds_0_))
+
             if (E_1 >= E_0 and dEds_1 <= 0) or (E_1 <= E_0 and dEds_0 > 0):
                 #print "ts_splcub: TS in %f %f" % (ss[i-1],ss[i])
-                self.s.append("Found: i = %d E_1 = %f E_0 = %f dEds_1 = %f dEds_0 = %f" % (i, E_1, E_0, dEds_1, dEds_0))
+                self.s.append("Found")
 
                 cub = func.CubicFunc(ss[i-1:i+1], Es[i-1:i+1], dEdss)
 #                print ss[i-2:i+1], Es[i-2:i+1]
