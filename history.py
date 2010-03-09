@@ -5,7 +5,7 @@ import numpy as np
 class Record():
     """A single record in the history of a Chain of State.
     
-    >>> r = Record([1,2], [[1,2],[2,3]], [[0,0],[0.01,0]], [[1,2],[3,4]])
+    >>> r = Record([1,2], [[1,2],[2,3]], [[0,0],[0.01,0]], [[1,2],[3,4]], None)
 
     >>> r.maxix
     1
@@ -42,14 +42,14 @@ class Record():
         return self.highest(n).max()
     
     def __str__(self):
-        return str(self.state)
+        return "bc: %d %s" % (self.bead_count, self.es)
         
 
 class History():
     """The history of a Chain of State.
     
-    >>> r1 = Record([1,4], [[0,1,2],[0,2,3]], [[0,0,0.1],[0.01,0,0]], [[1,2,1],[3,4,1]])
-    >>> r2 = Record([2,4], [[1,2,2],[0,2,3]], [[0,0,0],[0.0,0,0]], [[1,2,1],[3,4,1]])
+    >>> r1 = Record([1,4], [[0,1,2],[0,2,3]], [[0,0,0.1],[0.01,0,0]], [[1,2,1],[3,4,1]], None)
+    >>> r2 = Record([2,4], [[1,2,2],[0,2,3]], [[0,0,0],[0.0,0,0]], [[1,2,1],[3,4,1]], None)
 
     >>> h = History()
     >>> h.rec(r1)
@@ -66,9 +66,15 @@ class History():
     >>> h.bead_count(2)
     [2, 2]
 
+    >>> h.e(2)
+    [5, 6]
+
     """
     def __init__(self):
         self.list = []
+    
+    def __str__(self):
+        return ', '.join([str(i) for i in self.list])
 
     def rec(self, r):
         """Records a snapshot."""
