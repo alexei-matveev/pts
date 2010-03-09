@@ -247,8 +247,8 @@ class Func(object):
     def __call__(self, *args, **kwargs):
         return self.f(*args, **kwargs)
 
-def compose(P, Q):
-    "Compose P*Q, make P(x) = P(Q(x))"
+def compose(p, q):
+    "Compose p*q, make p(x) = p(q(x))"
 
     def f(x):
         return P(Q(x))

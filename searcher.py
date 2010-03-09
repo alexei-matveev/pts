@@ -86,7 +86,7 @@ class ReactionPathway(object):
 
     string = False
 
-    def __init__(self, reagents, beads_count, qc_driver, parallel, reporting=None, convergence_beads=3, steps_cumm=3, freeze_beads=False, conv_mode='gradstep'):
+    def __init__(self, reagents, beads_count, qc_driver, parallel, reporting=None, convergence_beads=3, steps_cumm=3, freeze_beads=False, conv_mode='gradstep_new'):
         """
         convergence_beads:
             number of highest beads to consider when testing convergence
@@ -123,7 +123,7 @@ class ReactionPathway(object):
             assert type(reporting) == file
         self.reporting = reporting
 
-        legal_conv_modes = ('gradstep', 'energy')
+        legal_conv_modes = ('gradstep', 'energy', 'gradstep_new')
         assert conv_mode in legal_conv_modes
         self.conv_mode = conv_mode
 
@@ -169,6 +169,10 @@ class ReactionPathway(object):
         
         if self.conv_mode == 'gradstep':
             return self.test_convergence_GS(ftol, xtol)
+
+        if self.conv_mode == 'gradstep_new':
+            return self.test_convergence_GS_new(ftol, xtol)
+
         if self.conv_mode == 'energy':
             return self.test_convergence_E(etol)
 
@@ -233,6 +237,47 @@ class ReactionPathway(object):
             max_step = abs(max_step).max()
             lg.info("Testing Non-Growing Convergence to f: %f / %f, x: %f / %f" % (rmsf, f_tol, max_step, x_tol))
             if rmsf < f_tol or (self.eg_calls > self.steps_cumm and max_step < x_tol and rmsf < 5*f_tol):
+                raise aof.Converged
+
+    def test_convergence_GS_new(self, f_tol, x_tol):
+        """
+        Raises Converged if converged, applying weaker convergence 
+        criteria if growing string is not fully grown.
+
+        During growth: rmsf < 5 * f_tol
+        When grown:    rmsf < f_tol OR
+                       max_step < x_tol AND rmsf < 5*f_tol
+
+                       where max_step is max step in optimisation coordinates 
+                           taken by H highest beads and C cummulative beads,
+
+                       where H is self.convergence_beads
+                       and C is self.steps_cumm
+
+                       both set by __init__
+
+                       At time of writing (19/02/2010): convergence is tested 
+                       in callback function which is called after every 
+                       iteration, not including backtracks. The state is 
+                       recorded at every 
+
+        """
+
+        f = self.maxf_perp
+
+        max_step = self.history.step(self.convergence_beads, self.steps_cumm)
+        max_step = abs(max_step).max()
+
+        if self.eg_calls == 0:
+            # because forces are always zero at zeroth iteration
+            return
+        elif self.growing and not self.grown():
+            lg.info("Testing During-Growth Convergence to f: %f / %f (max), x: %f / %f" % (f, 5*f_tol, max_step, 2*x_tol))
+            if f < f_tol*5 or (self.eg_calls > self.steps_cumm and max_step < 2*x_tol):
+                raise aof.Converged
+        else:
+            lg.info("Testing Non-Growing Convergence to f: %f / %f (max), x: %f / %f" % (f, f_tol, max_step, x_tol))
+            if f < f_tol or (self.eg_calls > self.steps_cumm and max_step < x_tol):
                 raise aof.Converged
 
     @property
@@ -320,6 +365,7 @@ class ReactionPathway(object):
         ts_ix = 0
         # max cummulative step over steps_cumm iterations
         step_max_bead_cumm = self.history.step(self.convergence_beads, self.steps_cumm).max()
+        print "DB", self.history.step(self.convergence_beads, self.steps_cumm)
         step_ts_estim_cumm = self.history.step(ts_ix, self.steps_cumm).max()
 
         arc = {'bc': self.beads_count,
@@ -1209,7 +1255,7 @@ class PathRepresentation(object):
         if normalise:
             (integral, err) = scipy.integrate.quad(new_rho, 0.0, 1.0)
         else:
-            int = 1.0
+            integral = 1.0
         self.__rho = lambda x: new_rho(x) / integral
         return self.__rho
 
@@ -1276,6 +1322,32 @@ class PiecewiseRho:
         else:
             lg.error("Value of (%f) not on [0,1], should never happen" % x)
             lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
+
+
+def get_bead_positions(E, ps):
+    points = arange(ps[0], ps[-1], (ps[-1] - ps[0]) / 20.0)
+
+    Es = array([E(p) for p in points])
+    p_max = points[Es.argmax()]
+
+    new_p = -1
+    for i in range(len(ps))[1:]:
+        print p_max, ps[i]
+        if ps[i] > p_max:
+            new_p = ps[i-1] + (ps[i] - ps[i-1]) / 2.0
+
+            new_i = i
+
+            break
+
+    assert new_p > 0, new_p
+    
+    new_ps = ps[:new_i] + [new_p] + ps[new_i:]
+    assert (array(new_ps).argsort() == arange(len(new_ps))).all()
+
+    return new_ps
+            
+    
 
 class GrowingString(ReactionPathway):
     """Implements growing and non-growing strings.
@@ -1446,6 +1518,36 @@ class GrowingString(ReactionPathway):
     def grown(self):
         return self.beads_count == self.__final_beads_count
 
+    def grow_string_jump(self):
+        assert self.beads_count <= self.__final_beads_count
+
+        if self.grown():
+            return False
+        else:
+            self.beads_count += 1
+
+        #self.expand_internal_arrays(self.beads_count)
+        self.initialise()
+
+        self._path_rep.beads_count = self.beads_count
+
+        path = Path(self.es, self.bead_positions)
+        self.bead_positions = get_bead_positions(path, self.bead_positions)
+
+        rho = rho_interval(self.bead_positions)
+        self._path_rep.set_rho(rho)
+
+        e = 1
+        m = self.beads_count - 2 * e
+        self.bead_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
+        lg.debug("Bead Freezing MASK: " + str(self.bead_update_mask))
+
+        lg.info("******** String Grown to %d beads ********", self.beads_count)
+
+        self.prev_state = self.state_vec.copy()
+
+        return True
+
     def grow_string(self):
         """
         Adds 2, 1 or 0 beads to string (such that the total number of 
@@ -1484,7 +1586,6 @@ class GrowingString(ReactionPathway):
         lg.info("******** String Grown to %d beads ********", self.beads_count)
 
         self.prev_state = self.state_vec.copy()
-        print "DB grow", len(self.state_vec)
 
         return True
 
@@ -1518,7 +1619,6 @@ class GrowingString(ReactionPathway):
         pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
         self._path_rep.set_rho(pwr.f)
 
-      
     def lengths_disparate(self):
         """Returns true if the ratio between the (difference of longest and 
         shortest segments) to the average segment length is above a certain 

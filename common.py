@@ -2,6 +2,7 @@
 
 import copy
 import os
+import sys
 import random
 import time
 import logging
@@ -31,11 +32,15 @@ def get_tmp_dir():
 
     if not os.path.exists(tmp_dir):
         print "Attempting to create", tmp_dir
-        os.mkdir(tmp_dir)
+        try:
+            os.mkdir(tmp_dir)
+        except OSError, err:
+            print >>sys.stderr, "Directory %s already created by another thread." % tmp_dir
 
     return tmp_dir
 
 def exec_in_path(name):
+    """Tests if executable called name is in the path already."""
     # TODO: is there a better way of doing this?
     return os.system("which " + name + "> /dev/null") == 0
 
