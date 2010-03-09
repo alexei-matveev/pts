@@ -2,6 +2,7 @@
 """
 
 import os
+import time
 import subprocess
 import logging
 import glob
@@ -185,6 +186,7 @@ class Gaussian:
     def read(self):
         """Read results from Gaussian's text-output file."""
         logfilename = self.jobname + '.log'
+#        os.system('cp %s ~/%s' % (logfilename, logfilename + str(time.time()))) # HACK for some data gathering
         print "GAUSS_DIRS: Working Dir:", os.getcwd(), "logfile path:", logfilename
         logfile = open(logfilename, 'r')
 
