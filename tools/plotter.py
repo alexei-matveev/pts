@@ -27,15 +27,16 @@ set multiplot
 set size 1, 0.333
 #set style point 1 linewidth 5
 
-
 set style data linespoints
 
+set yrange [:0.1]
 set ylabel "Energy per bead"
 set origin 0,0.67
 %(pre_energy)s
 plot [1:] %(energyplots)s, %(growplots)s, %(resplots)s, %(cbplots)s
 %(post_energy)s
 
+set yrange [*:*]
 set nokey
 set origin 0,0.333 
 set logscale y
@@ -91,6 +92,7 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
         ts_err_max = 0
         ts_count = 0
 
+        count = 0
         while True:
             line = f.readline()
             if not line:
@@ -123,6 +125,14 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
                 ixhigh = d['ixhigh']
                 Nb = d.get('bead_gs', N)
 
+                if e == 0:
+                    continue
+
+                if prev_bc != bc:
+                    div = max(np.abs(e), 1)
+                #print div
+                e = e + div
+
 
                 # get errors between estimated TSs and known TS
                 ts_estim_err = 1
@@ -131,7 +141,7 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
                     a_ts_estim = eval(d['ts_estim_carts'][1])
                     aa_dists_ts_estim = aof.common.atom_atom_dists(a_ts_estim)
                     ts_estim_err = np.linalg.norm(known_ts_aa_dists - aa_dists_ts_estim)
-                    print "ts_estim_err", ts_estim_err
+                    #print "ts_estim_err", ts_estim_err
 
                 if 'bead_carts' in d:
                     a_max = eval(d['bead_carts'])
@@ -139,13 +149,13 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
                     a_max = a_max[-1][1]
                     aa_dists_max = aof.common.atom_atom_dists(a_max)
                     ts_max_err = np.linalg.norm(known_ts_aa_dists - aa_dists_max)
-                    print "ts_max_err", ts_max_err
+                    #print "ts_max_err", ts_max_err
 
                 tuple = (bc,   N,   Nb,   res,   cb,   maxf,   rmsf,   e,   maxe,   s,   e/bc, ts_estim_err, ts_max_err, s_max_cumm)
 
                 # Set up dictionary of indices of fields so that strings of 
                 # gnuplot syntax can access them.
-                ids =  ['bc', 'N', 'Nb', 'res', 'cb', 'maxf', 'rmsf', 'e', 'maxe', 's', 'e/bc', 'ts_estim_err', 'ts_max_err', 's_max_cumm']
+                ids =  ['bc', 'N', 'Nb', 'res', 'cb', 'maxf', 'rmsf', 'e', 'maxe', 's', 'e_bc', 'ts_estim_err', 'ts_max_err', 's_max_cumm']
                 ixs = range(len(ids)+1)[1:] # [1,2,3...]
                 d = dict(zip(ids, ixs))
 
@@ -170,7 +180,6 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
                 if cb > prev_cb and N > 1:
                     f_cb.write(outline)
 
-
                 prev_bc = bc
                 prev_res = res
                 prev_cb = cb
@@ -182,13 +191,13 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
         f_grow.close()
 
     plot_files = ['"' + fn + '.out"' for fn in args]
-    energy_plots = [fn + ' using %(Nb)d:%(e)d with lines' % d for fn in plot_files]
+    energy_plots = [fn + ' using %(Nb)d:%(e_bc)d with lines' % d for fn in plot_files]
     energy_plots = [p + ' title "' + t + '"' for (p,t) in zip(energy_plots, titles)]
     energy_plots = ','.join(energy_plots)
 
     grow_plots = ['"' + fn + '.grow.out"' for fn in args]
     titles = ['title "Growth"'] + ['notitle' for i in grow_plots[1:]]
-    energy = '%(Nb)d:%(e)d' % d
+    energy = '%(Nb)d:%(e_bc)d' % d
     grow_plots = ['%s using %s %s with points lw 5 lt 7' % (fn,energy,t) for (fn,t) in zip(grow_plots, titles)]
     grow_plots = ','.join(grow_plots)
 
@@ -236,7 +245,6 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
     os.system('gnuplot ' + gpfile)
     os.system('gv plots.ps')
 
-
 def main(argv=None):
     known_ts_aa_dists = 0
 
@@ -259,7 +267,7 @@ def main(argv=None):
             elif o == '--ts':
                 known_ts_file = a
                 known_ts_aa_dists = aof.common.atom_atom_dists(aof.common.file2carts(known_ts_file))
-                print "known_ts_aa_dists", known_ts_aa_dists
+                #print "known_ts_aa_dists", known_ts_aa_dists
                 
         run(args, extra, known_ts_aa_dists=known_ts_aa_dists)
 
