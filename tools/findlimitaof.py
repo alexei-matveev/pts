@@ -20,8 +20,16 @@ class storedata:
         self.procent = False
         self.difference = False
         self.withvalues = False
+        self.maxbead = None
         # the specialopts are decided here:
         specialalrg = argv[2]
+        if specialalrg =='mb':
+            self.maxbead = []
+            specialalrg = 'n'
+        elif specialalrg.startswith('mb'):
+            self.maxbead = []
+            specialalrg = specialalrg[2:]
+
         if specialalrg == '%':
             self.procent = True
         elif specialalrg == 'd':
@@ -49,6 +57,36 @@ class storedata:
         self.numberofbeads = None
         # here will the data be stored
         self.data = []
+
+    def emaxbead(self):
+         if not self.maxbead == None:
+             return True
+         else:
+             return False
+
+    def findmaxbead(self):
+        """
+        finds the number of the bead for each iteration
+        which holds the maximum energy
+        """
+        filein = open(self.file, "r")
+        for line in filein:
+             # Data is stored in file as:
+             # which variable : num1 | num2 | ...
+             # the lengt of "which variable" has to be omitted(self.uninteresting)
+             # then every second value is wanted
+             if line.startswith('%s' % "Bead Energies"):
+                 fields = line.split()
+                 datapoints = (len(fields) - 2) / 2
+                 max_e = float(fields[3])
+                 numin = 0
+                 for i in range(datapoints-1):
+                    curen = float(fields[2 + 3 + 2 * i])
+                    if max_e < curen:
+                         max_e = curen
+                         numin = i + 1
+                 self.maxbead.append(numin)
+        #print self.maxbead
 
     def createlist(self):
         """
@@ -149,10 +187,13 @@ class holdresult():
         self.numberofbeads = numberofbeads
         self.reachedlimit = [None for i in range(self.numberofbeads)]
         self.reachedlimitall = None
+        self.maxbeadlimit = None
         self.fallenbackall = -1
         self.fallenback = [-1 for i in range(self.numberofbeads)]
+        self.fallenbackmb = -1
         self.reachedlimitandstay = [None for i in range(self.numberofbeads)]
         self.reachedlimitandstayall = None
+        self.reachedlimitandstaymb = None
         self.allbel = 0
 
     def count_num(self, i, j, countyes):
@@ -194,6 +235,26 @@ class holdresult():
                 self.fallenbackall += 1
                 self.reachedlimitandstayall = i+1
 
+    def count_mb(self, i,countyes):
+        """
+        counts for the bead with maximal energy
+        """
+        if countyes:
+            if self.maxbeadlimit == None:
+                 self.maxbeadlimit = i
+                 self.reachedlimitandstaymb = i
+                 # sets fallenback to 0 (-1 so far)
+                 self.fallenbackmb += 1
+        else:
+            if self.fallenbackmb > -1:
+                 # if we have already once reached the limit, it is interesting
+                 # if we are above again, this case we count the number we oversteped it
+                 self.fallenbackmb += 1
+                 # if we do not reach this point in another iteration, the number of
+                 # this iteration + 1 (threaded as in other case) should be the first iteration
+                 # after which we do not fall again above the limit
+                 self.reachedlimitandstaymb = i + 1
+
 class interpretvalues():
     """
     finds out if there is only one variable looked at or several
@@ -220,6 +281,8 @@ class interpretvalues():
             # and produce the limits
             self.st1 = storedata(self.file, arg2)
             self.st1.createlist()
+            if self.st1.emaxbead():
+                self.st1.findmaxbead()
             self.st1.set_limit()
         else:
             # if there are more than one variable, we need to know, how to
@@ -243,6 +306,8 @@ class interpretvalues():
                 argm = arg[k*3:k*3+3]
                 self.stn[k] = storedata(self.file, argm)
                 self.stn[k].createlist()
+                if self.stn[k].emaxbead():
+                    self.stn[k].findmaxbead()
                 self.stn[k].set_limit()
 
     def searchlimit(self, stx):
@@ -254,6 +319,9 @@ class interpretvalues():
              res.allbel = 0
              for j, dats in enumerate(dataline):
                  res.count_num(i+2, j, (dats <= stx.limit[j]))
+                 if stx.emaxbead():
+                     if j == stx.maxbead[i+1]:
+                         res.count_mb(i+2,(dats <= stx.limit[j]))
              res.count_all(i+2)
         return res
 
@@ -277,10 +345,10 @@ class interpretvalues():
                  for k in range(self.vals):
                      if (stx[k].data[i+1][j]  <= stx[k].limit[j]):
                          onetrue += 1
-                 if onetrue == self.vals:
-                     res.count_num(i+2, j, True)
-                 else:
-                     res.count_num(i+2, j, False)
+                 res.count_num(i+2, j, (onetrue == self.vals ))
+                 if stx[0].emaxbead():
+                     if j == stx[0].maxbead[i+1]:
+                           res.count_mb(i+2,(onetrue == self.vals ))
              res.count_all(i+2)
         return res
 
@@ -299,10 +367,10 @@ class interpretvalues():
                  for k in range(self.vals):
                      if (stx[k].data[i+1][j]  <= stx[k].limit[j]):
                          onetrue += 1
-                 if onetrue > 0:
-                     res.count_num(i+2, j, True)
-                 else:
-                     res.count_num(i+2, j, False)
+                 res.count_num(i+2, j, (onetrue > 0))
+                 if stx[0].emaxbead():
+                     if j == stx[0].maxbead[i+1]:
+                         res.count_mb(i+2,(onetrue > 0 ))
              res.count_all(i)
         return res
 
@@ -321,6 +389,11 @@ class interpretvalues():
         if stx.withvalues:
             print "The last iteration gave"
             print stx.data[-1]
+        if stx.emaxbead():
+            print "For the bead with maximum energy (highest bead) the limits are reached in:"
+            print  res.maxbeadlimit, "but fallen above afterwards", res.fallenbackmb ,"times to stay there after", res.reachedlimitandstaymb
+            if not res.maxbeadlimit == None:
+                print "Here the maximum bead was number (counting starts with 1):",stx.maxbead[res.maxbeadlimit-1]+1
         print " "
 
     def outputprocent(self, stx, res):
@@ -341,6 +414,11 @@ class interpretvalues():
         print "stayed below after:              ", res.reachedlimitandstay
         print "for all beads",res.reachedlimitall,"with", res.fallenbackall,"times fallen above again"
         print "but stayed there after", res.reachedlimitandstayall
+        if stx.emaxbead():
+            print "For the bead with maximum energy (highest bead) the limits are reached in:"
+            print  res.maxbeadlimit, "but fallen above afterwards", res.fallenbackmb ,"times to stay there after", res.reachedlimitandstaymb
+            if not res.maxbeadlimit == None:
+                print "Here the maximum bead was number (counting starts with 1):",stx.maxbead[res.maxbeadlimit-1]+1
         print " "
 
     def outputall(self, stx, res):
@@ -378,6 +456,11 @@ class interpretvalues():
         print "stayed below after:              ", res.reachedlimitandstay
         print "for all beads",res.reachedlimitall,"with", res.fallenbackall,"times fallen above again"
         print "but stayed there after", res.reachedlimitandstayall
+        if stx[0].emaxbead():
+            print "For the bead with maximum energy (highest bead) the limits are reached in:"
+            print  res.maxbeadlimit, "but fallen above afterwards", res.fallenbackmb ,"times to stay there after", res.reachedlimitandstaymb
+            if not res.maxbeadlimit == None:
+                print "Here the maximum bead was number (counting starts with 1):",stx[0].maxbead[res.maxbeadlimit-1]+1
         print " "
 
 def findlimitaof():
@@ -414,6 +497,11 @@ available special options are:
    w  : gives also the values of the variable for the last iteration
    %w : % and w together
    dw : d and w together
+   mb : the limit is also searched for the maximum bead, if several
+        parameters are set, mb has to be set for the first to be used
+        mb can be combined with any other special option, but in this
+        case mb has to be first, so mbd is maximum bead search and the
+        values is taken as differences
    n  : nothing special
 the last option is of course to ensure that the length fo each variable block
 is the same, this is only needed if there are several variables for one the
