@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
-def makepath():
-    """
+"""
 Script to interpolate between two minima in internal
 coordinates, ase and aof needs to be known when running
 The input can be in any ase format, the third parameter
@@ -44,14 +43,14 @@ be set after this three files:
             Cartesian will be given to the stdout
   n:        Any number given as last input parameter will be
             the number of beads to be taken, default is 7
-    """
-    pass
+"""
 
 import sys
 if sys.argv[1] == '--help':
-    help(makepath)
+    print __doc__
+    sys.exit()
 
-from  ase import read, write
+from ase import read, write
 from aof.coord_sys import ZMatrix2, RotAndTrans
 from aof.path import Path
 from aof.common import file2str
