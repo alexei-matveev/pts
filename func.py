@@ -340,10 +340,11 @@ class CubicFunc(Func):
         elif delta == 0:
             return [-b / 2 / a]
         elif abs(a * c / b) < 1e-10: # guard against division of almost zero by almost zero
-            return [(-c / b)]
+            return [(-2 * c / b)]
         else:
             return [(-b + delta**0.5) / 2 / a, (-b - delta**0.5) / 2 / a]
 
+"""
     def fprimeprime(self, x):
         return dot(array((6*x, 2, 0., 0.)), self.coeffs)
 
@@ -361,6 +362,7 @@ class CubicFunc(Func):
             return [-b / 2 / a]
         else:
             return [(-b + delta**0.5) / 2 / a, (-b - delta**0.5) / 2 / a]
+"""
 
 class SplineFunc(Func):
     def __init__(self, xs, ys):
