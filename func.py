@@ -14,7 +14,7 @@ Construct the spline representaiton:
 Evaluate the spline at a few points:
 
     >>> spl(0.)
-    3.0000000000000013
+    3.0
 
     >>> spl(1.)
     6.0
@@ -33,8 +33,7 @@ Evaluate the spline at a few points:
 Evaluate derivative of a spline funciton at the same point:
 
     >>> spl.fprime(0.333)
-    8.3266479999999987
-
+    8.3266480000000023
 
 A general function is constructed this way:
 
@@ -273,11 +272,11 @@ class CubicFunc(Func):
     >>> round(c.coeffs*100)
     array([  17., -100.,  183., -100.])
     >>> c(1)
-    0.0
+    -1.1102230246251565e-16
 
     >>> c = CubicFunc(array([1,3]), array([0,0]), dydxs=array([1,1]))
     >>> round(c(1), 12)
-    -0.0
+    -0
     >>> round(c.fprime(1), 12)
     1.0
 
@@ -339,30 +338,14 @@ class CubicFunc(Func):
             return []
         elif delta == 0:
             return [-b / 2 / a]
-        elif abs(a * c / b) < 1e-10: # guard against division of almost zero by almost zero
-            return [(-2 * c / b)]
+        elif (4*a*c)/b**2 < 1e-8: #if delta nearly b
+            if b < 0: # sign of b decides which of the two results to change
+                return [(-b + delta**0.5) / 2 / a, 2 * c / (-b + delta**0.5)]
+            else:
+                return [2 * c / (-b - delta**0.5), (-b - delta**0.5) / 2 / a]
         else:
             return [(-b + delta**0.5) / 2 / a, (-b - delta**0.5) / 2 / a]
 
-"""
-    def fprimeprime(self, x):
-        return dot(array((6*x, 2, 0., 0.)), self.coeffs)
-
-    def stat_points(self):
-        """Returns the locations of the stationary points."""
-#        assert False, "Function stat_points untested."
-        quadratic_coeffs = array((3, 2, 1.)) * self.coeffs[:3]
-
-        a,b,c = quadratic_coeffs
-
-        delta = b**2 - 4*a*c
-        if delta < 0:
-            return []
-        elif delta == 0:
-            return [-b / 2 / a]
-        else:
-            return [(-b + delta**0.5) / 2 / a, (-b - delta**0.5) / 2 / a]
-"""
 
 class SplineFunc(Func):
     def __init__(self, xs, ys):
