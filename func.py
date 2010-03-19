@@ -14,7 +14,7 @@ Construct the spline representaiton:
 Evaluate the spline at a few points:
 
     >>> spl(0.)
-    3.0
+    3.0000000000000013
 
     >>> spl(1.)
     6.0
@@ -33,7 +33,8 @@ Evaluate the spline at a few points:
 Evaluate derivative of a spline funciton at the same point:
 
     >>> spl.fprime(0.333)
-    8.3266480000000023
+    8.3266479999999987
+
 
 A general function is constructed this way:
 
@@ -272,11 +273,11 @@ class CubicFunc(Func):
     >>> round(c.coeffs*100)
     array([  17., -100.,  183., -100.])
     >>> c(1)
-    -1.1102230246251565e-16
+    0.0
 
     >>> c = CubicFunc(array([1,3]), array([0,0]), dydxs=array([1,1]))
     >>> round(c(1), 12)
-    -0
+    -0.0
     >>> round(c.fprime(1), 12)
     1.0
 
@@ -287,6 +288,28 @@ class CubicFunc(Func):
     >>> c = CubicFunc(array([0,1,2,3]), array([0,1,2,3]))
     >>> c.coeffs
     array([ 0.,  0.,  1.,  0.])
+
+    >>> c = CubicFunc(array([0,1,2,3]), array([0,1,2,3]))
+    >>> c.coeffs
+    array([ 0.,  0.,  1.,  0.])
+
+    Set coefficients explicitly (for testing only):
+
+    >>> c.coeffs = array([0., 1./2., 1., 0.])
+    >>> c.stat_points()
+    [-1.0]
+
+    >>> c.coeffs = array([1./3., 1./2., 0., 0.])
+    >>> c.stat_points()
+    [-0.0, -1.0]
+
+    >>> c.coeffs = array([1./3., 1./2., 1e-9, 0.])
+    >>> c.stat_points()
+    [-1.0000000010000002e-09, -0.99999999899999992]
+
+    >>> c.coeffs = array([-1./3., -1./2., -1e-9, 0.])
+    >>> c.stat_points()
+    [-0.99999999899999992, -1.0000000010000002e-09]
 
     """
     def __init__(self, xs, ys, dydxs=None):
@@ -328,23 +351,26 @@ class CubicFunc(Func):
 
     def stat_points(self):
         """Returns the locations of the stationary points."""
-#        assert False, "Function stat_points untested."
-        quadratic_coeffs = array((3, 2, 1.)) * self.coeffs[:3]
 
-        a,b,c = quadratic_coeffs
+        # derivative coefficients of third order polynomial:
+        a, b, c = array((3., 2., 1.)) * self.coeffs[:3]
+
+        # avoid division by zero, treat linear case:
+        if a == 0.0: return [-c/b]
 
         delta = b**2 - 4*a*c
+
         if delta < 0:
             return []
         elif delta == 0:
             return [-b / 2 / a]
-        elif (4*a*c)/b**2 < 1e-8: #if delta nearly b
-            if b < 0: # sign of b decides which of the two results to change
-                return [(-b + delta**0.5) / 2 / a, 2 * c / (-b + delta**0.5)]
-            else:
-                return [2 * c / (-b - delta**0.5), (-b - delta**0.5) / 2 / a]
+        elif b < 0: # sign of b decides which of the two results to change
+            #
+            # Also avoids precision loss for sqrt(BIG**2 + small) - BIG
+            #
+            return [(-b + delta**0.5) / 2 / a, 2 * c / (-b + delta**0.5)]
         else:
-            return [(-b + delta**0.5) / 2 / a, (-b - delta**0.5) / 2 / a]
+            return [2 * c / (-b - delta**0.5), (-b - delta**0.5) / 2 / a]
 
 
 class SplineFunc(Func):
