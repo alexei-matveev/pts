@@ -134,7 +134,7 @@ class ReactionPathway(object):
 
         # forces perpendicular to pathway
         self.perp_bead_forces = zeros(shape)
-        self.para_bead_forces = zeros(shape)
+        self.para_bead_forces = zeros(beads_count)
 
         self.tangents = zeros(shape)
 
@@ -248,7 +248,7 @@ class ReactionPathway(object):
     @property
     def rmsf_para(self):
         """RMS forces, not including those of end beads."""
-        return common.rms(self.para_bead_forces), [common.rms(f) for f in self.para_bead_forces]
+        return common.rms(self.para_bead_forces), [f for f in self.para_bead_forces]
 
     @property
     def step(self):
@@ -1606,7 +1606,7 @@ def project_out(component_to_remove, vector):
     projection = dot(component_to_remove, vector)
     removed = projection * component_to_remove
     output = vector - removed
-    return output, removed
+    return output, projection
 
 
 
