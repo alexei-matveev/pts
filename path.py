@@ -169,7 +169,7 @@ class Path(Func):
 
         if xs is not None:
             # take predefined node spacing:
-            assert len(ys) == len(xs)
+            assert len(ys) == len(xs), "%d != %d" % (len(ys), len(xs))
             self.__xs = asarray(xs)
         else:
             # generate initial paramaterisation density

@@ -37,7 +37,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
     elif model == 'string':
         CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=False)
     elif model == 'growingstring':
-        CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1)
+        CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1)#, growth_mode='search')
         growing = True
     else:
         print "Unrecognised model", model
@@ -67,14 +67,15 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
         return x
 
     xtol = 0.0
-    run_opt = lambda: aof.runopt(alg, CoS, tol, xtol, maxit, callback, maxstep=0.1)
+    etol = 0.000001
+    run_opt = lambda: aof.runopt(alg, CoS, tol, xtol, etol, maxit, callback, maxstep=0.1)
     print run_opt()
     """while CoS.must_regenerate or growing and CoS.grow_string():
         CoS.update_path()
         print "Optimisation RESTARTED"
         print run_opt()"""
 
-    print CoS.ts_estims(mode='splines_and_cubic')
+    print CoS.ts_estims()
 
     p = aof.pes.Plot2D()
     p.plot(qc, CoS)
@@ -90,7 +91,7 @@ if __name__ == "__main__":
     MB_saddle1 = array([ 0.21248659,  0.29298832]) # energy = -0.072248940112325243
     MB_saddle2 = array([-0.82200156,  0.62431281]) # energy = -0.040664843508657414
 
-    test_StaticModel('string', aof.pes.MuellerBrown(), reagents_MB, 8, 2., 'ase_lbfgs', tol=0.005, maxit=200, real_ts=MB_saddle2, plot='every')
+    test_StaticModel('growingstring', aof.pes.MuellerBrown(), reagents_MB, 8, 2., 'ase_lbfgs', tol=0.005, maxit=200, real_ts=MB_saddle2, plot='every')
 
     exit()
     reagents = [array([0.,0.]), array([3.,3.])]

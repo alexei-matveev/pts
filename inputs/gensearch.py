@@ -69,6 +69,16 @@ elif cos_type == 'growingstring':
           parallel=True,
           reporting=logfile,
           max_sep_ratio=0.3)
+elif cos_type == 'searchingstring':
+    CoS = aof.searcher.GrowingString(init_state_vec, 
+          calc_man, 
+          beads_count,
+          growing=True,
+          parallel=True,
+          reporting=logfile,
+          max_sep_ratio=0.3,
+          growth_mode='search')
+
 elif cos_type == 'neb':
     CoS = aof.searcher.NEB(init_state_vec, 
           calc_man, 
