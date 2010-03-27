@@ -425,7 +425,7 @@ class CoordSys(object):
 
         mask = numpy.array(mask)
         assert mask.dtype == bool
-        assert len(mask) == self.dims
+        assert len(mask) == self.dims, "%d != %d" % (len(mask), self.dims)
 
         self._exclusions_count = len(mask) - sum(mask)
         self._var_mask = mask.copy()
@@ -830,7 +830,7 @@ class ComplexCoordSys(CoordSys):
         l_join = lambda a, b: a + b
         atom_symbols = reduce(l_join, [p.get_chemical_symbols() for p in self._parts])
         if carts != None and atom_symbols != ccs.carts.get_chemical_symbols():
-            s = "%s\nand\n%s" % (str(atom_symbols), str(ccs.carts.get_chemical_symbols()))
+            s = "CCS: %s\nand\nCARTS: %s" % (str(atom_symbols), str(ccs.carts.get_chemical_symbols()))
             raise ComplexCoordSysException("Atomic symbols of given Cartesian geometry do not match those specified for construction of the ComplexCoordSystem:\n" + s)
 
         if carts == None:
