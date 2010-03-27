@@ -55,8 +55,134 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
         SchedStrategy.__init__(self, procs)
         self.favour_less_parallel = favour_less_parallel
 
+    def generate2(self, topology, job_count):
+        """Generate a scheduling strategy
+
+
+        >>> s = SchedStrategy_HCM_Simple((4,1))
+        >>> sched = s.generate2(Topology([4,4]), 8+7)
+        >>> [r[0] for r in sched]
+
+        >>> s = SchedStrategy_HCM_Simple((4,2))
+        >>> sched = s.generate2(Topology([4,4]), 8+7)
+        >>> [r[0] for r in sched]
+
+
+        >>> s = SchedStrategy_HCM_Simple((4,2))
+        >>> sched = s.generate2(Topology([4,4]), 8+6)
+        >>> [r[0] for r in sched]
+
+        >>> s = SchedStrategy_HCM_Simple((4,1))
+        >>> sched = s.generate2(Topology([4,4]), 6)
+        >>> [r[0] for r in sched]
+
+        >>> s = SchedStrategy_HCM_Simple((4,1))
+        >>> sched = s.generate2(Topology([4,4]), 7)
+        >>> [r[0] for r in sched]
+
+        >>> s = SchedStrategy_HCM_Simple((4,1))
+        >>> sched = s.generate2(Topology([4,4]), 8)
+        >>> [r[0] for r in sched]
+
+
+        """
+
+
+        pmax, pmin = self.procs
+        cpu_ranges = []
+
+        # create a copy of the system topology for planning purposes
+        simtop = topology.copy()
+
+        remaining_jobs = job_count
+
+        # Keep filling up using minimum number of cpus per job (pmin), until 
+        # there are not enough jobs to fill the system when taking pmin cpus
+        # per job.
+        while remaining_jobs > 0:
+
+
+            if pmin < pmax and remaining_jobs * pmin < sum(simtop.all):
+                pmin += 1
+                print "pmin",pmin
+                print "remaining_jobs", remaining_jobs
+
+            # keep filling up machine with jobs using minimum processor count
+            jobs_in_round = 0
+            while max(simtop.available) >= pmin and remaining_jobs > 0:
+                range = simtop.get_range(pmin)
+                assert range != None
+                remaining_jobs -= 1
+                jobs_in_round += 1
+
+            simtop.reset()
+
+            best = self.find_best_fit(pmin, pmax, jobs_in_round, topology.copy())
+            for p in best:
+                range = simtop.get_range(p)
+                assert range != None, "%s %s" % (simtop, p)
+                cpu_ranges.append(range)
+
+            simtop.reset()
+
+
+
+
+        return cpu_ranges
+        # Once we are unable to completely fill the system using the minimum
+        # CPU count for each job, switch to a different strategy to try to
+        # maximise system usage: attempt to fill the available CPUs by 
+        # increasing the number of CPUs that each job is run on, as evenly
+        # as possible accross all jobs.
+        while remaining_jobs > 0:
+            combinations = self._gen_combs(pmin, pmax, remaining_jobs)
+
+#            lg.error("cs %s"% combinations)
+            assert combinations.shape[1] == remaining_jobs
+
+            # number of cpus left over for every combination of cpus
+            leftovers = np.array([simtop.leftover(c) for c in combinations])
+
+            # get combination which fits into available cpus the best
+            min_ix = np.argmin(leftovers)
+#            lg.error("ix %d"%min_ix)
+
+            combination = combinations[min_ix]
+
+            for p in combination:
+                range = simtop.get_range(p)
+#                lg.error("%s"%p)
+                assert range != None, "%s %s" % (simtop, p)
+                cpu_ranges.append(range)
+                remaining_jobs -= 1
+
+            assert remaining_jobs == 0
+
+        assert len(cpu_ranges) == job_count
+
+        return cpu_ranges
+
+    def find_best_fit(self, pmin, pmax, jobs, simtop):
+
+            combinations = self._gen_combs(pmin, pmax, jobs)
+
+#            lg.error("cs %s"% combinations)
+            assert combinations.shape[1] == jobs
+
+            # number of cpus left over for every combination of cpus
+            leftovers = np.array([simtop.leftover(c) for c in combinations])
+
+            # get combination which fits into available cpus the best
+            min_ix = np.argmin(leftovers)
+#            lg.error("ix %d"%min_ix)
+
+            combination = combinations[min_ix]
+
+            return list(combination)
+
     def generate(self, topology, job_count):
         """Generate a scheduling strategy
+
 
         >>> procs = (2,1)
         >>> s = SchedStrategy_HCM_Simple(procs)
@@ -148,7 +274,7 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
             for p in combination:
                 range = simtop.get_range(p)
 #                lg.error("%s"%p)
-                assert range != None
+                assert range != None, "%s %s" % (simtop, p)
                 cpu_ranges.append(range)
                 remaining_jobs -= 1
 
@@ -535,6 +661,8 @@ class SchedQueue():
 
     Calls to get() will block until the internal model of the cluster 
     indicates that there are sufficient CPUs free to run the net job.
+    """
+    """
     
     >>> sq = SchedQueue(([4],2,1))
     >>> sq.empty()
@@ -650,6 +778,8 @@ class SchedQueue():
 
 def test_SchedQueue(cpus, thread_count, items):
     """Launches a whole lot of threads to test the functionality of SchedQueue.
+    """
+    """
 
     cpus:         topology, max, min numbers of cpus per job
     thread_count: total threads to launch
@@ -723,6 +853,8 @@ class ParaSched(object):
     """Manages the threads responsible for running programs that perform 
     electronic structure calculations. Builds queues and generates sceduling
     info.
+    """
+    """
 
     >>> ps = ParaSched(aof.pes.GaussianPES(fake_delay=0.2), ([8], 3, 1))
     >>> vecs = np.arange(12).reshape(-1,2)
