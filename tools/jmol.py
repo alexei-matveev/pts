@@ -90,7 +90,7 @@ def main():
 
     syms = images[0].get_chemical_symbols()
 
-    jmol_view_path(geoms, syms)
+    jmol_view_path(geoms, syms, refine=5)
 
 if __name__ == "__main__":
     import doctest
