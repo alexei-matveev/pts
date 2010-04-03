@@ -1,4 +1,4 @@
-from numpy import pi, cos
+from numpy import pi, cos, array, dot
 from func import Func
 
 class Chebyshev(Func):
@@ -22,11 +22,26 @@ class Chebyshev(Func):
         self.__a = a
         self.__b = b
 
+        grid = array([(k + 0.5) / n for k in range(n)])
+
+        # polynomial roots:
+        roots = cos(pi * grid)
+
+        # adjust roots to [a, b] interval:
         bma = 0.5 * (b - a)
         bpa = 0.5 * (b + a)
-        fs = [fun(cos(pi * (k + 0.5) / n) * bma + bpa) for k in range(n)]
+
+        # function values at roots:
+        fs = map(fun, roots * bma + bpa)
+
+        # FIXME: suboptimal, I guess:
         fac = 2.0 / n
-        self.__c = [fac * sum([fs[k] * cos(pi * j * (k + 0.5) / n) for k in range(n)]) for j in range(n)]
+        c = []
+        for j in range(n):
+            tj = cos(pi * j * grid)
+            c.append(fac * dot(fs, tj))
+
+        self.__c = array(c)
 
     def f(self, x):
         a, b = self.__a, self.__b
