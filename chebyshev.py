@@ -1,4 +1,5 @@
 from numpy import pi, cos, array, dot
+from dct import dct
 from func import Func
 
 class Chebyshev(Func):
@@ -10,8 +11,10 @@ class Chebyshev(Func):
 
         >>> from numpy import sin
         >>> s = Chebyshev(sin, 0, pi / 12, 8)
+
         >>> s(0.1)
-        0.099833416646828876
+        0.099833416646828765
+
         >>> sin(0.1)
         0.099833416646828155
 
@@ -34,14 +37,16 @@ class Chebyshev(Func):
         # function values at roots:
         fs = map(fun, roots * bma + bpa)
 
-        # FIXME: suboptimal, I guess:
-        fac = 2.0 / n
-        c = []
-        for j in range(n):
-            tj = cos(pi * j * grid)
-            c.append(fac * dot(fs, tj))
+#       # FIXME: suboptimal, I guess:
+#       fac = 2.0 / n
+#       c = []
+#       for j in range(n):
+#           tj = cos(pi * j * grid)
+#           c.append(fac * dot(fs, tj))
+#       self.__c = array(c)
 
-        self.__c = array(c)
+        # Use Discrete Cosine Transform instead:
+        self.__c = dct(fs) / n
 
     def f(self, x):
         a, b = self.__a, self.__b
@@ -52,7 +57,6 @@ class Chebyshev(Func):
         for cj in self.__c[-2:0:-1]:            # Clenshaw's recurrence
             (d, dd) = (y2 * d - dd + cj, d)
         return y * d - dd + 0.5 * self.__c[0]   # Last step is different
-
 
 # python chebyshev.py [-v]:
 if __name__ == "__main__":
