@@ -1,4 +1,4 @@
-from numpy import pi, cos, array, asarray, all, transpose
+from numpy import pi, cos, array, asarray, all, transpose, empty, shape
 from dct import dct
 from func import Func
 
@@ -276,6 +276,53 @@ def chebtev(x, a):
 
 def chebuev(x, a):
     return clenshaw(x, a)[1]
+
+def chebts(n, x):
+    """Evaluate all Chebyshev polynomials of degree <= n at x
+    using recurrence
+
+        T (x) = 1,   T (x) = x
+         0            1
+
+        T  (x) = 2x T (x) - T  (x),   n > 1
+         n+1         n       n-1
+
+    Examples:
+
+        >>> chebts(4,  0.0)
+        array([ 1.,  0., -1., -0.,  1.])
+
+        >>> chebts(4,  1.0)
+        array([ 1.,  1.,  1.,  1.,  1.])
+
+        >>> chebts(4, -1.0)
+        array([ 1., -1.,  1., -1.,  1.])
+
+        >>> xs = array([0.0, 1.0, -1.0])
+        >>> chebts(4, xs)
+        array([[ 1.,  1.,  1.],
+               [ 0.,  1., -1.],
+               [-1.,  1.,  1.],
+               [-0.,  1., -1.],
+               [ 1.,  1.,  1.]])
+    """
+
+    assert n >= 0
+
+    tk = empty((n + 1,) + shape(x))
+
+    tk[0] = 1.0
+
+    if n >= 1:
+        x = asarray(x)
+        tk[1] = x
+
+    if n >= 2:
+        twox = 2.0 * x
+        for k in xrange(2, n + 1):
+            tk[k] = twox * tk[k-1] - tk[k-2]
+
+    return tk
 
 # python chebyshev.py [-v]:
 if __name__ == "__main__":
