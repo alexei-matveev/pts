@@ -376,6 +376,12 @@ def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, maxiter=50, max
         # this would be the new values of the constrains:
         rhs = c + dot(A, dr0)
 
+        if VERBOSE:
+            print "cmin: A=", A
+            print "cmin: dr0=", dr0
+            print "cmin: c=", c
+            print "cmin: rhs=", rhs
+
         # number of constrains:
         nc = len(c)
 
@@ -388,6 +394,11 @@ def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, maxiter=50, max
 
         # solve linear equations:
         lam = solve(AHA, rhs)
+
+        if VERBOSE:
+            print "cmin: rhs=", rhs
+            print "cmin: AHA=", AHA
+            print "cmin: lam=", lam
 
         #
         # Now project out the gradient components,
