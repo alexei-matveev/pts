@@ -62,13 +62,8 @@ class Chebyshev(Func):
         # c[0] differs by factor two:
         c[0] *= 0.5
 
-#       c = array([10., 3., 1.])
-
         # coeffs for derivative expansion (over second kind!):
         cprime = array([ k * ck for k, ck in enumerate(c) ])
-
-#       print "c=", c
-#       print "cprime=", cprime
 
         self.__c = c
         self.__cprime = cprime[1:]
@@ -82,11 +77,6 @@ class Chebyshev(Func):
 
         p, _ = clenshaw(y, self.__c)
         return p
-#       y2 = 2.0 * y
-#       (d, dd) = (self.__c[-1], 0)             # Special case first step for efficiency
-#       for cj in self.__c[-2:0:-1]:            # Clenshaw's recurrence
-#           (d, dd) = (y2 * d - dd + cj, d)
-#       return y * d - dd + self.__c[0]
 
     def fprime(self, x):
         a, b = self.__a, self.__b
