@@ -1,4 +1,4 @@
-from numpy import pi, cos, array, asarray, all
+from numpy import pi, cos, array, asarray, all, transpose
 from dct import dct
 from func import Func
 
@@ -6,25 +6,21 @@ def chebft(fun, a=-1.0, b=1.0, n=8):
     """Build Chebyshev fit of degree |n| for funciton |fun| on the interval [a, b].
     This requires evaluation of fun(x) at |n| points in the [a, b] interval.
 
-        >>> from numpy import sin
-        >>> s = chebft(sin, 0.0, pi / 12.0, 8)
+        >>> from numpy import sin, cos
 
-        >>> s(0.1)
-        0.099833416646828765
+        >>> def sc(t):
+        ...    return array([sin(t), cos(t)])
 
-        >>> sin(0.1)
-        0.099833416646828155
+        >>> sc(0.1)
+        array([ 0.09983342,  0.99500417])
 
-        >>> cos(0.1)
-        0.99500416527802582
+        >>> scf = chebft(sc, 0.0, pi / 12.0, 8)
 
-        >>> s.fprime(0.1)
-        0.9950041652778987
+        >>> scf(0.1)
+        array([ 0.09983342,  0.99500417])
 
-        >>> from func import NumDiff
-        >>> s1 = NumDiff(s)
-        >>> s1.fprime(0.1)
-        0.99500416527792834
+        >>> scf.fprime(0.1)
+        array([ 0.99500417, -0.09983342])
 
     See Numerical Recepies or
     http://www.excamera.com/sphinx/article-chebyshev.html
@@ -39,7 +35,7 @@ def chebft(fun, a=-1.0, b=1.0, n=8):
     bma = 0.5 * (b - a)
     bpa = 0.5 * (b + a)
 
-    # function values at roots:
+    # function values at roots f_i(x_k) at [k, i]:
     fs = map(fun, roots * bma + bpa)
 
 #       # FIXME: suboptimal, I guess:
@@ -50,8 +46,13 @@ def chebft(fun, a=-1.0, b=1.0, n=8):
 #           c.append(fac * dot(fs, tj))
 #       self.__c = array(c)
 
-    # Use Discrete Cosine Transform instead:
+    # Use Discrete Cosine Transform instead,
+    # DCT is performed over the last axis r as in fs[..., r]:
+    fs = transpose(array(fs))
     c = dct(fs) / n
+    # DCT returns c[..., k], with axis k being the "frequency" axis.
+    c = transpose(c)
+#   print "c=", c
 
     # c[0] differs by factor two:
     c[0] *= 0.5
