@@ -2,12 +2,12 @@ from numpy import pi, cos, array, asarray, all
 from dct import dct
 from func import Func
 
-def chefit(fun, a=-1.0, b=1.0, n=8):
+def chebft(fun, a=-1.0, b=1.0, n=8):
     """Build Chebyshev fit of degree |n| for funciton |fun| on the interval [a, b].
     This requires evaluation of fun(x) at |n| points in the [a, b] interval.
 
         >>> from numpy import sin
-        >>> s = chefit(sin, 0.0, pi / 12.0, 8)
+        >>> s = chebft(sin, 0.0, pi / 12.0, 8)
 
         >>> s(0.1)
         0.099833416646828765
