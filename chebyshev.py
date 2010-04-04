@@ -138,6 +138,31 @@ def clenshaw(x, a):
         (12.08, 15.16)
         >>> clenshaw(0.7, a)
         (12.08, 15.16)
+
+    Works with many sets of coeeficients:
+
+        >>> from numpy import empty
+        >>> a = array(a)
+
+    Coefficients for two third order polynomials, first
+    axis is the polynomial index, other (optional) axes
+    for different expansions:
+
+        >>> a32 = empty((3, 2))
+        >>> a32[:, 0] = a
+        >>> a32[:, 1] = a * 100.0
+
+    You get two values for each polynomial kind:
+
+        >>> clenshaw(1.0, a32)
+        (array([   14.,  1400.]), array([   19.,  1900.]))
+
+    Also works with array-valued argument:
+
+        >>> xs = array([-1.0, 0.0, 1.0])
+
+        >>> clenshaw(xs, a)
+        (array([  8.,   9.,  14.]), array([  7.,   9.,  19.]))
     """
 
     twox = 2.0 * x
