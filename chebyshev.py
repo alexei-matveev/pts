@@ -91,7 +91,7 @@ class Chebyshev(Func):
 def clenshaw(x, a):
     """Compute expansions over Chebyshev polynomials of first-
     and second kinds:
-                n                
+                n
                ___
                \
         p(x) = /__   a  *  T (x),     q(x) = ... U (x)
@@ -101,13 +101,13 @@ def clenshaw(x, a):
 
         (p(x), q(x))
 
-    See http://en.wikipedia.org/wiki/Clenshaw_algorithm 
+    See http://en.wikipedia.org/wiki/Clenshaw_algorithm
 
     Test with a == [10, 3, 1] corresponding to
 
                             2
         p(x) == 10 + 3x + 2x - 1
-    
+
     and
                             2
         q(x) == 10 + 6x + 4x - 1
