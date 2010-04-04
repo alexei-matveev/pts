@@ -72,8 +72,7 @@ class ChebT(object):
         self.__c = asarray(c)
 
     def __call__(self, x):
-        p, _ = clenshaw(x, self.__c)
-        return p
+        return chebtev(x, self.__c)
 
 class ChebU(object):
     """Expansion over Chebyshev polynomials of the second kind:
@@ -88,8 +87,7 @@ class ChebU(object):
         self.__c = asarray(c)
 
     def __call__(self, x):
-        _, q = clenshaw(x, self.__c)
-        return q
+        return chebuev(x, self.__c)
 
 class Chebyshev(Func):
     """Expansion over Chebyshev polynomials of the first kind:
@@ -272,6 +270,12 @@ def clenshaw(x, a):
     q = twox * bj - b2 + a[0]
 
     return p, q
+
+def chebtev(x, a):
+    return clenshaw(x, a)[0]
+
+def chebuev(x, a):
+    return clenshaw(x, a)[1]
 
 # python chebyshev.py [-v]:
 if __name__ == "__main__":
