@@ -318,6 +318,59 @@ MB = MuellerBrown()
 energy = MB.f
 gradient = MB.fprime
 
+def show_path(p=None, save=None):
+    from pylab import hold, contour, plot, xlim, ylim, show, savefig, clf #, imshow
+    from numpy import linspace, empty, transpose
+
+    # create grid:
+    n = 100
+    xs = linspace(-1.0, 1.0, n)
+    ys = linspace(-0.2, 1.8, n)
+
+    zs = empty((n, n))
+    for i in range(n):
+        for j in range(n):
+            zs[i, j] = MB([xs[i], ys[j]])
+
+    # when displayed, x and y are transposed:
+    zs = transpose(zs)
+
+    # dont know what it does:
+    # hold(True)
+    clf()
+
+#   # Plotting color map:
+#   imshow(zs, origin='lower', extent=[-1, 1, -1, 2])
+
+    # Plotting contour lines:
+    contour(zs, 100, origin='lower', extent=[-1.0, 1.0, -0.2, 1.8])
+
+    # three minima, and two TSs:
+    A = [-0.55822362,  1.44172583]
+    C = [-0.05001084,  0.46669421]
+    B = [ 0.62349942,  0.02803776]
+    BC = [ 0.21248201,  0.2929813 ]
+    AC = [-0.82200123,  0.62430438]
+
+    # overlay positions of minima and stationary points
+    # onto coutour plot:
+    points = array([A, AC, C, BC, B])
+
+    plot(points[:, 0], points[:, 1], "ko")
+
+
+    # overlay a path onto coutour plot:
+    if p is not None:
+        plot(p[:, 0], p[:, 1], "ro-")
+
+    ylim(-0.2, 1.8)
+    xlim(-1.0, 1.0)
+
+    if save is None:
+        show()
+    else:
+        savefig(save)
+
 # python mueller_brown.py [-v]:
 if __name__ == "__main__":
     import doctest
