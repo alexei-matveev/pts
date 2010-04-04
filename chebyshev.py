@@ -1,16 +1,13 @@
-from numpy import pi, cos, array, dot
+from numpy import pi, cos, array, asarray, all
 from dct import dct
 from func import Func
 
-class Chebyshev(Func):
-    """
-    Chebyshev(fun, a, b, n)
-    Given a function fun, lower and upper limits of the interval [a,b],
-    and maximum degree n, this class computes a Chebyshev approximation
-    of the function.
+def chefit(fun, a=-1.0, b=1.0, n=8):
+    """Build Chebyshev fit of degree |n| for funciton |fun| on the interval [a, b].
+    This requires evaluation of fun(x) at |n| points in the [a, b] interval.
 
         >>> from numpy import sin
-        >>> s = Chebyshev(sin, 0, pi / 12, 8)
+        >>> s = chefit(sin, 0.0, pi / 12.0, 8)
 
         >>> s(0.1)
         0.099833416646828765
@@ -32,21 +29,18 @@ class Chebyshev(Func):
     See Numerical Recepies or
     http://www.excamera.com/sphinx/article-chebyshev.html
     """
-    def __init__(self, fun, a=-1.0, b=1.0, n=8):
-        self.__a = a
-        self.__b = b
 
-        grid = array([(k + 0.5) / n for k in range(n)])
+    grid = array([(k + 0.5) / n for k in range(n)])
 
-        # polynomial roots:
-        roots = cos(pi * grid)
+    # polynomial roots:
+    roots = cos(pi * grid)
 
-        # adjust roots to [a, b] interval:
-        bma = 0.5 * (b - a)
-        bpa = 0.5 * (b + a)
+    # adjust roots to [a, b] interval:
+    bma = 0.5 * (b - a)
+    bpa = 0.5 * (b + a)
 
-        # function values at roots:
-        fs = map(fun, roots * bma + bpa)
+    # function values at roots:
+    fs = map(fun, roots * bma + bpa)
 
 #       # FIXME: suboptimal, I guess:
 #       fac = 2.0 / n
@@ -56,11 +50,81 @@ class Chebyshev(Func):
 #           c.append(fac * dot(fs, tj))
 #       self.__c = array(c)
 
-        # Use Discrete Cosine Transform instead:
-        c = dct(fs) / n
+    # Use Discrete Cosine Transform instead:
+    c = dct(fs) / n
 
-        # c[0] differs by factor two:
-        c[0] *= 0.5
+    # c[0] differs by factor two:
+    c[0] *= 0.5
+
+    return Chebyshev(c, a, b)
+
+class Chebyshev(Func):
+    """Expansion over Chebyshev polynomials of the first kind:
+                n
+               ___
+               \
+        p(x) = /__   c  *  T (y)
+              j = 0   j     j
+
+    Where |y| is normalized into [-1, 1]:
+
+            2x - (a + b)
+        y = ------------
+               b - a
+
+        >>> p = Chebyshev([10., 3., 1.])
+
+    that is
+                            2
+        p(x) == 10 + 3x + 2x - 1
+
+    Test for several arguments:
+
+        >>> xs = array([-1.0, 0.0, 1.0])
+        >>> p(xs)
+        array([  8.,   9.,  14.])
+
+        >>> p.fprime(xs)
+        array([-1.,  3.,  7.])
+
+    Test for several expansions:
+
+        >>> from numpy import empty
+        >>> c = array([10., 3., 1.])
+
+    Coeffs for two third order polynomials:
+
+        >>> c32 = empty((3, 2))
+
+    First polynomial:
+
+        >>> c32[:, 0] = c
+
+    Second polynomial:
+
+        >>> c32[:, 1] = c * 100.0
+
+        >>> p2 = Chebyshev(c32)
+
+    Returns two values:
+
+        >>> p2(0.0)
+        array([   9.,  900.])
+
+    Currently does not support additional array axes for polynomial
+    argument and coefficients simultaneousely.
+
+    See Numerical Recepies or
+    http://www.excamera.com/sphinx/article-chebyshev.html
+    """
+    def __init__(self, c, a=-1.0, b=1.0):
+        c = asarray(c)
+# ?     a = asarray(a)
+# ?     b = asarray(b)
+
+        # interval [a, b]:
+        self.__a = a
+        self.__b = b
 
         # coeffs for derivative expansion (over second kind!):
         cprime = array([ k * ck for k, ck in enumerate(c) ])
@@ -70,7 +134,7 @@ class Chebyshev(Func):
 
     def f(self, x):
         a, b = self.__a, self.__b
-        assert(a <= x <= b)
+        assert all(a <= x) and all(x <= b)
 
         # normalize x into [-1, 1]:
         y = (2.0 * x - a - b) * (1.0 / (b - a))
@@ -80,7 +144,7 @@ class Chebyshev(Func):
 
     def fprime(self, x):
         a, b = self.__a, self.__b
-        assert(a <= x <= b)
+        assert all(a <= x) and all(x <= b)
 
         # normalize x into [-1, 1]:
         y = (2.0 * x - a - b) * (1.0 / (b - a))
