@@ -58,6 +58,38 @@ def chebft(fun, a=-1.0, b=1.0, n=8):
 
     return Chebyshev(c, a, b)
 
+class ChebT(object):
+    """Expansion over Chebyshev polynomials of the first kind:
+                n
+               ___
+               \
+        p(x) = /__   c  *  T (x)
+              j = 0   j     j
+
+    """
+    def __init__(self, c):
+        self.__c = asarray(c)
+
+    def __call__(self, x):
+        p, _ = clenshaw(x, self.__c)
+        return p
+
+class ChebU(object):
+    """Expansion over Chebyshev polynomials of the second kind:
+                n
+               ___
+               \
+        q(x) = /__   c  *  U (x)
+              j = 0   j     j
+
+    """
+    def __init__(self, c):
+        self.__c = asarray(c)
+
+    def __call__(self, x):
+        _, q = clenshaw(x, self.__c)
+        return q
+
 class Chebyshev(Func):
     """Expansion over Chebyshev polynomials of the first kind:
                 n
@@ -119,18 +151,17 @@ class Chebyshev(Func):
     """
     def __init__(self, c, a=-1.0, b=1.0):
         c = asarray(c)
-# ?     a = asarray(a)
-# ?     b = asarray(b)
 
         # interval [a, b]:
         self.__a = a
         self.__b = b
 
+        self.__t = ChebT(c)
+
         # coeffs for derivative expansion (over second kind!):
         cprime = array([ k * ck for k, ck in enumerate(c) ])
 
-        self.__c = c
-        self.__cprime = cprime[1:]
+        self.__u = ChebU(cprime[1:])
 
     def f(self, x):
         a, b = self.__a, self.__b
@@ -139,8 +170,7 @@ class Chebyshev(Func):
         # normalize x into [-1, 1]:
         y = (2.0 * x - a - b) * (1.0 / (b - a))
 
-        p, _ = clenshaw(y, self.__c)
-        return p
+        return self.__t(y)
 
     def fprime(self, x):
         a, b = self.__a, self.__b
@@ -149,8 +179,7 @@ class Chebyshev(Func):
         # normalize x into [-1, 1]:
         y = (2.0 * x - a - b) * (1.0 / (b - a))
 
-        _, q = clenshaw(y, self.__cprime)
-        return q * 2.0 / (b - a)
+        return self.__u(y) * 2.0 / (b - a)
 
 def clenshaw(x, a):
     """Compute expansions over Chebyshev polynomials of first-
