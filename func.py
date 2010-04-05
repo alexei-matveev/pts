@@ -47,11 +47,11 @@ A general function is constructed this way:
 
     >>> pq = compose(p, q)
     >>> pq.f(2), pq.fprime(2)
-    (9, 6)
+    (9, array(6))
 
     >>> qp = compose(q, p)
     >>> qp.f(2), qp.fprime(2)
-    (5, 4)
+    (5, array(4))
 
 This is the integral of (x + 1) which is x^2/2 + x,
 it also save the derivative of the integral:
