@@ -130,7 +130,8 @@ The Hessian must be positively defined:
            [  154.92743643,  2995.60603248]])
 
 For multivariate array-valued functions one needs to care about
-indexing:
+indexing. This is a (2,2)-array valued function of (2,2)-array
+argument:
 
     >>> def f(x):
     ...     a = x[0,0]
@@ -142,6 +143,17 @@ indexing:
     >>> f1 = NumDiff(f)
     >>> from numpy import zeros
     >>> df = f1.fprime(zeros((2,2)))
+
+In most (all?) cases so far we decide to store the
+derivatives of array-valued funcitons of array arguments
+consistenly with this mnemonics:
+
+    df / dx  is stored at array location [i, k]
+      i    k
+
+If any or both of |f| or |x| have more than one
+axis consider |i| and |k| as composite indices.
+Here is an example:
 
 Derivatives wrt |a| == x[0,0]:
 
