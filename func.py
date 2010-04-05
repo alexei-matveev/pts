@@ -179,11 +179,16 @@ from scipy.optimize import newton
 from ridders import dfridr
 
 class Func(object):
-    def __init__(self, f=None, fprime=None):
+    def __init__(self, f=None, fprime=None, taylor=None):
+
         if f is not None:
             self.f = f
+
         if fprime is not None:
             self.fprime = fprime
+
+        if taylor is not None:
+            self.taylor = taylor
 
     # subclasses may choose to implement either (f, fprime) or just (taylor):
     def f(self, *args, **kwargs):
