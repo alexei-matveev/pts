@@ -142,7 +142,8 @@ argument:
     ...                   [c-b, d-a]])
     >>> f1 = NumDiff(f)
     >>> from numpy import zeros
-    >>> df = f1.fprime(zeros((2,2)))
+    >>> x = zeros((2, 2))
+    >>> df = f1.fprime(x)
 
 In most (all?) cases so far we decide to store the
 derivatives of array-valued funcitons of array arguments
@@ -179,6 +180,33 @@ Derivatives wrt |d| == x[1,1]:
     array([[ 1.,  0.],
            [ 0.,  1.]])
 
+Sometimes it is convenient to view the derivatives
+as rectangular matrix:
+
+    >>> df.reshape((4, 4))
+    array([[ 1.,  0.,  0.,  1.],
+           [ 0.,  1., -1.,  0.],
+           [ 0., -1.,  1.,  0.],
+           [-1.,  0.,  0.,  1.]])
+
+The funciton |f1| is a shape(2, 2) -> shape(2, 2) function, we can chain
+it for testing f2(x) = f1(f1(x)
+
+    >>> f2 = compose(f1, f1)
+
+Although the point x = 0.0 is a fixpoint:
+
+    >>> from numpy import all
+    >>> all(x == f1(x)) and all(x == f2(x))
+    True
+
+The derivative matrix is a "square" of |df|:
+
+    >>> f2.fprime(x).reshape((4, 4))
+    array([[ 0.,  0.,  0.,  2.],
+           [ 0.,  2., -2.,  0.],
+           [ 0., -2.,  2.,  0.],
+           [-2.,  0.,  0.,  0.]])
 """
 
 __all__ = ["Func", "LinFunc", "QuadFunc", "SplineFunc", "CubicFunc"]
