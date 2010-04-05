@@ -185,6 +185,8 @@ __all__ = ["Func", "LinFunc", "QuadFunc", "SplineFunc", "CubicFunc"]
 
 from numpy import array, dot, hstack, linalg, atleast_1d, sqrt, abs, column_stack, ones
 from numpy import empty, asarray, searchsorted
+from numpy import shape
+from npz import matmul
 from scipy.interpolate import interp1d, splrep, splev
 from scipy.integrate import quad
 from scipy.optimize import newton
@@ -217,20 +219,39 @@ class Func(object):
     def __call__(self, *args, **kwargs):
         return self.f(*args, **kwargs)
 
-def compose(p, q):
-    "Compose p*q, make p(x) = p(q(x))"
+def compose(P, Q):
+    "Compose P*Q, make P(x) = P(Q(x))"
 
-    def pq(x):
-        return p.f(q.f(x))
+    def f(x):
+        return P(Q(x))
 
-    # note that calling pq.f and pq.fprime
-    # will compute q.f(x) twice. If operating
+    # note that calling (P*Q).f and (P*Q).fprime
+    # will compute Q.f(x) twice. If operating
     # with expensive functions without any caching
-    # you may want to want to use the "tailor" interface instead.
-    def pqprime(x):
-        return dot( p.fprime(q.f(x)), q.fprime(x) )
+    # you may want to want to use the "taylor" interface instead.
+    def fprime(x):
+        q, qx = Q.taylor(x)
+        p, pq = P.taylor(q)
 
-    return Func(pq, pqprime)
+        pshape = shape(p)
+        qshape = shape(q)
+        xshape = shape(x)
+
+        px = matmul(pshape, xshape, qshape, pq, qx)
+        return px
+
+    def taylor(x):
+        q, qx = Q.taylor(x)
+        p, pq = P.taylor(q)
+
+        pshape = shape(p)
+        qshape = shape(q)
+        xshape = shape(x)
+
+        px = matmul(pshape, xshape, qshape, pq, qx)
+        return p, px
+
+    return Func(f, fprime, taylor)
 
 class LinFunc(Func):
     def __init__(self, xs, ys):
