@@ -148,7 +148,7 @@ with .f and .fprime methods.
     >>> from func import compose
     >>> e = compose(q, p)
     >>> e(0.30661623), e.fprime(0.30661623)
-    (12.676228284381487, 8.8724010719257174e-06)
+    (12.676228284381487, array(8.8724010719257174e-06))
 
 Gives the same energy of the maximum on the linear path between a and b
 and almost zero gradient. To use it with minimizer one needs
