@@ -220,6 +220,13 @@ __all__ = ["energy", "gradient"] # "MuellerBrown"]
 from numpy import exp, array, asarray, shape, zeros
 from func import Func
 
+# special points on PES:
+CHAIN_OF_STATES = [[-0.55822362,  1.44172583], # A
+                   [-0.82200123,  0.62430438], # AC
+                   [-0.05001084,  0.46669421], # C
+                   [ 0.21248201,  0.2929813 ], # BC
+                   [ 0.62349942,  0.02803776]] # B
+
 # FIXME: how to mve them into class definiton out of global namespace?
 AA = (-200., -100., -170.,  15.)
 aa = (  -1.,   -1.,   -6.5,  0.7)
@@ -355,16 +362,10 @@ def show_path(p=None, save=None):
     contour(zs, 100, origin='lower', extent=[-1.0, 1.0, -0.2, 1.8])
 
     # three minima, and two TSs:
-    A = [-0.55822362,  1.44172583]
-    C = [-0.05001084,  0.46669421]
-    B = [ 0.62349942,  0.02803776]
-    BC = [ 0.21248201,  0.2929813 ]
-    AC = [-0.82200123,  0.62430438]
+    points = array(CHAIN_OF_STATES)
 
     # overlay positions of minima and stationary points
     # onto coutour plot:
-    points = array([A, AC, C, BC, B])
-
     plot(points[:, 0], points[:, 1], "ko")
 
 
