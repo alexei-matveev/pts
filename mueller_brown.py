@@ -334,7 +334,15 @@ MB = MuellerBrown()
 energy = MB.f
 gradient = MB.fprime
 
-def show_path(p=None, save=None):
+def show_path(p, n=10):
+    from numpy import linspace
+
+    ch = array([ p(t) for t in linspace(0., 1., n)])
+    print "ch=", ch
+
+    show_chain(ch, style="g-")
+
+def show_chain(p=None, style="ro-", save=None, clear=False):
     from pylab import hold, contour, plot, xlim, ylim, show, savefig, clf #, imshow
     from numpy import linspace, empty, transpose
 
@@ -353,7 +361,7 @@ def show_path(p=None, save=None):
 
     # dont know what it does:
     # hold(True)
-    clf()
+    if clear: clf()
 
 #   # Plotting color map:
 #   imshow(zs, origin='lower', extent=[-1, 1, -1, 2])
@@ -371,7 +379,7 @@ def show_path(p=None, save=None):
 
     # overlay a path onto coutour plot:
     if p is not None:
-        plot(p[:, 0], p[:, 1], "ro-")
+        plot(p[:, 0], p[:, 1], style)
 
     ylim(-0.2, 1.8)
     xlim(-1.0, 1.0)
