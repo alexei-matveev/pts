@@ -1,6 +1,18 @@
 """
 Import minimization funciton:
 
+    >>> MB([ 0.62349942,  0.02803776])
+    -108.16672411685232
+
+    >>> MB.fprime([ 0.62349942,  0.02803776])
+    array([  8.57060655e-06,   6.74209871e-06])
+
+    >>> MB([-0.55822362,  1.44172583])
+    -146.69951720995329
+
+    >>> MB([-0.05001084,  0.46669421])
+    -80.767818129651189
+
     >>> from scipy.optimize import fmin_l_bfgs_b as minimize
 
 Find the three minima:
