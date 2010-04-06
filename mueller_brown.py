@@ -217,7 +217,7 @@ This is not much different from the previous result, 0.30661623.
 """
 __all__ = ["energy", "gradient"] # "MuellerBrown"]
 
-from numpy import exp, array
+from numpy import exp, array, asarray, shape, zeros
 from func import Func
 
 # FIXME: how to mve them into class definiton out of global namespace?
@@ -298,30 +298,27 @@ class MuellerBrown(Func):
     def __str__(self):
         return "MuellerBrown"
 
-    def f(self, v):
+    def taylor(self, v):
 
-        x = v[0]
-        y = v[1]
+        v = asarray(v)
 
-        f = 0.0
-        for A, a, b, c, x0, y0 in zip(AA, aa, bb, cc, xx, yy):
-            f += A * exp( a * (x - x0)**2 + b * (x - x0) * (y - y0) + c * (y - y0)**2 )
+        x = v[..., 0]
+        y = v[..., 1]
 
-        return f
+        f = zeros(shape(v)[:-1])
+        df = zeros(shape(v))
 
-    def fprime(self, v):
-
-        x = v[0]
-        y = v[1]
-
-        dfdx = 0.0
-        dfdy = 0.0
         for A, a, b, c, x0, y0 in zip(AA, aa, bb, cc, xx, yy):
             expt = A * exp( a * (x - x0)**2 + b * (x - x0) * (y - y0) + c * (y - y0)**2 )
-            dfdx += ( 2 * a * (x - x0) + b * (y - y0) ) * expt
-            dfdy += ( 2 * c * (y - y0) + b * (x - x0) ) * expt
+            f += expt
+            df[..., 0] += ( 2 * a * (x - x0) + b * (y - y0) ) * expt
+            df[..., 1] += ( 2 * c * (y - y0) + b * (x - x0) ) * expt
 
-        return array((dfdx, dfdy))
+        # FIXME: for doctests only:
+        if shape(f) == ():
+            f = f.item()
+
+        return f, df
 
 
 # define MB constant, define two functions without
