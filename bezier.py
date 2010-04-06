@@ -4,7 +4,8 @@
 
 __all__ = []
 
-from numpy import array, asarray, shape
+from numpy import array, asarray, shape, ones
+from npz import outer
 from func import Func
 
 class Bezier(Func):
@@ -41,18 +42,29 @@ def casteljau(t, p):
         array(5.75)
         >>> casteljau(0.5, [3., 10., 5.])
         array(7.0)
+
+        >>> casteljau([0.0, 0.5, 1.0], p)
+        array([[ 10.  ,   3.  ],
+               [  5.75,   7.  ],
+               [  3.  ,   5.  ]])
+
     """
 
+    t = asarray(t)
     p = asarray(p)
 
     # polynomial order:
     n = shape(p)[-1] - 1
 
     # a copy of ps, will be modifying this:
-    b = p.copy() # \beta^0
+    b = outer(ones(shape(t)), p) # \beta^0
+
+    x = outer(1. - t, ones(shape(p[..., 0])))
+    y = outer(     t, ones(shape(p[..., 0])))
 
     for j in xrange(n):
-        b[..., :n-j] = (1. - t) * b[..., :n-j] + t * b[..., 1:n-j+1]
+        for i in xrange(n - j):
+            b[..., i] = x * b[..., i] + y * b[..., i+1]
 
     return b[..., 0] # \beta^{n}_0
 
