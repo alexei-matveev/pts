@@ -1,5 +1,40 @@
 #!/usr/bin/python
 """
+Motivation: Tensor (aka Kronecker, aka outer) product works like this
+
+    C     =     A     *   B
+     ij..pq..    ij..      pq..
+
+e.g. all products of elements of rank-2 tensor  A
+                                                 ij
+
+with all elements of rank-3 tensor  B    form a rank-5 tensor  C     .
+                                     pqr                        ijpqr
+
+Most notably products with rank-0 tensors (numbers with no indices)
+does not increase the tensor rank. In this respect the numpy.outer()
+behaves counter intuitive, e.g. numpy.outer(2, 3) == array([[6]]),
+is a rank-2 array (albeit with both index ranges limited to one value).
+
+Matrix product can be viewed as a tensor product followed
+by contraction over innermost indices, e.g.
+
+    C   =  A   *  B     (sum over repeated k)
+     mn     mk     kn
+
+The contraction step can be extended to several indices.
+
+In |matmul| we restrict ourselves to contracting over
+several INNERMOST indices. This differs from the conventions
+used by dot- and inner product funcitons in NumPy.
+
+See also:
+
+    numpy.outer
+    numpy.kron
+    numpy.dot
+    numpy.inner
+    numpy.matrixmultiply
 """
 
 __all__ = ["matmul", "outer", "dots"]
