@@ -2,9 +2,72 @@
 """
 """
 
-__all__ = ["matmul"]
+__all__ = ["matmul", "outer", "dots"]
 
-from numpy import asarray, shape, dot
+from numpy import asarray, empty, shape, dot
+
+def prod(ns): # name clash with numpy.prod
+
+    return reduce(lambda x, y: x * y, ns, 1)
+
+def outer(A, B):
+    """Outer product, differs from numpy version for special cases
+    of scalar arguments:
+
+        >>> outer([2, 3], [10, 100])
+        array([[ 20, 200],
+               [ 30, 300]])
+
+        >>> outer([2, 3], 10)
+        array([20, 30])
+
+        >>> outer(10, [2, 3])
+        array([20, 30])
+    """
+    return matmul(shape(A), shape(B), (), A, B)
+
+def dots(m, n, k, A, B):
+    """C[m, n] = A[m, k] * B[m, k, n] (sum over repeated k, not over m)
+
+        >>> from numpy import ones
+        >>> a = ones((2,3,4,5,6))
+        >>> b = ones((2,3,4,5,6,3,2))
+
+        >>> c = dots((2,3,4), (3,2), (5,6), a, b)
+
+        >>> shape(c)
+        (2, 3, 4, 3, 2)
+
+        >>> c[0,0,0,0,0]
+        30.0
+
+    Can this be done with vectorize() ?
+    """
+
+    A = asarray(A)
+    B = asarray(B)
+
+    assert shape(A) == m + k
+    assert shape(B) == m + k + n
+
+    M = prod(m)
+    N = prod(n)
+    K = prod(k)
+
+    A.shape = (M, K)
+    B.shape = (M, K, N)
+
+    C = empty((M, N))
+
+    # FIXME: how to avoid copying?
+    for i in xrange(M):
+        C[i, :] = dot(A[i], B[i])
+
+    A.shape = m + k
+    B.shape = m + k + n
+    C.shape = m + n
+
+    return C
 
 def matmul(m, n, k, A, B):
     """Specialized dot(), inspired by DGEMM
@@ -23,16 +86,13 @@ def matmul(m, n, k, A, B):
 
 #   print "m, n, k =", m, n, k
 
-    # product() appears to return floats?
-    mul = lambda x, y: x * y
-
     # sizes:
-    M = reduce(mul, m, 1)
-    K = reduce(mul, k, 1)
-    N = reduce(mul, n, 1)
+    M = prod(m)
+    K = prod(k)
+    N = prod(n)
 #   print "M, N, K =", M, N, K
 
-#   print "matmul: A, B =", A, B, typeA, typeB
+#   print "matmul: A, B =", A, B, type(A), type(B)
     A = asarray(A)
     B = asarray(B)
 
@@ -48,7 +108,7 @@ def matmul(m, n, k, A, B):
     B.shape = (K, N)
 
     C = dot(A, B)
-    
+
     # reshape back:
     A.shape = m + k
     B.shape = k + n
