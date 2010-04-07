@@ -322,6 +322,9 @@ def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, \
     # returns the default hessian:
     hessian = hess(alpha)
 
+    # shurtcut for linear operator g -> hessian.apply(g):
+    H = hessian.apply
+
     # geometry, energy and the gradient from previous iteration:
     r0 = None
     e0 = None # not used anywhere!
@@ -356,61 +359,8 @@ def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, \
         if iteration > 0: # only then r0 and g0 are meaningfull!
             hessian.update(r-r0, g-g0)
 
-        ################## Constrain section ############################
-
-        # current mismatch in constrains:
-        c = c - c0
-
-        #
-        # First solve for largange multipliers "lam":
-        #
-        # (1) dr = - H * ( g + A^T * lam )
-        # (2) 0  = c + A * dr
-        #
-        # Note that A[i, j] here is dc_i / dr_j,
-        # the literature may differ by transposition.
-        #
-
-        # this would be the unconstrained step:
-        dr0 = - hessian.apply(g)
-
-        # this would be the new values of the constrains:
-        rhs = c + dot(A, dr0)
-
-        if VERBOSE:
-            print "cmin: A=", A
-            print "cmin: dr0=", dr0
-            print "cmin: c=", c
-            print "cmin: rhs=", rhs
-
-        # number of constrains:
-        nc = len(c)
-
-        # construct the lhs-matrix AHA^T:
-        AHA = empty((nc, nc))
-        for j in range(nc): # FIXME: more efficient way?
-            Haj = hessian.apply(A[j])
-            for i in range(nc):
-                AHA[i, j] = dot(A[i], Haj)
-
-        # solve linear equations:
-        lam = solve(AHA, rhs)
-
-        if VERBOSE:
-            print "cmin: rhs=", rhs
-            print "cmin: AHA=", AHA
-            print "cmin: lam=", lam
-
-        #
-        # Now project out the gradient components,
-        # and propose a new step:
-        #
-
-        gp = g + dot(lam, A)
-        #################################################################
-
-        # Quasi-Newton step (using *projected* gradient): dr = - H * gp:
-        dr = - hessian.apply(gp)
+        # compute the constrained step:
+        dr = cstep(g, H, r, cg, c0)
 
         if VERBOSE:
             if e0 is not None:
@@ -476,6 +426,73 @@ def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, \
     # also return number of interations, convergence status, and last values
     # of the gradient and step:
     return r, e, (iteration, converged, g, dr)
+
+def cstep(g, H, r, cg, c0):
+    """
+
+    H(g) is a linear operator implemented as a function
+    hiding the actual implementation.
+    """
+
+    # FIXME: this re-evaluates the constrains:
+    c, A = cg(r)
+
+    # current mismatch in constrains:
+    c = c - c0
+    #rint "cmin: c - c0 =", c
+
+    #
+    # First solve for largange multipliers "lam":
+    #
+    # (1) dr = - H * ( g + A^T * lam )
+    # (2) 0  = c + A * dr
+    #
+    # Note that A[i, j] here is dc_i / dr_j,
+    # the literature may differ by transposition.
+    #
+
+    # this would be the unconstrained step:
+    dr0 = - H(g)
+
+    # this would be the new values of the constrains:
+    rhs = c + dot(A, dr0)
+
+    if VERBOSE:
+        print "cstep: A=", A
+        print "cstep: dr0=", dr0
+        print "cstep: c=", c
+        print "cstep: rhs=", rhs
+
+    # number of constrains:
+    nc = len(c)
+
+    # construct the lhs-matrix AHA^T:
+    AHA = empty((nc, nc))
+    for j in range(nc): # FIXME: more efficient way?
+        Haj = H(A[j])
+        for i in range(nc):
+            AHA[i, j] = dot(A[i], Haj)
+
+    # solve linear equations:
+    lam = solve(AHA, rhs)
+
+    if VERBOSE:
+        print "cstep: rhs=", rhs
+        print "cstep: AHA=", AHA
+        print "cstep: lam=", lam
+
+    #
+    # Now project out the gradient components,
+    # and propose a new step:
+    #
+
+    gp = g + dot(lam, A)
+    #################################################################
+
+    # Quasi-Newton step (using *projected* gradient): dr = - H * gp:
+    dr = - H(gp)
+
+    return dr
 
 def _flatten(fg, x):
     """Returns a funciton of flat argument fg_(y) that
