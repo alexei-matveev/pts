@@ -399,7 +399,7 @@ def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, \
         # invoke objective function, also computes the gradient:
         e, g = fg(r)
 
-        # evaluate constrains at current geometry:
+        # FIXME: evaluate constrains at current geometry (another time?):
         c, A = cg(r)
 
         # if requested, provide feedback on the optimization progress:
@@ -463,15 +463,8 @@ def cstep(g, H, r, cg, c0):
         print "cstep: c=", c
         print "cstep: rhs=", rhs
 
-    # number of constrains:
-    nc = len(c)
-
-    # construct the lhs-matrix AHA^T:
-    AHA = empty((nc, nc))
-    for j in range(nc): # FIXME: more efficient way?
-        Haj = H(A[j])
-        for i in range(nc):
-            AHA[i, j] = dot(A[i], Haj)
+    # Construct the lhs-matrix AHA^T
+    AHA = aha(A, H)
 
     # solve linear equations:
     lam = solve(AHA, rhs)
@@ -493,6 +486,20 @@ def cstep(g, H, r, cg, c0):
     dr = - H(gp)
 
     return dr
+
+def aha(A, H):
+    "Construct the lhs-matrix AHA^T"
+
+    # number of constrains:
+    nc = len(A)
+
+    AHA = empty((nc, nc))
+    for j in range(nc): # FIXME: more efficient way?
+        Haj = H(A[j])
+        for i in range(nc):
+            AHA[i, j] = dot(A[i], Haj)
+
+    return AHA
 
 def _flatten(fg, x):
     """Returns a funciton of flat argument fg_(y) that
