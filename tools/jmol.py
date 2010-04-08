@@ -10,6 +10,15 @@ or
 
 to vizualize a path in 3D with jmol.
 
+To refine this path set --refine num
+Thus:
+
+    $ jmol.py --refine 2  1.xyz 1.xyz ... n.xyz
+
+will visualize the path in 3D with jmol with
+an extra image (approximated by a path through
+the origional images) will be shown
+
 Alternatively
 
     >>> from aof.tools.jmol import jmol_view_path
@@ -79,18 +88,27 @@ def jmol_write(xyz, syms=None, comment="", file=sys.stdout):
         write(line)
 
 def main():
-    if len(sys.argv) < 3:
+    argv = sys.argv[1:]
+    refinenum = 1
+    if argv[0] == '--refine':
+        refinenum = int(argv[1])
+        argv = argv[2:]
+    elif argv[0] == '--help':
+        print __doc__
+        return
+
+    if len(argv) < 2:
         # print usage and return:
         print __doc__
         return
 
-    images = [ ase.read(file) for file in sys.argv[1:] ]
+    images = [ ase.read(file) for file in argv[:] ]
 
     geoms = [ im.get_positions() for im in images ]
 
     syms = images[0].get_chemical_symbols()
 
-    jmol_view_path(geoms, syms, refine=5)
+    jmol_view_path(geoms, syms, refine=refinenum)
 
 if __name__ == "__main__":
     import doctest
