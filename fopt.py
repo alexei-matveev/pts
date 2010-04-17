@@ -363,7 +363,7 @@ def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, \
             hessian.update(r-r0, g-g0)
 
         # compute the constrained step:
-        dr = cstep(g, H, r, cg, c0)
+        dr, dg, lam = qnstep(g, H, c - c0, A)
 
         if VERBOSE:
             if e0 is not None:
@@ -430,41 +430,77 @@ def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, \
     # of the gradient and step:
     return r, e, (iteration, converged, g, dr)
 
-def cstep(g, H, r, cg, c0):
+def qnstep(g0, H, c, A):
     """
+    At point |x0| we have the gradient |g0|, the quadratic PES is
+    characterized by inverse hessian H that relates changes in
+    coordinate and gradients: dr = H(dg). H(g) is a linear operator
+    implemented as a function hiding the actual implementation.
 
-    H(g) is a linear operator implemented as a function
-    hiding the actual implementation.
+    As we operate with inverse hessian, so g is the primary variable:
+
+        g -> x -> c(x), A(x) = dc / dx
+
+    As this is a constrained minimization we are not looking for the
+    point where the gradients vanish. Instead seek such (a point where)
+
+        g1 + lam * A = 0
+
+    i.e. where energy gradients and constrain gradients are "collinear".
+
+    The following holds exactly on quadratic surface:
+
+        x1 - x0 = H * (g1 - g0)
+
+    We also want for the constrain to hold at x1:
+
+        c(x1) = C
+
+    Formally one has to solve the non-linear equations
+    for (g1, x1, lam), the non-linearity is due to x-dependence of
+    constrains c(x) and A(x). This sub proposes a step of a single
+    Newton-Rapson iteration for this system of non-linear equations.
+    More specifically, we first solve for g1 in linear approximation
+    for c(x):
+
+        c(x1) ~= c(x0) + A * (x1 - x0)
+
+    and then solve the linear equations:
+
+        x1 - x0 = H * (g1 - g0)         (1)
+        g1 + lam * A = 0                (2)
+        c(x0) + A * (x1 - x0) = C       (3)
+
+    Which is first solved for lagrange multipliers:
+
+        A * H * A' * lam = c(x0) - C - A * H * g0
+
+    And then, using (2) for g1:
+
+        g1 = - lam * A
+
+    We will, however return the increments, g1 - g0.
     """
-
-    # FIXME: this re-evaluates the constrains:
-    c, A = cg(r)
 
     # current mismatch in constrains:
-    c = c - c0
-    #rint "cmin: c - c0 =", c
+    # c == c(x0) - C
 
     #
-    # First solve for largange multipliers "lam":
-    #
-    # (1) dr = - H * ( g + A^T * lam )
-    # (2) 0  = c + A * dr
-    #
-    # Note that A[i, j] here is dc_i / dr_j,
+    # Note that A[i, j] here is dc_i / dx_j,
     # the literature may differ by transposition.
     #
 
     # this would be the unconstrained step:
-    dr0 = - H(g)
+    dx = - H(g0)
 
     # this would be the new values of the constrains:
-    rhs = c + dot(A, dr0)
+    rhs = c + dot(A, dx)
 
     if VERBOSE:
-        print "cstep: A=", A
-        print "cstep: dr0=", dr0
-        print "cstep: c=", c
-        print "cstep: rhs=", rhs
+        print "qnstep: A=", A
+        print "qnstep: dx=", dx
+        print "qnstep: c=", c
+        print "qnstep: rhs=", rhs
 
     # Construct the lhs-matrix AHA^T
     AHA = aha(A, H)
@@ -473,22 +509,16 @@ def cstep(g, H, r, cg, c0):
     lam = solve(AHA, rhs)
 
     if VERBOSE:
-        print "cstep: rhs=", rhs
-        print "cstep: AHA=", AHA
-        print "cstep: lam=", lam
+        print "qnstep: rhs=", rhs
+        print "qnstep: AHA=", AHA
+        print "qnstep: lam=", lam
 
-    #
-    # Now project out the gradient components,
-    # and propose a new step:
-    #
+    g1 = - dot(lam, A)
 
-    gp = g + dot(lam, A)
-    #################################################################
+    dg = g1 - g0
 
-    # Quasi-Newton step (using *projected* gradient): dr = - H * gp:
-    dr = - H(gp)
-
-    return dr
+    # dx, dg, lam:
+    return H(dg), dg, lam
 
 def aha(A, H):
     "Construct the lhs-matrix AHA^T"
