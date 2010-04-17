@@ -147,6 +147,15 @@ from bfgs import LBFGS, BFGS
 
 VERBOSE = False
 
+TOL = 1.e-6
+
+STOL = TOL # step size tolerance
+GTOL = TOL # gradient tolerance
+CTOL = TOL # constrain tolerance
+
+MAXITER = 50
+MAXSTEP = 0.1
+
 def minimize(f, x):
     """
     Minimizes a Func |f| starting with |x|.
@@ -172,15 +181,15 @@ def minimize(f, x):
     y = x.flatten()
 
     xm, fm, stats =  minimize1D(fg, y)
-    #xm, fm, stats =  fmin(fg, y, hess="LBFGS") #, stol=1.e-6, ftol=1.e-5)
-    #xm, fm, stats =  fmin(fg, y, hess="BFGS") #, stol=1.e-6, ftol=1.e-5)
+    #xm, fm, stats =  fmin(fg, y, hess="LBFGS") #, stol=1.e-6, gtol=1.e-5)
+    #xm, fm, stats =  fmin(fg, y, hess="BFGS") #, stol=1.e-6, gtol=1.e-5)
 
     # return the result in original shape:
     xm.shape = xshape
 
     return xm, fm, stats
 
-def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, hess="BFGS"):
+def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70.0, hess="BFGS"):
     """Search for a minimum of fg(x)[0] using the gradients fg(x)[1].
 
     TODO: dynamic trust radius, line search in QN direction (?)
@@ -272,9 +281,9 @@ def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, he
             if VERBOSE:
                 print "fmin: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
             converged = True
-        if max(abs(g))  < ftol:
+        if max(abs(g))  < gtol:
             if VERBOSE:
-                print "fmin: converged by force max(abs(g))=", max(abs(g)), '<', ftol
+                print "fmin: converged by force max(abs(g))=", max(abs(g)), '<', gtol
             converged = True
         if iteration >= maxiter:
             if VERBOSE:
@@ -285,8 +294,8 @@ def fmin(fg, x, stol=1.e-6, ftol=1.e-5, maxiter=50, maxstep=0.04, alpha=70.0, he
     # of the gradient and step:
     return r, e, (iteration, converged, g, dr)
 
-def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, \
-        maxiter=50, maxstep=0.04, alpha=70.0, hess="LBFGS", callback=None):
+def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
+        maxiter=MAXITER, maxstep=MAXSTEP, alpha=1.0, hess="LBFGS", callback=None):
     """Search for a minimum of fg(x)[0] using the gradients fg(x)[1]
     subject to constrains cg(x)[0] = const.
 
@@ -416,9 +425,9 @@ def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, \
             converged = True
 
         # purified gradient for updated geometry is not yet available:
-#       if max(abs(g))  < ftol:
+#       if max(abs(g))  < gtol:
 #           if VERBOSE:
-#               print "cmin: converged by force max(abs(g))=", max(abs(g)), '<', ftol
+#               print "cmin: converged by force max(abs(g))=", max(abs(g)), '<', gtol
 #           converged = True
 
         if iteration >= maxiter:
