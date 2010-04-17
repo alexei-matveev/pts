@@ -138,7 +138,7 @@ give its orientation.
 
 """
 
-__all__ = ["minimize"]
+__all__ = ["minimize", "cminimize"]
 
 from numpy import asarray, empty, dot, max, abs, shape
 from numpy.linalg import solve #, eigh
@@ -244,6 +244,39 @@ def minimize(f, x):
     xm, fm, stats =  minimize1D(fg, y)
     #xm, fm, stats =  fmin(fg, y, hess="LBFGS") #, stol=1.e-6, gtol=1.e-5)
     #xm, fm, stats =  fmin(fg, y, hess="BFGS") #, stol=1.e-6, gtol=1.e-5)
+
+    # return the result in original shape:
+    xm.shape = xshape
+
+    return xm, fm, stats
+
+def cminimize(f, x, c, **kwargs):
+    """
+    Minimizes a Func |f| starting with |x|.
+    Returns (xm, fm, stats)
+
+    xm          --- location of the minimum
+    fm          --- f(xm)
+    stats       --- optimization statistics
+    """
+
+    # in case we are given a list instead of array:
+    x = asarray(x)
+
+    # save the shape of the actual argument:
+    xshape = x.shape
+
+    # some optimizers (notably fmin_l_bfgs_b) work with funcitons
+    # of 1D arguments returning both the value and the gradient.
+    # Construct such from the given Func f:
+    fg = _flatten(f.taylor, x)
+    cg = _flatten(c.taylor, x)
+
+    # flat version of inital point:
+    y = x.flatten()
+#   z = c0.flatten()
+
+    xm, fm, stats =  cmin(fg, y, cg, **kwargs)
 
     # return the result in original shape:
     xm.shape = xshape
