@@ -346,6 +346,9 @@ def cmin(fg, x, cg, c0=None, stol=1.e-6, ftol=1.e-5, ctol=1.e-6, \
         assert len(c) == len(c0)
         c0 = asarray(c0)
 
+    # should have more variables than constrains:
+    assert len(r) > len(c0)
+
     if VERBOSE:
         print "cmin: c0=", c0, "(target value of constrain)"
 
