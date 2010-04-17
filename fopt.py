@@ -156,6 +156,67 @@ CTOL = TOL   # constrain tolerance
 MAXITER = 50
 MAXSTEP = 0.04
 
+def newton(x, fg, tol=TOL, maxiter=MAXITER, rk=None):
+    """Solve F(x) = 0 (rather, reduce rhs to < tol)
+
+        >>> from numpy import array
+        >>> a, b = 1., 10.
+        >>> def fg(r):
+        ...    x = r[0]
+        ...    y = r[1]
+        ...    f = array([ a * x**2 + b * y**2 - a * b,
+        ...                b * x**2 + a * y**2 - a * b])
+        ...    fprime = array([[ 2. * a * x, 2. * b * y], 
+        ...                    [ 2. * b * x, 2. * a * y ]])
+        ...    return f, fprime
+
+        >>> x = array([3., 7.])
+
+        >>> from ode import rk5
+
+        >>> x0, stats = newton(x, fg, rk=rk5)
+
+        >>> x0
+        array([ 0.95346259,  0.95346259])
+
+        >>> f, J = fg(x0)
+        >>> f
+        array([ 0.,  0.])
+    """
+
+    if rk is not None:
+        #                                 -1
+        # for integration of dx / dt = - J (x) f
+        #                                       0
+        def xprime(t, x, f0):
+            f, J = fg(x)
+            return solve(J, -f0)
+
+    it = 0
+    converged = False
+
+    while not converged and it < maxiter:
+        it = it + 1
+
+        f, J = fg(x)
+
+        if max(abs(f)) < tol:
+            converged = True
+
+        if rk is None:
+            # FIXME: what if J is rank-deficent?
+            dx = solve(J, -f)
+        else:
+            # use provided routine for Runge-Kutta step prediciton:
+            dx = rk(0.0, x, xprime, 1.0, args=(f,))
+            # FIXME: this re-evaluates fg(x) at x!
+
+        x = x + dx
+
+    assert converged
+
+    return x, (converged, it, f, J)
+
 def minimize(f, x):
     """
     Minimizes a Func |f| starting with |x|.
