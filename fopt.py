@@ -149,12 +149,12 @@ VERBOSE = False
 
 TOL = 1.e-6
 
-STOL = TOL # step size tolerance
-GTOL = TOL # gradient tolerance
-CTOL = TOL # constrain tolerance
+STOL = TOL   # step size tolerance
+GTOL = 1.e-5 # gradient tolerance
+CTOL = TOL   # constrain tolerance
 
 MAXITER = 50
-MAXSTEP = 0.1
+MAXSTEP = 0.04
 
 def minimize(f, x):
     """
@@ -295,7 +295,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
     return r, e, (iteration, converged, g, dr)
 
 def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
-        maxiter=MAXITER, maxstep=MAXSTEP, alpha=1.0, hess="LBFGS", callback=None):
+        maxiter=MAXITER, maxstep=MAXSTEP, alpha=70.0, hess="LBFGS", callback=None):
     """Search for a minimum of fg(x)[0] using the gradients fg(x)[1]
     subject to constrains cg(x)[0] = const.
 
