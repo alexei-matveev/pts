@@ -519,6 +519,13 @@ class CoordSys(object):
     def apply_constraints(self, vec):
         return vec
 
+    def get_cartforces(self):
+        cart_pos = self.get_cartesians()
+        self._atoms.set_positions(cart_pos)
+
+        return self._atoms.get_forces()
+
+
     def get_forces(self, flat=False, **kwargs):
         cart_pos = self.get_cartesians()
         self._atoms.set_positions(cart_pos)
@@ -567,7 +574,7 @@ class CoordSys(object):
         cart_coords = self.get_cartesians()
         self._atoms.set_positions(cart_coords)
         list = ['%-2s %22.15f %22.15f %22.15f' % (s, x, y, z) for s, (x, y, z) in zip(self._atoms.get_chemical_symbols(), self._atoms.get_positions())]
-        geom_str = '\n'.join(list) + '\n\n'
+        geom_str = '\n'.join(list) # + '\n\n'
 
         return geom_str
 
