@@ -75,17 +75,10 @@ def main(argv=None):
             aof.tools.gnuplot_path(state, es, fn_pickle)
 
         estims = []
-        print pt.ts_spl()
-
-        #print pt.para_forces
-        #print pt.para_forces_fd
-        exit()
         estims.append(('Spling and cubic', pt.ts_splcub()[-1]))
         estims.append(('Highest', pt.ts_highest()[-1]))
         estims.append(('Spline only', pt.ts_spl()[-1]))
         estims.append(('Spline and average', pt.ts_splavg()[-1]))
-        estims.append(('Bell Method', pt.ts_bell()[-1]))
-
 
         for name, est in estims:
             energy, coords, s0, s1, _, _ = est

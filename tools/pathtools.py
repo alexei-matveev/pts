@@ -6,6 +6,7 @@ import numpy as np
 from aof.common import vector_angle
 import aof.func as func
 import scipy as sp
+from aof.threepointmin import ts_3p_gr
 
 class PathTools:
     """
@@ -384,6 +385,30 @@ class PathTools:
         """
         i = self.energies.argmax()
         ts_list = [(self.energies[i], self.state[i], self.steps[i], self.steps[i], i, i)]
+
+        return ts_list
+
+    def ts_threepoints(self, withmove = False):
+        """Uses the threepointmin module to get an approximation just
+        from the three points supposed to be next nearest to the transition state
+
+        if withmove = True, calculates also the approximation with the beads
+        one to the left and ones to the right of the hightest bead
+        """
+
+        i = self.energies.argmax()
+        ts_list = []
+        if withmove:
+             xts, gts, ets, gpr1, gpr2, work =  ts_3p_gr(self.state[i-2], self.state[i-1], self.state[i], self.gradients[i-2], self.gradients[i-1], self.gradients[i], self.energies[i-2], self.energies[i-1], self.energies[i])
+             ts_list.append((ets, xts, self.steps[i-1], self.steps[i+1],self.steps[i], i-1, i+1))
+             xts, gts, ets, gpr1, gpr2, work =  ts_3p_gr(self.state[i], self.state[i+1], self.state[i+2], self.gradients[i], self.gradients[i+1], self.gradients[i+2], self.energies[i], self.energies[i+1], self.energies[i+2])
+             ts_list.append((ets, xts, self.steps[i-1], self.steps[i+1],self.steps[i], i-1, i+1))
+
+        xts, gts, ets, gpr1, gpr2, work =  ts_3p_gr(self.state[i-1], self.state[i], self.state[i+1], self.gradients[i-1], self.gradients[i], self.gradients[i+1], self.energies[i-1], self.energies[i], self.energies[i+1])
+        if not work:
+            print "WARNING: this transition state approximation is rather far away from the initial path"
+            print "Please verify that it makes sense before using it"
+        ts_list.append((ets, xts, self.steps[i-1], self.steps[i+1],self.steps[i], i-1, i+1))
 
         return ts_list
 
