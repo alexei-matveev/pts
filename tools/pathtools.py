@@ -90,7 +90,6 @@ class PathTools:
 
 
     """
-
     def __init__(self, state, energies, gradients=None):
 
         # string for __str__ to print
@@ -124,9 +123,8 @@ class PathTools:
 
             self.steps[i] = np.linalg.norm(x -x_) + self.steps[i-1]
 
-        #self.steps = self.steps / self.steps[-1]
-        self.non_spl_grads = np.array(self.non_spl_grads)
-        assert len(self.non_spl_grads) == self.n
+        # string for __str__ to print
+        self.s = []
 
         # build fresh functional representation of optimisation 
         # coordinates as a function of a path parameter s
@@ -414,10 +412,11 @@ class PathTools:
 
 
 def pickle_path(mi, CoS, file):
-    a,b,c = CoS.path_tuple()
+    a,b,c,d,e = CoS.path_tuple()
+    print "PICKLE",d, e
     cs = mi.build_coord_sys(a[0])
     f = open(file, 'wb')
-    pickle.dump((a,b,c,cs), f)
+    pickle.dump((a,b,c,d,e,cs), f)
     f.close()
 
 plot_s = \

@@ -254,7 +254,7 @@ def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
     l = CoS.history.ts_estim(len(CoS.history))
 
     if l != []:
-        energies, history, _, _, _, _ = zip(*l)
+        energies, history, _,  _, _, _, _ = zip(*l)
         mol_list_to_traj(molinterface, history, energies, name + "-evol")
     common.str2file(CoS.state_vec, name + "-state_vec" + common.LOGFILE_EXT)
 

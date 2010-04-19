@@ -282,6 +282,9 @@ class ReactionPathway(object):
         """RMS forces, not including those of end beads."""
         return common.rms(self.perp_bead_forces[1:-1]), [common.rms(f) for f in self.perp_bead_forces]
 
+    def pathpos(self):
+         return None, None
+
     @property
     def maxf_perp(self):
         """RMS forces, not including those of end beads."""
@@ -322,14 +325,15 @@ class ReactionPathway(object):
         return s, s_beads
 
     def path_tuple(self):
-        state, energies, gradients = (self.state_vec.reshape(self.beads_count,-1), self.bead_pes_energies.reshape(-1), self.bead_pes_gradients.reshape(self.beads_count,-1))
-        return state, energies, gradients
+        state, energies, gradients, (pathps, pathpsold)  = (self.state_vec.reshape(self.beads_count,-1), self.bead_pes_energies.reshape(-1), self.bead_pes_gradients.reshape(self.beads_count,-1),self.pathpos())
+        return state, energies, gradients, pathps, pathpsold
         
     def __str__(self):
         e_total, e_beads = self.energies
         rmsf_perp_total, rmsf_perp_beads = self.rmsf_perp
         rmsf_para_total, rmsf_para_beads = self.rmsf_para
         maxf_beads = [abs(f).max() for f in self.bead_pes_gradients]
+        path_pos, path_pos_old  = self.pathpos()
 
         eg_calls = self.eg_calls
 
@@ -391,7 +395,7 @@ class ReactionPathway(object):
             # as a tuple. For ts_estim values are a tuple: (energy, vector)
             n = 1
             which = 0
-            ts_estim_energy, estim, _, _, _, _ = self.history.ts_estim(n)[which]
+            ts_estim_energy, estim, _, _, _, _, _ = self.history.ts_estim(n)[which]
             ts_estim = self.bead2carts(estim)
             bead_carts = [self.bead2carts(v) for v in self.state_vec]
             bead_carts = zip(e_beads, bead_carts)
@@ -420,6 +424,7 @@ class ReactionPathway(object):
              "%-24s : %12s %s |" % ("Bead Angles","|" , format('%10.0f', angles)),
              "%-24s : %6s %s" % ("Bead Separations (Pythagorean)", "|", format(f, seps)),
              "%-24s : %6s %f" % ("Bead Sep ratio (Pythagorean)", "|", seps.max() / seps.min()),
+             "%-24s : %s" % ("Bead Path Position", format(f, path_pos)),
              "%-24s :" % ("Raw State Vector"),
              all_coordinates,
              "GENERAL STATS",
@@ -500,7 +505,7 @@ class ReactionPathway(object):
 
 
     def pathfs(self):
-        return None
+        return self.bead_separations
 
     @property
     def dimension(self):
@@ -804,6 +809,9 @@ class NEB(ReactionPathway):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
         return int(ceil((self.beads_count * self.dimension / 3.)))
 
+    def pathpos(self):
+        return (None, None)
+
     def get_forces(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
         return -common.make_like_atoms(self.obj_func_grad())
@@ -915,6 +923,7 @@ class PathRepresentation(object):
         points_cnt = len(self.__state_vec)
         self.__normalised_positions = arange(0.0, 1.0 + 1.0 / (points_cnt - 1), 1.0 / (points_cnt - 1))
         self.__normalised_positions = self.__normalised_positions[0:points_cnt]
+        self.__old_normalised_positions = self.__normalised_positions
 
         self.__max_integral_error = 1e-4
 
@@ -933,6 +942,9 @@ class PathRepresentation(object):
     @property
     def path_tangents(self):
         return self.__path_tangents
+
+    def positions_on_string(self):
+        return self.__normalised_positions
 
     #def recalc_path_tangents(self):
         """Returns the unit tangents to the path at the current set of 
@@ -1138,6 +1150,7 @@ class PathRepresentation(object):
             self.__path_tangents = bead_tangents
             lg.debug("Tangents updated:" + str(self.__path_tangents))
 
+            self.__old_normalised_positions = self.__normalised_positions
             self.__normalised_positions = array([0.0] + normd_positions + [1.0])
             lg.debug("Normalised positions updated:" + str(self.__normalised_positions))
 
@@ -1191,6 +1204,8 @@ class PathRepresentation(object):
         print
         raw_input("that was rho...")
 
+    def pathpos(self):
+        return (self.__normalised_positions, self.__old_normalised_positions )
 
     def __get_str_positions(self):
         """Based on the provided density function self.__rho(x) and 
@@ -1428,6 +1443,14 @@ class GrowingString(ReactionPathway):
 
     def pathfs(self):
         return self._path_rep.fs
+
+    def pathpos(self):
+        return self._path_rep.pathpos()
+
+    def path_tuple(self):
+        state, energies, gradients, (pathps, pathpsold)  = (self.state_vec.reshape(self.beads_count,-1), self.bead_pes_energies.reshape(-1), self.bead_pes_gradients.reshape(self.beads_count,-1),self.pathpos() )
+        print "TUPLE", pathps, pathpsold
+        return state, energies, gradients, pathps, pathpsold
 
     def get_state_vec(self):
         assert not '_state_vec' in self.__dict__

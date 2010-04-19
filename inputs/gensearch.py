@@ -119,7 +119,7 @@ while True:
     # print cartesian coordinates of all transition states that were found
     print "Dumping located transition states"
     for ts in tss:
-        e, v, s0, s1, bead0_i, bead1_i = ts
+        e, v, s0, s1,_ ,bead0_i, bead1_i = ts
         cs = mi.build_coord_sys(v)
         print "Energy = %.4f eV, between beads %d and %d." % (e, bead0_i, bead1_i)
         print cs.xyz_str()
@@ -132,7 +132,7 @@ while True:
     params['name'] = name
 
     highest_ts = tss[-1]
-    _, _, _, _, bead0_i, bead1_i = highest_ts
+    _, _, _, _,_, bead0_i, bead1_i = highest_ts
     if bead0_i == bead1_i:
         print "No true transition state was found, skipping refined search."
         break

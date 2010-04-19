@@ -53,7 +53,22 @@ def main(argv=None):
 
         fn_pickle = args[0]
         f_ts = open(fn_pickle)
-        state, es, gs, cs = pickle.load(f_ts)
+        try:
+            state, es, gs, ss,ssold,cs = pickle.load(f_ts)
+            f_ts.close()
+        except ValueError:
+            ssold = None
+            try:
+                f_ts.close()
+                f_ts = open(fn_pickle)
+                state, es, gs, ss, cs = pickle.load(f_ts)
+                f_ts.close()
+            except ValueError:
+                f_ts.close()
+                f_ts = open(fn_pickle)
+                state, es, gs, cs = pickle.load(f_ts)
+                f_ts.close()
+                ss = None
         max_coord_change = np.abs(state[0] - state[-1]).max()
         print "Max change in any one coordinate was %.2f" % max_coord_change
         print "                            Per bead %.2f" % (max_coord_change / len(state))
@@ -79,6 +94,12 @@ def main(argv=None):
         estims.append(('Highest', pt.ts_highest()[-1]))
         estims.append(('Spline only', pt.ts_spl()[-1]))
         estims.append(('Spline and average', pt.ts_splavg()[-1]))
+
+        if not ss == None:
+            pt2 = aof.tools.PathTools(state, es, gs, ss)
+            estims.append(('Spline only', pt2.ts_spl()[-1]))
+            estims.append(('Spline and average', pt2.ts_splavg()[-1]))
+            estims.append(('Spline and cubic', pt2.ts_splcub()[-1]))
 
         for name, est in estims:
             energy, coords, s0, s1, _, _ = est
