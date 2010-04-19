@@ -74,15 +74,13 @@ def main(argv=None):
         print "                            Per bead %.2f" % (max_coord_change / len(state))
         print "Energy of all beads    %s" % es
         print "Energy of highest bead %.2f" % es.max()
-        if gnuplot_out:
-            s = '\n'.join(['%.2f' % e for e in es])
-            print s
 
-        if len(args) == 2:
-            fn_ts = args[1]
-            ts = aof.coord_sys.XYZ(file2str(fn_ts))
-            ts_carts = ts.get_cartesians()
-            ts_energy = ts.get_potential_energy()
+        if len(args) < 2:
+            return
+        fn_ts = args[1]
+        ts = aof.coord_sys.XYZ(file2str(fn_ts))
+        ts_carts = ts.get_cartesians()
+        ts_energy = ts.get_potential_energy()
 
         pt = aof.tools.PathTools(state, es, gs)
 
@@ -102,19 +100,26 @@ def main(argv=None):
             estims.append(('Spline and cubic', pt2.ts_splcub()[-1]))
 
         for name, est in estims:
-            energy, coords, s0, s1, _, _ = est
-            energy_err = energy - ts_energy
+            energy, coords, s0, s1,s_ts,  l, r = est
             cs.set_internals(coords)
             if dump:
                 print name
                 print cs.xyz_str()
                 print cs.get_internals()
                 print
+                modes =  pt.modeandcurvature(s_ts, l, r, cs)
+                for namemd, modevec in modes:
+                     print "Approximation of modes in way ", namemd
+                     for line in modevec:
+                         print "   %12.8f  %12.8f  %12.8f" % (line[0], line[1], line[2])
+                print
 
             carts = cs.get_cartesians()
-            error = rot.cart_diff(carts, ts_carts)[0]
+            if ts_comp_exists:
+                energy_err = energy - ts_energy
+                error = rot.cart_diff(carts, ts_carts)[0]
 
-            print "%s: (E_est - E_corr) = %.3f Geom err = %.3f bracket = %.1f-%.1f" % (name.ljust(20), energy_err, error, s0, s1)
+                print "%s: (E_est - E_corr) = %.3f ;Geom err = %.3f ;bracket = %.1f-%.1f" % (name.ljust(20), energy_err, error, s0, s1)
 
     except Usage, err:
         print >>sys.stderr, err

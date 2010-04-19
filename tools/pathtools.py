@@ -164,6 +164,48 @@ class PathTools:
     def __str__(self):
         return '\n'.join(self.s)
 
+    def modeandcurvature(self, s0, leftbd, rightbd, cs_forcart):
+        """The mode along the path in the point s0 and
+        the curvature for it are given back in several
+        possible approximations
+        """
+        if leftbd == rightbd:
+            leftbd -= 1
+            rightbd += 1
+        self.cs = cs_forcart.copy()
+        self.cs.set_internals(self.state[leftbd])
+        leftcoord = self.cs.get_cartesians()
+        self.cs.set_internals(self.state[rightbd])
+        rightcoord = self.cs.get_cartesians()
+
+        modedirect = rightcoord - leftcoord
+        normer = np.sqrt(sum(sum(modedirect * modedirect)))
+        modedirect /= normer
+
+        modeint = self.state[rightbd] - self.state[leftbd]
+        normer = np.sqrt(sum(modeint * modeint))
+        modeint /= normer
+        transfer, error = self.cs.get_transform_matrix(self.xs(s0))
+        modefromint = np.dot( np.asarray(modeint), transfer)
+
+        modeint = self.state[-1] - self.state[0]
+        normer = np.sqrt(sum(modeint * modeint))
+        modeint /= normer
+        transfer, error = self.cs.get_transform_matrix(self.xs(s0))
+        modeallpath = np.dot( np.asarray(modeint), transfer)
+
+        modeint = self.xs.fprime(s0)
+        normer = np.sqrt(sum(modeint * modeint))
+        modeint /= normer
+        modepath = np.dot(np.asarray(modeint), transfer)
+
+        modefromint = np.reshape(modefromint, np.shape(modedirect))
+        modepath = np.reshape(modepath, np.shape(modedirect))
+        modeallpath = np.reshape(modeallpath, np.shape(modedirect))
+
+        return ("first to last bead", modeallpath),  ("directinternal", modefromint), ("frompath", modepath)
+
+
     def ts_spl(self, tol=1e-10):
         """Returns list of all transition state(s) that appear to exist along
         the reaction pathway."""
@@ -196,7 +238,7 @@ class PathTools:
                 assert ts_e.size == 1
                 ts_e = ts_e[0]
                 ts = self.xs(s_ts)
-                ts_list.append((ts_e, ts, s0, s1, i-1, i))
+                ts_list.append((ts_e, ts, s0, s1, s_ts, i-1, i))
 
         ts_list.sort()
         return ts_list
@@ -251,7 +293,7 @@ class PathTools:
 
                 E_ts = (E_1 + E_0) / 2
                 s_ts = (s1 + s0) / 2
-                ts_list.append((E_ts, self.xs(s_ts), s0, s1, i-1, i))
+                ts_list.append((E_ts, self.xs(s_ts), s0, s1, s_ts, i-1, i))
 
         return ts_list
 
@@ -368,7 +410,7 @@ class PathTools:
                 for p in statpts:
                     # test curvature
                     if cub.fprimeprime(p) < 0:
-                        ts_list.append((cub(p), self.xs(p), ss[i-1], ss[i], i-1, i))
+                        ts_list.append((cub(p), self.xs(p), ss[i-1], ss[i], p, i-1, i))
                         found += 1
 
 #                assert found == 1, "Must be exactly 1 stationary points in cubic path segment but there were %d" % found
@@ -382,7 +424,7 @@ class PathTools:
         Just picks the highest energy from along the path.
         """
         i = self.energies.argmax()
-        ts_list = [(self.energies[i], self.state[i], self.steps[i], self.steps[i], i, i)]
+        ts_list = [(self.energies[i], self.state[i], self.steps[i], self.steps[i],self.steps[i] , i, i)]
 
         return ts_list
 
