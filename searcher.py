@@ -418,7 +418,7 @@ class ReactionPathway(object):
              "VALUES FOR SINGLE BEADS",
              "%-24s : %s" % ("Bead Energies",format('%10.4f', e_beads)) ,
              "%-24s : %s" % ("RMS Perp Forces", format(f, rmsf_perp_beads)),
-             "%-24s : %s" % ("RMS Para Forces", format(f, rmsf_para_beads)),
+             "%-24s : %s" % ("Para Forces", format(f, rmsf_para_beads)),
              "%-24s : %s" % ("MAX Forces", format(f, maxf_beads)),
              "%-24s : %s" % ("RMS Step Size", format(f, step_beads)),
              "%-24s : %12s %s |" % ("Bead Angles","|" , format('%10.0f', angles)),
