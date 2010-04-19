@@ -295,6 +295,7 @@ class PathTools:
                 s_ts = (s1 + s0) / 2
                 ts_list.append((E_ts, self.xs(s_ts), s0, s1, s_ts, i-1, i))
 
+        ts_list.sort()
         return ts_list
 
 
@@ -417,6 +418,7 @@ class PathTools:
 
                 self.plot_str += "\n\n%f\t%f\n" % (p, cub(p))
 
+        ts_list.sort()
         return ts_list
 
     def ts_highest(self):
