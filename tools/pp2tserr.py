@@ -29,18 +29,21 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "hd", ["help"])
+            opts, args = getopt.getopt(argv[1:], "hdg", ["help"])
         except getopt.error, msg:
              usage()
              return
         
         dump = False
+        gnuplot_out = False
         for o, a in opts:
             if o in ("-h", "--help"):
                 usage()
                 return 
             if o in ("-d"):
                 dump = True
+            if o in ("-g"):
+                gnuplot_out = True
             else:
                 usage()
                 return -1
@@ -56,7 +59,9 @@ def main(argv=None):
         print "                            Per bead %.2f" % (max_coord_change / len(state))
         print "Energy of all beads    %s" % es
         print "Energy of highest bead %.2f" % es.max()
-
+        if gnuplot_out:
+            s = '\n'.join(['%.2f' % e for e in es])
+            print s
 
         if len(args) == 2:
             fn_ts = args[1]
@@ -66,17 +71,21 @@ def main(argv=None):
 
         pt = aof.tools.PathTools(state, es, gs)
 
-        estims = []
-        pt.ts_splcub()
+        if gnuplot_out:
+            aof.tools.gnuplot_path(state, es, fn_pickle)
 
-        #print pt
-        print pt.para_forces
-        print pt.para_forces_fd
+        estims = []
+        print pt.ts_spl()
+
+        #print pt.para_forces
+        #print pt.para_forces_fd
         exit()
         estims.append(('Spling and cubic', pt.ts_splcub()[-1]))
         estims.append(('Highest', pt.ts_highest()[-1]))
         estims.append(('Spline only', pt.ts_spl()[-1]))
         estims.append(('Spline and average', pt.ts_splavg()[-1]))
+        estims.append(('Bell Method', pt.ts_bell()[-1]))
+
 
         for name, est in estims:
             energy, coords, s0, s1, _, _ = est

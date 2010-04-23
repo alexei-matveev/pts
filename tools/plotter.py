@@ -19,8 +19,8 @@ class Usage(Exception):
         self.msg = msg
 
 plot_str = """
-set term postscript portrait color
-set output "plots.ps"
+#set term postscript portrait color
+#set output "plots.ps"
 
 set multiplot
 
@@ -242,8 +242,8 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
     out = open(gpfile, 'w')
     out.write(gnuplot_str)
     out.close()
-    os.system('gnuplot ' + gpfile)
-    os.system('gv plots.ps')
+    os.system('gnuplot -persist ' + gpfile)
+#    os.system('gv plots.ps')
 
 def main(argv=None):
     known_ts_aa_dists = 0

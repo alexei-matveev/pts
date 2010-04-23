@@ -1342,10 +1342,14 @@ def get_bead_positions(E, ps):
 
     assert new_p > 0, new_p
     
-    new_ps = ps[:new_i] + [new_p] + ps[new_i:]
+    print "new_i", new_i
+    psa = ps.tolist()
+    print "ps",ps
+    new_ps = psa[:new_i] + [new_p] + psa[new_i:]
+    print "newps",new_ps
     assert (array(new_ps).argsort() == arange(len(new_ps))).all()
 
-    return new_ps
+    return array(new_ps)
             
     
 

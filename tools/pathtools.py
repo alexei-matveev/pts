@@ -1,4 +1,5 @@
 import pickle
+import os
 
 from aof.path import Path
 import numpy as np
@@ -71,8 +72,21 @@ class PathTools:
     >>> pt.ts_spl()[0] == (e, p, s0, s1)
     True
 
-    >>> pt = PathTools([0,1,2,3,4], [1,2,3,2,1], [0,1,-0.1,0,1])
-    >>> pt.ts_bell()
+    >>> pt = PathTools([0,1,2,3,4], [1,2,3,2,1])
+    >>> e = pt.ts_bell()[0]
+    >>> np.round(np.array(e), 2)
+    array([ 3.,  2.,  1.,  2.,  1.,  2.])
+
+    >>> pt = PathTools([0,1,2,3,4,5], [1,3,5,5,3,1])
+    >>> e = pt.ts_bell()[0]
+    >>> np.round(np.array(e), 2)
+    array([ 5.3,  2.5,  2. ,  3. ,  2. ,  3. ])
+
+    >>> pt = PathTools([0,1,2,5,6], [1,3,5,3,1])
+    >>> e = pt.ts_bell()[0]
+    >>> np.round(np.array(e), 2)
+    array([ 5.54,  2.83,  2.  ,  5.  ,  2.  ,  3.  ])
+
 
     """
 
@@ -169,6 +183,7 @@ class PathTools:
             s1 = ss[i]
             dEds_0 = E.fprime(s0)
             dEds_1 = E.fprime(s1)
+            print "dEds_0, dEds_1 %f, %f" % (dEds_0, dEds_1)
 
             if dEds_0 > 0 and dEds_1 < 0:
                 #print "ts_spl: TS in %f %f" % (s0,s1)
@@ -258,7 +273,6 @@ class PathTools:
 
         l = []
         for i in range(len(ss))[1:]:
-            print ss[i-1], sTS, ss[i]
             if ss[i-1] < sTS <= ss[i]:
                 sL = ss[i-1]
                 sR = ss[i]
@@ -381,6 +395,39 @@ def pickle_path(mi, CoS, file):
     pickle.dump((a,b,c,cs), f)
     f.close()
 
+plot_s = \
+"""
+plot "%(fn)s", "%(fn)s" smooth cspline
+"""
+def gnuplot_path(state, es, filename):
+    assert len(state) == len(es)
+
+    N = len(es)
+    p = Path(state, np.arange(N))
+
+    arc = func.Integral(p.tangent_length)
+    l = np.array([arc(x) for x in np.arange(N)])
+    print "l", l
+
+    s = '0\t%f\n' % es[0]
+    bead_pos = 0
+    for i in range(N)[1:]:
+        v = state[i] - state[0]
+        bead_pos += np.sqrt(np.dot(v,v))
+        s += '%f\t%f\n' % (l[i], es[i])
+
+    f = open(filename + '.data', 'w')
+    f.write(s)
+    f.close()
+
+    f = open(filename + '.gp', 'w')
+    d = {'fn': filename + '.data'}
+    f.write(plot_s % d)
+    f.close()
+    os.system('gnuplot -persist ' + filename + '.gp')
+
+        
+    
 
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
