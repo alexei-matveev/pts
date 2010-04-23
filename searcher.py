@@ -335,6 +335,9 @@ class ReactionPathway(object):
         maxf_beads = [abs(f).max() for f in self.bead_pes_gradients]
         path_pos, path_pos_old  = self.pathpos()
 
+        if path_pos == None: #NEB for example
+             path_pos = [0.0 for i in range(len(self.bead_pes_gradients))]
+
         eg_calls = self.eg_calls
 
         step_total, step_beads, step_raw = self.step
