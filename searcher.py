@@ -154,7 +154,6 @@ class ReactionPathway(object):
         top3 = self.bead_pes_energies.argsort()[-3:]
         max_f = abs(self.perp_bead_forces[i]).max()
         self.bead_update_mask[i] = max_f > perp_max or i in top3
-        print "Bead", i, self.bead_update_mask[i], abs(self.perp_bead_forces[i]).max()
         lg.info("Update mask set to %s" % str(self.bead_update_mask))
 
     def lengths_disparate(self):
@@ -184,14 +183,12 @@ class ReactionPathway(object):
             return
 
         bc_history = self.history.bead_count(2)
-        print "bc_history", str(self.history)
         if bc_history[1] != bc_history[0]:
             lg.info("Testing Convergence: string just grown, so skipping.")
             return
 
 
         es = array(self.history.e(2)) / (self.beads_count - 2)
-        print "es[0] =", es[0]
         # TODO: should remove abs(), only converged if energy went down
         # Or maybe should look at difference between lowest energies so far.
         diff = abs(es[0] - es[1]) 
@@ -360,12 +357,10 @@ class ReactionPathway(object):
         (coord_dim1, coord_dim2) = self.state_vec.shape
         for i in range(1,coord_dim2 ):
             all_coordinates += ("%-24s : %s\n" % ("    Coordinate %3d " % (i+1) , format('%10.4f',self.state_vec[:,i])))
-        print all_coordinates
 
         ts_ix = 0
         # max cummulative step over steps_cumm iterations
         step_max_bead_cumm = self.history.step(self.convergence_beads, self.steps_cumm).max()
-        print "DB", self.history.step(self.convergence_beads, self.steps_cumm)
         step_ts_estim_cumm = self.history.step(ts_ix, self.steps_cumm).max()
 
         arc = {'bc': self.beads_count,
@@ -453,14 +448,12 @@ class ReactionPathway(object):
 
         # skip reporting if the state hasn't changed
         elif (self.state_vec == self.prev_state).all() and self.beads_count == self.prev_beads_count:
-            print "DB state didn't change"
             return
 
         self.eg_calls += 1
         self._step = self.state_vec - self.prev_state
         self.prev_state = self.state_vec.copy()
 
-        print "DB len(self.state_vec)", len(self.state_vec)
         self.record()
 
         if self.reporting:
@@ -522,7 +515,6 @@ class ReactionPathway(object):
     def get_bead_coords(self):
         """Return copy of state_vec as 2D array."""
         tmp = deepcopy(self.state_vec)
-        print self.beads_count, self.dimension
         tmp.shape = (self.beads_count, self.dimension)
         return tmp
 
@@ -604,7 +596,6 @@ class ReactionPathway(object):
     def record(self):
         """Records snap-shot of chain."""
         es = self.bead_pes_energies.copy()
-        print "len(es) before", len(es)
 
         state = self.state_vec.copy()
         perp_forces = self.perp_bead_forces.copy()
@@ -612,7 +603,6 @@ class ReactionPathway(object):
         ts_estim = self.ts_estims()[-1]
 
         a = [es, state, perp_forces, para_forces, ts_estim]
-        print "len(es)", len(es)
 
         self.history.rec(a)
         
@@ -623,13 +613,11 @@ class ReactionPathway(object):
         parallel mode).
         """
         bead_pes_energies = []
-        print "len(self.state_vec)", len(self.state_vec)
         for bead_vec in self.state_vec:
             e = self.qc_driver.energy(bead_vec)
             bead_pes_energies.append(e)
 
         self.bead_pes_energies = array(bead_pes_energies)
-        print "len(self.bead_pes_energies)", len(self.bead_pes_energies)
 
     def ts_estims(self):
         """TODO: Maybe this whole function should be made external."""
@@ -637,7 +625,6 @@ class ReactionPathway(object):
         self.pt = aof.tools.PathTools(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)
 
         estims = self.pt.ts_splcub()
-        print str(self.pt)
         f = open("tsplot.dat", "w")
         f.write(self.pt.plot_str)
         f.close()
@@ -1332,7 +1319,6 @@ def get_bead_positions(E, ps):
 
     new_p = -1
     for i in range(len(ps))[1:]:
-        print p_max, ps[i]
         if ps[i] > p_max:
             new_p = ps[i-1] + (ps[i] - ps[i-1]) / 2.0
 
@@ -1342,11 +1328,8 @@ def get_bead_positions(E, ps):
 
     assert new_p > 0, new_p
     
-    print "new_i", new_i
     psa = ps.tolist()
-    print "ps",ps
     new_ps = psa[:new_i] + [new_p] + psa[new_i:]
-    print "newps",new_ps
     assert (array(new_ps).argsort() == arange(len(new_ps))).all()
 
     return array(new_ps)
@@ -1394,6 +1377,7 @@ class GrowingString(ReactionPathway):
     """
 
     string = True
+
     def __init__(self, reagents, qc_driver, beads_count = 10, 
         rho = lambda x: 1, growing=True, parallel=False, head_size=None, 
         max_sep_ratio = 0.1, reporting=None):
