@@ -212,11 +212,15 @@ class RotAndTrans(Anchor):
             tmp = numpy.sqrt(numpy.dot(v, v))
             return tmp
 
-        old_rot = self._coords[:3].copy()
+        # FIXME: add feature to allow a hint for a starting point for the 
+        # optimisation procedure to find the quaternion. That's what is hard
+        # coded below.
+        old_rot = numpy.array([1.68555226, -0.90792125, -1.4817044])#self._coords[:3].copy()
         best, err, _, _, _  = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0, maxiter=2000)
         if err > ftol:
             raise CoordSysException("Didn't converge in anchor parameterisation, %.20f > %.20f" %(err, ftol))
         self._coords[0:3] = best
+        print "Quaternion was ", best
         #return self._coords
 
 
