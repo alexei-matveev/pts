@@ -2,7 +2,10 @@
 This module provides conversion from z-matrix coordiantes
 to cartesian and back.
 
-Construct ZMat from a tuple representaiton of atomic
+        Construct ZMat from a tuple representaiton of atomic
+
+    >>> from func import NumDiff
+
 connectivities:
 
     >>> rep = [(None, None, None), (0, None, None), (0, 1, None)]
@@ -35,6 +38,25 @@ The order of internal variables is "left to right":
     [[-0.2403648  0.        -0.9294217]
      [ 0.96       0.         0.       ]
      [ 0.         0.         0.       ]]
+
+The derivative matrix is given by fprime:
+
+    >>> print zm.fprime(h2o)
+    [[[-0.25038    -0.92942173  0.        ]
+      [ 0.          0.          0.        ]
+      [-0.96814764  0.2403648   0.        ]]
+    <BLANKLINE>
+     [[ 0.          0.          1.        ]
+      [ 0.          0.          0.        ]
+      [ 0.          0.          0.        ]]
+    <BLANKLINE>
+     [[ 0.          0.          0.        ]
+      [ 0.          0.          0.        ]
+      [ 0.          0.          0.        ]]]
+
+    >>> zm1 = NumDiff(zm)
+    >>> max(abs(zm.fprime(h2o) - zm1.fprime(h2o))) < 1.e-10
+    True
 
 The |pinv| (pseudo-inverse) method of the ZMat() given the cartesian coordinates
 returns the internals according to the definition of connectivities
@@ -98,6 +120,12 @@ Test consistency with the inverse transformation:
     >>> z4.pinv(z4(ch4)) - ch4
     array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
+The matrix containing the derivatives of the Cartesian coordinates
+with regard to the internal ones:
+    >>> z41 = NumDiff(z4)
+    >>> max(abs(z4.fprime(ch4) - z41.fprime(ch4))) < 1.e-10
+    True
+
 "Breathing" mode derivative (estimate by num. diff.):
 
     >>> d1 = (z4(ch4 * 1.001) - z4(ch4)) / 0.001
@@ -152,7 +180,7 @@ positions, including those of the "surface" atoms:
     >>> round(zm.fprime(r), 12)
     array([[[ 0. , -2.5,  0. ],
             [ 0. ,  0. ,  2.5],
-            [ 1. ,  0. ,  0. ]],
+            [ 1. ,  0. , -0. ]],
     <BLANKLINE>
            [[ 0. ,  0. ,  0. ],
             [ 0. ,  0. ,  0. ],
@@ -165,6 +193,33 @@ positions, including those of the "surface" atoms:
            [[ 0. ,  0. ,  0. ],
             [ 0. ,  0. ,  0. ],
             [ 0. ,  0. ,  0. ]]])
+
+Looking at the derivative matrix for a lager system,
+thus there will be more than one atom of the others
+be connected:
+The zmatrix correspond to one of a C2H3Pt6 system, like in the hydrogen
+shift reaction CH2CH -> CH3C on a Pt(1 1 1) surface, but the values set
+are not reasonable.
+
+    >>> bigone = ZMat([(), (0,), (0, 1,), (1, 0, 2), (3, 1, 0),
+    ...           (4, 1, 0), (4, 3, 1), (6, 4, 3), (6, 4, 3),
+    ...           (8, 6, 4), (8, 6, 4)])
+
+For testing purpose set all xvalues to 1:
+    >>> xval = (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    ...    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    ...            1.0, 1.0, 1.0, 1.0, 1.0)
+
+    >>> bigone1 = NumDiff(bigone)
+    >>> max(abs(bigone.fprime(xval) - bigone1.fprime(xval))) < 1.e-10
+    True
+
+Now set dihedrals to pi or 0, to observe system at this limits:
+    >>> xval = (1.0, 1.0, 1.0, 1.0, 1.0, pi, 1.0, 1.0, 0.0, 1.0, 1.0,
+    ...    1.0, 1.0, 1.0, 0.0, 1.0, 1.0, pi, 1.0, 1.0, pi, 1.0,
+    ...            1.0, 0.0, 1.0, 1.0, 1.0)
+    >>> max(abs(bigone.fprime(xval) - bigone1.fprime(xval))) < 1.e-10
+    True
 """
 
 from numpy import pi, sin, cos, cross, dot, sqrt, arccos
@@ -172,13 +227,13 @@ from numpy import array, asarray, empty, max, abs
 from numpy import eye, zeros, outer, hstack, vstack
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
-from func import Func, NumDiff
+from func import Func
 from rc import distance, angle, dihedral
 
 class ZMError(Exception):
     pass
 
-class ZMat(NumDiff):
+class ZMat(Func):
     def __init__(self, zm, fixed=None):
         """The first argument |zm| is a representation of connectivities
         used to define internal coordinates.
@@ -195,7 +250,6 @@ class ZMat(NumDiff):
         # Each entry in ZM definition is a 3-tuple (a, b, c)
         # defining x-a-b-c chain of atoms.
         #
-        # not required: NumDiff.__init__(self, self.f, h=0.001)
 
         def t3(t):
             "Returns a tuple of length at least 3, missing entries set to None"
@@ -256,13 +310,8 @@ class ZMat(NumDiff):
             # 0x3 array:
             self.__fixed = array([]).reshape(0, 3)
 
-    # For the time without separate implementation
-    # inherit from NumDiff:
-#   def fprime(self, v):
-#       # either num-diff or anything better goes here:
-#       raise NotImplemented
 
-    def f(self, vars):
+    def taylor(self, vars):
         """Use the input array |vars| as values for internal coordinates
         and return cartesians. Based on code in OpenBabel.
         """
@@ -276,6 +325,9 @@ class ZMat(NumDiff):
         # number of atoms in fixed environemnt:
         ne = len(self.__fixed)
 
+        # number of internal coordinates:
+        nvar = len(vars)
+
         # flags to indicate valid atomic positions, keys are the indices:
         cached = [0] * na + [1] * ne
         # 0: undefined, 1: defined, -1: computation in progress
@@ -283,13 +335,16 @@ class ZMat(NumDiff):
         # (N x 3)-array with junk values:
         xyz = empty((na + ne, 3))
 
+        # (N x 3 x N_int)-array with junk values for the derivatives:
+        deriv = zeros((na + ne, 3, nvar))
+
         # fill the preset positions of the "environment" atoms:
         xyz[na:,:] = self.__fixed
 
         # undefined values set to NaNs (not used anywhere):
         xyz[:na,:] = None
 
-        def pos(x):
+        def pos_and_der(x):
             "Return atomic position, compute if necessary and memoize"
 
             if cached[x] == -1:
@@ -298,27 +353,29 @@ class ZMat(NumDiff):
 
             if cached[x]:
                 # return cached value:
-                return xyz[x]
+                return xyz[x], deriv[x,:,:]
             else:
                 # prevent infinite recursion, indicate computation in progress:
                 cached[x] = -1
 
                 # for actual computation see "pos1" below:
                 try:
-                    p = pos1(x)
+                    p, pprime  = pos_and_der_1(x)
                 except Exception, e:
-                    raise ZMError("pos1 of", x, e.args)
+                    raise ZMError("pos_and_der_1 of", x, e.args)
 
-                # save position of atom x into cache array:
+                # save position of atom x and its derivative into cache array:
                 xyz[x] = p
+                deriv[x,:,:] = pprime
 
                 # set the flag for valid positions of atom x:
                 cached[x] = 1
 
-                return p
+                return p, pprime
 
-        def pos1(x):
-            "Compute atomic position, using memoized funciton pos()"
+        def pos_and_der_1(x):
+            """Compute atomic position and its derivative,
+             using memoized funciton pos_and_der()"""
 
             # pick the ZM entry from array:
             a, b, c, idst, iang, idih = self.__zm[x]
@@ -340,12 +397,18 @@ class ZMat(NumDiff):
             B = array((1.,  0.,  0.))
             C = array((0.,  0., -1.))
 
+            # the wanted derivatives
+            derone = zeros((3, nvar))
+            Aprime = zeros((3, nvar))
+            Bprime = zeros((3, nvar))
+            Cprime = zeros((3, nvar))
+
             if a is not None:
                 # sanity:
                 if a == x: raise ZMError("same x&a")
 
                 # position of a, and x-a distance:
-                A = pos(a)
+                A, Aprime = pos_and_der(a)
                 dst = vars[idst]
 
             if b is not None:
@@ -354,7 +417,7 @@ class ZMat(NumDiff):
                 if b == x: raise ZMError("same x&b")
 
                 # position of b, and x-a-b angle:
-                B = pos(b)
+                B, Bprime = pos_and_der(b)
                 ang = vars[iang]
 
             if c is not None:
@@ -363,16 +426,22 @@ class ZMat(NumDiff):
                 if c == a: raise ZMError("same a&c")
                 if c == x: raise ZMError("same x&c")
 
-                C = pos(c)
+                C, Cprime = pos_and_der(c)
                 dih = vars[idih]
 
             # spherical to cartesian transformation here:
-            v = r3((dst, ang, dih)) # = r3(r, theta, phi)
+            m, mprime  = r3.taylor((dst, ang, dih)) # = r3(r, theta, phi)
 
             #
             # Orthogonal basis using the three anchor points:
             #
-            ijk = reper([B - A, C - A])
+            U = B - A
+            Uprime = Bprime - Aprime
+            V = C - A
+            Vprime = Cprime - Aprime
+            if not (U-V).any() > 10e-10:
+                raise ZMError("bad choice for a= %i b= %i and c= %i" % (a,b,c))
+            ijk, dijk = reper.taylor([U, V])
 
             # The default settings for the anchor points (see above)
             # together with the (custom) implementation of the reper()
@@ -391,21 +460,67 @@ class ZMat(NumDiff):
             #        is there a better way to achive compatibility
             #        with legacy code?
             #
+            # ATTENTION: the structure of the anchor points is used below
+            # when calculating the derivatives, which will be inherited
+            # from the points defining the anchor. For any change it has
+            # to be checked, if there also has to be adapted something
 
-            X = A + dot(v, ijk) # v[0] * i + v[1] * j + v[2] * k
+            # result for the positions
+            X = A + dot(m, ijk) # v[0] * i + v[1] * j + v[2] * k
 
-            return X
+            # For the derivatives there has something more to be done:
+            # for the derivatives with the new internal coordinates
+            # consider, that the first three atoms don't have the full set of them
+            # dX/dn = dot( dZ/dn, ijk)
+            if idst is not None:
+                derone[:, idst] = dot(mprime[:,0], ijk)
+            if iang is not None:
+                derone[:, iang] = dot(mprime[:,1], ijk)
+            if idih is not None:
+                derone[:, idih] = dot(mprime[:,2], ijk)
+
+            # For all the other internal coordinates it will be indirect dependent
+            # as the anchor points A, B, C and thus the coordinate system build of
+            # them are dependent on them. Thus:
+            #  dX/da = dA/da + dot(Z, dijk/du * du/da) + dot(Z, dijk/dv * dv/da)
+
+            # for A (dA/da)
+            derone += Aprime
+
+            # for k = U/|U|
+            # dot(Z, dk/du * du/da)
+            derone +=  m[2] * dot(dijk[2, :, 0, :], Uprime)
+            # normally also: dot(Z, dk/dv * dv/da) but here,
+            # we have dk/dv= 0
+            #derone +=  m[2] * dot(dijk[2, :, 1, :], Uprime)
+
+            # for j = k x V/|V|
+            # dot(Z, dj/du * du/da)
+            derone +=  m[1] * dot(dijk[1, :, 0, :], Uprime)
+            # then dj/dV
+            # dot(Z, dj/dv * dv/da)
+            derone +=  m[1] * dot(dijk[1, :, 1, :], Vprime)
+
+            # for i = j x k
+            # dot(Z, di/du * du/da)
+            derone +=  m[0] * dot(dijk[0, :, 0, :], Uprime)
+            # dot(Z, di/dv * dv/da)
+            derone +=  m[0] * dot(dijk[0, :, 1, :], Vprime)
+
+            return X, derone
 
         # force evaluation of all positions:
         for x in range(na + ne):
-            # calling pos(x) will set xyz[x] and xyz[y] for all y's
+            # calling pos_and_der(x) will set xyz[x] and xyz[y] for all y's
             # that are required to compute pos(x).
-            p = pos(x)
+            # the same holds for the derivatives
+            p, prime = pos_and_der(x)
             q = xyz[x]
-            if (p != q).any():
+            qprime = deriv[x]
+            if (p != q).any() or (prime != qprime).any():
                 raise ZMError("computed and cached positions differ")
 
-        return xyz
+        return xyz, deriv
 
     def pinv(self, atoms):
         "Pseudoinverse of ZMat, returns internal coordinates"
@@ -469,6 +584,7 @@ class Reper(Func):
     FIXME: there must be a better way to do this ...
 
     Example:
+        >>> from func import NumDiff
 
         >>> r = Reper()
         >>> u = array((1., 0., 0.))
@@ -552,6 +668,8 @@ reper = Reper()
 
 class R3(Func):
     """Spherical to cartesian transformation.
+
+        >>> from func import NumDiff
 
         >>> r3 = R3()
 
