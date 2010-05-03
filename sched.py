@@ -56,9 +56,9 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
         self.favour_less_parallel = favour_less_parallel
 
     def generate2(self, topology, job_count):
-        """Generate a scheduling strategy
+        """Generate a scheduling strategy"""
 
-
+        """
         >>> s = SchedStrategy_HCM_Simple((4,1))
         >>> sched = s.generate2(Topology([4,4]), 8+7)
         >>> [r[0] for r in sched]
