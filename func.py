@@ -759,6 +759,8 @@ class NumDiff(Func):
 
             # FIXME: this evaluation is only to get the type info of the result:
             fx = f(x)
+
+            fx = asarray(fx)
             fshape = fx.shape
             fsize  = fx.size
 
