@@ -220,7 +220,6 @@ class RotAndTrans(Anchor):
         if err > ftol:
             raise CoordSysException("Didn't converge in anchor parameterisation, %.20f > %.20f" %(err, ftol))
         self._coords[0:3] = best
-        print "Quaternion was ", best
         #return self._coords
 
 

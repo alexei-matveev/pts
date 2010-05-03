@@ -18,7 +18,7 @@ class PathTools:
     array([ 0.,  1.,  2.,  3.])
 
     >>> pt.ts_highest()
-    [(3, array([2]), 2.0, 2.0, 2, 2)]
+    [(3, array([2]), 2.0, 2.0, 2.0, 2, 2)]
 
     >>> pt = PathTools([0,1,2,3], [1,2,3,2], [0,1,-0.1,0])
     >>> res1 = pt.ts_splcub()
@@ -41,7 +41,7 @@ class PathTools:
     >>> ys = f(xs)
     >>> gs = g(xs)
     >>> pt = PathTools(xs, ys, gs)
-    >>> energy, pos, _, _, _, _ = pt.ts_splcub()[0]
+    >>> energy, pos, _, _, _, _, _ = pt.ts_splcub()[0]
     >>> np.round(energy) == 0
     True
     >>> (np.round(pos) == 0).all()
@@ -58,19 +58,19 @@ class PathTools:
     >>> ys = f(xs)
     >>> gs = g(xs)
     >>> pt = PathTools(xs, ys, gs)
-    >>> energy, pos, _, _, _, _ = pt.ts_splcub()[0]
+    >>> energy, pos, _, _, _, _, _ = pt.ts_splcub()[0]
     >>> np.round(energy) == 0
     True
     >>> (np.round(pos) == 0).all()
     True
 
     >>> pt = PathTools([0,1,2,3,4], [1,2,3,2,1])
-    >>> e, p, s0, s1, _, _ = pt.ts_spl()[0]
+    >>> e, p, s0, s1, s_ts, i_, i = pt.ts_spl()[0]
     >>> np.round([e,p])
     array([ 3.,  2.])
 
     >>> pt = PathTools([0,1,2,3,4], [1,2,3,2,1], [0,1,-0.1,0,1])
-    >>> pt.ts_spl()[0] == (e, p, s0, s1)
+    >>> pt.ts_spl()[0] == (e, p, s0, s1, s_ts, i_, i)
     True
 
     >>> pt = PathTools([0,1,2,3,4], [1,2,3,2,1])
@@ -90,7 +90,7 @@ class PathTools:
 
 
     """
-    def __init__(self, state, energies, gradients=None):
+    def __init__(self, state, energies, gradients=None, startsteps = None):
 
         # string for __str__ to print
         self.s = []
@@ -106,7 +106,19 @@ class PathTools:
 
         assert len(state) == len(energies)
 
-        self.steps = np.zeros(self.n)
+        if startsteps == None:
+            self.steps = np.zeros(self.n)
+
+            x = self.state[1]
+            x_ = self.state[0]
+            for i in range(self.n)[1:]:
+                x = self.state[i]
+                x_ = self.state[i-1]
+                self.steps[i] = np.linalg.norm(x -x_) + self.steps[i-1]
+
+        else:
+            assert len(startsteps) == self.n
+            self.steps = startsteps
 
         # set up array of tangents, not based on a spline representation of the path
         self.non_spl_grads = []
@@ -114,17 +126,15 @@ class PathTools:
         x_ = self.state[0]
         l = np.linalg.norm(x - x_)
         self.non_spl_grads.append((x - x_) / l)
-
         for i in range(self.n)[1:]:
             x = self.state[i]
             x_ = self.state[i-1]
             l = np.linalg.norm(x - x_)
             self.non_spl_grads.append((x - x_) / l)
 
-            self.steps[i] = np.linalg.norm(x -x_) + self.steps[i-1]
+        self.non_spl_grads = np.array(self.non_spl_grads)
+        assert len(self.non_spl_grads) == self.n, "%d != %d" % (len(self.non_spl_grads), self.n)
 
-        # string for __str__ to print
-        self.s = []
 
         # build fresh functional representation of optimisation 
         # coordinates as a function of a path parameter s
@@ -224,7 +234,7 @@ class PathTools:
             s1 = ss[i]
             dEds_0 = E.fprime(s0)
             dEds_1 = E.fprime(s1)
-            print "dEds_0, dEds_1 %f, %f" % (dEds_0, dEds_1)
+#            print "dEds_0, dEds_1 %f, %f" % (dEds_0, dEds_1)
 
             if dEds_0 > 0 and dEds_1 < 0:
                 #print "ts_spl: TS in %f %f" % (s0,s1)
@@ -324,7 +334,7 @@ class PathTools:
                     yTS = yL + (sTS - sL) / (sR - sL) * (yR - yL)
                 else:
                     yTS = yR + (sTS - sR) / (sR - sL) * (yR - yL)
-                l.append((E_points.max(), yTS, sL, sR, i-1, i))
+                l.append((E_points.max(), yTS, sL, sR, sTS, i-1, i))
                 break
 
         return l
@@ -426,7 +436,7 @@ class PathTools:
         Just picks the highest energy from along the path.
         """
         i = self.energies.argmax()
-        ts_list = [(self.energies[i], self.state[i], self.steps[i], self.steps[i],self.steps[i] , i, i)]
+        ts_list = [(self.energies[i], self.state[i], self.steps[i], self.steps[i], self.steps[i], i, i)]
 
         return ts_list
 

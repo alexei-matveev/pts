@@ -20,6 +20,9 @@ from aof.common import file2str
 
 def usage():
     print "Usage: " + sys.argv[0] + " [options] file.pickle [ts-actual.xyz]"
+    print "Options:"
+    print " -d: dump"
+    print " -g: gnuplot output"
 
 class Usage(Exception):
     pass
@@ -40,9 +43,9 @@ def main(argv=None):
             if o in ("-h", "--help"):
                 usage()
                 return 
-            if o in ("-d"):
+            elif o in ("-d"):
                 dump = True
-            if o in ("-g"):
+            elif o in ("-g"):
                 gnuplot_out = True
             else:
                 usage()
@@ -75,12 +78,16 @@ def main(argv=None):
         print "Energy of all beads    %s" % es
         print "Energy of highest bead %.2f" % es.max()
 
-        if len(args) < 2:
-            return
-        fn_ts = args[1]
-        ts = aof.coord_sys.XYZ(file2str(fn_ts))
-        ts_carts = ts.get_cartesians()
-        ts_energy = ts.get_potential_energy()
+        ts_known = len(args) == 2
+        if ts_known:
+             fn_ts = args[1]
+             ts = aof.coord_sys.XYZ(file2str(fn_ts))
+             ts_carts = ts.get_cartesians()
+             ts_energy = ts.get_potential_energy()
+
+        if gnuplot_out:
+            s = '\n'.join(['%.2f' % e for e in es])
+            print s
 
         pt = aof.tools.PathTools(state, es, gs)
 
@@ -92,15 +99,16 @@ def main(argv=None):
         estims.append(('Highest', pt.ts_highest()[-1]))
         estims.append(('Spline only', pt.ts_spl()[-1]))
         estims.append(('Spline and average', pt.ts_splavg()[-1]))
+        estims.append(('Bell Method', pt.ts_bell()[-1]))
 
-        if not ss == None:
+        if ss != None:
             pt2 = aof.tools.PathTools(state, es, gs, ss)
-            estims.append(('Spline only', pt2.ts_spl()[-1]))
-            estims.append(('Spline and average', pt2.ts_splavg()[-1]))
-            estims.append(('Spline and cubic', pt2.ts_splcub()[-1]))
+            estims.append(('Spline only (2)', pt2.ts_spl()[-1]))
+            estims.append(('Spline and average (2)', pt2.ts_splavg()[-1]))
+            estims.append(('Spline and cubic (2)', pt2.ts_splcub()[-1]))
 
         for name, est in estims:
-            energy, coords, s0, s1,s_ts,  l, r = est
+            energy, coords, s0, s1, s_ts, l, r = est
             cs.set_internals(coords)
             if dump:
                 print name
@@ -109,13 +117,13 @@ def main(argv=None):
                 print
                 modes =  pt.modeandcurvature(s_ts, l, r, cs)
                 for namemd, modevec in modes:
-                     print "Approximation of modes in way ", namemd
+                     print "Approximation of modes using method:", namemd
                      for line in modevec:
                          print "   %12.8f  %12.8f  %12.8f" % (line[0], line[1], line[2])
                 print
 
             carts = cs.get_cartesians()
-            if ts_comp_exists:
+            if ts_known:
                 energy_err = energy - ts_energy
                 error = rot.cart_diff(carts, ts_carts)[0]
 
