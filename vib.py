@@ -242,18 +242,30 @@ def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' )
             deriv[i,:] = (gval - gmiddle) / delta
     return deriv
 
-def vibmodes(atoms, startdir = None, mask = None, workhere = False, alsovec = False, **kwargs ):
+def vibmodes(atoms, startdir = None, mask = None, workhere = False, alsovec = False, memorize_file = "vib.pkl", **kwargs ):
      """
      Wrapper around vibmode, which used the atoms objects
      The hessian is calculated by derivatef
      qfunc.fwrapper is used as a wrapper to calulate the gradients
      """
-     func = fwrapper(atoms, startdir = startdir, mask = mask, workhere = workhere )
+     func = fwrapper(atoms, startdir = startdir, mask = mask, workhere = workhere , memorize_file = memorize_file )
      xcenter = func.getpositionsfromatoms()
      mass = func.getmassfromatoms()
      # the derivatives are needed
      hessian = derivatef( func.perform, xcenter,**kwargs )
+     store_hessian(hessian)
      vibmod( mass, hessian, alsovec)
+
+
+def store_hessian(hessian):
+     print "Vibration module: printing numerical calculated hessian:"
+     print hessian
+     wr = open("Hessian.dat","w").write
+     dim1 = len(hessian)
+     for i in range(dim1):
+         for j in range(dim1):
+             wr("%23.12f " % hessian[i,j])
+         wr("\n")
 
 def vibmod(mass, hessian, alsovec = False):
      """
