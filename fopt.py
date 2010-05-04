@@ -458,7 +458,7 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
     iteration = -1 # prefer to increment at the top of the loop
     converged = False
 
-    while not converged:
+    while not converged and iteration < maxiter:
         iteration += 1
 
         # update the hessian representation:
@@ -477,6 +477,22 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
             print "cmin: ..",     dot(lam, A), "(    dot(lam, A))"
             print "cmin: ..", g + dot(lam, A), "(g + dot(lam, A))"
             print "cmin: c=", c
+            print "cmin: criteria=", max(abs(dr)), max(abs(c - c0)), max(abs(g + dot(lam, A)))
+
+        # check convergence, if any:
+        if max(abs(dr)) < stol and max(abs(c - c0)) < ctol:
+            if VERBOSE:
+                print "cmin: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
+                print "cmin: and constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol
+            converged = True
+
+        # purified gradient for CURRENT geometry:
+        if max(abs(g + dot(lam, A)))  < gtol and max(abs(c - c0)) < ctol:
+            # FIXME: this may change after update step!
+            if VERBOSE:
+                print "cmin: converged by force max(abs(g + dot(lam, A)))=", max(abs(g + dot(lam, A))), '<', gtol
+                print "cmin: and constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol
+            converged = True
 
         # restrict the maximum component of the step:
         longest = max(abs(dr))
@@ -512,22 +528,10 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
         if callback is not None:
             callback(r, e, g, c, A)
 
-        # check convergence, if any:
-        if max(abs(dr)) < stol and max(abs(c - c0)) < ctol:
-            if VERBOSE:
-                print "cmin: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
-            converged = True
-
-        # purified gradient for updated geometry is not yet available:
-#       if max(abs(g))  < gtol:
-#           if VERBOSE:
-#               print "cmin: converged by force max(abs(g))=", max(abs(g)), '<', gtol
-#           converged = True
-
-        if iteration >= maxiter:
-            if VERBOSE:
+        if VERBOSE:
+            if iteration >= maxiter:
                 print "cmin: exceeded number of iterations", maxiter
-            break # out of the while loop
+            # see while loop condition ...
 
     # also return number of interations, convergence status, and last values
     # of the gradient and step:
