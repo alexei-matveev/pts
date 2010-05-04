@@ -376,6 +376,8 @@ class QContext(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # FIXME: do we ignore exceptions passed to us here?
+        if exc_type is not None:
+            return False
 
         # As a default the working directory is not changed:
         if self.wd is None: return True
