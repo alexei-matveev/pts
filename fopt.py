@@ -252,7 +252,7 @@ def minimize(f, x):
 
 def cminimize(f, x, c, **kwargs):
     """
-    Minimizes a Func |f| starting with |x|.
+    Minimizes a Func |f| starting with |x| under constrains |c|.
     Returns (xm, fm, stats)
 
     xm          --- location of the minimum
