@@ -150,6 +150,7 @@ __all__ = ["volume", "distance", "angle", "dihedral", \
 from func import Func
 from numpy import array, zeros, shape, cross, dot, max, abs
 from numpy import sqrt, cos, sin, arccos
+from numpy import hstack, vstack
 
 class Volume(Func):
     """For an array of 4 vectors x, return a measure of their
@@ -505,6 +506,55 @@ def _dihedral(x):
         # NO!: fprime = -fprime
 
     return f, fprime
+
+class Difference(Func):
+    """Difference of two Funcs (say distances or other internal coordinates)
+
+    An example:
+
+        >>> x = array([(3., 0., 0.), (0., 4., 0.), (0., 4., 2.)])
+
+        >>> d1 = Distance([0, 1])
+        >>> d2 = Distance([1, 2])
+        >>> dd = Difference(d1, d2)
+
+        >>> d1(x), d2(x)
+        (5.0, 2.0)
+
+        >>> dd(x)
+        3.0
+    """
+    def __init__(self, F1, F2):
+        # save two funcs:
+        self.__F12 = F1, F2
+
+    def taylor(self, x):
+
+        # aliases:
+        F1, F2 = self.__F12
+
+        f1, f1prime = F1.taylor(x)
+        f2, f2prime = F2.taylor(x)
+
+        return f1 - f2, f1prime - f2prime
+
+class Array(Func):
+    """
+    """
+    def __init__(self, *fs):
+        # save two funcs:
+        self.__fs = fs
+
+    def taylor(self, x):
+
+        # aliases:
+        fs = self.__fs
+
+        vals = [ f.taylor(x) for f in fs ]
+
+        vs, gs = zip(*vals)
+
+        return hstack(vs), vstack(gs)
 
 # python rc.py [-v]:
 if __name__ == "__main__":
