@@ -60,6 +60,21 @@ def jmol_view_file(file):
 
     os.system("jmol " + file)
 
+def jmol_view_atoms(atoms, viewer=jmol_view_file):
+    x = atoms.get_positions()
+    syms = atoms.get_chemical_symbols()
+
+    # write the geom in jmol format to a temp file:
+    fd, fname = mkstemp()
+
+    with os.fdopen(fd, "w") as file:
+        jmol_write(x, syms, file=file)
+
+    # run xyz-viewer:
+    viewer(fname)
+
+    os.unlink(fname)
+
 def jmol_view_path(geoms, syms=None, refine=1, viewer=jmol_view_file):
 
     path = Path(geoms)
