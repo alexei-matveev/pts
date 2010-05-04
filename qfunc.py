@@ -56,7 +56,7 @@ import numpy as np
 from memoize import Memoize
 
 class QFunc(Func):
-    def __init__(self, atoms, calc=LennardJones()):
+    def __init__(self, atoms, calc=LennardJones(), moving=None):
 
         # we are going to repeatedly set_positions() for this instance,
         # So we make a copy to avoid effects visible outside:
@@ -64,18 +64,43 @@ class QFunc(Func):
         self.calc = calc
         self.atoms.set_calculator(calc)
 
+        # list of moving atoms whose coordinates are considered as variables:
+        self.moving = moving
+
     # (f, fprime) methods inherited from abstract Func and use this by default:
-    def taylor(self, positions):
+    def taylor(self, x):
         "Energy and gradients"
 
+        # aliases:
+        atoms = self.atoms
+        moving = self.moving
+
+        if moving is not None:
+
+            # it is assumed that the initial positions are meaningful:
+            y = atoms.get_positions()
+
+            assert len(moving) <= len(y)
+
+            # update positions of moving atoms:
+            y[moving] = x
+
+            # rebind x:
+            x = y
+
         # update positions:
-        self.atoms.set_positions(positions)
+        atoms.set_positions(x)
 
         # request energy:
-        e = self.atoms.get_potential_energy()
+        e = atoms.get_potential_energy()
 
         # request forces. NOTE: forces are negative of the gradients:
-        g = - self.atoms.get_forces()
+        g = - atoms.get_forces()
+
+        if moving is not None:
+
+            # rebind g:
+            g = g[moving]
 
         # return both:
         return e, g
