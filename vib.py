@@ -297,6 +297,9 @@ def vibmod(mass, hessian, alsovec = False):
      # solves the eigenvalue problem w, vr = eig(a,b)
      #   a * vr[:,i] = w[i] * b * vr[:,i]
      eigvalues, eigvectors = eig(hessian, mass)
+     # we want the eigenvector as EV[eigenvalue,:]:
+     eigvectors = eigvectors.T
+
      eigvalues, eigvectors = normandsort(eigvalues, eigvectors, mass)
 
      # scale eigenvalues in different units:
@@ -318,8 +321,6 @@ def vibmod(mass, hessian, alsovec = False):
      if (alsovec):
           writevec = stdout.write
 
-          # we want the eigenvector as EV[eigenvalue,:]:
-          eigvectors = eigvectors.T
 
           # the eigenvectors are not normed, therefore:
 
