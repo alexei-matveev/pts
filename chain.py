@@ -134,7 +134,7 @@ from numpy import array, asarray, zeros, shape, sum, max, abs
 from numpy import sqrt
 from fopt import cmin, _flatten
 
-def smin(ce, x, cs, **kwargs):
+def smin(ce, x, cs, c0=None, **kwargs):
     """Minimize ce(x[1:-1]) with constrains cs(x[:]) = 0
 
     ce  --      chain energy function
@@ -162,9 +162,11 @@ def smin(ce, x, cs, **kwargs):
     fg = _flatten(ce.taylor, z)
     cg = _flatten(cg, z)
 
-    # target values of constrains, request zeroes even if
-    # initial path is not equispaced:
-    c0 = zeros(len(z))
+    # FIXME: must die:
+    if c0 is None:
+        # target values of constrains, request zeroes even if
+        # initial path is not equispaced:
+        c0 = zeros(len(z)) # len(z) is not always eq len(c)
 
     zm, fm, stats = cmin(fg, z.flatten(), cg, c0=c0, **kwargs)
 
