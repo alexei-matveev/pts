@@ -37,9 +37,9 @@ See also:
     numpy.matrixmultiply
 """
 
-__all__ = ["matmul", "outer", "dots"]
+__all__ = ["matmul", "outer", "dots", "sums"]
 
-from numpy import asarray, empty, shape, dot
+from numpy import asarray, empty, shape, dot, sum
 
 def prod(ns): # name clash with numpy.prod
 
@@ -60,6 +60,47 @@ def outer(A, B):
         array([20, 30])
     """
     return matmul(shape(A), shape(B), (), A, B)
+
+def sums(m, n, k, A):
+    """S(m, n) = SUM(k) A[m, k, n]
+
+        >>> from numpy import ones, all
+        >>> a = ones((2,3,4,5,6))
+
+        >>> c = sums((2,3), (), (4,5,6), a)
+        >>> shape(c)
+        (2, 3)
+
+        >>> c[0,0]
+        120.0
+
+        >>> c = sums((), (5,6), (2,3,4), a)
+        >>> shape(c)
+        (5, 6)
+
+        >>> c[0,0]
+        24.0
+
+        >>> all( a == sums((2,3), (4,5,6), (), a) )
+        True
+    """
+
+    A = asarray(A)
+
+    assert shape(A) == m + k + n
+
+    M = prod(m)
+    N = prod(n)
+    K = prod(k)
+
+    A.shape = (M, K, N)
+
+    C = sum(A, axis=1)
+
+    A.shape = m + k + n
+    C.shape = m + n
+
+    return C
 
 def dots(m, n, k, A, B):
     """C[m, n] = A[m, k] * B[m, k, n] (sum over repeated k, not over m)
@@ -104,7 +145,7 @@ def dots(m, n, k, A, B):
 
     return C
 
-def matmul(m, n, k, A, B):
+def matmul(m, n, k, A, B, transA=False, transB=False):
     """Specialized dot(), inspired by DGEMM
 
         >>> from numpy import zeros
@@ -134,15 +175,35 @@ def matmul(m, n, k, A, B):
     assert A.size == M * K
     assert B.size == K * N
 
-    # somewhat redundant:
-    assert A.shape == m + k
-    assert B.shape == k + n
+    if transA:
+        assert A.shape == k + m
+        A.shape = (K, M)
 
-    # reshape temporarily (does it have side-effects?):
-    A.shape = (M, K)
-    B.shape = (K, N)
+        # transposed view of A:
+        opA = transpose(A)
 
-    C = dot(A, B)
+    else:
+        assert A.shape == m + k
+        A.shape = (M, K)
+
+        # alias:
+        opA = A
+
+    if transB:
+        assert B.shape == n + k
+        B.shape = (N, K)
+
+        # transposed view of B:
+        opB = transpose(B)
+
+    else:
+        assert B.shape == k + n
+        B.shape = (K, N)
+
+        # alias:
+        opB = B
+
+    C = dot(opA, opB)
 
     # reshape back:
     A.shape = m + k
