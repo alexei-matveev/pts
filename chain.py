@@ -131,6 +131,7 @@ __all__ = ["smin", "Chain", "Spacing", "RCDiff"]
 
 from func import Func
 from numpy import array, asarray, zeros, shape, sum, max, abs
+from numpy import sqrt
 from fopt import cmin, _flatten
 
 def smin(ce, x, cs, **kwargs):
@@ -240,6 +241,58 @@ class Norm2(Func):
         fprime = zeros(shape(x))
         fprime[1] = + 2. * d
         fprime[0] = - 2. * d
+
+        return f, fprime
+
+class Norm(Func):
+    """Measure the "distance" between two geometries by
+    the the "cartesian" distance of the coordinates.
+
+    For an array of 2 geometries x, return a measure of their
+    difference:
+
+       f(x) = | x  -  x |
+                 1     0
+
+    and an array of their derivatives wrt x and x
+                                           0     1
+    An example:
+
+        >>> n2 = Norm()
+
+        >>> x = array([(1., 1.,), (2., 1.), (2., 2.), (3.,2.)])
+
+    Differences between adjacent geoms:
+
+        >>> n2(x[0:2])
+        1.0
+        >>> n2(x[1:3])
+        1.0
+        >>> n2(x[2:4])
+        1.0
+
+    Note that x[0:2] stays for *two* adjacent geometries!
+
+        >>> from func import NumDiff
+        >>> N2 = NumDiff(n2)
+        >>> max(abs(n2.fprime(x[1:3]) - N2.fprime(x[1:3]))) < 1.e-10
+        True
+    """
+
+    def taylor(self, x):
+
+        assert len(x) == 2
+
+        # compute the difference of two geometries:
+        d = x[1] - x[0]
+
+        # the value:
+        f = sqrt(sum(d**2))
+
+        # the derivative:
+        fprime = zeros(shape(x))
+        fprime[1] = + d / f
+        fprime[0] = - d / f
 
         return f, fprime
 
