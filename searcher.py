@@ -16,7 +16,7 @@ import pickle
 from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot, eye, outer, inf, isnan, isfinite, size, vstack, atleast_1d
 
 from path import Path
-from func import CubicFunc, QuadFunc
+from func import CubicFunc, QuadFunc, RhoInterval
 
 from common import * # TODO: must unify
 import aof.common as common
@@ -325,7 +325,11 @@ class ReactionPathway(object):
         return s, s_beads
 
     def path_tuple(self):
-        state, energies, gradients, (pathps, pathpsold)  = (self.state_vec.reshape(self.beads_count,-1), self.bead_pes_energies.reshape(-1), self.bead_pes_gradients.reshape(self.beads_count,-1),self.pathpos())
+        state, energies, gradients, (pathps, pathpsold)  = \
+            self.state_vec.reshape(self.beads_count,-1), \
+            self.bead_pes_energies.reshape(-1), \
+            self.bead_pes_gradients.reshape(self.beads_count,-1), \
+            self.pathpos()
         return state, energies, gradients, pathps, pathpsold
         
     def __str__(self):
@@ -1208,7 +1212,7 @@ class PathRepresentation(object):
         raw_input("that was rho...")
 
     def pathpos(self):
-        return (self.__normalised_positions, self.__old_normalised_positions )
+        return (self.__normalised_positions, self.__old_normalised_positions)
 
     def __get_str_positions(self):
         """Based on the provided density function self.__rho(x) and 
@@ -1329,30 +1333,7 @@ class PiecewiseRho:
             lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 
-def get_bead_positions(E, ps):
-    points = arange(ps[0], ps[-1], (ps[-1] - ps[0]) / 20.0)
-
-    Es = array([E(p) for p in points])
-    p_max = points[Es.argmax()]
-
-    new_p = -1
-    for i in range(len(ps))[1:]:
-        if ps[i] > p_max:
-            new_p = ps[i-1] + (ps[i] - ps[i-1]) / 2.0
-
-            new_i = i
-
-            break
-
-    assert new_p > 0, new_p
-    
-    psa = ps.tolist()
-    new_ps = psa[:new_i] + [new_p] + psa[new_i:]
-    assert (array(new_ps).argsort() == arange(len(new_ps))).all()
-
-    return array(new_ps)
-            
-    
+   
 
 class GrowingString(ReactionPathway):
     """Implements growing and non-growing strings.
@@ -1398,7 +1379,7 @@ class GrowingString(ReactionPathway):
 
     def __init__(self, reagents, qc_driver, beads_count = 10, 
         rho = lambda x: 1, growing=True, parallel=False, head_size=None, 
-        max_sep_ratio = 0.1, reporting=None):
+        max_sep_ratio = 0.1, reporting=None, growth_mode='normal'):
 
         self.__qc_driver = qc_driver
 
@@ -1419,8 +1400,23 @@ class GrowingString(ReactionPathway):
         (int, err) = scipy.integrate.quad(rho, 0.0, 1.0)
         self.__final_rho = lambda x: rho(x) / int
 
-        # current bead spacing density function for incompletely grown string
-        self.update_rho()
+        # setup growth method
+        self.growth_funcs = {
+            'normal': (self.grow_string_normal, self.update_rho),
+            'search': (self.grow_string_search, self.search_string_init)
+            }
+        if not growth_mode in self.growth_funcs:
+            t = growth_mode, str(self.growth_funcs.keys())
+            msg = 'Unrecognised growth mode: %s, possible values are %s' % t
+            raise Exception(msg)
+
+        # TODO: this is a bit of a hack, can it be done better?
+        if growth_mode == 'normal':
+            self.get_final_bead_ix = self.get_final_bead_ix_classic_grow
+
+        (self.grow_string, init) = self.growth_funcs[growth_mode]
+        init()
+
 
         # Build path function based on reagents
         self._path_rep.regen_path_func()
@@ -1451,7 +1447,12 @@ class GrowingString(ReactionPathway):
         return self._path_rep.pathpos()
 
     def path_tuple(self):
-        state, energies, gradients, (pathps, pathpsold)  = (self.state_vec.reshape(self.beads_count,-1), self.bead_pes_energies.reshape(-1), self.bead_pes_gradients.reshape(self.beads_count,-1),self.pathpos() )
+        state, energies, gradients, (pathps, pathpsold) = \
+            (self.state_vec.reshape(self.beads_count,-1), \
+            self.bead_pes_energies.reshape(-1), \
+            self.bead_pes_gradients.reshape(self.beads_count,-1), \
+            self.pathpos())
+
         print "TUPLE", pathps, pathpsold
         return state, energies, gradients, pathps, pathpsold
 
@@ -1514,7 +1515,7 @@ class GrowingString(ReactionPathway):
             new.shape = -1
         return new
 
-    def get_final_bead_ix(self, i):
+    def get_final_bead_ix_classic_grow(self, i):
         """
         Based on bead index |i|, returns final index once string is fully 
         grown.
@@ -1532,37 +1533,10 @@ class GrowingString(ReactionPathway):
     def grown(self):
         return self.beads_count == self.__final_beads_count
 
-    def grow_string_jump(self):
-        assert self.beads_count <= self.__final_beads_count
+    def grow_string_search(self):
+        pass
 
-        if self.grown():
-            return False
-        else:
-            self.beads_count += 1
-
-        #self.expand_internal_arrays(self.beads_count)
-        self.initialise()
-
-        self._path_rep.beads_count = self.beads_count
-
-        path = Path(self.es, self.bead_positions)
-        self.bead_positions = get_bead_positions(path, self.bead_positions)
-
-        rho = rho_interval(self.bead_positions)
-        self._path_rep.set_rho(rho)
-
-        e = 1
-        m = self.beads_count - 2 * e
-        self.bead_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
-        lg.debug("Bead Freezing MASK: " + str(self.bead_update_mask))
-
-        lg.info("******** String Grown to %d beads ********", self.beads_count)
-
-        self.prev_state = self.state_vec.copy()
-
-        return True
-
-    def grow_string(self):
+    def grow_string_normal(self):
         """
         Adds 2, 1 or 0 beads to string (such that the total number of 
         beads is less than or equal to self.__final_beads_count).
@@ -1612,10 +1586,21 @@ class GrowingString(ReactionPathway):
         from scipy.optimize import fmin
         from scipy.integrate import quad
 
+        # Set up vector of fractional positions along the string.
+        # TODO: this function should be unified with the grow_string_search()
+        # at some point.
+        fbc = self.__final_beads_count
+        all_bead_ps = arange(fbc) * 1.0 / (fbc - 1)
+        end = self.beads_count / 2
+        self.bead_positions = array([all_bead_ps[i] for i in range(len(all_bead_ps)) \
+            if i < end or i >= (fbc - end - 1)])
+
         if self.beads_count == self.__final_beads_count:
             self._path_rep.set_rho(self.__final_rho)
 
             return self.__final_rho
+
+        assert self.beads_count % 2 == 0
 
         # Value that integral must be equal to to give desired number of beads
         # at end of the string.
@@ -1633,28 +1618,26 @@ class GrowingString(ReactionPathway):
         pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
         self._path_rep.set_rho(pwr.f)
 
+
     def lengths_disparate(self):
         """Returns true if the ratio between the (difference of longest and 
         shortest segments) to the average segment length is above a certain 
         value (self.__max_sep_ratio).
+
+        Is this description out of date?
         """
         seps = self._path_rep.get_bead_separations()
+        assert len(seps) == self.beads_count - 1
 
-        # If string is incompletely grown, remove inter-bead distance, 
-        # corresponding to the ungrown portion of the string.
-        if self.beads_count < self.__final_beads_count:
-            l = seps.tolist()
-            i = seps.argmax()
-            l.pop(i)
-            seps = array(l)
+        seps_ = zeros(seps.shape)
+        seps_[0] = seps[0]
+        for i in range(len(seps)):
+            seps_[i] = seps[i] + seps_[i-1]
 
-        max_sep = seps.max()
-        min_sep = seps.min()
-        mean_sep = seps.mean()
 
-        r = (max_sep - min_sep) / mean_sep
-        lg.info("Bead spacing ratio is %f, max is %f" % (r, self.__max_sep_ratio))
-        return r > self.__max_sep_ratio
+        diffs = (self.bead_positions[1:] - seps_/seps.sum())
+
+        return diffs.max() > self.__max_sep_ratio
 
 
     def obj_func(self, new_state_vec = None):
@@ -1705,10 +1688,15 @@ class GrowingString(ReactionPathway):
         # respace the beads along the path
         if respace:
             self._path_rep.generate_beads(update = True)
+
+            # The following line ensure that the path used for the next 
+            # step is the same as the one that is generated, at a later date,
+            # based on an outputted path pickle.
+            self._path_rep.regen_path_func()
+
             self.respaces += 1
-#            self.must_regenerate = False
-        else:
-            self._path_rep.update_tangents()
+
+        self._path_rep.update_tangents()
 
     def plot(self):
 #        self._path_rep.generate_beads_exact()
