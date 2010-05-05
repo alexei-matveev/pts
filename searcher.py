@@ -1333,7 +1333,30 @@ class PiecewiseRho:
             lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 
-   
+def get_bead_positions(E, ps):
+    points = arange(ps[0], ps[-1], (ps[-1] - ps[0]) / 20.0)
+
+    Es = array([E(p) for p in points])
+    p_max = points[Es.argmax()]
+
+    new_p = -1
+    for i in range(len(ps))[1:]:
+        if ps[i] > p_max:
+            new_p = ps[i-1] + (ps[i] - ps[i-1]) / 2.0
+
+            new_i = i
+
+            break
+
+    assert new_p > 0, new_p
+    
+    psa = ps.tolist()
+    new_ps = psa[:new_i] + [new_p] + psa[new_i:]
+    assert (array(new_ps).argsort() == arange(len(new_ps))).all()
+
+    return array(new_ps)
+            
+    
 
 class GrowingString(ReactionPathway):
     """Implements growing and non-growing strings.
@@ -1537,7 +1560,35 @@ class GrowingString(ReactionPathway):
         return self.beads_count == self.__final_beads_count
 
     def grow_string_search(self):
-        pass
+        assert self.beads_count <= self.__final_beads_count
+
+        if self.grown():
+            return False
+        else:
+            self.beads_count += 1
+
+        _, es = self.energies
+        path = Path(es, self.bead_positions)
+        self.bead_positions = get_bead_positions(path, self.bead_positions)
+
+        rho = RhoInterval(self.bead_positions).f
+        self._path_rep.set_rho(rho)
+        self._path_rep.generate_beads(update = True)
+
+        self._path_rep.beads_count = self.beads_count
+
+        self.initialise()
+
+        e = 1
+        m = self.beads_count - 2 * e
+        self.bead_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
+        lg.debug("Bead Freezing MASK: " + str(self.bead_update_mask))
+
+        lg.info("******** String Grown to %d beads ********", self.beads_count)
+
+        self.prev_state = self.state_vec.copy()
+
+        return True
 
     def grow_string_normal(self):
         """
