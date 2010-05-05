@@ -1435,6 +1435,9 @@ class GrowingString(ReactionPathway):
         # maximum allowed ratio between (max bead sep - min bead sep) and (average bead sep)
         self.__max_sep_ratio = max_sep_ratio
 
+
+    def search_string_init(self):
+        self.bead_positions = arange(self.beads_count) * 1.0 / (self.beads_count - 1.0)
     def __len__(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
 

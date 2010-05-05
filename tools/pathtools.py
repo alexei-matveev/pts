@@ -174,6 +174,18 @@ class PathTools:
     def __str__(self):
         return '\n'.join(self.s)
 
+    def projections(self):
+
+        for i in range(self.n):
+            dEdx = self.gradients[i]
+            t = self.xs.fprime(self.steps[i])
+            t = t / np.linalg.norm(t)
+
+            along_path = np.dot(dEdx, t) * t
+            across_path = dEdx - along_path
+
+            yield along_path, across_path
+       
     def modeandcurvature(self, s0, leftbd, rightbd, cs_forcart):
         """The mode along the path in the point s0 and
         the curvature for it are given back in several
@@ -449,6 +461,11 @@ class PathTools:
         """
 
         i = self.energies.argmax()
+
+        # Guard against situation when TS is too close to the ends for the code to work
+        if i < 2 or i > len(self.energies) - 2:
+            return []
+
         ts_list = []
         if withmove:
              xts, gts, ets, gpr1, gpr2, work =  ts_3p_gr(self.state[i-2], self.state[i-1], self.state[i], self.gradients[i-2], self.gradients[i-1], self.gradients[i], self.energies[i-2], self.energies[i-1], self.energies[i])

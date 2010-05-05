@@ -16,7 +16,7 @@ import numpy as np
 
 import aof
 import aof.tools.rotate as rot
-from aof.common import file2str
+from aof.common import file2str, rms
 
 def usage():
     print "Usage: " + sys.argv[0] + " [options] file.pickle [ts-actual.xyz]"
@@ -27,24 +27,35 @@ def usage():
 class Usage(Exception):
     pass
 
+def disp_forces(pathtools):
+    print "para\tperp"
+    for f_perp, f_para in pathtools.projections():
+        f_perp = np.linalg.norm(f_perp)
+        f_para = rms(f_para)
+
+        print "%.3f\t%.3f" % (f_perp, f_para)
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "hdg", ["help"])
+            opts, args = getopt.getopt(argv[1:], "hdgf", ["help"])
         except getopt.error, msg:
              usage()
              return
         
         dump = False
         gnuplot_out = False
+        forces = False
         for o, a in opts:
             if o in ("-h", "--help"):
                 usage()
                 return 
             elif o in ("-d"):
                 dump = True
+            elif o in ("-f"):
+                forces = True
             elif o in ("-g"):
                 gnuplot_out = True
             else:
@@ -57,7 +68,7 @@ def main(argv=None):
         fn_pickle = args[0]
         f_ts = open(fn_pickle)
         try:
-            state, es, gs, ss,ssold,cs = pickle.load(f_ts)
+            state, es, gs, ss, ssold, cs = pickle.load(f_ts)
             f_ts.close()
         except ValueError:
             ssold = None
@@ -94,20 +105,34 @@ def main(argv=None):
         if gnuplot_out:
             aof.tools.gnuplot_path(state, es, fn_pickle)
 
-        estims = []
-        estims.append(('Spling and cubic', pt.ts_splcub()[-1]))
-        estims.append(('Highest', pt.ts_highest()[-1]))
-        estims.append(('Spline only', pt.ts_spl()[-1]))
-        estims.append(('Spline and average', pt.ts_splavg()[-1]))
-        estims.append(('Bell Method', pt.ts_bell()[-1]))
+        methods = {'Spling and cubic': pt.ts_splcub,
+                   'Highest': pt.ts_highest,
+                   'Spline only': pt.ts_spl,
+                   'Spline and average': pt.ts_splavg,
+                   'Bell Method': pt.ts_bell
+                  }
+
+        if forces:
+            disp_forces(pt)
 
         if ss != None:
             pt2 = aof.tools.PathTools(state, es, gs, ss)
-            estims.append(('Spline only (2)', pt2.ts_spl()[-1]))
-            estims.append(('Spline and average (2)', pt2.ts_splavg()[-1]))
-            estims.append(('Spline and cubic (2)', pt2.ts_splcub()[-1]))
+            methods2 = {'Spline only (2)': pt2.ts_spl,
+                        'Spline and average (2)': pt2.ts_splavg,
+                        'Spline and cubic (2)': pt2.ts_splcub
+                       }
+            methods.update(methods2)
 
-        for name, est in estims:
+            if forces:
+                disp_forces(pt2)
+
+        def estims():
+            for k in methods.keys():
+                res = methods[k]()
+                if res != []:
+                    yield (k, res[-1])
+
+        for name, est in estims():
             energy, coords, s0, s1, s_ts, l, r = est
             cs.set_internals(coords)
             if dump:
@@ -140,5 +165,4 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
-
 
