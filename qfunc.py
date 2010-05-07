@@ -50,7 +50,7 @@ __all__ = ["QFunc"]
 from func import Func
 from ase import LennardJones
 from os import path, mkdir, chdir, getcwd, system
-from processing import currentProcess
+from multiprocessing import current_process
 from shutil import copy2 as cp
 import numpy as np
 from memoize import Memoize
@@ -261,7 +261,7 @@ class fwrapper(object):
         # the name of the working directory is just the name
         # of the current Process
         if not self.workhere:
-            wx = currentProcess().getName()
+            wx = current_process().name
             if not path.exists(wx):
                 mkdir(wx)
             chdir(wx)
