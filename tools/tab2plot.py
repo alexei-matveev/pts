@@ -123,6 +123,9 @@ def main(argv = None):
     for ar in argv:
         if ar.startswith("--"):
             option = ar[2:]
+            if option == "help":
+                print __doc__
+                exit()
         else:
             files.append(ar)
 
