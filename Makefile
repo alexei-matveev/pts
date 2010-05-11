@@ -10,8 +10,11 @@ src =	\
 	sched.py \
 	searcher.py \
 	ridders.py \
+	npz.py \
 	func.py \
 	path.py \
+	bezier.py \
+	chebyshev.py \
 	zmat.py \
 	mueller_brown.py \
 	memoize.py \
