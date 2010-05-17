@@ -72,7 +72,7 @@ def getdistancesandanglesfromxyz():
                 for num, line  in enumerate(fileval):
                     #print line, line[0]
                     fields = line.split()
-                    allval.append(interestingvalue(int(fields[0])))
+                    allval.append(interestingvalue(fields[0]))
                     allval[num].partners = []
                     for xval in fields[1:]:
                         allval[num].partners.append(int(xval))
@@ -92,7 +92,7 @@ def getdistancesandanglesfromxyz():
          elif second == 2:
              #print sys.argv[num]
              if kfinish:
-                 allval.append(interestingvalue(int(sys.argv[num])))
+                 allval.append(interestingvalue(sys.argv[num]))
                  allval[kiter -1].partners = []
                  kfinish = False
              else :
@@ -171,23 +171,31 @@ def getdistancesandanglesfromxyz():
            positions = np.array(positionslist)
            #print positions
            # the actual writing of the programm
-           writeall(write, allval, positions, deg, loop)
+           results = returnall(allval, positions, deg, loop)
+           writeall(write, results, loop)
            n = file.readline()
            loop += 1
 
-def writeall(write, allval, positions, deg, loop):
-      write("%4i " % loop)
+def writeall(write, results, loop):
+      write("%4i " % (loop))
+      for res in results[1:]:
+          write("%22.12f " % res)
+      write("\n")
+
+def returnall(allval, positions, deg, loop):
+      results = [loop]
       for value in allval:
            # loop over all wanted values, order of them says how to calculate
            if value.order == 2:
-               write("%22.12f " % radii(positions, value.partners))
+               results.append( radii(positions, value.partners))
            elif value.order == 3 or value.order == 4 :
-               write("%22.12f " % angle(positions, value.partners, deg))
+               results.append( angle(positions, value.partners, deg))
            elif value.order == 5 :
-               write("%22.12f " % dihedral(positions, value.partners, deg))
+               results.append( dihedral(positions, value.partners, deg))
            elif value.order == 6 :
-               write("%22.12f " % distancetoplane(positions, value.partners))
-      write("\n")
+               results.append( distancetoplane(positions, value.partners))
+      return results
+
 
 def expandlist(positionslist, cell, tomove, howmove):
       # expand list of atoms with atom[num] from cell howmove with given cell is 0
@@ -282,14 +290,14 @@ def helpfun():
     print "then should follow the numbers of the atoms (in the order of the xyz file) involved"
     print "if written in a file, every number of interest should be in its own line"
     print ""
-    print "The code for the kind of coordinates is:"
-    print "   distance: 2  (needs numbers for two atoms to calculate a -b )"
-    print "   angle:    3  (if the center atom is the same for both vectors, for the three"
-    print "                 atoms given the angle a -b -c is calculated)"
-    print "             4   (if the angle between the two vectors a-b and c-d is wanted)"
-    print "   dihedral: 5   (dihedral for the atoms a -b -c-d )"
-    print "  dis to pl: 6   (needs 4 number, distance between a and plane defined by b,c and"
-    print "                  d is calculated)"
+    print "The kind of coordinates can be choosen two different way: by a number, related to the"
+    print "choosen kind or with an abrevation. This values can be optained from the following table:"
+    print "'kind of coordinate': number; abrevation:'number of atoms needed to calculate'('speciality')"
+    print "   distance: 2; dis : 2"
+    print "   angle:    3; ang : 3  (angle a-b-c)"
+    print "             4; ang4: 4  (if the angle between the two vectors a-b and c-d is wanted)"
+    print "   dihedral: 5; dih : 4  (dihedral for the atoms a -b -c-d )"
+    print "  dis to pl: 6; dp  : 4  (distance between a and plane defined by b,c and d)"
     print ""
     print "The xyz file name has to be given as an argument, there may be several of them"
     print "or one very long containing several geometries"
@@ -322,33 +330,54 @@ def helpfun():
 
 
 class interestingvalue:
-     def __init__(self, order, partners = []):
-     # the order gives the kind of values, function
-     # whatsort shows the code
-     # the atomnumber needed to know where to calculate are
-     # in partners
-         self.order = order
-         self.partners = partners
+    def __init__(self, input = None, partners = []):
+        # the order gives the kind of values, function
+        # whatsort shows the code
+        # the atomnumber needed to know where to calculate are
+        # in partners
+        self.names = [None, None, "dis", "ang", "ang4", "dih", "dp"]
+        self.orders = {}
+        for z, name in enumerate(self.names):
+            self.orders[name] = z
 
-     def lengthneeded(self):
-     # shows how many partners wanted to calulate the value
-         if self.order == 5 or self.order == 6:
-             return 4
-         else:
-             return self.order
+        try:
+            input = int(input)
+            self.order = input
+            self.name = self.names[input]
+        except ValueError:
+            self.name = input
+            self.order = self.orders[input]
 
-     def whatsort(self):
-        if self.order == 5:
-             return "dihedral angle"
-        elif self.order == 4 or self.order ==3 :
-             return "angle"
-        elif self.order == 2:
-             return "distance"
-        elif self.order == 6:
-             return "distance to plane"
+        self.partners = partners
+
+    def lengthneeded(self):
+    # shows how many partners wanted to calulate the value
+        if self.order == 5 or self.order == 6:
+            return 4
         else:
-             print "This sort of coordinate does not exist"
-             sys.exit()
+            return self.order
+
+
+    def whatsort(self):
+       if self.order == 5:
+            return "dihedral angle"
+       elif self.order == 4 or self.order ==3 :
+            return "angle"
+       elif self.order == 2:
+            return "distance"
+       elif self.order == 6:
+            return "distance to plane"
+       else:
+            print "This sort of coordinate does not exist"
+            sys.exit()
+
 
  # main:
-getdistancesandanglesfromxyz()
+def main():
+    getdistancesandanglesfromxyz()
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+    main()
+
