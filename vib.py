@@ -150,9 +150,9 @@ from scipy.linalg import eigh as eigensolver2
 from math import sqrt
 import ase.atoms
 import ase.units as units
-from aof.paramap import pa_map, ps_map, td_map, pmap, pool_map
+from paramap import pa_map, ps_map, td_map, pmap, pool_map
 from sys import stdout
-from aof.qfunc import fwrapper
+from qfunc import fwrapper
 
 MOREOUT = False
 
