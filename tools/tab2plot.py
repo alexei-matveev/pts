@@ -40,7 +40,7 @@ def read_tab(filename):
     # this way the beads will not be listed in the legend
     pname = "_nolegend_"
     bname = "_nolegend_"
-    rname = "_nolegend_"
+    rname = ""
     # Now_path decides if the input line is put into path or beads
     # as in the format used normaly the table is preceeded by three lines
     # of input (used here to extract the name), it is set to false in the
@@ -129,67 +129,82 @@ def main(argv = None):
         else:
             files.append(ar)
 
-    def makeplotter(tab, funx ,funcs, name, option = None):
-         # A wrapper aoround the plot function, which uses
-         # the table tab from which its extract via funx the
-         # x values, and then giving name to distinguish between
-         # different input files (only for the pathes, beads are
-         # without name)
-         # option may telling that instead of a line, points should
-         # be used (for beads)
-         x = funx(tab)
-         for i, fun in enumerate(funcs):
-             y = fun(tab)
-             lab = '%i' % (i+1)
-             if name is not None:
-                 lab = name + ' ' + lab
-             if option is None:
-                 plot(x, y, label= lab)
-             else:
-                 plot(x, y, option, label= lab)
-
     if files is []:
         print "ERROR: table needed to get the values to print from!"
         exit()
+
+    pl = plot_tabs()
 
     for file in files:
        # make the plots ready for all files given
        # first get the data from there
        tablep, pname, tableb, bname, tabelr, rname = read_tab(file)
+       pl.prepare_plot(tablep, pname, tableb, bname, tabelr, rname, option)
 
-       # one of them should at least be there
-       if tablep is not None:
-           tlen = len(tablep)
-       elif tableb is not None:
-           tlen = len(tableb)
-       else:
-           tlen = len(tabelr)
+    pl.plot_data()
 
-       # the functions which should operate on the table
-       # have been given in the option
-       xfun, yfuns = decide_which_values(option, tlen)
 
-       # for each table which is there, make it run
-       if tablep is not None:
-           makeplotter(tablep, xfun, yfuns, pname)
+class plot_tabs:
+    def __init__(self):
+         pass
 
-       if tableb is not None:
-           makeplotter(tableb, xfun, yfuns, bname, 'o')
+    def prepare_plot(self, tablep, pname, tableb, bname, tabelr, rname, option):
 
-       if tabelr is not None:
-           makeplotter(tabelr, xfun, yfuns, rname, 'o') 
+        def makeplotter(tab, funx ,funcs, name, option = None):
+             # A wrapper aoround the plot function, which uses
+             # the table tab from which its extract via funx the
+             # x values, and then giving name to distinguish between
+             # different input files (only for the pathes, beads are
+             # without name)
+             # option may telling that instead of a line, points should
+             # be used (for beads)
+             x = funx(tab)
+             for i, fun in enumerate(funcs):
+                 y = fun(tab)
+                 lab = '%i' % (i+1)
+                 if name is not None:
+                     lab = name + ' ' + lab
+                 if option is None:
+                     plot(x, y, label= lab)
+                 else:
+                     plot(x, y, option, label= lab)
 
-    # set some parameters for the legend, as it would be
-    # to big else
-    rcParams['font.size'] = 8
-    # the lines may be a bit wider than the default
-    rcParams['lines.linewidth'] = 2
 
-    # prepare the legend, should be placed at the best position
-    # available
-    legend( loc = "best")
-    # Now to the actual plots (legend and plots)
-    show()
+        # one of them should at least be there
+        if tablep is not None:
+            tlen = len(tablep)
+        elif tableb is not None:
+            tlen = len(tableb)
+        else:
+            tlen = len(tabelr)
+
+        # the functions which should operate on the table
+        # have been given in the option
+        xfun, yfuns = decide_which_values(option, tlen)
+
+        # for each table which is there, make it run
+        if tablep is not None:
+            makeplotter(tablep, xfun, yfuns, pname)
+
+        if tableb is not None:
+            makeplotter(tableb, xfun, yfuns, bname, 'o')
+
+        if tabelr is not None:
+            makeplotter(tabelr, xfun, yfuns, rname, 'o')
+
+    def plot_data(self):
+
+        # set some parameters for the legend, as it would be
+        # to big else
+        rcParams['font.size'] = 8
+        # the lines may be a bit wider than the default
+        rcParams['lines.linewidth'] = 2
+
+        # prepare the legend, should be placed at the best position
+        # available
+        legend( loc = "best")
+        # Now to the actual plots (legend and plots)
+        show()
 
 def decide_which_values(option, tlen):
     """
