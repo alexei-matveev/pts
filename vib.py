@@ -73,41 +73,40 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
   Calculate the vibration modes
 
-    >>> vibmodes(ar4, workhere = True)
+    >>> vibmodes(ar4, workhere = True, storehessian = False)
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      1       no       0.1548129       1248.6494855
-      2       no       0.1094714        882.9459913
-      3       no       0.1094714        882.9459913
-      4       no       0.1094714        882.9459913
-      5       no       0.0773558        623.9162798
-      6       no       0.0773558        623.9162798
-      7       no       0.0000000          0.0000076
-      8       no       0.0000000          0.0000064
-      9       yes      0.0000000          0.0000056
-     10       yes      0.0021796         17.5798776
-     11       yes      0.0021796         17.5798776
-     12       yes      0.0021796         17.5798776
+      1       no          0.1548          1248.65
+      2       no          0.1095           882.95
+      3       no          0.1095           882.95
+      4       no          0.1095           882.95
+      5       no          0.0774           623.92
+      6       no          0.0774           623.92
+      7       yes         0.0000             0.00
+      8       yes         0.0000             0.00
+      9       yes         0.0000             0.00
+     10       yes         0.0022            17.58
+     11       yes         0.0022            17.58
+     12       yes         0.0022            17.58
     ----------------------------------------------------
-
     >>> from ase.constraints import FixAtoms
 
     >>> c = FixAtoms([1, 2])
     >>> ar4.set_constraint(c)
 
-    >>> vibmodes(ar4, workhere = True)
+    >>> vibmodes(ar4, workhere = True, storehessian = False)
     FWRAPPER: The following mask has been obtained from the constraints of the atoms
     [True, True, True, False, False, False, False, False, False, True, True, True]
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      1       no       0.1290803       1041.1023467
-      2       no       0.0948029        764.6368238
-      3       no       0.0656182        529.2459223
-      4       no       0.0547248        441.3854810
-      5       no       0.0546771        441.0002676
-      6       yes      0.0017797         14.3542260
+      1       no          0.1291          1041.10
+      2       no          0.0948           764.64
+      3       no          0.0656           529.25
+      4       no          0.0547           441.39
+      5       no          0.0547           441.00
+      6       yes         0.0018            14.35
     ----------------------------------------------------
 
   second test System: N-N with EMT calculator
@@ -117,43 +116,45 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> n2 = Atoms('N2', [(0, 0, 0), (0, 0, 1.1)])
 
     >>> n2.set_calculator( EMT())
-    >>> vibmodes(n2, workhere = True )
+    >>> vibmodes(n2, workhere = True, storehessian = False)
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      1       no       0.2540363       2048.9398454
-      2       no       0.0000000          0.0000000
-      3       no       0.0000000          0.0000000
-      4       no       0.0000000          0.0000000
-      5       yes      0.0398776        321.6345510
-      6       yes      0.0398776        321.6345510
+      1       no          0.2540          2048.94
+      2       no          0.0000             0.00
+      3       no          0.0000             0.00
+      4       yes         0.0000             0.00
+      5       yes         0.0399           321.63
+      6       yes         0.0399           321.63
     ----------------------------------------------------
 
 
     >>> n2.set_positions([[  0.0, 0.0, 0.000],
     ...                   [  0.0, 0.0, 1.130]])
 
-    >>> vibmodes(n2, workhere = True)
+    >>> vibmodes(n2, workhere = True, storehessian = False)
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      1       no       0.2324660       1874.9643134
-      2       no       0.0046502         37.5060049
-      3       no       0.0046502         37.5060049
-      4       no       0.0000000          0.0000000
-      5       no       0.0000000          0.0000000
-      6       no       0.0000000          0.0000000
+      1       no          0.2325          1874.96
+      2       no          0.0047            37.51
+      3       no          0.0047            37.51
+      4       no          0.0000             0.00
+      5       no          0.0000             0.00
+      6       no          0.0000             0.00
     ----------------------------------------------------
 
 """
 import numpy as np
-from scipy.linalg import eig
+from scipy.linalg import eigh as eigensolver2
 from math import sqrt
 import ase.atoms
 import ase.units as units
 from aof.paramap import pa_map, ps_map, td_map, pmap, pool_map
 from sys import stdout
 from aof.qfunc import fwrapper
+
+MOREOUT = False
 
 def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' ):
     '''
@@ -253,8 +254,10 @@ def vibmodes(atoms, startdir = None, mask = None, workhere = False, alsovec = Fa
      mass = func.getmassfromatoms()
      # the derivatives are needed
      hessian = derivatef( func.perform, xcenter,**kwargs )
-     store_hessian(hessian)
-     vibmod( mass, hessian, alsovec)
+     if storehessian:
+         store_hessian(hessian)
+     freqs, modes = vibmod( mass, hessian)
+     output(freqs, modes, mass, alsovec)
 
 
 def store_hessian(hessian):
@@ -267,7 +270,7 @@ def store_hessian(hessian):
              wr("%23.12f " % hessian[i,j])
          wr("\n")
 
-def vibmod(mass, hessian, alsovec = False):
+def vibmod(mass, hessian):
      """
      calculates the vibration modes in harmonic approximation
 
@@ -296,33 +299,31 @@ def vibmod(mass, hessian, alsovec = False):
 
      # solves the eigenvalue problem w, vr = eig(a,b)
      #   a * vr[:,i] = w[i] * b * vr[:,i]
-     eigvalues, eigvectors = eig(hessian, mass)
-     # we want the eigenvector as EV[eigenvalue,:]:
-     eigvectors = eigvectors.T
+     eigvalues, eigvectors = geigs2(hessian, mass)
+     freqs = eigvalues.astype(complex)**0.5
+     modes = eigvectors.T
 
-     eigvalues, eigvectors = normandsort(eigvalues, eigvectors, mass)
+     return freqs, modes
 
+def output(freqs, eigvectors, mass, alsovec = False):
      # scale eigenvalues in different units:
      # E = hbar * omega [eV] = hvar * [1/s]
      # omega = sqrt(H /m), [H] = [kJ/Ang^2] , [m] = [amu], [omega] = [1/s] = [ J/m^2 /kg]
      scalfact = units._hbar * 1e10 / units.Ang * sqrt( units.kJ /( units._amu * 1000 ) )
-     modeenerg =  scalfact *  eigvalues.astype(complex)**0.5
+     modeenerg =  scalfact * freqs
      modeincm  = modeenerg * units._e / units._c / units._hplanck * 0.01
      print "===================================================="
      print " Number  imag.   Energy in eV      Energy in cm^-1"
      print "----------------------------------------------------"
      for i, mode_e  in enumerate(modeenerg):
-           if mode_e.imag != 0:
-               print "%3d       yes     %10.7f       %12.7f" % (i+1,  mode_e.imag, modeincm[i].imag)
+           if mode_e.imag != 0 and abs(mode_e.imag) > abs(mode_e.real):
+               print "%3d       yes     %10.4f       %10.2f" % (i+1,  mode_e.imag, modeincm[i].imag)
            else:
-               print "%3d       no      %10.7f       %12.7f" % (i+1,  mode_e.real, modeincm[i].real)
+               print "%3d       no      %10.4f       %10.2f" % (i+1,  mode_e.real, modeincm[i].real)
      print "----------------------------------------------------"
 
      if (alsovec):
           writevec = stdout.write
-
-
-          # the eigenvectors are not normed, therefore:
 
           # we don't know if they are cartesian
           print "The corresponding eigenvectors  are:"
@@ -338,27 +339,77 @@ def vibmod(mass, hessian, alsovec = False):
                writevec("\n")
           print "----------------------------------------------------"
           print "kinetic energy distribution"
-          ekin_ev = np.diag(np.dot(eigvectors, np.dot( mass, eigvectors.T)))
-          print "Mode        %Ekin"
-          for i, ekin_e in enumerate(ekin_ev):
-              print "%3d :     %12.10f" % (i+1, ekin_e)
-          print "----------------------------------------------------"
+          print "Mode        %Ekin distribution on the atoms"
+          for i, ev  in enumerate(eigvectors):
+              writevec("%3d :    " % (i+1)  )
+              ek =  ev *  np.dot(mass, ev.T)
+              ek = np.asarray(ek)
+              ek.shape = (-1, 3)
+              for ek_1 in ek:
+                  eks = sum(ek_1)
+                  writevec("  %7.2f" % (eks * 100))
+              writevec("\n" )
 
-def normandsort(eigval, eigvec, metric):
-    # normingconstants for  the eigvec:
-    nor = np.diag(np.dot(eigvec.T, np.dot(metric, eigvec)))
-    # storage of eigenvalues and eigenvec
-    eigdata = np.zeros((len(eigval), len(eigval)+1))
-    # order after the eigvalues:
-    sorter = np.argsort(eigval.real, kind='mergesort')
-    # revert order (start with the biggest one)
-    # and order the eigenvectors with the same cheme
-    for i in range(len(eigval)):
-        eigdata[len(eigval)-1-i,0] = eigval[sorter[i]]
-        eigdata[len(eigval)-1-i,1:] =  eigvec[sorter[i]] / nor[sorter[i]]
 
-    return eigdata[:,0], eigdata[:,1:]
+def check_eigensolver(a, V1, A, B):
+     if MOREOUT:
+         print "Check the results for the eigensolver:"
+         #print np.dot(V, np.dot(A, V.T)) - a * np.eye(len(a))
+         print "V^TAV -a, maximum value:", (abs(np.dot(V1.T, np.dot(A, V1)) - a * np.eye(len(a)))).max()
+         print "V^TBV -1, maximum value:", (abs(np.dot(np.dot(V1.T,B),V1) - np.eye(len(a)))).max()
 
+         print "a=", a
+         print "V[:, 0]=", V1[:, 0]
+         print "V[:, -1]=", V1[:, -1]
+
+         print (abs(np.dot(A, V1) - np.dot(np.dot(B, V1), np.diag(a)))).max()
+         x = np.dot(np.dot(np.transpose(V1), B), V1)
+         print (abs(x - np.diag(np.diag(x)))).max()
+
+
+     assert((abs(np.dot(V1.T, np.dot(A, V1)) - a * np.eye(len(a)))).max() < 1e-8)
+     assert((abs(np.dot(np.dot(V1.T,B),V1) - np.eye(len(a)))).max() < 1e-8)
+
+
+
+def geigs2(A, B):
+     """Wrapper around eigensolver from scipy,
+        which gives the output to our special need"""
+
+     fun = lambda x: 1.0 / sqrt(x)
+     mhalf = matfun(B, fun)
+
+     mam = np.dot(mhalf, np.dot(A, mhalf.T))
+
+     mam = 0.5 * (mam + mam.T)
+
+     a, V = eigensolver2(mam)
+
+     # changing V back to the original problem
+     # (A*V = lamda * B * V)
+     V = np.dot(mhalf, V)
+
+     check_eigensolver(a, V, A, B)
+     # In this case V should be normed AND orthogonal
+     # so there is nothing else to do here
+     # a should be also sorted, but as we want
+     # the reversed order, and thus have to change there
+     # anyhow something, we can as well sort it again
+
+     # Bring the results in descending order:
+     sorter = list(np.argsort(a, kind='mergesort'))
+     sorter.reverse()
+     a = a[sorter]
+     V1 = V[:, sorter]
+
+     return a, V
+
+def matfun(M, fun):
+    aval, Avec = eigensolver2(M)
+    anew = np.asarray([fun(av) for av in aval])
+    # the vector is given in the format Av[:,i] for the aval[i]
+    O = np.dot(Avec, np.dot(np.diag(anew), Avec.T))
+    return O
 
 # python vib.py [-v]:
 if __name__ == "__main__":
