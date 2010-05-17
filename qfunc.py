@@ -57,7 +57,6 @@ except:
 
 from shutil import copy2 as cp
 import numpy as np
-from memoize import Memoize
 
 class QFunc(Func):
     def __init__(self, atoms, calc=LennardJones(), moving=None):
@@ -122,19 +121,18 @@ class fwrapper(object):
     it works in and handles startdata for the qm-solver
     if self.start is not None
     """
-    def __init__(self, atoms, startdir = None, mask = None, workhere = True, memorize_file = None):
+    def __init__(self, atoms, startdir = None, mask = None, workhere = True):
         self.start = startdir
         self.mask = mask
         self.workhere = workhere
         self.atoms = atoms
-        qf = QFunc(self.atoms, calc = self.atoms.get_calculator())
-        if memorize_file != None:
-            qf = Memoize(qf, filename = memorize_file)
-        self.fun = qf.fprime
 
         # the working directory before changed, thus where
         # to return lateron
         self.wopl = getcwd()
+        qf = QFunc(self.atoms, calc = self.atoms.get_calculator())
+        self.fun = qf.fprime
+
         if self.atoms == None:
              print "FWRAPPER_WARNING: Your function needs an atom object!"
              print "Make sure it's there, when calculation starts!"

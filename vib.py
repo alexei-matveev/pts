@@ -243,13 +243,13 @@ def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' )
             deriv[i,:] = (gval - gmiddle) / delta
     return deriv
 
-def vibmodes(atoms, startdir = None, mask = None, workhere = False, alsovec = False, memorize_file = "vib.pkl", **kwargs ):
+def vibmodes(atoms, startdir = None, mask = None, workhere = False, storehessian = True, alsovec = False, **kwargs ):
      """
      Wrapper around vibmode, which used the atoms objects
      The hessian is calculated by derivatef
      qfunc.fwrapper is used as a wrapper to calulate the gradients
      """
-     func = fwrapper(atoms, startdir = startdir, mask = mask, workhere = workhere , memorize_file = memorize_file )
+     func = fwrapper(atoms, startdir = startdir, mask = mask, workhere = workhere)
      xcenter = func.getpositionsfromatoms()
      mass = func.getmassfromatoms()
      # the derivatives are needed
