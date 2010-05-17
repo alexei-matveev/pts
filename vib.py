@@ -373,36 +373,36 @@ def check_eigensolver(a, V1, A, B):
 
 
 def geigs2(A, B):
-     """Wrapper around eigensolver from scipy,
-        which gives the output to our special need"""
+    """Wrapper around eigensolver from scipy,
+       which gives the output to our special need"""
 
-     fun = lambda x: 1.0 / sqrt(x)
-     mhalf = matfun(B, fun)
+    fun = lambda x: 1.0 / sqrt(x)
+    mhalf = matfun(B, fun)
 
-     mam = np.dot(mhalf, np.dot(A, mhalf.T))
+    mam = np.dot(mhalf, np.dot(A, mhalf.T))
 
-     mam = 0.5 * (mam + mam.T)
+    mam = 0.5 * (mam + mam.T)
 
-     a, V = eigensolver2(mam)
+    a, V = eigensolver2(mam)
 
-     # changing V back to the original problem
-     # (A*V = lamda * B * V)
-     V = np.dot(mhalf, V)
+    # changing V back to the original problem
+    # (A*V = lamda * B * V)
+    V = np.dot(mhalf, V)
 
-     check_eigensolver(a, V, A, B)
-     # In this case V should be normed AND orthogonal
-     # so there is nothing else to do here
-     # a should be also sorted, but as we want
-     # the reversed order, and thus have to change there
-     # anyhow something, we can as well sort it again
+    check_eigensolver(a, V, A, B)
+    # In this case V should be normed AND orthogonal
+    # so there is nothing else to do here
+    # a should be also sorted, but as we want
+    # the reversed order, and thus have to change there
+    # anyhow something, we can as well sort it again
 
-     # Bring the results in descending order:
-     sorter = list(np.argsort(a, kind='mergesort'))
-     sorter.reverse()
-     a = a[sorter]
-     V1 = V[:, sorter]
+    # Bring the results in descending order:
+    sorter = list(np.argsort(a, kind='mergesort'))
+    sorter.reverse()
+    a = a[sorter]
+    V1 = V[:, sorter]
 
-     return a, V
+    return a, V
 
 def matfun(M, fun):
     aval, Avec = eigensolver2(M)
