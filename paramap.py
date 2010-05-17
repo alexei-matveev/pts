@@ -145,10 +145,17 @@
 from threading import Thread
 #from threading import Thread as Worker
 #from Queue import Queue
-from multiprocessing import Process as Worker
-from multiprocessing import Queue
-from multiprocessing import Process
-from multiprocessing import Pool
+try:
+    from multiprocessing import Process as Worker
+    from multiprocessing import Queue
+    from multiprocessing import Process
+    from multiprocessing import Pool
+except:
+    from processing import Process as Worker
+    from processing import Queue
+    from processing import Process
+    from processing import Pool
+
 from qfunc import fwrapper
 from os import getcwd
 
