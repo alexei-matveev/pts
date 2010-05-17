@@ -416,3 +416,4 @@ if __name__ == "__main__":
     import doctest
     doctest.testmod()
 
+# Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
