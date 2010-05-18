@@ -404,10 +404,8 @@ def geigs(A, B):
     # Bring the results in descending order:
     sorter = list(argsort(a, kind='mergesort'))
     sorter.reverse()
-    a = a[sorter]
-    V1 = V[:, sorter]
 
-    return a, V
+    return a[sorter], V[:, sorter]
 
 def matfun(M, fun):
     aval, Avec = eigh(M)
