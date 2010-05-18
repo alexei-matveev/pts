@@ -297,10 +297,22 @@ def vibmod(mass, hessian):
      # and also the massvec
      mass = 0.5 * (mass + mass.T)
 
-     # solves the eigenvalue problem w, vr = eig(a,b)
-     #   a * vr[:,i] = w[i] * b * vr[:,i]
-     eigvalues, eigvectors = geigs2(hessian, mass)
-     freqs = eigvalues.astype(complex)**0.5
+     # solve the generalized eigenvalue problem
+     #
+     #   w, V = geigs(H, M)
+     #
+     #   A * V[:, i] = w[i] * M * V[:, i]
+     #
+     # For symmetric H and symmetric M > 0 the eigenvalues are real
+     # and eigenvectors can be (and are) chosen orthogonal:
+     #
+     eigvalues, eigvectors = geigs(hessian, mass)
+
+     #
+     # Negative eigenvalues correspond to imaginary frequencies,
+     # for square root to work lift the real numbers to complex domain:
+     #
+     freqs = sqrt(eigvalues + 0j)
      modes = eigvectors.T
 
      return freqs, modes
@@ -372,7 +384,7 @@ def check_eigensolver(a, V1, A, B):
 
 
 
-def geigs2(A, B):
+def geigs(A, B):
     """Wrapper around eigensolver from scipy,
        which gives the output to our special need"""
 
