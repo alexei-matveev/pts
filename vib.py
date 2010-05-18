@@ -256,7 +256,7 @@ def vibmodes(atoms, startdir = None, mask = None, workhere = False, storehessian
      hessian = derivatef( func.perform, xcenter,**kwargs )
      if storehessian:
          store_hessian(hessian)
-     freqs, modes = vibmod( mass, hessian)
+     freqs, modes = vibmod(mass, hessian)
      output(freqs, modes, mass, alsovec)
 
 
