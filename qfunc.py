@@ -43,6 +43,7 @@ to the minimum):
            [-0.39685026, -0.39685026,  0.39685026],
            [ 0.39685026, -0.39685026, -0.39685026],
            [-0.39685026,  0.39685026, -0.39685026]])
+
 """
 
 __all__ = ["QFunc"]
@@ -113,7 +114,7 @@ class QFunc(Func):
 # a list of restartfiles that might be usefull to copy-in
 # for a warm-start of a calculation, if it is complete, no
 # modifications to ASE are necessary:
-RESTARTFILES = ["WAVECAR", "CHG","CHGCAR" , "saved_scfstate.dat", "*.testme", "input"]
+RESTARTFILES = ["WAVECAR", "CHG", "CHGCAR" , "saved_scfstate.dat", "*.testme", "input"]
 
 
 class fwrapper(object):
