@@ -51,9 +51,11 @@ from func import Func
 from ase import LennardJones
 from os import path, mkdir, chdir, getcwd, system
 try:
-    from multiprocessing import current_process as currentProcess
+    from multiprocessing import current_process
+    def current_process_name(): return current_process().name
 except:
     from processing import currentProcess
+    def current_process_name(): return currentProcess().getName
 
 from shutil import copy2 as cp
 import numpy as np
@@ -268,10 +270,7 @@ class fwrapper(object):
         # the name of the working directory is just the name
         # of the current Process
         if not self.workhere:
-            try:
-                wx = currentProcess().name
-            except AttributeError:
-                wx = currentProcess().getName()
+            wx = current_process_name()
 
             if not path.exists(wx):
                 mkdir(wx)
