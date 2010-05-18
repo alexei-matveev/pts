@@ -145,9 +145,9 @@ Ar4 Cluster as first simple atomic/molecule test system with
     ----------------------------------------------------
 
 """
-import numpy as np
+from numpy import array, asarray, dot, zeros, max, abs, eye, diag, sqrt
+from numpy import argsort
 from scipy.linalg import eigh as eigensolver2
-from math import sqrt
 import ase.atoms
 import ase.units as units
 from paramap import pa_map, ps_map, td_map, pmap, pool_map
@@ -214,7 +214,7 @@ def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' )
     # calculation of the functionvalues for all the geometries
     # at the same time
     g1 = p_map(g0, xs)
-    g1 = np.asarray(g1)
+    g1 = asarray(g1)
     # now it is possible to find out, how big g1 is
     # g1 may be an array (then we want the total length
     # not only in one direction
@@ -226,7 +226,7 @@ def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' )
     # compare the formulas given above
     if direction == 'central':
         geolen = len(g1)/2
-        deriv = np.zeros([geolen, derlen])
+        deriv = zeros([geolen, derlen])
         for i in range(0, geolen):
         # alternate the values for plus and minus are stored
         # if the g elements are arrays they have to be converged
@@ -235,7 +235,7 @@ def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' )
             deriv[i,:] = (gplus - gminus) / ( 2 * delta)
     else:
         geolen = len(g1)-1
-        deriv = np.zeros([geolen, derlen])
+        deriv = zeros([geolen, derlen])
         gmiddle = g1[0]
         gmiddle = gmiddle.flatten()
         for i, gval  in enumerate(g1[1:]):
@@ -289,7 +289,7 @@ def vibmod(mass, hessian):
      alsovec says that not only the frequencies of the mode but also the eigenvectors are 
      wanted
      """
-     mass = np.asarray(mass)
+     mass = asarray(mass)
 
      # make sure that the hessian is hermitian:
      hessian = 0.5 * (hessian + hessian.T)
@@ -342,8 +342,8 @@ def output(freqs, eigvectors, mass, alsovec = False):
           print "Mode        %Ekin distribution on the atoms"
           for i, ev  in enumerate(eigvectors):
               write("%3d :    " % (i+1)  )
-              ek =  ev *  np.dot(mass, ev.T)
-              ek = np.asarray(ek)
+              ek =  ev *  dot(mass, ev.T)
+              ek = asarray(ek)
               ek.shape = (-1, 3)
               for ek_1 in ek:
                   eks = sum(ek_1)
@@ -354,21 +354,21 @@ def output(freqs, eigvectors, mass, alsovec = False):
 def check_eigensolver(a, V1, A, B):
      if MOREOUT:
          print "Check the results for the eigensolver:"
-         #print np.dot(V, np.dot(A, V.T)) - a * np.eye(len(a))
-         print "V^TAV -a, maximum value:", (abs(np.dot(V1.T, np.dot(A, V1)) - a * np.eye(len(a)))).max()
-         print "V^TBV -1, maximum value:", (abs(np.dot(np.dot(V1.T,B),V1) - np.eye(len(a)))).max()
+         #print dot(V, dot(A, V.T)) - a * eye(len(a))
+         print "V^TAV -a, maximum value:", (abs(dot(V1.T, dot(A, V1)) - a * eye(len(a)))).max()
+         print "V^TBV -1, maximum value:", (abs(dot(dot(V1.T,B),V1) - eye(len(a)))).max()
 
          print "a=", a
          print "V[:, 0]=", V1[:, 0]
          print "V[:, -1]=", V1[:, -1]
 
-         print (abs(np.dot(A, V1) - np.dot(np.dot(B, V1), np.diag(a)))).max()
-         x = np.dot(np.dot(np.transpose(V1), B), V1)
-         print (abs(x - np.diag(np.diag(x)))).max()
+         print (abs(dot(A, V1) - dot(dot(B, V1), diag(a)))).max()
+         x = dot(dot(transpose(V1), B), V1)
+         print (abs(x - diag(diag(x)))).max()
 
 
-     assert((abs(np.dot(V1.T, np.dot(A, V1)) - a * np.eye(len(a)))).max() < 1e-8)
-     assert((abs(np.dot(np.dot(V1.T,B),V1) - np.eye(len(a)))).max() < 1e-8)
+     assert((abs(dot(V1.T, dot(A, V1)) - a * eye(len(a)))).max() < 1e-8)
+     assert((abs(dot(dot(V1.T,B),V1) - eye(len(a)))).max() < 1e-8)
 
 
 
@@ -379,7 +379,7 @@ def geigs2(A, B):
     fun = lambda x: 1.0 / sqrt(x)
     mhalf = matfun(B, fun)
 
-    mam = np.dot(mhalf, np.dot(A, mhalf.T))
+    mam = dot(mhalf, dot(A, mhalf.T))
 
     mam = 0.5 * (mam + mam.T)
 
@@ -387,7 +387,7 @@ def geigs2(A, B):
 
     # changing V back to the original problem
     # (A*V = lamda * B * V)
-    V = np.dot(mhalf, V)
+    V = dot(mhalf, V)
 
     check_eigensolver(a, V, A, B)
     # In this case V should be normed AND orthogonal
@@ -397,7 +397,7 @@ def geigs2(A, B):
     # anyhow something, we can as well sort it again
 
     # Bring the results in descending order:
-    sorter = list(np.argsort(a, kind='mergesort'))
+    sorter = list(argsort(a, kind='mergesort'))
     sorter.reverse()
     a = a[sorter]
     V1 = V[:, sorter]
@@ -406,9 +406,9 @@ def geigs2(A, B):
 
 def matfun(M, fun):
     aval, Avec = eigensolver2(M)
-    anew = np.asarray([fun(av) for av in aval])
+    anew = asarray([fun(av) for av in aval])
     # the vector is given in the format Av[:,i] for the aval[i]
-    O = np.dot(Avec, np.dot(np.diag(anew), Avec.T))
+    O = dot(Avec, dot(diag(anew), Avec.T))
     return O
 
 # python vib.py [-v]:
