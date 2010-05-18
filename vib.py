@@ -375,8 +375,6 @@ def check_eigensolver(a, V1, A, B):
     assert((abs(dot(V1.T, dot(A, V1)) - a * eye(len(a)))).max() < 1e-8)
     assert((abs(dot(dot(V1.T,B),V1) - eye(len(a)))).max() < 1e-8)
 
-
-
 def geigs(A, B):
     """Wrapper around eigensolver from scipy,
        which gives the output to our special need"""
@@ -386,7 +384,8 @@ def geigs(A, B):
 
     mam = dot(mhalf, dot(A, mhalf.T))
 
-    mam = 0.5 * (mam + mam.T)
+    # FIXME: why doing it? A is assumed to be symmetric here.
+    # mam = 0.5 * (mam + mam.T)
 
     a, V = eigh(mam)
 
@@ -394,6 +393,7 @@ def geigs(A, B):
     # (A*V = lamda * B * V)
     V = dot(mhalf, V)
 
+    # FIXME: for debug only:
     check_eigensolver(a, V, A, B)
     # In this case V should be normed AND orthogonal
     # so there is nothing else to do here
