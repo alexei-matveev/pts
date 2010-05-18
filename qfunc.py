@@ -175,26 +175,31 @@ class fwrapper(object):
             massvec = self.reducevecm(massvec, self.mask)
         return massvec
 
-    def reducevecm(self, vec, mask):
+    def reducevecm(self, mass, mask):
         """
-        gives back a massvec, containing only the elements
+        gives back a mass-matrix, containing only the elements
         which are True in mask * mask, therefore giving
-        only back the massvector relevant for the active
+        only back the mass-matrix relevant for the active
         elements
         """
-        imax, jmax = vec.shape
-        cnt_act_elem = mask.count(True)
-        vec2 = np.zeros([cnt_act_elem, cnt_act_elem])
-        i_count = 0
-        for i in range(imax):
-            j_count = 0
-            if mask[i]:
-                 for j in range(jmax):
-                      if mask[j]:
-                          vec2[i_count, j_count] = vec[i,j]
-                          j_count += 1
-                 i_count += 1
-        return vec2
+
+        imax, jmax = mass.shape
+        assert imax == jmax # both dimensions share the mask[:]
+
+        # list of indices of variable coordinates as given by mask:
+        vars = [ i for i, var in enumerate(mask) if var ]
+
+        # number of variables
+        nvars = len(vars)
+
+        # output smaller matrix:
+        mass1 = np.empty((nvars, nvars))
+
+        for i, ii in enumerate(vars):
+            for j, jj in enumerate(vars):
+                mass1[i, j] = mass[ii, jj]
+
+        return mass1
 
     def getpositionsfromatoms(self):
         """
