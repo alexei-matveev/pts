@@ -382,7 +382,7 @@ def geigs(A, B):
        which gives the output to our special need"""
 
     fun = lambda x: 1.0 / sqrt(x)
-    mhalf = matfun(B, fun)
+    mhalf = funm(B, fun)
 
     mam = dot(mhalf, dot(A, mhalf.T))
 
@@ -407,12 +407,15 @@ def geigs(A, B):
 
     return a[sorter], V[:, sorter]
 
-def matfun(M, fun):
-    aval, Avec = eigh(M)
-    anew = asarray([fun(av) for av in aval])
-    # the vector is given in the format Av[:,i] for the aval[i]
-    O = dot(Avec, dot(diag(anew), Avec.T))
-    return O
+def funm(M, fun):
+
+    # eigenvalues m[i] and the corresponding eigenvectors V[:, i] of M:
+    m, V = eigh(M)
+
+    # fm = fun(m) for diagonal m:
+    fm = [fun(ev) for ev in m]
+
+    return dot(V, dot(diag(fm), V.T))
 
 # python vib.py [-v]:
 if __name__ == "__main__":
