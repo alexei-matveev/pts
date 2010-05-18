@@ -147,7 +147,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
 """
 from numpy import array, asarray, dot, zeros, max, abs, eye, diag, sqrt
 from numpy import argsort, savetxt
-from scipy.linalg import eigh as eigensolver2
+from scipy.linalg import eigh
 import ase.atoms
 import ase.units as units
 from paramap import pa_map, ps_map, td_map, pmap, pool_map
@@ -388,7 +388,7 @@ def geigs(A, B):
 
     mam = 0.5 * (mam + mam.T)
 
-    a, V = eigensolver2(mam)
+    a, V = eigh(mam)
 
     # changing V back to the original problem
     # (A*V = lamda * B * V)
@@ -410,7 +410,7 @@ def geigs(A, B):
     return a, V
 
 def matfun(M, fun):
-    aval, Avec = eigensolver2(M)
+    aval, Avec = eigh(M)
     anew = asarray([fun(av) for av in aval])
     # the vector is given in the format Av[:,i] for the aval[i]
     O = dot(Avec, dot(diag(anew), Avec.T))
