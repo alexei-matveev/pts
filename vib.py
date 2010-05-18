@@ -323,32 +323,32 @@ def output(freqs, eigvectors, mass, alsovec = False):
      print "----------------------------------------------------"
 
      if (alsovec):
-          writevec = stdout.write
+          write = stdout.write
 
           # we don't know if they are cartesian
           print "The corresponding eigenvectors  are:"
           print "Number   Vector"
           for i, ev  in enumerate(eigvectors):
-               writevec("%3d :    " % (i+1)  )
+               write("%3d :    " % (i+1)  )
                for j in range(int(len(ev)/3)):
                     for k in [0,1,2]:
-                        writevec("  %10.7f" % (ev[j * 3 + k]))
-                    writevec("\n         " )
+                        write("  %10.7f" % (ev[j * 3 + k]))
+                    write("\n         " )
                for k in range(int(len(ev)/3)*3,len(ev)):
-                    writevec("  %10.7f" % (ev[k]))
-               writevec("\n")
+                    write("  %10.7f" % (ev[k]))
+               write("\n")
           print "----------------------------------------------------"
           print "kinetic energy distribution"
           print "Mode        %Ekin distribution on the atoms"
           for i, ev  in enumerate(eigvectors):
-              writevec("%3d :    " % (i+1)  )
+              write("%3d :    " % (i+1)  )
               ek =  ev *  np.dot(mass, ev.T)
               ek = np.asarray(ek)
               ek.shape = (-1, 3)
               for ek_1 in ek:
                   eks = sum(ek_1)
-                  writevec("  %7.2f" % (eks * 100))
-              writevec("\n" )
+                  write("  %7.2f" % (eks * 100))
+              write("\n" )
 
 
 def check_eigensolver(a, V1, A, B):
