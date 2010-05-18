@@ -73,7 +73,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
   Calculate the vibration modes
 
-    >>> vibmodes(ar4, workhere = True, storehessian = False)
+    >>> vibmodes(ar4, workhere=True)
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
@@ -95,7 +95,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> c = FixAtoms([1, 2])
     >>> ar4.set_constraint(c)
 
-    >>> vibmodes(ar4, workhere = True, storehessian = False)
+    >>> vibmodes(ar4, workhere=True)
     FWRAPPER: The following mask has been obtained from the constraints of the atoms
     [True, True, True, False, False, False, False, False, False, True, True, True]
     ====================================================
@@ -116,7 +116,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> n2 = Atoms('N2', [(0, 0, 0), (0, 0, 1.1)])
 
     >>> n2.set_calculator( EMT())
-    >>> vibmodes(n2, workhere = True, storehessian = False)
+    >>> vibmodes(n2, workhere=True)
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
@@ -132,7 +132,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> n2.set_positions([[  0.0, 0.0, 0.000],
     ...                   [  0.0, 0.0, 1.130]])
 
-    >>> vibmodes(n2, workhere = True, storehessian = False)
+    >>> vibmodes(n2, workhere=True)
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
@@ -146,7 +146,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
 """
 from numpy import array, asarray, dot, zeros, max, abs, eye, diag, sqrt
-from numpy import argsort
+from numpy import argsort, savetxt
 from scipy.linalg import eigh as eigensolver2
 import ase.atoms
 import ase.units as units
@@ -243,7 +243,7 @@ def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' )
             deriv[i,:] = (gval - gmiddle) / delta
     return deriv
 
-def vibmodes(atoms, startdir = None, mask = None, workhere = False, storehessian = True, alsovec = False, **kwargs ):
+def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, alsovec=False, **kwargs ):
     """
     Wrapper around vibmode, which used the atoms objects
     The hessian is calculated by derivatef
@@ -252,23 +252,16 @@ def vibmodes(atoms, startdir = None, mask = None, workhere = False, storehessian
     func = fwrapper(atoms, startdir = startdir, mask = mask, workhere = workhere)
     xcenter = func.getpositionsfromatoms()
     mass = func.getmassfromatoms()
+
     # the derivatives are needed
     hessian = derivatef( func.perform, xcenter,**kwargs )
-    if storehessian:
-        store_hessian(hessian)
+
+    # save is assumend to be a filename, so far only the hessian is saved:
+    if save is not None:
+        savetxt(save, hessian)
+
     freqs, modes = vibmod(mass, hessian)
     output(freqs, modes, mass, alsovec)
-
-
-def store_hessian(hessian):
-    print "Vibration module: printing numerical calculated hessian:"
-    print hessian
-    wr = open("Hessian.dat","w").write
-    dim1 = len(hessian)
-    for i in range(dim1):
-        for j in range(dim1):
-            wr("%23.12f " % hessian[i,j])
-        wr("\n")
 
 def vibmod(mass, hessian):
     """
