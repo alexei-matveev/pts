@@ -247,8 +247,32 @@ class Func(object):
     def __call__(self, *args, **kwargs):
         return self.f(*args, **kwargs)
 
-def compose(p, q):
-    "Compose p*q, make p(x) = p(q(x))"
+class RhoInterval(Func):
+    """Supports generation of bead density functions for placement of beads 
+    at specific positions.
+    """
+    def __init__(self, intervals):
+
+        if intervals[0] != 0:
+            intervals = [0] + intervals.tolist()
+        self.intervals = array(intervals)
+        self.N = len(intervals)
+
+#        Func.__init__(f=self.f)
+
+    def f(self, x):
+        msg = 'Class RhoInterval only defined for x <- (%f,%f]' % (self.intervals[0], self.intervals[-1])
+        if x < 0:
+            raise ValueError(msg)
+
+        for i in range(self.N)[1:]:
+            if x <= self.intervals[i]:
+                return 1.0 / (self.intervals[i] - self.intervals[i-1])
+        msg += ' Supplied value was %f' % x
+        raise ValueError(msg)
+
+def compose(P, Q):
+    "Compose P*Q, make P(x) = P(Q(x))"
 
     def f(x):
         return P(Q(x))
