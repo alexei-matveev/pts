@@ -397,6 +397,69 @@ def atom_atom_dists(v):
 
     return output
 
+def pythag_seps(vs):
+    """Returns pythag distances between vectors in a list/vector of vectors.
+    
+    >>> pythag_seps([[0,0],[1,1],[2,2]])
+    array([ 1.41421356,  1.41421356])
+    
+    """
+    vs = numpy.asarray(vs)
+    N = len(vs)
+    subs = [vs[i] - vs[i-1] for i in range(N)[1:]]
+    return numpy.array([numpy.dot(sub, sub)**0.5 for sub in subs])
+
+def cumm_sum(list, start_at_zero=False):
+    """
+    >>> cumm_sum([1,2,3,4,5])
+    array([  1.,   3.,   6.,  10.,  15.])
+
+    >>> cumm_sum([1,2,3,4,5], start_at_zero=True)
+    array([  0.,   1.,   3.,   6.,  10.,  15.])
+
+    """
+    N = len(list)
+    l = numpy.zeros(N+1)
+    list = numpy.array(list)
+
+    for i in range(N):
+        l[i+1] = l[i] + list[i]
+
+    if start_at_zero:
+        return l
+    else:
+        return l[1:]
+
+class ObjLog:
+    """Inheritable object supporting logging functionality."""
+    def __init__(self, name, default='later'):
+        self._name = name
+        self._modes = ('always', 'later', 'now', 'never')
+        assert default in self._modes, "Legal values are: %s" % self._modes
+        self._default = default
+        self._logs = ''
+
+    def slog(self, *args, **kwargs):
+        when = kwargs.get('when', self._default)
+        assert when in self._modes, "Legal values are: %s" % self._modes
+        s = ' '.join([str(i) for i in args])
+        if when == 'always':
+            self._logs += s + '\n'
+            print s
+        elif when == 'now':
+            print s
+        elif when == 'later':
+            self._logs += ' '.join([str(i) for i in args]) + '\n'
+        elif when == 'never':
+            return
+        else:
+            assert False, "Should never happen"
+
+    def logflush(self):
+        print self._logs
+        self._logs = ''
+
+
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
@@ -407,4 +470,5 @@ if __name__ == "__main__":
 # to your ~/.vimrc for this to take effect.
 # Dont (accidentally) delete these lines! Unless you do it intentionally ...
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
+
 

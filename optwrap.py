@@ -10,7 +10,7 @@ from aof.common import important
 
 __all__ = ["opt"]
 
-names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line']
+names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line', 'multiopt']
 
 def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict()):
     assert name in names
@@ -57,6 +57,13 @@ def runopt_inner(name, CoS, ftol, maxit, callback, extra, maxstep=0.2):
                                   maxstep=maxstep)
         return dict
 
+    elif name == 'multiopt':
+        opt = aof.cosopt.MultiOpt(CoS, maxstep=maxstep, **extra)
+        opt.string = CoS.string
+        opt.attach(lambda: callback(None), interval=1)
+        opt.run(fmax=ftol)
+        x_opt = CoS.state_vec
+        return None      
     elif name[0:4] == 'ase_':
 
         if name == 'ase_lbfgs':

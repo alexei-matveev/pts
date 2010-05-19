@@ -347,12 +347,16 @@ class ReactionPathway(object):
         step_total, step_beads, step_raw = self.step
 
         angles = self.angles
-        seps = self.update_bead_separations()
+        seps_pythag = self.update_bead_separations()
 
-        total_len_pythag = seps.sum()
+        total_len_pythag = seps_pythag.sum()
         total_len_spline = 0
         if self.string:
-            total_len_spline = self._path_rep.get_bead_separations().sum()
+            total_len_spline = self._path_rep.path_len
+            diff = self._path_rep.get_bead_separations().sum() - total_len_spline
+            diff1, _ = self._path_rep._get_total_str_len()
+            diff1 = abs(diff1 - total_len_spline)
+            assert diff < 1e-6, "%e %e" % (diff, diff1)
 
         state_sum, beads_sum = self.state_summary
 
@@ -412,6 +416,7 @@ class ReactionPathway(object):
             arc["ts_estim_carts"] = ts_estim_energy, delnl(ts_estim)
             arc["bead_carts"] = delnl(bead_carts)
 
+
         f = '%10.3e'
         s = [ "\n----------------------------------------------------------",
              "Chain of States Summary for %d gradient/energy calculations" % eg_calls,
@@ -429,19 +434,20 @@ class ReactionPathway(object):
              "%-24s : %s" % ("MAX Forces", format(f, maxf_beads)),
              "%-24s : %s" % ("RMS Step Size", format(f, step_beads)),
              "%-24s : %12s %s |" % ("Bead Angles","|" , format('%10.0f', angles)),
-             "%-24s : %6s %s" % ("Bead Separations (Pythagorean)", "|", format(f, seps)),
-             "%-24s : %6s %f" % ("Bead Sep ratio (Pythagorean)", "|", seps.max() / seps.min()),
+             "%-24s : %6s %s" % ("Bead Separations (Pythagorean)", "|", format(f, seps_pythag)),
+             "%-24s : %6s %f" % ("Bead Sep ratio (Pythagorean)", "|", seps_pythag.max() / seps_pythag.min()),
              "%-24s : %s" % ("Bead Path Position", format(f, path_pos)),
              "%-24s :" % ("Raw State Vector"),
              all_coordinates,
              "GENERAL STATS",
              "%-24s : %10d" % ("Callbacks", self.callbacks),
              "%-24s : %10d" % ("Beads Count", self.beads_count),
-             "%-24s : %.2f %.2f" % ("Total Length (Pythag|Spline)", total_len_pythag, total_len_spline),
+             "%-24s : %.4f %.4f" % ("Total Length (Pythag|Spline)", total_len_pythag, total_len_spline),
              "%-24s : %10s" % ("State Summary (total)", state_sum),
              "%-24s : %s" % ("State Summary (beads)", format('%10s', beads_sum)),
              "%-24s : %10.4f | %10.4f " % ("Barriers (Fwd|Rev)", barrier_fwd, barrier_rev),
              "Archive %s" % arc]
+
 
 
         return '\n'.join(s)
@@ -501,16 +507,11 @@ class ReactionPathway(object):
         """Updates internal vector of distances between beads."""
 
         v = self.state_vec.copy()
-        seps = []
-        for i in range(1,len(v)):
-            dv = v[i] - v[i-1]
-            seps.append(dot(dv,dv))
+        seps = common.pythag_seps(v)
+        self.bead_separations = seps
+        return seps
 
-        self.bead_separations = array(seps)**0.5
-
-        return self.bead_separations
-
-
+    # commented out 06/05/2010 -> not needed? YES NEEDED
     def pathfs(self):
         return self.bead_separations
 
@@ -593,11 +594,25 @@ class ReactionPathway(object):
             t = self.tangents[i]
             perp_force, para_force = project_out(t, -g)
 
-            self.perp_bead_forces[i] = perp_force
+            self.perp_bead_forces[i] = -perp_force
             self.para_bead_forces[i] = para_force
 
         self.post_obj_func(grad)
 
+    def exp_project(self, vector):
+        """Exports projection functionality from CoS object."""
+        N = self.beads_count
+        assert vector.size >= self.tangents.size
+        v = vector.reshape(-1).copy()
+        v.resize(self.tangents.size)
+        v.shape = (N,-1)
+
+        for i in range(N):
+            t = self.tangents[i]
+            v[i], _ = project_out(t, v[i])
+
+        return v
+       
     def get_final_bead_ix(self, i):
         """
         Based on bead index |i|, returns final index once string is fully 
@@ -821,7 +836,7 @@ class NEB(ReactionPathway):
 
     def get_forces(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
-        return -common.make_like_atoms(self.obj_func_grad())
+        return common.make_like_atoms(self.obj_func_grad())
 
     def get_potential_energy(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -936,7 +951,8 @@ class PathRepresentation(object):
 
         self.__rho = self.set_rho(rho)
 
-        self.seps_stale = True
+        self._funcs_stale = True
+        self._integrals_stale = True
 
         # TODO check all beads have same dimensionality
 
@@ -969,17 +985,29 @@ class PathRepresentation(object):
 
     def set_state_vec(self, new_state_vec):
         self.__state_vec = array(new_state_vec).reshape(self.beads_count, -1)
-        self.seps_stale = True
+        self._funcs_stale = True
+        self._integrals_stale = True
 
     state_vec = property(get_state_vec, set_state_vec)
+
+    __path_len = -1
+    @property
+    def path_len(self):
+        return self.__path_len
 
     @property
     def dimension(self):
         return self.__dimension
 
-    def regen_path_func(self):
+    def regen_path_func(self, normalised_positions=None):
         """Rebuild a new path function and the derivative of the path based on 
         the contents of state_vec."""
+
+        assert self._funcs_stale or (not normalised_positions is None), self._funcs_stale
+
+        if not normalised_positions is None:
+            assert len(normalised_positions) == self.beads_count
+            self.__normalised_positions = normalised_positions
 
         assert len(self.__state_vec) > 1
 
@@ -999,13 +1027,6 @@ class PathRepresentation(object):
 
                 # FIXME: at present, transition state assumed to be half way ebtween reacts and prods
                 ps = array((0.0, 0.5, 1.0))
-                """ps_x_pow_2 = ps**2
-                ps_x_pow_1 = ps
-                ps_x_pow_0 = ones(len(ps_x_pow_1))
-
-                A = column_stack((ps_x_pow_2, ps_x_pow_1, ps_x_pow_0))
-
-                quadratic_coeffs = linalg.solve(A,ys)"""
 
                 self.__fs.append(QuadFunc(ps, ys))
 
@@ -1015,6 +1036,14 @@ class PathRepresentation(object):
                 assert len(self.__normalised_positions) == len(self.__state_vec)
                 self.__fs.append(SplineFunc(xs,ys))
 
+        (str_len_precise, error) = scipy.integrate.quad(self.__arc_dist_func, 0, 1, limit=100)
+        lg.debug("String length integration error = " + str(error))
+        assert error < self.__max_integral_error, "error = %f" % error
+
+        self.__path_len = str_len_precise
+
+        self._funcs_stale = False
+
 
     def __arc_dist_func(self, x):
         output = 0
@@ -1022,45 +1051,38 @@ class PathRepresentation(object):
             output += a.fprime(x)**2
         return sqrt(output)
 
-    def __get_total_str_len_exact(self):
-
-        (integral, error) = scipy.integrate.quad(self.__arc_dist_func, 0.0, 1.0)
-        return integral
-
     def get_bead_separations(self):
         """Returns the arc length between beads according to the current 
         parameterisation.
         """
 
-        while self.seps_stale:
+        assert not self._funcs_stale
+        if self._integrals_stale:
             a = self.__normalised_positions
             N = len(a)
             seps = []
             for i in range(N)[1:]:
-                l = scipy.integrate.quad(self.__arc_dist_func, a[i-1], a[i])
-                seps.append(l[0])
+                l, _ = scipy.integrate.quad(self.__arc_dist_func, a[i-1], a[i])
+                seps.append(l)
 
             self.seps = array(seps)
 
-            self.seps_stale = False
+            self._integrals_stale = False
+
         return self.seps
 
-    def __get_total_str_len(self):
-        """Returns the a duple of the total length of the string and a list of 
+    def _get_total_str_len(self):
+        """Returns a duple of the total length of the string and a list of 
         pairs (x,y), where x a distance along the normalised path (i.e. on 
         [0,1]) and y is the corresponding distance along the string (i.e. on
         [0,string_len])."""
         
-
+        print "Starting slow function: _get_total_str_len()"
         # number of points to chop the string into
         param_steps = arange(0, 1, self.__step)
 
         list = []
         cummulative = 0
-
-        (str_len_precise, error) = scipy.integrate.quad(self.__arc_dist_func, 0, 1, limit=100)
-        lg.debug("String length integration error = " + str(error))
-        assert error < self.__max_integral_error, "error = %f" % error
 
         for i in range(self.__str_resolution):
             pos = (i + 0.5) * self.__step
@@ -1069,10 +1091,15 @@ class PathRepresentation(object):
             list.append(cummulative)
 
         #lg.debug('int_approx = {0}, int_accurate = {1}'.format(cummulative, str_len_precise))
+        err = abs(list[-1] - self.__path_len)
+        assert err < 1e-4, "%e" % err
+
+        print "Finishing slow function: _get_total_str_len()"
 
         return (list[-1], zip(param_steps, list))
 
     def sub_str_lengths(self, normd_poses):
+        # delete this function? 07/05/10
         """Finds the lengths of the pieces of the string specified in 
         normd_poses in terms of normalised coordinate."""
 
@@ -1088,42 +1115,6 @@ class PathRepresentation(object):
 
         lengths = array(lengths).flatten()
 
-    def generate_beads_exact(self, update = False):
-        """Returns an array of the self.__beads_count vectors of the coordinates 
-        of beads along a reaction path, according to the established path 
-        (line, parabola or spline) and the parameterisation density."""
-
-
-        assert len(self.__fs) > 1
-
-        # Find total string length and incremental distances x along the string 
-        # in terms of the normalised coodinate y, as a list of (x,y).
-        total_str_len = self.__get_total_str_len_exact()
-
-        # For the desired distances along the string, find the values of the
-        # normalised coordinate that achive those distances.
-        normd_positions = self.__generate_normd_positions_exact(total_str_len)
-
-        self.sub_str_lengths(normd_positions)
-
-        bead_vectors = []
-        bead_tangents = []
-        for str_pos in normd_positions:
-            bead_vectors.append(self.__get_bead_coords(str_pos))
-            bead_tangents.append(self.__get_tangent(str_pos))
-
-
-        (reactants, products) = (self.__state_vec[0], self.__state_vec[-1])
-        bead_vectors = array([reactants] + bead_vectors + [products])
-        bead_tangents = array([self.__get_tangent(0)] + bead_tangents + [self.__get_tangent(1)])
-
-        if update:
-            self.state_vec = bead_vectors
-
-            self.__path_tangents = bead_tangents
-
-        return bead_vectors
-
     def generate_beads(self, update = False):
         """Returns an array of the self.__beads_count vectors of the coordinates 
         of beads along a reaction path, according to the established path 
@@ -1131,9 +1122,11 @@ class PathRepresentation(object):
 
         assert len(self.__fs) > 1
 
+        assert not self._funcs_stale
+
         # Find total string length and incremental distances x along the string 
         # in terms of the normalised coodinate y, as a list of (x,y).
-        (total_str_len, incremental_positions) = self.__get_total_str_len()
+        (total_str_len, incremental_positions) = self._get_total_str_len()
 
         # For the desired distances along the string, find the values of the
         # normalised coordinate that achive those distances.
@@ -1164,44 +1157,13 @@ class PathRepresentation(object):
         return bead_vectors
 
     def update_tangents(self):
-        points_cnt = len(self.__state_vec)
-        even_spacing = arange(0.0, 1.0 + 1.0 / (points_cnt - 1), 1.0 / (points_cnt - 1))
-        even_spacing = even_spacing[0:points_cnt]
-
+        assert not self._funcs_stale
         ts = []
         for i in self.__normalised_positions:
              ts.append(self.__get_tangent(i))
  
         self.__path_tangents = array(ts)
         
-    def __get_str_positions_exact(self):
-        from scipy.integrate import quad
-        from scipy.optimize import fmin
-
-        integrated_density_inc = 1.0 / (self.beads_count - 1.0)
-        requirement_for_prev_bead = 0.0
-        requirement_for_next_bead = integrated_density_inc
-
-        x_min = 0.0
-        x_max = -1
-
-        str_poses = []
-
-        def f_opt(x):
-            (i,e) = quad(self.__rho, x_min, x)
-            tmp = (i - integrated_density_inc)**2
-            return tmp
-
-        for i in range(self.beads_count - 2):
-
-            x_max = fmin(f_opt, requirement_for_next_bead, disp=False)
-            str_poses.append(x_max[0])
-            x_min = x_max[0]
-            requirement_for_prev_bead = requirement_for_next_bead
-            requirement_for_next_bead += integrated_density_inc
-
-        return str_poses
-
     def dump_rho(self):
         res = 0.02
         print "rho: ",
@@ -1268,32 +1230,7 @@ class PathRepresentation(object):
         self.__rho = lambda x: new_rho(x) / integral
         return self.__rho
 
-    def __generate_normd_positions_exact(self, total_str_len):
-
-        #  desired fractional positions along the string
-        fractional_positions = self.__get_str_positions_exact()
-
-        normd_positions = []
-
-        prev_norm_coord = 0
-        prev_len_wanted = 0
-
-        from scipy.integrate import quad
-        from scipy.optimize import fmin
-        for frac_pos in fractional_positions:
-            next_norm_coord = frac_pos
-            next_len_wanted = total_str_len * frac_pos
-            length_err = lambda x: \
-                (dup2val(quad(self.__arc_dist_func, prev_norm_coord, x)) - (next_len_wanted - prev_len_wanted))**2
-            next_norm_coord = fmin(length_err, next_norm_coord, disp=False)
-
-            normd_positions.append(next_norm_coord)
-
-            prev_norm_coord = next_norm_coord
-            prev_len_wanted = next_len_wanted
-
-        return normd_positions
-            
+          
     def __generate_normd_positions(self, total_str_len, incremental_positions):
         """Returns a list of distances along the string in terms of the normalised 
         coordinate, based on desired fractional distances along string."""
@@ -1446,6 +1383,7 @@ class GrowingString(ReactionPathway):
 
         # Space beads along the path
         self._path_rep.generate_beads(update = True)
+        self._path_rep.regen_path_func()
 
         self.parallel = parallel
 
@@ -1461,11 +1399,13 @@ class GrowingString(ReactionPathway):
 
     def search_string_init(self):
         self.bead_positions = arange(self.beads_count) * 1.0 / (self.beads_count - 1.0)
+
     def __len__(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
 
         return len(common.make_like_atoms(self.state_vec))
 
+    # commented out 06/05/2010 -> not needed? YES needed by plotter used for analytical PES's
     def pathfs(self):
         return self._path_rep.fs
 
@@ -1479,7 +1419,6 @@ class GrowingString(ReactionPathway):
             self.bead_pes_gradients.reshape(self.beads_count,-1), \
             self.pathpos())
 
-        print "TUPLE", pathps, pathpsold
         return state, energies, gradients, pathps, pathpsold
 
     def get_state_vec(self):
@@ -1492,8 +1431,6 @@ class GrowingString(ReactionPathway):
         if x != None:
 
             self.update_path(x, respace = False)
-
-            lg.info("Lengths Disparate: %s" % self.lengths_disparate())
 
 #            self._path_rep.state_vec = array(x).reshape(self.beads_count, -1)
 
@@ -1544,7 +1481,7 @@ class GrowingString(ReactionPathway):
     def get_final_bead_ix_classic_grow(self, i):
         """
         Based on bead index |i|, returns final index once string is fully 
-        grown.
+        grown. This is only valid for 'classic' ends-inwards growth.
         """
         if self.growing and not self.grown():
             assert self.beads_count % 2 == 0
@@ -1554,7 +1491,6 @@ class GrowingString(ReactionPathway):
                 return i + gap
 
         return i
-
 
     def grown(self):
         return self.beads_count == self.__final_beads_count
@@ -1574,8 +1510,11 @@ class GrowingString(ReactionPathway):
         rho = RhoInterval(self.bead_positions).f
         self._path_rep.set_rho(rho)
         self._path_rep.generate_beads(update = True)
+        self._path_rep.regen_path_func() #TODO: for grow class as well
 
-        self._path_rep.beads_count = self.beads_count
+
+        # HCM 06/05/10: the following line does nothing, see definition of setter for self.beads_count
+        # self._path_rep.beads_count = self.beads_count
 
         self.initialise()
 
@@ -1645,9 +1584,9 @@ class GrowingString(ReactionPathway):
         # at some point.
         fbc = self.__final_beads_count
         all_bead_ps = arange(fbc) * 1.0 / (fbc - 1)
-        end = self.beads_count / 2
+        end = self.beads_count / 2.0
         self.bead_positions = array([all_bead_ps[i] for i in range(len(all_bead_ps)) \
-            if i < end or i >= (fbc - end - 1)])
+            if i < end or i >= (fbc - end)])
 
         if self.beads_count == self.__final_beads_count:
             self._path_rep.set_rho(self.__final_rho)
@@ -1680,47 +1619,55 @@ class GrowingString(ReactionPathway):
 
         Is this description out of date?
         """
+
         seps = self._path_rep.get_bead_separations()
         assert len(seps) == self.beads_count - 1
 
         seps_ = zeros(seps.shape)
         seps_[0] = seps[0]
-        for i in range(len(seps)):
+        for i in range(len(seps))[1:]:
             seps_[i] = seps[i] + seps_[i-1]
 
-
+        assert len(seps_) == len(self.bead_positions) - 1, "%s\n%s" % (seps_, self.bead_positions)
         diffs = (self.bead_positions[1:] - seps_/seps.sum())
 
         return diffs.max() > self.__max_sep_ratio
 
 
-    def obj_func(self, new_state_vec = None):
+    def obj_func(self, new_state_vec=None, individual=False):
         # growing string object needs to know how many beads should be added
         # for knowing the correct bead number _____AN
 #        diffbeads = self.__final_beads_count - self.beads_count
         ReactionPathway.obj_func(self, new_state_vec)
 
-        return self.bead_pes_energies.sum()
+        if individual:
+            return self.bead_pes_energies
+        else:
+            return self.bead_pes_energies.sum()
 
-    def obj_func_grad(self, new_state_vec = None):
+    def obj_func_grad(self, new_state_vec = None, raw=False):
         # growing string object needs to know how many beads should be added
         # for knowing the correct bead number _____AN
         #diffbeads = self.__final_beads_count - self.beads_count
         ReactionPathway.obj_func(self, new_state_vec, grad=True)
 
         result_bead_forces = zeros((self.beads_count, self.dimension))
+        if raw:
+            from_array = self.bead_pes_gradients
+        else:
+            from_array = self.perp_bead_forces
+
         for i in range(self.beads_count):
             if self.bead_update_mask[i]:
-                result_bead_forces[i] = self.perp_bead_forces[i]
+                result_bead_forces[i] = from_array[i]
 
-        g = -result_bead_forces.flatten()
+        g = result_bead_forces.flatten()
         return g
-
 
     def respace(self):
         self.update_path(respace=True)
 
-    def update_path(self, state_vec = None, respace = True):
+    def update_path(self, state_vec=None, respace=True, smart_abscissa=True):
         """After each iteration of the optimiser this function must be called.
         It rebuilds a new (spline) representation of the path and then 
         redestributes the beads according to the density function."""
@@ -1729,18 +1676,30 @@ class GrowingString(ReactionPathway):
             new = array(state_vec).reshape(self.beads_count, -1)
             assert new.size == self.state_vec.size
 
-            state_vec_old = self._path_rep.state_vec.copy()
+            tmp = self._path_rep.state_vec.copy()
 
             for i in range(self.beads_count):
                 if self.bead_update_mask[i]:
-                    state_vec_old[i] = new[i]
-            self._path_rep.state_vec = new
+                    tmp[i] = new[i]
+            self._path_rep.state_vec = tmp # was '= new' until 07/05/10
 
-        # rebuild line, parabola or spline representation of path
-        self._path_rep.regen_path_func()
+            # rebuild line, parabola or spline representation of path
+            self._path_rep.regen_path_func()
 
         # respace the beads along the path
         if respace:
+            if smart_abscissa:
+                pythag_seps = common.pythag_seps(self.state_vec)
+
+                if len(self.state_vec) > 4:
+                    # This is a kind of dodgy hack to prevent the bits of
+                    # spline between the end beads from becoming too curved.
+                    pythag_seps[0] *= 0.7
+                    pythag_seps[-1] *= 0.7
+                new_abscissa = cumm_sum(pythag_seps, start_at_zero=True)
+                new_abscissa /= new_abscissa[-1]
+                self._path_rep.regen_path_func(normalised_positions=new_abscissa)
+
             self._path_rep.generate_beads(update = True)
 
             # The following line ensure that the path used for the next 
@@ -1750,11 +1709,15 @@ class GrowingString(ReactionPathway):
 
             self.respaces += 1
 
+        # TODO: this must eventually be done somewhere behind the scenes.
+        # I.e. Why would one ever want to update the path but not the tangents?
         self._path_rep.update_tangents()
 
-    def plot(self):
+
+    # never used? commented out 06/05/2010
+    #def plot(self):
 #        self._path_rep.generate_beads_exact()
-        plot2D(self._path_rep)
+    #    plot2D(self._path_rep)
 
 def project_out(component_to_remove, vector):
     """Projects the component of 'vector' that lies along 'component_to_remove'

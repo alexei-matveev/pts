@@ -247,33 +247,8 @@ class Func(object):
     def __call__(self, *args, **kwargs):
         return self.f(*args, **kwargs)
 
-class RhoInterval(Func):
-    """Supports generation of bead density functions for placement of beads 
-    at specific positions.
-    """
-    def __init__(self, intervals):
-
-        if intervals[0] != 0:
-            intervals = [0] + intervals.tolist()
-        self.intervals = array(intervals)
-        self.N = len(intervals)
-
-#        Func.__init__(f=self.f)
-        print intervals
-
-    def f(self, x):
-        msg = 'Class RhoInterval only defined for x <- (%f,%f]' % (self.intervals[0], self.intervals[-1])
-        if x < 0:
-            raise ValueError(msg)
-
-        for i in range(self.N)[1:]:
-            if x <= self.intervals[i]:
-                return 1.0 / (self.intervals[i] - self.intervals[i-1])
-        msg += 'Supplied value was %f' % x
-        raise ValueError(msg)
-
-def compose(P, Q):
-    "Compose P*Q, make P(x) = P(Q(x))"
+def compose(p, q):
+    "Compose p*q, make p(x) = p(q(x))"
 
     def f(x):
         return P(Q(x))
@@ -674,7 +649,7 @@ class Integral(Func):
         if x0 is None: x0 = self.x0
 
         (s, err) = quad(self.fprime, x0, x, **self.kwargs)
-        assert abs(err) <= abs(s) * 1.0e7
+        assert abs(err) <= abs(s) * 1.0e-3, "%f > %f" % (abs(err), abs(s) * 1.0e-7) # was 1e7, then 1e-7
         return s
 
 class Inverse(Func):
