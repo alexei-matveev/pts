@@ -194,7 +194,7 @@ class MiniBFGS(Func, ObjLog):
             else:
                 dir = dir / norm
                 step = dir * calc_step(dir, self.H, grad, energy)
-                self.slog("Recomended, non-scaled step:", dist, when='always')
+                self.slog("Recomended non-scaled step dist:", step, when='always')
 
         self._pos0 = pos
         self._grad0 = grad
@@ -221,7 +221,7 @@ def calc_step(dir, H, grad, energy):
     dir = dir / np.linalg.norm(dir)
     def quadradic_energy(s):
         return s*np.dot(grad, dir) + 0.5*s*s*np.dot(dir, np.dot(H, dir))
-    dist = fminbound(quadradic_energy, 0., 2.)[0]
+    dist = np.atleast_1d(fminbound(quadradic_energy, 0., 2.))[0]
     assert dist > 0.
 
     return dist
