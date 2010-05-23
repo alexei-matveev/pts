@@ -10,7 +10,7 @@ from numpy import eye, outer
 from numpy.linalg import solve #, eigh
 
 #
-# Hessian models below should implement at least update() and apply() methods.
+# Hessian models below should implement at least update() and inv() methods.
 #
 class LBFGS:
     """This appears to be the update scheme described in
@@ -67,7 +67,7 @@ class LBFGS:
 
     def update(self, dr, dg):
         """Update representation of the Hessian.
-        See corresponding |apply|-function for more info.
+        See corresponding |inv|-function for more info.
         """
 
         # expand the hessian repr:
@@ -105,7 +105,7 @@ class LBFGS:
         # update hessian model:
         self.H = (s, y, rho, h0)
 
-    def apply(self, g):
+    def inv(self, g):
         """Computes z = H * g using internal representation
         of the inverse hessian, H = B^-1.
         """
@@ -184,12 +184,12 @@ class BFGS:
 
         self.B += outer(dg, dg) / dot(dr, dg) - outer(Bdr, Bdr) / dot(dr, Bdr)
 
-    def apply(self, g):
+    def inv(self, g):
         """Computes z = H * g using internal representation
         of the inverse hessian, H = B^-1.
         """
 
-        # initial hessian (in case apply is called first):
+        # initial hessian (in case inv() is called first):
         if self.B is None:
             self.B = self.B0 * eye(len(g))
 

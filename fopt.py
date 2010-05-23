@@ -306,7 +306,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
 
     hess: "LBFGS" or "BFGS"
         A name of the class implementing hessian update scheme.
-        Has to support |update| and |apply| methods.
+        Has to support |update| and |inv| methods.
         """
 
     # interpret a string as a constructor name:
@@ -344,7 +344,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
             hessian.update(r-r0, g-g0)
 
         # Quasi-Newton step: df = - H * g, H = B^-1:
-        dr = - hessian.apply(g)
+        dr = - hessian.inv(g)
 
         # restrict the maximum component of the step:
         longest = max(abs(dr))
@@ -416,7 +416,7 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
 
     hess: "LBFGS" or "BFGS"
         A name of the class implementing hessian update scheme.
-        Has to support |update| and |apply| methods.
+        Has to support |update| and |inv| methods.
         """
 
     # interpret a string as a constructor name:
@@ -425,8 +425,8 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
     # returns the default hessian:
     hessian = hess(alpha)
 
-    # shurtcut for linear operator g -> hessian.apply(g):
-    H = hessian.apply
+    # shurtcut for linear operator g -> hessian.inv(g):
+    H = hessian.inv
 
     # geometry, energy and the gradient from previous iteration:
     r0 = None
