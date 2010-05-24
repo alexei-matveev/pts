@@ -8,7 +8,7 @@ __all__ = ["odeint1", "rk45", "rk4", "rk5"]
 from numpy import asarray, max, abs
 from scipy.integrate import odeint
 
-def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7):
+def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7, maxiter=3):
     """Integrate
 
         dy / dt = f(t, y)
@@ -65,7 +65,9 @@ def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7):
         # guess for the upper integration limit:
         T = 1.0
 
-        while True:
+        iteration = -1
+        while iteration < maxiter:
+            iteration += 1
             #
             # compute y(t + T) and y(t + 2 * T):
             #
@@ -79,6 +81,9 @@ def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7):
             t += 2 * T
             T *= 4
             y = ys[2]
+
+        if iteration >= maxiter:
+            print "odeint1: WARNING: maxiter=", maxiter, "exceeded"
 
         y = ys[2]
 
