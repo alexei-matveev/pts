@@ -1,6 +1,10 @@
 #!/usr/bin/python
 """
-Adapted from cosopt/quadratic_string.py
+Runge-Kutta procedures adapted from cosopt/quadratic_string.py
+
+FIXME: The "exact" integration using scipy.integrate.odeint without
+tolerance settings may require unnecessary much time. Is there a better
+way?
 """
 
 __all__ = ["odeint1", "rk45", "rk4", "rk5"]
