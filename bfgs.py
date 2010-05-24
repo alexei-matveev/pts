@@ -3,7 +3,7 @@
 Hessian update schemes go here.
 """
 
-__all__ = ["LBFGS", "BFGS"]
+__all__ = ["LBFGS", "BFGS", "Array"]
 
 from numpy import asarray, empty, dot
 from numpy import eye, outer
@@ -202,6 +202,29 @@ class BFGS:
         #   z = dot(V, dot(g, V) / b)
 
         return z
+
+
+class Array:
+    """Array/List of hessians, e.g. for a string method.
+    """
+
+    def __init__(self, H):
+        # array/list of hessians:
+        self.__H = H
+
+    def __len__(self):
+        return len(self.__H)
+
+    def __getitem__(self, i):
+        return self.__H[i]
+
+    def update(self, dR, dG):
+        for h, dr, dg in zip(self.__H, dR, dG):
+            h.update(dr, dg)
+
+    def inv(self, G):
+
+        return asarray([ h.inv(g) for h, g in zip(self.__H, G) ])
 
 # python bfgs.py [-v]:
 if __name__ == "__main__":
