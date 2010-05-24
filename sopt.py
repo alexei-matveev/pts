@@ -91,21 +91,51 @@ def test(A, B):
         # return derivatives wrt moving beads:
         return c, cprime[:, 1:-1]
 
+    def constr2(X):
+        """Dynamic costraint to restrict motion to the planes
+        orthogonal to the tangents.
+        """
+
+        T = tang2(X)
+
+        n = len(X)
+
+        A = zeros((n,) + shape(X))
+        # these constrains are local, A[i, j] == 0 if i /= j:
+        for i in xrange(n):
+            A[i, i, :] = T[i]
+
+        # these constrains have no meaningful values,
+        # only "derivatives":
+        return [None]*len(X), A
+
+    from numpy import savetxt, loadtxt
+
     def callback(X):
         Y = vstack((A, X, B))
+        savetxt("path.txt", Y)
         print "chain spacing=", spc(Y)
         show_chain(Y)
 
 #   import pylab
 #   pylab.ion()
 
-#   XM, stats = sopt(grad, X[1:-1], tang2, maxiter=20, maxstep=0.1, callback=callback)
-    XM, stats = sopt(grad, X[1:-1], tang2, constr, maxiter=20, maxstep=0.2, callback=callback)
+#   XM, stats = sopt(grad, X[1:-1], tang2, maxiter=20, maxstep=0.2, callback=callback)
+#   XM, stats = sopt(grad, X[1:-1], tang2, constr, maxiter=20, maxstep=0.1, callback=callback)
+    XM, stats = sopt(grad, X[1:-1], tang2, constr2, maxiter=20, maxstep=0.1, callback=callback)
     XM = vstack((A, XM, B))
     show_chain(XM)
 
     print "XM=", XM
+    exit(0)
 
+    p = Path(XM)
+    X2 = asarray([ p(s) for s in linspace(0., 1., 30)])
+    show_chain(X2)
+
+    XM, stats = sopt(grad, X2[1:-1], tang2, constr, maxiter=20, maxstep=0.05, callback=callback)
+    XM = vstack((A, XM, B))
+    show_chain(XM)
 
 def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
         maxiter=MAXITER, maxstep=MAXSTEP, alpha=70., callback=None):
@@ -145,58 +175,56 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
         # evaluate tangents at all R[i]:
         T = tang(R)
 
-        if VERBOSE:
-            print "sopt: R=", R
-            print "sopt: G=", G, "(raw)"
-            print "sopt: T=", T
+#       if VERBOSE:
+#           print "sopt: R=", R
+#           print "sopt: G=", G, "(raw)"
+#           print "sopt: T=", T
 
-        if constr is not None:
-            # evaluate constrains and their derivatives:
-            c, A = constr(R)
-            if VERBOSE:
-                print "sopt: c=", c
+#       if constr is not None:
+#           # evaluate constrains and their derivatives:
+#           c, A = constr(R)
+#           if VERBOSE:
+#               print "sopt: c=", c
 
         # tangents expected to be normalized:
         for t in T:
             assert abs(dot(t, t) - 1.) < 1.e-7
 
         # first rough estimate of the step:
-        dR1, LAM = qnstep(G, H, T)
-
-        dR = onestep(1.0, G, H, X, tang, constr)
+#       dR, LAM = qnstep(G, H, T)
+        dR = onestep(1.0, G, H, R, tang, constr)
 
         if VERBOSE:
-            print "QN step (full):"
-            print "sopt: dR=", dR1
+#           print "QN step (full):"
+#           print "sopt: dR=", dR1
             print "ODE one step:"
             print "sopt: dR=", dR
 
-        # assume positive hessian, H > 0
-        assert Dot(G, dR) < 0.0
+        # FIXME: does it hold in general?
+        if constr is None:
+            # assume positive hessian, H > 0
+            assert Dot(G, dR) < 0.0
 
         # estimate the scaling factor for the step:
         h = 1.0
         if max(abs(dR)) > maxstep:
             h = 0.9 * maxstep / max(abs(dR))
 
-        if VERBOSE:
-            print "QN step, h=", h,":"
-            print "sopt: dR=", dR * h
+#       if VERBOSE:
+#           print "QN step, h=", h,":"
+#           print "sopt: dR=", dR * h
 
-        dR = rk5step(h, G, H, R, tang)
+#       dR = rk5step(h, G, H, R, tang)
 
-        if VERBOSE:
-            print "RK5 step, h=", h, ":"
-            print "sopt: dR=", dR
-            print "sopt: LAM=", LAM
+#       if VERBOSE:
+#           print "RK5 step, h=", h, ":"
+#           print "sopt: dR=", dR
 
-        dR1 = odestep(h, G, H, R, tang, constr)
+        dR = odestep(h, G, H, R, tang, constr)
 
         if VERBOSE:
             print "ODE step, h=", h, ":"
-            print "sopt: dR=", dR1
-
-        dR = dR1
+            print "sopt: dR=", dR
 
         # check convergence, if any:
         if max(abs(dR)) < stol:
@@ -204,12 +232,13 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
                 print "sopt: converged by step max(abs(dR))=", max(abs(dR)), '<', stol
             converged = True
 
-        # purified gradient for CURRENT geometry:
-        if max(abs(G - dot(LAM, T))) < gtol:
-            # FIXME: this may change after update step!
-            if VERBOSE:
-                print "cmin: converged by force max(abs(G - dot(LAM, T)))", max(abs(G - dot(LAM, T))), '<', gtol
-            converged = True
+#       # FIXME: maybe use proj(G, T) here?
+#       # purified gradient for CURRENT geometry:
+#       if max(abs(G - dot(LAM, T))) < gtol:
+#           # FIXME: this may change after update step!
+#           if VERBOSE:
+#               print "cmin: converged by force max(abs(G - dot(LAM, T)))", max(abs(G - dot(LAM, T))), '<', gtol
+#           converged = True
 
         # restrict the maximum component of the step:
         longest = max(abs(dR))
@@ -219,8 +248,8 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
 #               print "sopt: dR=", dR, "(TOO LONG, SCALING DOWN)"
 #           dR *= maxstep / longest
 
-        if VERBOSE:
-            print "sopt: dR=", dR
+#       if VERBOSE:
+#           print "sopt: dR=", dR
 
         # save for later comparison, need a copy, see "r += dr" below:
         R0 = R.copy()
