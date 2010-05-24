@@ -81,6 +81,16 @@ def test(A, B):
     from chain import Spacing
     spc = Spacing()
 
+    def constr(X):
+        "Costrains on the chain of states, based on state spacing."
+
+        Y = vstack((A, X, B))
+
+        c, cprime = spc.taylor(Y)
+
+        # return derivatives wrt moving beads:
+        return c, cprime[:, 1:-1]
+
     def callback(X):
         Y = vstack((A, X, B))
         print "chain spacing=", spc(Y)
@@ -89,14 +99,15 @@ def test(A, B):
 #   import pylab
 #   pylab.ion()
 
-    XM, stats = sopt(grad, X[1:-1], tang2, maxiter=20, maxstep=0.05, callback=callback)
+#   XM, stats = sopt(grad, X[1:-1], tang2, maxiter=20, maxstep=0.1, callback=callback)
+    XM, stats = sopt(grad, X[1:-1], tang2, constr, maxiter=20, maxstep=0.2, callback=callback)
     XM = vstack((A, XM, B))
     show_chain(XM)
 
     print "XM=", XM
 
 
-def sopt(grad, X, tang, stol=STOL, gtol=GTOL, \
+def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
         maxiter=MAXITER, maxstep=MAXSTEP, alpha=70., callback=None):
     """
     """
@@ -110,6 +121,10 @@ def sopt(grad, X, tang, stol=STOL, gtol=GTOL, \
 
     # initial value for the variable:
     R = asarray(X).copy() # we are going to modify it!
+
+    if constr is not None and VERBOSE:
+        print "sopt: initial value of constrains:"
+        print "sopt: ", constr(R)[0]
 
     iteration = -1 # prefer to increment at the top of the loop
     converged = False
@@ -135,15 +150,25 @@ def sopt(grad, X, tang, stol=STOL, gtol=GTOL, \
             print "sopt: G=", G, "(raw)"
             print "sopt: T=", T
 
+        if constr is not None:
+            # evaluate constrains and their derivatives:
+            c, A = constr(R)
+            if VERBOSE:
+                print "sopt: c=", c
+
         # tangents expected to be normalized:
         for t in T:
             assert abs(dot(t, t) - 1.) < 1.e-7
 
         # first rough estimate of the step:
-        dR, LAM = qnstep(G, H, T)
+        dR1, LAM = qnstep(G, H, T)
+
+        dR = onestep(1.0, G, H, X, tang, constr)
 
         if VERBOSE:
             print "QN step (full):"
+            print "sopt: dR=", dR1
+            print "ODE one step:"
             print "sopt: dR=", dR
 
         # assume positive hessian, H > 0
@@ -165,7 +190,7 @@ def sopt(grad, X, tang, stol=STOL, gtol=GTOL, \
             print "sopt: dR=", dR
             print "sopt: LAM=", LAM
 
-        dR1 = odestep(h, G, H, R, tang)
+        dR1 = odestep(h, G, H, R, tang, constr)
 
         if VERBOSE:
             print "ODE step, h=", h, ":"
@@ -190,7 +215,7 @@ def sopt(grad, X, tang, stol=STOL, gtol=GTOL, \
         longest = max(abs(dR))
         if longest > maxstep:
             if VERBOSE:
-                print "sopt: dR=", dR, "(TOO LONG, SCALE DOWN !!!)"
+                print "sopt: STEP TOO LONG, SCALE DOWN !!!"
 #               print "sopt: dR=", dR, "(TOO LONG, SCALING DOWN)"
 #           dR *= maxstep / longest
 
@@ -270,16 +295,16 @@ def rk5step(h, G, H, R, tang):
     return rk5(0.0, R, f, h)
 
 from ode import odeint1
-from numpy import log
+from numpy import log, min, zeros
 
-def odestep(h, G, H, X, tang):
+def odestep(h, G, H, X, tang, constr):
     #
     # Function to integrate (t is "time", not "tangent"):
     #
     #   dg / dt = f(t, g)
     #
     def f(t, g):
-        return gprime(t, g, H, G, X, tang)
+        return gprime(t, g, H, G, X, tang, constr)
 
     #
     # Upper integration limit T (again "time", not "tangent)":
@@ -313,16 +338,38 @@ def odestep(h, G, H, X, tang):
 
     return dX
 
-def gprime(h, g, H, G0, X0, tang):
+def onestep(h, G, H, X, tang, constr):
+    """One step of the using the same direction
+
+        dx / dh = H * gprime(...)
+
+    as the ODE procedure above. Can be used for step length
+    estimation.
     """
-    For the descent procedure return
 
-      dg / dh = - (1 - t(g) * t'(g)) * g
+    # dg = h * dg / dh:
+    dG = h * gprime(0.0, G, H, G, X, tang, constr)
 
-    uses the one-to-one relation between
+    # use one-to-one relation between dx and dg:
+    dX = H.inv(dG)
+
+    return dX
+
+from numpy.linalg import solve
+
+def gprime(h, g, H, G0, X0, tang, constr):
+    """For the descent procedure return
+
+      dg / dh = - (1 - t(g) * t'(g)) * g  + t(g) * lambda(g)
+
+    The Lagrange contribution parallel to the tangent t(g)
+    is added if the differentiable constrain function "constr()"
+    is provided.
+
+    Procedure uses the one-to-one relation between
     gradients and coordinates
 
-      dx = H * dg
+      (x - x0) = H * (g - g0)
 
     to compute the tangents:
 
@@ -333,25 +380,105 @@ def gprime(h, g, H, G0, X0, tang):
 
       dx / dh = - (1 - t(x) * t'(x)) * g(x)
 
-    FIXME: the current form of dg / dh translated to real space
-    variables
+    The current form of gprime() translated to real space variables
 
         dx / dh = H * dg / dh
 
-    neither ensures orthogonality to the tangents or preserves image
-    spacing.
+    may be used to either ensure orthogonality of dx / dh to the tangents
+    or preserve the image spacing depending on the constrain function "constr()".
+    I am afraid one cannot satisfy both.
+
+    NOTE: imaginary time variable "h" is not used anywhere.
     """
 
     # X = X(G):
-    x = X0 + H.inv(g - G0)
+    X = X0 + H.inv(g - G0)
 
     # T = T(X(G)):
-    t = tang(x)
+    T = tang(X)
 
-    # parallel and orthogonal components of G:
-    g1, g2 = proj(g, t)
+    # parallel and orthogonal components of g:
+    G1, G2 = proj(g, T)
 
-    return -g2
+    if constr is not None:
+        # evaluate constrains and their derivatives:
+        c, A = constr(X)
+        # print "gprime: c=", c
+
+        # compute lagrange factors:
+        lam = glambda(G2, H, T, A)
+
+        # add lagrange forces, only components parallel
+        # to the tangents is affected:
+        for i in xrange(len(G2)):
+            G2[i] -= lam[i] * T[i]
+
+    return -G2
+
+def glambda(G, H, T, A):
+    """Compute Lagrange multipliers to compensate for the constrain violation
+    that would occur if the motion would proceed along
+
+        dx / dh = - H * g.
+
+    Lagrange multipliers "lam" are supposed to be used to add contributions
+    PARALLEL to the tangents and thus, redefine the default direction:
+
+        g := g - lam * T   (no sum over path point index i)
+         i    i     i   i
+    """
+
+    # number of constrains:
+    n = len(A)
+
+    # FIXME: number of degrees of freedom same as number of
+    #        constrains:
+    assert len(T) == n
+
+    # dx / dh without constrains would be this:
+    xh = H.inv(-G)
+
+    # dc / dh without constrains would be this:
+    ch = zeros(n)
+    for i in xrange(n):
+        for j in xrange(n):
+            ch[i] += dot(A[i, j], xh[j])
+            # FIXME: place to use npz.matmul() here!
+    # print "glambda: ch=", ch
+
+    # unit lagrangian force along the tangent j would change
+    # the constraint i that fast:
+    xt = H.inv(T)
+    ct = zeros((n, n))
+    for i in xrange(n):
+        for j in xrange(n):
+            ct[i, j] = dot(A[i, j], xt[j])
+
+#   print "glambda: ct=", ct
+
+    # Lagrange factors to fullfill constains:
+    lam = - solve(ct, ch) # linear equations
+    # FIXME: we cannot compensate constrains if the matrix is singular!
+    # print "glambda: lam=", lam
+
+    if VERBOSE: # for verification purposes only:
+        # add lagrange forces, only components parallel parallel
+        # to the tangents is affected:
+        G = G.copy()
+        for i in xrange(n):
+            G[i] -= lam[i] * T[i]
+
+        # dx / dh WITH constrains would be this:
+        xh = H.inv(-G)
+
+        # dc / dh WITH constrains would be this:
+        ch = zeros(n)
+        for i in xrange(n):
+            for j in xrange(n):
+                ch[i] += dot(A[i, j], xh[j])
+        # print "glambda: ch=", ch, "(should be zeros)"
+
+    return lam
 
 # python fopt.py [-v]:
 if __name__ == "__main__":
