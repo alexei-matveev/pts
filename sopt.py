@@ -45,18 +45,18 @@ def test(A, B):
         return map(gradient, X)
 
     def tang(X):
-        AXB = vstack((A, X, B))
-        p = Path(AXB)
+        Y = vstack((A, X, B))
+        p = Path(Y)
 
         return map(p.tangent, s[1:-1])
 
     def tang1(X):
-        AXB = vstack((A, X, B))
-        # p = Path(AXB)
+        Y = vstack((A, X, B))
+        # p = Path(Y)
         T = []
         for i in range(1, 1 + len(X)):
-            a = AXB[i-1]
-            b = AXB[i+1]
+            a = Y[i-1]
+            b = Y[i+1]
             t = b - a
             t /= sqrt(dot(t, t))
             T.append(t)
@@ -64,12 +64,12 @@ def test(A, B):
         return T
 
     def tang2(X):
-        AXB = vstack((A, X, B))
-        # p = Path(AXB)
+        Y = vstack((A, X, B))
+        # p = Path(Y)
         T = []
         for i in range(1, 1 + len(X)):
-            a = AXB[i] - AXB[i-1]
-            b = AXB[i+1] - AXB[i]
+            a = Y[i] - Y[i-1]
+            b = Y[i+1] - Y[i]
             a /= sqrt(dot(a, a))
             b /= sqrt(dot(b, b))
             t = a + b
