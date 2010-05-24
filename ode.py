@@ -3,7 +3,89 @@
 Adapted from cosopt/quadratic_string.py
 """
 
-__all__ = ["rk45", "rk4", "rk5"]
+__all__ = ["odeint1", "rk45", "rk4", "rk5"]
+
+from numpy import asarray, max, abs
+from scipy.integrate import odeint
+
+def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7):
+    """Integrate
+
+        dy / dt = f(t, y)
+
+    from (t0, y0) to t = T (or infinity)
+
+    Example:
+
+        >>> def f(t, y):
+        ...     yp = - (y - 100.0)
+        ...     yp[0] *= 0.01
+        ...     yp[1] *= 100.
+        ...     return yp
+
+        >>> t0 = 0.0
+        >>> y0 = [80., 120]
+
+        >>> odeint1(t0, y0, f)
+        array([ 100.,  100.])
+    """
+
+    y = asarray(y0).copy()
+
+    yshape = y.shape
+    ysize = y.size
+
+    # odeint() from scipy expects f(y, t) and flat array y:
+    def f1(y, t):
+
+        # restore shape:
+        y.shape = yshape
+
+        # call original function:
+        yp = f(t, y, *args)
+
+        # flatten:
+        y.shape = ysize
+        yp.shape = ysize
+
+        return yp
+
+    # initial values:
+    t = t0
+    y.shape = ysize
+
+    if T is not None:
+        #
+        # compute y(t + T):
+        #
+        ys = odeint(f1, y, [t, t + T])
+
+        y = ys[1]
+    else:
+        # guess for the upper integration limit:
+        T = 1.0
+
+        while True:
+            #
+            # compute y(t + T) and y(t + 2 * T):
+            #
+            ys = odeint(f1, y, [t, t + T, t + 2 * T])
+
+            if max(abs(ys[2] - ys[1])) < tol:
+#               print "odeint1: T=", t + 2 * T
+                break
+
+            # advance and scale the upper limit:
+            t += 2 * T
+            T *= 4
+            y = ys[2]
+
+        y = ys[2]
+
+    # return in original shape:
+    y.shape = yshape
+
+    return y
 
 def rk45(t1, x1, f, h, args=()):
     """Returns RK4 and RK5 steps as a tuple.
