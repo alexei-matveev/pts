@@ -8,7 +8,7 @@ __all__ = ["minimize", "cminimize"]
 from numpy import asarray, empty, ones, dot, max, abs, sqrt, shape, linspace
 from numpy import vstack
 # from numpy.linalg import solve #, eigh
-from bfgs import LBFGS, BFGS
+from bfgs import LBFGS, BFGS, Array
 
 VERBOSE = True
 
@@ -78,28 +78,31 @@ def test(A, B):
 
         return T
 
+    from chain import Spacing
+    spc = Spacing()
+
     def callback(X):
         Y = vstack((A, X, B))
+        print "chain spacing=", spc(Y)
         show_chain(Y)
 
 #   import pylab
 #   pylab.ion()
 
-    XM, stats = sopt(grad, X[1:-1], tang2, maxiter=10, maxstep=0.1, callback=callback)
+    XM, stats = sopt(grad, X[1:-1], tang2, maxiter=20, maxstep=0.05, callback=callback)
     XM = vstack((A, XM, B))
     show_chain(XM)
 
     print "XM=", XM
 
 
-from ode import rk5
 def sopt(grad, X, tang, stol=STOL, gtol=GTOL, \
         maxiter=MAXITER, maxstep=MAXSTEP, alpha=70., callback=None):
     """
     """
 
-    # init all hessians:
-    H = [ LBFGS(alpha) for x in X ]
+    # init array of hessians:
+    H = Array([ BFGS(alpha) for x in X ])
 
     # geometry, energy and the gradient from previous iteration:
     R0 = None
@@ -117,10 +120,12 @@ def sopt(grad, X, tang, stol=STOL, gtol=GTOL, \
         # compute the gradients at all R[i]:
         G = grad(R)
 
+        # FIXME: better make sure grad() returns arrays:
+        G = asarray(G)
+
         # update the hessian representation:
         if iteration > 0: # only then R0 and G0 are meaningfull!
-            for h, r, r0, g, g0 in zip(H, R, R0, G, G0):
-                h.update(r - r0, g - g0)
+            H.update(R - R0, G - G0)
 
         # evaluate tangents at all R[i]:
         T = tang(R)
@@ -134,40 +139,39 @@ def sopt(grad, X, tang, stol=STOL, gtol=GTOL, \
         for t in T:
             assert abs(dot(t, t) - 1.) < 1.e-7
 
+        # first rough estimate of the step:
         dR, LAM = qnstep(G, H, T)
 
-        # restrict the maximum component of the step:
-#       hs = ones(len(R))
-#       for i in range(len(R)):
-#           maxcomp = max(abs(dR[i]))
-#           if maxcomp > maxstep:
-#               hs[i] = 0.9 * maxstep / maxcomp
+        if VERBOSE:
+            print "QN step (full):"
+            print "sopt: dR=", dR
 
-#       if True:
-#           for dr, h in zip(dR, hs):
-#               dr[:] *= h
+        # assume positive hessian, H > 0
+        assert Dot(G, dR) < 0.0
 
-#           T2 = tang(R + 0.5 * dR)
-
-#           dR, LAM = qnstep(G, H, T2)
-
-#           for dr, h in zip(dR, hs):
-#               dr[:] *= h
-#       else:
-        def f(t, x, G, H):
-            t = tang(x)
-            dx, lam = qnstep(G, H, t)
-            return dx
-
+        # estimate the scaling factor for the step:
         h = 1.0
         if max(abs(dR)) > maxstep:
             h = 0.9 * maxstep / max(abs(dR))
 
-        dR = rk5(0.0, R, f, h, args=(G, H))
+        if VERBOSE:
+            print "QN step, h=", h,":"
+            print "sopt: dR=", dR * h
+
+        dR = rk5step(h, G, H, R, tang)
 
         if VERBOSE:
+            print "RK5 step, h=", h, ":"
             print "sopt: dR=", dR
             print "sopt: LAM=", LAM
+
+        dR1 = odestep(h, G, H, R, tang)
+
+        if VERBOSE:
+            print "ODE step, h=", h, ":"
+            print "sopt: dR=", dR1
+
+        dR = dR1
 
         # check convergence, if any:
         if max(abs(dR)) < stol:
@@ -186,8 +190,9 @@ def sopt(grad, X, tang, stol=STOL, gtol=GTOL, \
         longest = max(abs(dR))
         if longest > maxstep:
             if VERBOSE:
-                print "sopt: dR=", dR, "(too long, scaling down)"
-            dR *= maxstep / longest
+                print "sopt: dR=", dR, "(TOO LONG, SCALE DOWN !!!)"
+#               print "sopt: dR=", dR, "(TOO LONG, SCALING DOWN)"
+#           dR *= maxstep / longest
 
         if VERBOSE:
             print "sopt: dR=", dR
@@ -213,34 +218,140 @@ def sopt(grad, X, tang, stol=STOL, gtol=GTOL, \
     # of the gradient and step:
     return R, (iteration, converged, G, dR)
 
+def Dot(A, B):
+    "Compute dot(A, B) for a string"
+
+    return sum([ dot(a, b) for a, b in zip(A, B) ])
+
+def proj(V, T):
+    """Decompose vectors V into parallel and orthogonal components
+    using the tangents T.
+    """
+
+    V1 = empty(shape(V)[0]) # (len(V))
+    V2 = empty(shape(V))
+
+    for i in xrange(len(V)):
+        v, t = V[i], T[i]
+
+        # parallel component:
+        V1[i] = dot(t, v)
+
+        # orthogonal component:
+        V2[i] = v - t * V1[i]
+
+    return V1, V2
 
 def qnstep(G, H, T):
     """QN-Step in the subspace orthogonal to tangents T:
 
-        dr = ( 1 - t * t' ) * H * ( 1 - t * t' ) * dg
+        dr = - ( 1 - t * t' ) * H * ( 1 - t * t' ) * g
     """
 
-    dR = empty(shape(G))
-    LAM = empty(shape(G)[0])
+    # parallel and orthogonal components of the gradient:
+    G1, G2 = proj(G, T)
 
-    for i in xrange(len(G)):
-        g, h, t = G[i], H[i], T[i]
+    # step that would make the gradients vanish:
+    R = - H.inv(G2)
 
-        # gradient projection:
-        lam = dot(t, g)
+    # parallel and orthogonal components of the step:
+    R1, R2 = proj(R, T)
 
-        LAM[i] = lam # for output
+    return R2, G1
 
-        # project gradient:
-        g1 = g - t * lam
+from ode import rk5
 
-        # apply (inverse) hessian:
-        dr = - h.inv(g1)
+def rk5step(h, G, H, R, tang):
 
-        # project step:
-        dR[i] = dr - t * dot(t, dr)
+    def f(t, x):
+        dx, lam = qnstep(G, H, tang(x))
+        return dx
 
-    return dR, LAM
+    return rk5(0.0, R, f, h)
+
+from ode import odeint1
+from numpy import log
+
+def odestep(h, G, H, X, tang):
+    #
+    # Function to integrate (t is "time", not "tangent"):
+    #
+    #   dg / dt = f(t, g)
+    #
+    def f(t, g):
+        return gprime(t, g, H, G, X, tang)
+
+    #
+    # Upper integration limit T (again "time", not "tangent)":
+    #
+    if h < 1.0:
+        #
+        # Assymptotically the gradients decay as exp[-t]
+        #
+        T = - log(1.0 - h)
+    else:
+        T = None # FIXME: infinity
+    print "odestep: h=", h, "T=", T
+
+    #
+    # Integrate to T (or to infinity):
+    #
+    G8 = odeint1(0.0, G, f, T)
+    # G8 = G + 1.0 * gp(0.0, G)
+
+    # print "odestep: G8=", G8
+
+    # use one-to-one relation between dx and dg:
+    dX = H.inv(G8 - G)
+
+    if VERBOSE:
+        X8 = X + dX
+        T8 = tang(X8) # FIXME: tang(X8)!
+        G1, G2 = proj(G8, T8)
+        print "odestep: G1=", G1
+        print "odestep: G2=", G2
+
+    return dX
+
+def gprime(h, g, H, G0, X0, tang):
+    """
+    For the descent procedure return
+
+      dg / dh = - (1 - t(g) * t'(g)) * g
+
+    uses the one-to-one relation between
+    gradients and coordinates
+
+      dx = H * dg
+
+    to compute the tangents:
+
+      t(x) = t(x(g))
+
+    This is NOT the traditional steepest descent
+    where one has instead:
+
+      dx / dh = - (1 - t(x) * t'(x)) * g(x)
+
+    FIXME: the current form of dg / dh translated to real space
+    variables
+
+        dx / dh = H * dg / dh
+
+    neither ensures orthogonality to the tangents or preserves image
+    spacing.
+    """
+
+    # X = X(G):
+    x = X0 + H.inv(g - G0)
+
+    # T = T(X(G)):
+    t = tang(x)
+
+    # parallel and orthogonal components of G:
+    g1, g2 = proj(g, t)
+
+    return -g2
 
 # python fopt.py [-v]:
 if __name__ == "__main__":
