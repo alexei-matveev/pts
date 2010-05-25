@@ -152,10 +152,6 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
     # initial value for the variable:
     R = asarray(X).copy() # we are going to modify it!
 
-    if constr is not None and VERBOSE:
-        print "sopt: initial value of constrains:"
-        print "sopt: ", constr(R)[0]
-
     iteration = -1 # prefer to increment at the top of the loop
     converged = False
 
@@ -172,31 +168,10 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
         if iteration > 0: # only then R0 and G0 are meaningfull!
             H.update(R - R0, G - G0)
 
-        # evaluate tangents at all R[i]:
-        T = tang(R)
-
-#       if VERBOSE:
-#           print "sopt: R=", R
-#           print "sopt: G=", G, "(raw)"
-#           print "sopt: T=", T
-
-#       if constr is not None:
-#           # evaluate constrains and their derivatives:
-#           c, A = constr(R)
-#           if VERBOSE:
-#               print "sopt: c=", c
-
-        # tangents expected to be normalized:
-        for t in T:
-            assert abs(dot(t, t) - 1.) < 1.e-7
-
         # first rough estimate of the step:
-#       dR, LAM = qnstep(G, H, T)
         dR = onestep(1.0, G, H, R, tang, constr)
 
         if VERBOSE:
-#           print "QN step (full):"
-#           print "sopt: dR=", dR1
             print "ODE one step:"
             print "sopt: dR=", dR
 
@@ -209,16 +184,6 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
         h = 1.0
         if max(abs(dR)) > maxstep:
             h = 0.9 * maxstep / max(abs(dR))
-
-#       if VERBOSE:
-#           print "QN step, h=", h,":"
-#           print "sopt: dR=", dR * h
-
-#       dR = rk5step(h, G, H, R, tang)
-
-#       if VERBOSE:
-#           print "RK5 step, h=", h, ":"
-#           print "sopt: dR=", dR
 
         dR = odestep(h, G, H, R, tang, constr)
 
@@ -243,13 +208,7 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
         # restrict the maximum component of the step:
         longest = max(abs(dR))
         if longest > maxstep:
-            if VERBOSE:
-                print "sopt: STEP TOO LONG, SCALE DOWN !!!"
-#               print "sopt: dR=", dR, "(TOO LONG, SCALING DOWN)"
-#           dR *= maxstep / longest
-
-#       if VERBOSE:
-#           print "sopt: dR=", dR
+            print "sopt: WARNING: step too long by factor", longest/maxstep, ", scale down !!!"
 
         # save for later comparison, need a copy, see "r += dr" below:
         R0 = R.copy()
@@ -282,7 +241,7 @@ def proj(V, T):
     using the tangents T.
     """
 
-    V1 = empty(shape(V)[0]) # (len(V))
+    V1 = empty(len(V))
     V2 = empty(shape(V))
 
     for i in xrange(len(V)):
@@ -296,6 +255,9 @@ def proj(V, T):
 
     return V1, V2
 
+#
+# Unused in the current version:
+#
 def qnstep(G, H, T):
     """QN-Step in the subspace orthogonal to tangents T:
 
@@ -313,6 +275,9 @@ def qnstep(G, H, T):
 
     return R2, G1
 
+#
+# Unused in the current version:
+#
 from ode import rk5
 
 def rk5step(h, G, H, R, tang):
@@ -345,25 +310,18 @@ def odestep(h, G, H, X, tang, constr):
         T = - log(1.0 - h)
     else:
         T = None # FIXME: infinity
-    print "odestep: h=", h, "T=", T
+
+    if VERBOSE:
+        print "odestep: h=", h, "T=", T
 
     #
     # Integrate to T (or to infinity):
     #
     G8 = odeint1(0.0, G, f, T)
-    # G8 = G + 1.0 * gp(0.0, G)
-
-    # print "odestep: G8=", G8
+    # G8 = G + 1.0 * f(0.0, G)
 
     # use one-to-one relation between dx and dg:
     dX = H.inv(G8 - G)
-
-    if VERBOSE:
-        X8 = X + dX
-        T8 = tang(X8) # FIXME: tang(X8)!
-        G1, G2 = proj(G8, T8)
-        print "odestep: G1=", G1
-        print "odestep: G2=", G2
 
     return dX
 
@@ -473,7 +431,6 @@ def glambda(G, H, T, A):
         for j in xrange(n):
             ch[i] += dot(A[i, j], xh[j])
             # FIXME: place to use npz.matmul() here!
-    # print "glambda: ch=", ch
 
     # unit lagrangian force along the tangent j would change
     # the constraint i that fast:
@@ -483,29 +440,9 @@ def glambda(G, H, T, A):
         for j in xrange(n):
             ct[i, j] = dot(A[i, j], xt[j])
 
-#   print "glambda: ct=", ct
-
     # Lagrange factors to fullfill constains:
     lam = - solve(ct, ch) # linear equations
     # FIXME: we cannot compensate constrains if the matrix is singular!
-    # print "glambda: lam=", lam
-
-    if VERBOSE: # for verification purposes only:
-        # add lagrange forces, only components parallel parallel
-        # to the tangents is affected:
-        G = G.copy()
-        for i in xrange(n):
-            G[i] -= lam[i] * T[i]
-
-        # dx / dh WITH constrains would be this:
-        xh = H.inv(-G)
-
-        # dc / dh WITH constrains would be this:
-        ch = zeros(n)
-        for i in xrange(n):
-            for j in xrange(n):
-                ch[i] += dot(A[i, j], xh[j])
-        # print "glambda: ch=", ch, "(should be zeros)"
 
     return lam
 
