@@ -3,7 +3,7 @@
 """
 """
 
-__all__ = ["minimize", "cminimize"]
+__all__ = []
 
 from numpy import asarray, empty, ones, dot, max, abs, sqrt, shape, linspace
 from numpy import vstack
@@ -21,12 +21,13 @@ CTOL = TOL   # constrain tolerance
 MAXITER = 50
 MAXSTEP = 0.05
 
+from chain import Spacing, Norm
+spacing = Spacing(Norm()).taylor
+
 def test(A, B):
 
     print "A=", A
     print "B=", B
-
-    from path import Path
 
     p = Path([A, B])
     n = 7
@@ -44,85 +45,30 @@ def test(A, B):
     def grad(X):
         return map(gradient, X)
 
-    def tang(X):
-        Y = vstack((A, X, B))
-        p = Path(Y)
+    tang1 = wrap(tangent1, A, B)
+    tang2 = wrap(tangent2, A, B)
+    tang3 = wrap(tangent3, A, B)
 
-        return map(p.tangent, s[1:-1])
-
-    def tang1(X):
-        Y = vstack((A, X, B))
-        # p = Path(Y)
-        T = []
-        for i in range(1, 1 + len(X)):
-            a = Y[i-1]
-            b = Y[i+1]
-            t = b - a
-            t /= sqrt(dot(t, t))
-            T.append(t)
-
-        return T
-
-    def tang2(X):
-        Y = vstack((A, X, B))
-        # p = Path(Y)
-        T = []
-        for i in range(1, 1 + len(X)):
-            a = Y[i] - Y[i-1]
-            b = Y[i+1] - Y[i]
-            a /= sqrt(dot(a, a))
-            b /= sqrt(dot(b, b))
-            t = a + b
-            t /= sqrt(dot(t, t))
-            T.append(t)
-
-        return T
-
-    from chain import Spacing
-    spc = Spacing()
-
-    def constr(X):
-        "Costrains on the chain of states, based on state spacing."
-
-        Y = vstack((A, X, B))
-
-        c, cprime = spc.taylor(Y)
-
-        # return derivatives wrt moving beads:
-        return c, cprime[:, 1:-1]
-
-    def constr2(X):
-        """Dynamic costraint to restrict motion to the planes
-        orthogonal to the tangents.
-        """
-
-        T = tang2(X)
-
-        n = len(X)
-
-        A = zeros((n,) + shape(X))
-        # these constrains are local, A[i, j] == 0 if i /= j:
-        for i in xrange(n):
-            A[i, i, :] = T[i]
-
-        # these constrains have no meaningful values,
-        # only "derivatives":
-        return [None]*len(X), A
+    constr = mkconstr2(spacing, A, B)
 
     from numpy import savetxt, loadtxt
 
     def callback(X):
-        Y = vstack((A, X, B))
-        savetxt("path.txt", Y)
-        print "chain spacing=", spc(Y)
-        show_chain(Y)
+        savetxt("path.txt", X)
+        print "chain spacing=", spacing(X)[0]
+        show_chain(X)
+
+    callback = wrap(callback, A, B)
 
 #   import pylab
 #   pylab.ion()
+#   X = loadtxt("path-input.txt")
 
-#   XM, stats = sopt(grad, X[1:-1], tang2, maxiter=20, maxstep=0.2, callback=callback)
-#   XM, stats = sopt(grad, X[1:-1], tang2, constr, maxiter=20, maxstep=0.1, callback=callback)
-    XM, stats = sopt(grad, X[1:-1], tang2, constr2, maxiter=20, maxstep=0.1, callback=callback)
+#   XM, stats = sopt(grad, X[1:-1], tang1, maxiter=20, maxstep=0.2, callback=callback)
+#   XM, stats = sopt(grad, X[1:-1], tang1, constr2, maxiter=20, maxstep=0.1, callback=callback)
+#   XM, stats = sopt(grad, X[1:-1], tang1, mkconstr1(tang1), maxiter=20, maxstep=0.1, callback=callback)
+#   XM, stats = sopt(grad, X[1:-1], tang2, mkconstr1(tang2), maxiter=20, maxstep=0.1, callback=callback)
+    XM, stats = sopt(grad, X[1:-1], tang3, mkconstr1(tang3), maxiter=20, maxstep=0.1, callback=callback)
     XM = vstack((A, XM, B))
     show_chain(XM)
 
@@ -445,6 +391,96 @@ def glambda(G, H, T, A):
     # FIXME: we cannot compensate constrains if the matrix is singular!
 
     return lam
+
+def tangent1(X):
+    """For n geometries X[:] return n-2 tangents computed
+    as averages of forward and backward tangents.
+    """
+    T = []
+    for i in range(1, len(X) - 1):
+        a = X[i] - X[i-1]
+        b = X[i+1] - X[i]
+        a /= sqrt(dot(a, a))
+        b /= sqrt(dot(b, b))
+        t = a + b
+        t /= sqrt(dot(t, t))
+        T.append(t)
+
+    return T
+
+def tangent2(X):
+    """For n geometries X[:] return n-2 tangents computed
+    as central differences.
+    """
+    T = []
+    for i in range(1, len(X) - 1):
+        a = X[i-1]
+        b = X[i+1]
+        t = b - a
+        t /= sqrt(dot(t, t))
+        T.append(t)
+
+    return T
+
+from path import Path
+
+def tangent3(X, s=None):
+    """For n geometries X[:] return n-2 tangents computed
+    from a fresh spline interpolation.
+    """
+    if s is None:
+        s = linspace(0., 1., len(X))
+
+    p = Path(X, s)
+
+    return map(p.tangent, s[1:-1])
+
+def wrap(tang, A, B):
+    """A decorator for the tangent function tang(X) that appends
+    terminal points A and B before calling it.
+    """
+    def _tang(X):
+        Y = vstack((A, X, B))
+        return tang(Y)
+    return _tang
+
+def mkconstr1(tang):
+    """Returns dynamic costraint to restrict motion to the planes
+    orthogonal to the tangents.
+    """
+
+    def _constr(X):
+
+        T = tang(X)
+
+        n = len(T)
+
+        A = zeros((n,) + shape(T))
+        # these constrains are local, A[i, j] == 0 if i /= j:
+        for i in xrange(n):
+            A[i, i, :] = T[i]
+
+        # these constrains have no meaningful values,
+        # only "derivatives":
+        return [None]*len(T), A
+
+    return _constr
+
+def mkconstr2(spacing, A, B):
+    """Constrains on the chain of states based on state spacing.
+    """
+
+    def _constr(X):
+        Y = vstack((A, X, B))
+
+        # NOTE: spacing for N points returns N-2 results and its
+        # N derivatives:
+        c, cprime = spacing(Y)
+
+        # return derivatives wrt moving beads:
+        return c, cprime[:, 1:-1]
+
+    return _constr
 
 # python fopt.py [-v]:
 if __name__ == "__main__":
