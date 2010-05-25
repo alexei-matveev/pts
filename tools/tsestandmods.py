@@ -28,6 +28,7 @@ def main(argv=None):
     3  : Spline and average
     4  : Spline and cubic
     5  : Three points
+    6  : Bell method
 
     Other possible arguments:
     --p : print the resulting transition state estimates (is also the default
@@ -159,7 +160,7 @@ def main(argv=None):
 
     # if none is choosen, all are selected
     if wanted == []:
-        wanted = [1, 2, 3, 4, 5]
+        wanted = [1, 2, 3, 4, 5, 6]
 
     posonstring = None
     posonstring2 = None
@@ -167,7 +168,7 @@ def main(argv=None):
     try:
         coord_b, energy_b, gradients_b, posonstring, posonstring2, at_object =  pickle.load(f_ts)
         f_ts.close()
-    except ValueError:
+    except :
         try:
             f_ts.close()
             f_ts = open(filename,"r")
@@ -194,7 +195,8 @@ def main(argv=None):
         thirdpath = Path(coord_b, stx3)
         comparepathes(oldpath, newpath, thirdpath, gradients_b, numinfile, filecomp)
 
-def esttsandmd(coord_b, energy_b, gradients_b, at_object, states = None, statesold = None, ts_wanted = [1, 2, 3, 4, 5] ):
+def esttsandmd(coord_b, energy_b, gradients_b, at_object, states = None,\
+              statesold = None, ts_wanted = [1, 2, 3, 4, 5, 6] ):
     """
     calculating of wanted TS-estimates and their modes
     This is done in two different ways of parametrizing the string:
@@ -252,6 +254,9 @@ def estfrompathfirst(pt, ts_sum, cs, addtoname, which):
     if 5 in which:
         ts_int = pt.ts_threepoints()
         ts_est.append(('Three points', ts_int[-1]))
+    if 6 in which:
+        ts_int = pt.ts_bell()
+        ts_est.append(('Bell Method',ts_int[-1]))
     # generates modevectors to the given TS-estimates
     for name, est in ts_est:
          energy, coords, s0, s1,s_ts,  l, r = est
