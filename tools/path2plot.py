@@ -20,6 +20,15 @@ on the kind choosen. There are the possiblilities:
                                      the plane atoms must not be on a line)
 
 der are other options which may be set:
+    --log  filename string num   : reads in filename which should be a .log file output file of
+                                   a string or neb calculation and takes string line of the num'th
+                                   iteration as some extra bead data to plot
+                                   the x-value used for this plot are the same x-values as from the
+                                   last path.pickle given before this option
+
+    --lognf filename             : new log as before, but reuses the string and num from the last one
+                                   only the logfile is changed
+    --lognn num                  : new log plot as above, but takes another iteration than the last one
     --diff                       :for the next two internal coordinates the difference 
                                   will be taken, instead of the values
     --expand cellfile expandfile : the atoms will be exanded with atoms choosen as
@@ -148,6 +157,13 @@ def main(argv=None):
     # count up to know which coordinates are special
     num_i = 1
 
+    # possibility of taking values from a logfile
+    logs = []
+    logs_find = []
+    logs_num = []
+    log_x_num = []
+    xfiles = -1
+
     # read all the arguments in
     for i in range(len(argv)):
          if argv == []:
@@ -193,6 +209,24 @@ def main(argv=None):
                  # count up, to know how many and more important for
                  # let diff easily know what is the next
                  num_i += 1
+             elif option in ["fromlog", "log"]:
+                 logs.append(argv[1])
+                 logs_find.append(argv[2])
+                 logs_num.append(int(argv[3]))
+                 argv = argv[4:]
+                 log_x_num.append(xfiles)
+             elif option in ["fromlognextfile", "lognf"]:
+                 logs.append(argv[1])
+                 logs_find.append(logs_find[-1])
+                 logs_num.append(logs_num[-1])
+                 argv = argv[2:]
+                 log_x_num.append(xfiles)
+             elif option in ["fromlognextnum", "lognn"]:
+                 logs.append(logs[-1])
+                 logs_find.append(logs_find[-1])
+                 logs_num.append(int(argv[1]))
+                 argv = argv[2:]
+                 log_x_num.append(xfiles)
              elif option == "expand":
                  # done like in xyz2tabint, expand the cell
                  #FIXME: There should be a better way to consider atoms
@@ -231,6 +265,7 @@ def main(argv=None):
              # if it is no option is has to be a file
              filenames.append(argv[0])
              argv = argv[1:]
+             xfiles += 1
 
     # plot environment
     pl = plot_tabs(title = title, x_label = xlab, y_label = ylab, log = logscale)
@@ -260,7 +295,28 @@ def main(argv=None):
              name_p = names_of_lines[i]
 
         # prepare plot from the tables containing the path and bead data
-        pl.prepare_plot( path, str(i +1), beads, "_nolegend_", None, None, opt)
+        # only if there are enough for x AND y values
+        if num_opts > 1:
+            pl.prepare_plot( path, name_p, beads, "_nolegend_", None, None, opt)
+
+        # if some data has been extracted from a logfile, after this file i has been used
+        # it has to be plotted here, as here the x values of the files are valid
+        # the log_points should be at the beads
+        if logs != []:
+            for j, log in enumerate(logs):
+                if log_x_num[j] == i:
+                 # use the options for x and plot the data gotten from the file directly
+                 optlog = optx + " t %i" % (xnum_opts + 1)
+                 log_points = beads
+                 log_points = log_points[:xnum_opts + 1,:]
+                 log_points = log_points.tolist()
+                 # till here the x-data should be copied and ready, now add also
+                 # the logdata
+                 log_points.append(read_line_from_log(log, logs_find[j], logs_num[j]))
+                 log_points = np.asarray(log_points)
+                 # The name should be the name of the data line taken, right?
+                 pl.prepare_plot( None, None, None, None, log_points,\
+                               logs_find[j] + ', iteration %i' % (logs_num[j]) , optlog)
 
     # now plot
     pl.plot_data(xrange = xran, yrange = yran )
@@ -301,7 +357,12 @@ def makeoption(num_i, diff, symm, symshift):
      is taken, all other values are taken as they are
      """
      opt = ""
+     optx = []
      second = False
+     # store some information about how many values considerd
+     many = 0
+     xmany = 0
+     count = 0
      for i in range(1, num_i):
           if i in symm:
               opt += " s"
@@ -314,9 +375,45 @@ def makeoption(num_i, diff, symm, symshift):
           elif second:
               opt += " %i" % (i)
               second = False
+              many += 1
+              count += 2
           else:
               opt += " t %i" % (i)
-     return opt
+              many += 1
+              count += 1
+          if many == 1 and xmany == 0:
+              xmany = count
+              optx = opt
+     # return: all options, how many lines in the plot, how many options belong
+     #          to x, (as some like symm or difference use more than one)
+     #          what are the options only for the xfunction
+     return opt, many, xmany, optx
+
+def read_line_from_log(filename, whichline, num):
+    """
+    Reads in a log file (output format of .log file in string/neb
+    calculations) and extracts a dataline of the coordinates whichline
+    in the num's iteration
+    """
+    file = open(filename, "r")
+    uninteresting = len(whichline.split())
+    rightnum = False
+    for line in file:
+        if line.startswith('Chain of States Summary'):
+            fields = line.split()
+            if str(num) in fields:
+                rightnum = True
+            else:
+                rightnum = False
+        if rightnum:
+              if line.startswith(whichline):
+                  fields = line.split()
+                  dataline = []
+                  datapoints = (len(fields) - uninteresting) / 2
+                  for i in range(datapoints):
+                      dataline.append(float(fields[uninteresting +1 +2 * i]))
+    return dataline
+
 
 if __name__ == "__main__":
     import doctest
