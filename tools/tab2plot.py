@@ -9,9 +9,32 @@ every other input also, but the naming in the figures may go wrong then
 It is designed for a file with two tabulars, the first one of a path,
 the second one giving the dat afor the beads
 
+The data to plot is taken from the tabulars, as a default the x value
+is the first row of the tabular, the other rows are all y values. But there
+is also the possibility to choose the data to plot y hand:
+The option --"k1 n1_1 .. k2 n2_1 .." can set the values.
+Here k can be choosen from the following table, the n's following are the number
+of the columns in the tabular to use for the option, there must be exactly the number
+needed by the special option:
+ k  number of n's needed description
+ t   1                  : just take the column given by n
+ d   2                  : difference n1 - n2
+ s   0                  : gives the difference in the symmetry
+                          works on the next two functions given
+                          and uses them to calculate 0.5 (k2(k1)-k2(-k1))
+                          when given a (float) number after s the k1 function
+                          values are shifted to this number
+
 The data could be used directly as the variables x or y (for a x-y plot)
-or a function could work on them. So far the only function available takes
-the difference of two of the values.
+or a function could work on them. So far the functions available are one (t)
+which just takes the value, another (d) which takes the differences of two of the values
+and a las
+
+There is also the possibility of setting an option --title"string" --xlable"string"
+and --ylabel"string" which then will be put in the picture
+
+By setting something like --log" n1 n2", here the ni can be a number or x, y
+The axes announced by these numbers will be set to logarithmic scale
 """
 from sys import argv as arg
 from sys import exit
@@ -52,7 +75,7 @@ def read_tab(filename):
 
     for line in f_1:
         fields = line.split()
-        if fields[0] == "#observed":
+        if fields[0] in ["#observed", "observed"]:
             # this line holds the name, which we only want to use for the
             # first table if its a two table file, as otherwise there would be a to
             # big legend
