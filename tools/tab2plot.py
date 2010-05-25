@@ -16,7 +16,10 @@ the difference of two of the values.
 from sys import argv as arg
 from sys import exit
 import numpy as np
-from matplotlib.pyplot import plot, show, legend, rcParams
+from matplotlib.pyplot import plot, show, legend, rcParams, xlabel, ylabel, xscale, yscale
+from matplotlib.pyplot import gca
+from matplotlib.pyplot import title as set_title
+from aof.path import Path
 
 def read_tab(filename):
     """
@@ -111,6 +114,14 @@ def main(argv = None):
 
     files = []
     option = None
+    xtil = None
+    ytil = None
+    til = None
+    log = []
+    option2 = None
+    xrange = None
+    yrange = None
+
 
     # Variables coulb be given directly or via system
     if argv is None:
@@ -126,6 +137,23 @@ def main(argv = None):
             if option == "help":
                 print __doc__
                 exit()
+            elif option.startswith("xlabel"):
+                xtil =  option[6:]
+            elif option.startswith("ylabel"):
+                ytil =  option[6:]
+            elif option.startswith("title"):
+                til =  option[5:]
+            elif option.startswith("log"):
+                opts = option.split()
+                log.append(opts[1])
+            elif option.startswith("xrange"):
+                opts = option.split()
+                xrange = [float(op) for op in opts[1:3]]
+            elif option.startswith("yrange"):
+                opts = option.split()
+                yrange = [float(op) for op in opts[1:3]]
+            else:
+                option2 = option
         else:
             files.append(ar)
 
@@ -133,20 +161,41 @@ def main(argv = None):
         print "ERROR: table needed to get the values to print from!"
         exit()
 
-    pl = plot_tabs()
+    pl = plot_tabs(x_label = xtil, y_label = ytil, title = til, log = log)
 
     for file in files:
        # make the plots ready for all files given
        # first get the data from there
        tablep, pname, tableb, bname, tabelr, rname = read_tab(file)
-       pl.prepare_plot(tablep, pname, tableb, bname, tabelr, rname, option)
+       pl.prepare_plot(tablep, pname, tableb, bname, tabelr, rname, option2)
 
-    pl.plot_data()
+    pl.plot_data(xrange = xrange, yrange = yrange)
 
 
 class plot_tabs:
-    def __init__(self):
-         pass
+    def __init__(self, title = None, x_label = None, y_label = None, log = []):
+        # set some parameters for the legend, as it would be
+        # to big else
+        rcParams['font.size'] = 8
+        # the lines may be a bit wider than the default
+        rcParams['lines.linewidth'] = 2
+
+        if title is not None:
+             set_title(str(title),fontsize = 'large')
+
+        if x_label is not None:
+             xlabel(x_label)
+
+        if y_label is not None:
+             ylabel(y_label)
+
+        if log != []:
+             for lg in log:
+                 if lg in ['x', 1, '1']:
+                     xscale('log')
+                 if lg in ['y', 'z', 2, '2']:
+                     yscale('log')
+
 
     def prepare_plot(self, tablep, pname, tableb, bname, tabelr, rname, option):
 
@@ -192,13 +241,13 @@ class plot_tabs:
         if tabelr is not None:
             makeplotter(tabelr, xfun, yfuns, rname, 'o')
 
-    def plot_data(self):
+    def plot_data(self, xrange = None, yrange = None):
+        a = gca()
+        if xrange != None:
+            a.set_xlim(xrange)
+        if yrange != None:
+            a.set_ylim(yrange)
 
-        # set some parameters for the legend, as it would be
-        # to big else
-        rcParams['font.size'] = 8
-        # the lines may be a bit wider than the default
-        rcParams['lines.linewidth'] = 2
 
         # prepare the legend, should be placed at the best position
         # available
