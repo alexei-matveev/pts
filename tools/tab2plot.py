@@ -312,7 +312,32 @@ def singleopt(args):
                 exit()
             # return created function, three arguments used
             return fun, 3
+        if args[0] == "s":
+        # finds out if symmetry of path is given (in a special coordinate)
+        # the symmetry t(s') = t(-s') is checked, where s and t are functions
+        # s may be shifted a constant m, thus s' = m - s
+            offall = 1
+            m = None
+            try:
+               m = float(args[1])
+               offall +=1
+            except:
+               # m does not need to be explicity there, else it's 0
+               #thus there need not to be any special care if it's not present
+               pass
 
+            # First funs to select the s values from the table
+            # funs can be any of the other functions given above
+            funs, offset = singleopt(args[offall:])
+            offall += offset
+            # Second fun (used for the t's)
+            funt, offset2 = singleopt(args[offall:])
+            offall += offset2
+            if m == None:
+                fun = testsymmetric(funs, funt).give
+            else:
+                fun = testsymmetric(funs, funt, m).give
+            return fun, offall
 
 
 class takei():
@@ -337,6 +362,43 @@ class difference():
     def give(self, line):
         return line[self.a] - line[self.b]
 
+
+class testsymmetric():
+    """
+    Finds out about symmetry of one system
+    uses a function as s values, which should
+    show the symmetry around s = m
+    and another function t, which will be
+    tested on its symmetry
+    the average value of t(m-s') und t(m+s')
+    is calculated and substracted from the current
+    value t(s=m-s'), this value is used as output
+
+    other than the difference and the takei function it
+    works on the whole table all at once and cannot used
+    line after line
+    """
+    def __init__(self, funs, funt, m = 0.0):
+        self.funs = funs
+        self.funt = funt
+        self.m = m
+
+    def give(self, table):
+         s = np.asarray(self.funs(table) - self.m)
+         t = np.asarray(self.funt(table))
+         path1 = Path(t, s)
+         tout = t.copy()
+         end = min( abs(s[0]), abs(s[-1]))
+         ii = np.nonzero( abs(s) <= end )[0]
+         ii = ii.tolist()
+         for i in ii:
+              tout[i] = 0.5 * (t[i] - path1.f(-s[i]))
+         for i in range(len(t)):
+              if i < ii[0]:
+                  tout[i] = tout[ii[0]]
+              elif i > ii[-1]:
+                  tout[i] = tout[ii[-1]]
+         return tout
 
 if __name__ == "__main__":
     import doctest
