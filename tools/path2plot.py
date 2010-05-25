@@ -28,6 +28,16 @@ der are other options which may be set:
                                   cellfile should contain the three basis vectors for the cell
                                   expandfile contains the shifted atoms with:
                                   "number of origin" "shift in i'th direction"*3
+    --title string               : string will be the title of the picture
+    --xlabel string              : string will be the label in x direction
+    --ylabel string              : string will be the label in y direction
+    --logscale z                 : for z = 1,2 or z = x,y sets scale of this direction to
+                                   logarithmic
+    --name string                : string will be the name of the path-plot, for several
+                                   files the names could be given by repeatly set --name string
+                                   but in this case the name of the i'th call of --name option
+                                   always refers to the i'th file, no matter in which order given
+
 """
 
 from aof.path import Path
@@ -119,10 +129,21 @@ def main(argv=None):
     # the default values for the parameter
     num = 100
     diff = []
+    symm = []
+    symshift = []
+    logscale = []
     allval = []
     cell = None
     tomove = None
     howmove = None
+
+    # axes and title need not be given for plot
+    title = None
+    xlab = None
+    ylab = None
+    xran = None
+    yran = None
+    names_of_lines = []
 
     # count up to know which coordinates are special
     num_i = 1
@@ -148,6 +169,17 @@ def main(argv=None):
                  # of them
                  diff.append(num_i)
                  argv = argv[1:]
+             elif option == "symm":
+                 # test if the following two coordinate (or coord. diffs)
+                 # follow the same symmetry
+                 symm.append(num_i)
+                 try:
+                     m = float(argv[1])
+                     symshift.append([num_i, m])
+                     argv = argv[1:]
+                 except:
+                     pass
+                 argv = argv[1:]
              elif option in ["dis", "2", "ang","3", "ang4", "4", "dih", "5", "dp", "6"]:
                  # this are the possible coordinates, store them
                  value = interestingvalue(option)
@@ -167,6 +199,27 @@ def main(argv=None):
                  # to be shifted to other cells
                  cell, tomove, howmove = get_expansion(argv[1], argv[2])
                  argv = argv[3:]
+             elif option == "title":
+                 title = argv[1]
+                 argv = argv[2:]
+             elif option == "xlabel":
+                 xlab = argv[1]
+                 argv = argv[2:]
+             elif option == "ylabel":
+                 ylab = argv[1]
+                 argv = argv[2:]
+             elif option == "name":
+                 names_of_lines.append(argv[1])
+                 argv = argv[2:]
+             elif option == "xrange":
+                 xran = [ float(argv[1]), float(argv[2])]
+                 argv = argv[3:]
+             elif option == "yrange":
+                 yran = [ float(argv[1]), float(argv[2])]
+                 argv = argv[3:]
+             elif option.startswith("logscale"):
+                 logscale.append(argv[1])
+                 argv = argv[2:]
              else:
                  # For everything that does not fit in
                  print "This input variable is not valid:"
@@ -180,10 +233,15 @@ def main(argv=None):
              argv = argv[1:]
 
     # plot environment
-    pl = plot_tabs()
+    pl = plot_tabs(title = title, x_label = xlab, y_label = ylab, log = logscale)
 
     # extract which options to take
-    opt = makeoption(num_i, diff)
+    opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, symm, symshift)
+
+    for i in range(len(filenames)):
+        # ensure that there will be no error message if calling
+        # names_of_lines[i]
+        names_of_lines.append([])
 
     # For each file prepare the plot
     for i, filename in enumerate(filenames):
@@ -197,11 +255,15 @@ def main(argv=None):
         path = path.T
         beads = np.asarray(beads)
         beads = beads.T
+        name_p = str(i + 1)
+        if names_of_lines[i] != []:
+             name_p = names_of_lines[i]
+
         # prepare plot from the tables containing the path and bead data
         pl.prepare_plot( path, str(i +1), beads, "_nolegend_", None, None, opt)
 
     # now plot
-    pl.plot_data()
+    pl.plot_data(xrange = xran, yrange = yran )
 
 def get_expansion(celldat, expandlist):
      """
@@ -232,7 +294,7 @@ def get_expansion(celldat, expandlist):
 
      return cell, tomove, howmove
 
-def makeoption(num_i, diff):
+def makeoption(num_i, diff, symm, symshift):
      """
      All coordinates generated are used
      For all pairs given by diff the difference
@@ -241,6 +303,11 @@ def makeoption(num_i, diff):
      opt = ""
      second = False
      for i in range(1, num_i):
+          if i in symm:
+              opt += " s"
+              for k, m in symshift:
+                  if k == i:
+                      opt += " %f" % (m)
           if i in diff:
               opt += " d %i" % (i)
               second = True
