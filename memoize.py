@@ -177,6 +177,13 @@ class FileStore(Store):
         >>> os.unlink(fn)
     """
     def __init__(self, filename="FileStore.pickle"):
+
+        # FIXME: non-portable filename handling:
+        if filename[0] != '/':
+            # use absolute names, otherwise the storage will not be
+            # found after chdir() e.g. in QContext() handler:
+            filename = os.getcwd() + '/' + filename
+
         self.filename = filename
 
         try:
