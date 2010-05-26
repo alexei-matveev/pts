@@ -183,17 +183,24 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
         # FIXME: better make sure grad() returns arrays:
         G = asarray(G)
 
+        # purified gradient for CURRENT geometry, need tangents
+        # just for convergency check:
+        T = tang(R)
+        g1, g2 = proj(G, T)
+        if max(abs(g2)) < gtol:
+            # FIXME: this may change after update step!
+            if VERBOSE:
+                print "sopt: converged by force max(abs(g2)))", max(abs(g2)), '<', gtol
+            converged = True
+
         if VERBOSE:
             print "sopt: obtained gradients:"
             print "sopt: G="
             print G
-            T = tang(R)
-            g1, g2 = proj(G, T)
             print "sopt: g(para)=", g1
             print "sopt: g(ortho norms)=", asarray([sqrt(dot(g, g)) for g in g2])
             print "sopt: g(ortho)="
             print g2
-
 
         # update the hessian representation:
         if iteration > 0: # only then R0 and G0 are meaningfull!
@@ -227,14 +234,6 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
             if VERBOSE:
                 print "sopt: converged by step max(abs(dR))=", max(abs(dR)), '<', stol
             converged = True
-
-#       # FIXME: maybe use proj(G, T) here?
-#       # purified gradient for CURRENT geometry:
-#       if max(abs(G - dot(LAM, T))) < gtol:
-#           # FIXME: this may change after update step!
-#           if VERBOSE:
-#               print "cmin: converged by force max(abs(G - dot(LAM, T)))", max(abs(G - dot(LAM, T))), '<', gtol
-#           converged = True
 
         # restrict the maximum component of the step:
         longest = max(abs(dR))
