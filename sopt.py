@@ -172,11 +172,28 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
     while not converged and iteration < maxiter:
         iteration += 1
 
+        if VERBOSE:
+            print "sopt: scheduling gradients for:"
+            print "sopt: R="
+            print R
+
         # compute the gradients at all R[i]:
         G = grad(R)
 
         # FIXME: better make sure grad() returns arrays:
         G = asarray(G)
+
+        if VERBOSE:
+            print "sopt: obtained gradients:"
+            print "sopt: G="
+            print G
+            T = tang(R)
+            g1, g2 = proj(G, T)
+            print "sopt: g(para)=", g1
+            print "sopt: g(ortho norms)=", asarray([sqrt(dot(g, g)) for g in g2])
+            print "sopt: g(ortho)="
+            print g2
+
 
         # update the hessian representation:
         if iteration > 0: # only then R0 and G0 are meaningfull!
@@ -186,7 +203,7 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
         dR = onestep(1.0, G, H, R, tang, constr)
 
         if VERBOSE:
-            print "ODE one step:"
+            print "sopt: ODE one step:"
             print "sopt: dR=", dR
 
         # FIXME: does it hold in general?
