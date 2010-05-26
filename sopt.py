@@ -524,10 +524,72 @@ def mkconstr2(spacing, A, B):
 
     return _constr
 
+def test1():
+    from numpy import array
+    from ase import Atoms
+    ar4 = Atoms("Ar4")
+
+
+    from qfunc import QFunc
+    pes = QFunc(ar4)
+
+    # One equilibrium:
+
+    w=0.39685026
+    A = array([[ w,  w,  w],
+               [-w, -w,  w],
+               [ w, -w, -w],
+               [-w,  w, -w]])
+
+    # Another equilibrium (first two exchanged):
+
+    B = array([[-w, -w,  w],
+               [ w,  w,  w],
+               [ w, -w, -w],
+               [-w,  w, -w]])
+
+    # Halfway between A and B (first two z-rotated by 90 deg):
+
+    C = array([[-w,  w,  w],
+               [ w, -w,  w],
+               [ w, -w, -w],
+               [-w,  w, -w]])
+
+
+    xs = array([A, C, B])
+
+    from path import Path
+    p = Path(xs)
+
+    from numpy import linspace
+    x5 = [p(t) for t in linspace(0., 1., 5)]
+
+    es0 = array([pes(x) for x in x5])
+
+    print "energies=", es0
+
+    spc = Spacing()
+
+    print "spacing=", spc(x5)
+
+#   xm, fm, stats = smin(cha, x5, spc, maxiter=100)
+    xm, stats = soptimize(pes, x5, tangent1, maxiter=20, maxstep=0.1, callback=callback)
+
+    es1 = array([pes(x) for x in xm])
+
+    print "energies=", es1
+
+    print "spacing=", spc(xm)
+
+    from aof.tools.jmol import jmol_view_path
+    jmol_view_path(xm, syms=["Ar"]*4, refine=5)
+
 # python fopt.py [-v]:
 if __name__ == "__main__":
     # import doctest
     # doctest.testmod()
+    test1()
+    exit()
     from mueller_brown import CHAIN_OF_STATES as P
     test(P[0], P[4])
 
