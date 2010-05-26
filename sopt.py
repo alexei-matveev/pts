@@ -24,6 +24,51 @@ MAXSTEP = 0.05
 from chain import Spacing, Norm
 spacing = Spacing(Norm()).taylor
 
+def tangent1(X):
+    """For n geometries X[:] return n-2 tangents computed
+    as averages of forward and backward tangents.
+    """
+    T = []
+    for i in range(1, len(X) - 1):
+        a = X[i] - X[i-1]
+        b = X[i+1] - X[i]
+        a /= sqrt(dot(a, a))
+        b /= sqrt(dot(b, b))
+        t = a + b
+        t /= sqrt(dot(t, t))
+        T.append(t)
+
+    return T
+
+def tangent2(X):
+    """For n geometries X[:] return n-2 tangents computed
+    as central differences.
+    """
+    T = []
+    for i in range(1, len(X) - 1):
+        a = X[i-1]
+        b = X[i+1]
+        t = b - a
+        t /= sqrt(dot(t, t))
+        T.append(t)
+
+    return T
+
+from path import Path
+
+def tangent3(X, s=None):
+    """For n geometries X[:] return n-2 tangents computed
+    from a fresh spline interpolation.
+    """
+    if s is None:
+        s = linspace(0., 1., len(X))
+
+    p = Path(X, s)
+
+    return map(p.tangent, s[1:-1])
+
+from mueller_brown import show_chain
+
 def test(A, B):
 
     print "A=", A
@@ -38,50 +83,73 @@ def test(A, B):
     X = asarray(X)
 
     print "X=", X
-    from mueller_brown import show_chain
     show_chain(X)
 
-    from mueller_brown import gradient
-    def grad(X):
-        return map(gradient, X)
-
-    tang1 = wrap(tangent1, A, B)
-    tang2 = wrap(tangent2, A, B)
-    tang3 = wrap(tangent3, A, B)
-
-    constr = mkconstr2(spacing, A, B)
-
-    from numpy import savetxt, loadtxt
-
-    def callback(X):
-        savetxt("path.txt", X)
-        print "chain spacing=", spacing(X)[0]
-        show_chain(X)
-
-    callback = wrap(callback, A, B)
-
-#   import pylab
-#   pylab.ion()
-#   X = loadtxt("path-input.txt")
+    from mueller_brown import MB
 
 #   XM, stats = sopt(grad, X[1:-1], tang1, maxiter=20, maxstep=0.2, callback=callback)
 #   XM, stats = sopt(grad, X[1:-1], tang1, constr2, maxiter=20, maxstep=0.1, callback=callback)
 #   XM, stats = sopt(grad, X[1:-1], tang1, mkconstr1(tang1), maxiter=20, maxstep=0.1, callback=callback)
 #   XM, stats = sopt(grad, X[1:-1], tang2, mkconstr1(tang2), maxiter=20, maxstep=0.1, callback=callback)
-    XM, stats = sopt(grad, X[1:-1], tang3, mkconstr1(tang3), maxiter=20, maxstep=0.1, callback=callback)
-    XM = vstack((A, XM, B))
+#   XM, stats = sopt(grad, X[1:-1], tang3, mkconstr1(tang3), maxiter=20, maxstep=0.1, callback=callback)
+#   XM = vstack((A, XM, B))
+
+    XM, stats = soptimize(MB, X, tangent1, maxiter=20, maxstep=0.1, callback=callback)
     show_chain(XM)
 
     print "XM=", XM
-    exit(0)
 
-    p = Path(XM)
-    X2 = asarray([ p(s) for s in linspace(0., 1., 30)])
-    show_chain(X2)
+from numpy import savetxt, loadtxt
 
-    XM, stats = sopt(grad, X2[1:-1], tang2, constr, maxiter=20, maxstep=0.05, callback=callback)
-    XM = vstack((A, XM, B))
-    show_chain(XM)
+def callback(x):
+    savetxt("path.txt", x)
+    print "chain spacing=", spacing(x)[0]
+    # show_chain(x)
+
+def soptimize(pes, x0, tangent=tangent1, callback=callback, **kwargs):
+
+    n = len(x0)
+    assert n >= 3
+
+    x0 = asarray(x0)
+
+    # vector shape:
+    xshape = x0.shape
+    vshape = x0[0].shape
+    vsize  = x0[0].size
+
+    x0.shape = (n, vsize)
+
+    def grad(x):
+        save = x.shape
+        x.shape = vshape
+
+        g = pes.fprime(x)
+
+        g.shape = save
+        x.shape = save
+
+        return g
+
+    def grads(x):
+        return map(grad, x)
+
+    tang = wrap(tangent, x0[0], x0[-1])
+
+    constr = mkconstr1(tang)
+
+    if callback is not None:
+        callback = wrap(callback, x0[0], x0[-1])
+
+    xm, stats = sopt(grads, x0[1:-1], tang, constr, callback=callback, **kwargs)
+
+    # put the terminal images back:
+    xm = vstack((x0[0], xm, x0[-1]))
+
+    xm.shape = xshape
+    x0.shape = xshape
+
+    return xm, stats
 
 def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
         maxiter=MAXITER, maxstep=MAXSTEP, alpha=70., callback=None):
@@ -391,49 +459,6 @@ def glambda(G, H, T, A):
     # FIXME: we cannot compensate constrains if the matrix is singular!
 
     return lam
-
-def tangent1(X):
-    """For n geometries X[:] return n-2 tangents computed
-    as averages of forward and backward tangents.
-    """
-    T = []
-    for i in range(1, len(X) - 1):
-        a = X[i] - X[i-1]
-        b = X[i+1] - X[i]
-        a /= sqrt(dot(a, a))
-        b /= sqrt(dot(b, b))
-        t = a + b
-        t /= sqrt(dot(t, t))
-        T.append(t)
-
-    return T
-
-def tangent2(X):
-    """For n geometries X[:] return n-2 tangents computed
-    as central differences.
-    """
-    T = []
-    for i in range(1, len(X) - 1):
-        a = X[i-1]
-        b = X[i+1]
-        t = b - a
-        t /= sqrt(dot(t, t))
-        T.append(t)
-
-    return T
-
-from path import Path
-
-def tangent3(X, s=None):
-    """For n geometries X[:] return n-2 tangents computed
-    from a fresh spline interpolation.
-    """
-    if s is None:
-        s = linspace(0., 1., len(X))
-
-    p = Path(X, s)
-
-    return map(p.tangent, s[1:-1])
 
 def wrap(tang, A, B):
     """A decorator for the tangent function tang(X) that appends
