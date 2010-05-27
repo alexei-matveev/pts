@@ -152,9 +152,9 @@ def _uquat(v):
 
     # dx/v = sinc(phi/2) * 1/2 * dv0/dv + v0/8 * dsinc(phi/2)/dphi/2 * v
     # dy/v and dz/v the same way
-    dx = 1/2. * sinc(phi/2.) * array([1, 0, 0]) + v[0]/8. * dsinc_dq_c(phi/2.) * v
-    dy = 1/2. * sinc(phi/2.) * array([0, 1, 0]) + v[1]/8. * dsinc_dq_c(phi/2.) * v
-    dz = 1/2. * sinc(phi/2.) * array([0, 0, 1]) + v[2]/8. * dsinc_dq_c(phi/2.) * v
+    dx = 1/2. * sinc(phi/2.) * array([1, 0, 0]) + v[0]/8. * dsincx(phi/2.) * v
+    dy = 1/2. * sinc(phi/2.) * array([0, 1, 0]) + v[1]/8. * dsincx(phi/2.) * v
+    dz = 1/2. * sinc(phi/2.) * array([0, 0, 1]) + v[2]/8. * dsincx(phi/2.) * v
 
     q = asarray([w, x, y, z])
 
@@ -202,7 +202,7 @@ def _rotmat(v):
 
 
 def qrotmat(q):
-    m ,__ = _qrotmat(q)
+    m, __ = _qrotmat(q)
     return m
 
 
@@ -276,17 +276,32 @@ def sinc(x):
 
         return 1 - x**2/6. + x**4/120. - x**6/5040. + x**8/362880.
 
-def dsinc_dq_c(x):
-    if abs(x) > 0.01:
-         return ( (cos(x) / x**2) - (sin(x) / x**3) )
-    else:
-       #    (%i2) taylor( cos(x)/x**2 - sin(x)/x**3, x, 0, 9);
-       #                              2    4      6        8
-       #                         1   x    x      x        x
-       #    (%o2)/T/           - - + -- - --- + ----- - ------- + . . .
-       #                         3   30   840   45360   3991680
+def dsincx(x):
+    """This evaluates in a "numerically stable" fashion
 
-         return - 1/3. + x**2/30. - x**4/840. + x**6/45360. + x**8/3991680.
+        1    d  sin x
+        - * --- -----
+        x   dx    x
+
+        >>> dsincx(0.0)
+        -0.33333333333333331
+
+        >>> dsincx(0.010001)
+        -0.33332999934464169
+
+        >>> dsincx(0.009999)
+        -0.3333300006785333
+    """
+    if abs(x) > 0.01:
+        return cos(x) / x**2 - sin(x) / x**3
+    else:
+        #    (%i2) taylor( cos(x)/x**2 - sin(x)/x**3, x, 0, 9);
+        #                              2    4      6        8
+        #                         1   x    x      x        x
+        #    (%o2)/T/           - - + -- - --- + ----- - ------- + . . .
+        #                         3   30   840   45360   3991680
+
+        return - 1/3. + x**2/30. - x**4/840. + x**6/45360. + x**8/3991680.
 
 
 class Quat(object):
