@@ -219,32 +219,35 @@ def _qrotmat(q):
 #        [ 2*b*d + 2*a*c        , 2*c*d - 2*a*b        , a*a - b*b - c*c + d*d ]]
 
     # this definition makes quaternion- and matrix multiplicaiton consistent:
-    m = [[ a*a + b*b - c*c - d*d, 2*b*c - 2*a*d,         2*b*d + 2*a*c  ],
-         [ 2*b*c + 2*a*d        , a*a - b*b + c*c - d*d, 2*c*d - 2*a*b  ],
-         [ 2*b*d - 2*a*c        , 2*c*d + 2*a*b        , a*a - b*b - c*c + d*d ]]
+    m = empty((3, 3))
+    m[...] = [[ a*a + b*b - c*c - d*d, 2*b*c - 2*a*d,         2*b*d + 2*a*c  ],
+              [ 2*b*c + 2*a*d        , a*a - b*b + c*c - d*d, 2*c*d - 2*a*b  ],
+              [ 2*b*d - 2*a*c        , 2*c*d + 2*a*b        , a*a - b*b - c*c + d*d ]]
 
-    # The derivations partial m/partial q_i
-    dmda = 2 * array( [[ a, -d, c],
-             [ d,  a, -b],
-             [-c,  b,  a]])
+    #
+    # Derivatives dm  / dq  at dm[i, j, k]
+    #               ij    k
+    dm = empty((3, 3, 4))
 
-    dmdb =  2 * array( [[ b,  c,  d],
-             [ c, -b, -a],
-             [ d,  a, -b]])
+    # factor 2 will be added later:
+    dm[..., 0] = [[ a, -d,  c],
+                  [ d,  a, -b],
+                  [-c,  b,  a]]
 
-    dmdc =  2 * array( [[-c,  b,  a],
-             [ b,  c,  d],
-             [-a,  d, -c]])
+    dm[..., 1] = [[ b,  c,  d],
+                  [ c, -b, -a],
+                  [ d,  a, -b]]
 
-    dmdd =  2 * array( [[-d, -a,  b],
-             [ a, -d,  c],
-             [ b,  c,  d]])
+    dm[..., 2] = [[-c,  b,  a],
+                  [ b,  c,  d],
+                  [-a,  d, -c]]
 
-    dmall = asarray([dmda.T, dmdb.T, dmdc.T, dmdd.T])
+    dm[..., 3] = [[-d, -a,  b],
+                  [ a, -d,  c],
+                  [ b,  c,  d]]
+    dm *= 2
 
-    # dm/dl[i,j,k] = dm[j,i]/dk
-
-    return asarray(m), dmall.T
+    return m, dm
 
 def sinc(x):
     """sinc(x) = sin(x)/x
