@@ -79,25 +79,20 @@ def test(A, B):
     s = linspace(0., 1., n)
     print "s=", s
 
-    X = map(p, s)
-    X = asarray(X)
+    x = map(p, s)
+    x = asarray(x)
 
-    print "X=", X
-    show_chain(X)
+    print "x=", x
+    show_chain(x)
 
     from mueller_brown import MB
 
-#   XM, stats = sopt(grad, X[1:-1], tang1, maxiter=20, maxstep=0.2, callback=callback)
-#   XM, stats = sopt(grad, X[1:-1], tang1, constr2, maxiter=20, maxstep=0.1, callback=callback)
-#   XM, stats = sopt(grad, X[1:-1], tang1, mkconstr1(tang1), maxiter=20, maxstep=0.1, callback=callback)
-#   XM, stats = sopt(grad, X[1:-1], tang2, mkconstr1(tang2), maxiter=20, maxstep=0.1, callback=callback)
-#   XM, stats = sopt(grad, X[1:-1], tang3, mkconstr1(tang3), maxiter=20, maxstep=0.1, callback=callback)
-#   XM = vstack((A, XM, B))
+#   lambdas = mklambda1(mkconstr2(spacing, x[0], x[-1]))
+#   xm, stats = soptimize(MB, x, tangent1, lambdas, maxiter=20, maxstep=0.1, callback=callback)
+    xm, stats = soptimize(MB, x, tangent1, maxiter=20, maxstep=0.1, callback=callback)
+    show_chain(xm)
 
-    XM, stats = soptimize(MB, X, tangent1, maxiter=20, maxstep=0.1, callback=callback)
-    show_chain(XM)
-
-    print "XM=", XM
+    print "xm=", xm
 
 from numpy import savetxt, loadtxt
 
@@ -106,7 +101,7 @@ def callback(x):
     print "chain spacing=", spacing(x)[0]
     # show_chain(x)
 
-def soptimize(pes, x0, tangent=tangent1, callback=callback, **kwargs):
+def soptimize(pes, x0, tangent=tangent1, lambdas=None, callback=callback, **kwargs):
 
     n = len(x0)
     assert n >= 3
@@ -131,17 +126,26 @@ def soptimize(pes, x0, tangent=tangent1, callback=callback, **kwargs):
 
         return g
 
-    def grads(x):
+    def gradients(x):
         return map(grad, x)
 
-    tang = wrap(tangent, x0[0], x0[-1])
+    tangents = wrap(tangent, x0[0], x0[-1])
 
-    constr = mkconstr1(tang)
+    # by default apply constrains that only allow
+    # displacement orthogonal to the tangents:
+    if lambdas is None:
+        # make dynamic constran function with this definition
+        # of tangents:
+        constr = mkconstr1(tangents)
+
+        # prepare function that will compute the largangian
+        # factors for this particular constran:
+        lambdas = mklambda1(constr)
 
     if callback is not None:
         callback = wrap(callback, x0[0], x0[-1])
 
-    xm, stats = sopt(grads, x0[1:-1], tang, constr, callback=callback, **kwargs)
+    xm, stats = sopt(gradients, x0[1:-1], tangents, lambdas, callback=callback, **kwargs)
 
     # put the terminal images back:
     xm = vstack((x0[0], xm, x0[-1]))
@@ -151,13 +155,13 @@ def soptimize(pes, x0, tangent=tangent1, callback=callback, **kwargs):
 
     return xm, stats
 
-def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
+def sopt(gradients, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
         maxiter=MAXITER, maxstep=MAXSTEP, alpha=70., callback=None):
     """
     """
 
     # init array of hessians:
-    H = Array([ BFGS(alpha) for x in X ])
+    H = Array([ BFGS(alpha) for _ in X ])
 
     # geometry, energy and the gradient from previous iteration:
     R0 = None
@@ -178,15 +182,15 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
             print R
 
         # compute the gradients at all R[i]:
-        G = grad(R)
+        G = gradients(R)
 
-        # FIXME: better make sure grad() returns arrays:
+        # FIXME: better make sure gradients() returns arrays:
         G = asarray(G)
 
         # purified gradient for CURRENT geometry, need tangents
         # just for convergency check:
-        T = tang(R)
-        g1, g2 = proj(G, T)
+        T = tangents(R)
+        g1, g2 = projections(G, T)
         if max(abs(g2)) < gtol:
             # FIXME: this may change after update step!
             if VERBOSE:
@@ -207,14 +211,14 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
             H.update(R - R0, G - G0)
 
         # first rough estimate of the step:
-        dR = onestep(1.0, G, H, R, tang, constr)
+        dR = onestep(1.0, G, H, R, tangents, lambdas)
 
         if VERBOSE:
             print "sopt: ODE one step:"
             print "sopt: dR=", dR
 
         # FIXME: does it hold in general?
-        if constr is None:
+        if lambdas is None:
             # assume positive hessian, H > 0
             assert Dot(G, dR) < 0.0
 
@@ -223,7 +227,7 @@ def sopt(grad, X, tang, constr=None, stol=STOL, gtol=GTOL, \
         if max(abs(dR)) > maxstep:
             h = 0.9 * maxstep / max(abs(dR))
 
-        dR = odestep(h, G, H, R, tang, constr)
+        dR = odestep(h, G, H, R, tangents, lambdas)
 
         if VERBOSE:
             print "ODE step, h=", h, ":"
@@ -266,7 +270,7 @@ def Dot(A, B):
 
     return sum([ dot(a, b) for a, b in zip(A, B) ])
 
-def proj(V, T):
+def projections(V, T):
     """Decompose vectors V into parallel and orthogonal components
     using the tangents T.
     """
@@ -295,13 +299,13 @@ def qnstep(G, H, T):
     """
 
     # parallel and orthogonal components of the gradient:
-    G1, G2 = proj(G, T)
+    G1, G2 = projections(G, T)
 
     # step that would make the gradients vanish:
     R = - H.inv(G2)
 
     # parallel and orthogonal components of the step:
-    R1, R2 = proj(R, T)
+    R1, R2 = projections(R, T)
 
     return R2, G1
 
@@ -310,10 +314,10 @@ def qnstep(G, H, T):
 #
 from ode import rk5
 
-def rk5step(h, G, H, R, tang):
+def rk5step(h, G, H, R, tangents):
 
     def f(t, x):
-        dx, lam = qnstep(G, H, tang(x))
+        dx, lam = qnstep(G, H, tangents(x))
         return dx
 
     return rk5(0.0, R, f, h)
@@ -321,14 +325,14 @@ def rk5step(h, G, H, R, tang):
 from ode import odeint1
 from numpy import log, min, zeros
 
-def odestep(h, G, H, X, tang, constr):
+def odestep(h, G, H, X, tangents, lambdas):
     #
     # Function to integrate (t is "time", not "tangent"):
     #
     #   dg / dt = f(t, g)
     #
     def f(t, g):
-        return gprime(t, g, H, G, X, tang, constr)
+        return gprime(t, g, H, G, X, tangents, lambdas)
 
     #
     # Upper integration limit T (again "time", not "tangent)":
@@ -355,7 +359,7 @@ def odestep(h, G, H, X, tang, constr):
 
     return dX
 
-def onestep(h, G, H, X, tang, constr):
+def onestep(h, G, H, X, tangents, lambdas):
     """One step of the using the same direction
 
         dx / dh = H * gprime(...)
@@ -365,7 +369,7 @@ def onestep(h, G, H, X, tang, constr):
     """
 
     # dg = h * dg / dh:
-    dG = h * gprime(0.0, G, H, G, X, tang, constr)
+    dG = h * gprime(0.0, G, H, G, X, tangents, lambdas)
 
     # use one-to-one relation between dx and dg:
     dX = H.inv(dG)
@@ -374,14 +378,13 @@ def onestep(h, G, H, X, tang, constr):
 
 from numpy.linalg import solve
 
-def gprime(h, g, H, G0, X0, tang, constr):
+def gprime(h, g, H, G0, X0, tangents, lambdas):
     """For the descent procedure return
 
       dg / dh = - (1 - t(g) * t'(g)) * g  + t(g) * lambda(g)
 
     The Lagrange contribution parallel to the tangent t(g)
-    is added if the differentiable constrain function "constr()"
-    is provided.
+    is added if the function "lambdas()" is provided.
 
     Procedure uses the one-to-one relation between
     gradients and coordinates
@@ -402,7 +405,8 @@ def gprime(h, g, H, G0, X0, tang, constr):
         dx / dh = H * dg / dh
 
     may be used to either ensure orthogonality of dx / dh to the tangents
-    or preserve the image spacing depending on the constrain function "constr()".
+    or preserve the image spacing depending on the definition of
+    function "lambdas()" that delivers lagrangian factors.
     I am afraid one cannot satisfy both.
 
     NOTE: imaginary time variable "h" is not used anywhere.
@@ -412,18 +416,14 @@ def gprime(h, g, H, G0, X0, tang, constr):
     X = X0 + H.inv(g - G0)
 
     # T = T(X(G)):
-    T = tang(X)
+    T = tangents(X)
 
     # parallel and orthogonal components of g:
-    G1, G2 = proj(g, T)
+    G1, G2 = projections(g, T)
 
-    if constr is not None:
-        # evaluate constrains and their derivatives:
-        c, A = constr(X)
-        # print "gprime: c=", c
-
+    if lambdas is not None:
         # compute lagrange factors:
-        lam = glambda(G2, H, T, A)
+        lam = lambdas(X, G1, G2, H, T)
 
         # add lagrange forces, only components parallel
         # to the tangents is affected:
@@ -431,6 +431,26 @@ def gprime(h, g, H, G0, X0, tang, constr):
             G2[i] -= lam[i] * T[i]
 
     return -G2
+
+def mklambda1(constr):
+    """Returns a function that generates lagrangian "forces" due
+    to the differentiable constrain from
+
+        (X, G1, G2, H, T)
+
+    (geometry, tangential and complimentary components of the gradient,
+    hessian, and tangents)
+    """
+
+    def _lambdas(X, G1, G2, H, T):
+        # evaluate constrains and their derivatives:
+        c, A = constr(X)
+        # print "_lambdas: c=", c
+
+        # for historical reasons the main code is here:
+        return glambda(G2, H, T, A)
+
+    return _lambdas
 
 def glambda(G, H, T, A):
     """Compute Lagrange multipliers to compensate for the constrain violation
@@ -476,23 +496,23 @@ def glambda(G, H, T, A):
 
     return lam
 
-def wrap(tang, A, B):
-    """A decorator for the tangent function tang(X) that appends
+def wrap(tangents, A, B):
+    """A decorator for the tangent function tangents(X) that appends
     terminal points A and B before calling it.
     """
-    def _tang(X):
+    def _tangents(X):
         Y = vstack((A, X, B))
-        return tang(Y)
-    return _tang
+        return tangents(Y)
+    return _tangents
 
-def mkconstr1(tang):
+def mkconstr1(tangents):
     """Returns dynamic costraint to restrict motion to the planes
     orthogonal to the tangents.
     """
 
     def _constr(X):
 
-        T = tang(X)
+        T = tangents(X)
 
         n = len(T)
 
@@ -587,8 +607,8 @@ def test1():
 if __name__ == "__main__":
     # import doctest
     # doctest.testmod()
-    test1()
-    exit()
+#   test1()
+#   exit()
     from mueller_brown import CHAIN_OF_STATES as P
     test(P[0], P[4])
 
