@@ -1,29 +1,29 @@
 #!/usr/bin/python
 """
   Module for calculating the frequencies of a system. The main routine is
-  vibmodes(atoms, func, delta = 0.01, pmap = ps_map  , direction = 'central', alsovec = False)
+
+       vibmodes(atoms)
 
   atoms: atomic system to look at, the position of it has to be set (it will be
   the place where the frequencies are calculated)
 
-  func is the function which gives the gradients of the atom object at an given
-  position x
 
-  delta and direction are values of the derivatef function used to build up
-  the hessian matrix direction = 'central' is highly recommended, delta gives
-  the size of the steps taken to approximate the curvature
+FIXME: This description is outdated, vibmodes() doesnt accept these arguments:
 
-  pmap says how the different calculations needed for the numerical approximating
-  the hessian are calculated, if it is a parallel map function this actions will be
-  calculated in parallel, as default it is set to a function of the paramap module, which
-  runs every calculation on its own process
+      delta and direction are values of the derivatef function used to build up
+      the hessian matrix direction = 'central' is highly recommended, delta gives
+      the size of the steps taken to approximate the curvature
 
-  There is also inlcuded  the calculating of a
-  numerical derivative (a hessian if the target function is the gradient)
-  of a function, by using one of the map functions of paramap.py
-  for the running of all the needed jobs.
+      pmap says how the different calculations needed for the numerical approximating
+      the hessian are calculated, if it is a parallel map function this actions will be
+      calculated in parallel, as default it is set to a function of the paramap module, which
+      runs every calculation on its own process
 
-  Test of the Module:
+  The computation proceeds by calculating numerically the second derivative of
+  the energy (the hessian, by num. diff. of the forces).
+
+  Parallelization is achieved by using one of the par-map functions from paramap.py
+  for the running of all the jobs.
 
   First test the derivates of a function
 
@@ -34,20 +34,20 @@
   FIXME: for some reason the default pool-based pmap fails the doctests,
   use a different implementation here:
 
-       >>> from paramap import ps_map
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap = ps_map,direction = 'forward' )
+       >>> from paramap import pmap
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap=pmap, direction='forward')
        >>> print hessian
        [[ 4.    0.    0.  ]
         [ 2.    4.01  0.  ]
         [ 4.    0.    1.  ]]
 
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap = ps_map )
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap=pmap)
        >>> print hessian
        [[ 4.  0.  0.]
         [ 2.  4.  0.]
         [ 4.  0.  1.]]
 
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0],pmap = ps_map,direction = 'backward' )
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap=pmap, direction='backward')
        >>> print hessian
        [[ 4.   -0.   -0.  ]
         [ 2.    3.99 -0.  ]
