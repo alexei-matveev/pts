@@ -31,7 +31,8 @@
        ...     return [ 2 * x[0] * x[1] * x[2]  , x[1]**2 , x[2] ]
 
 
-  FXIME: why are we using the non-default par-map here?
+  FIXME: for some reason the default pool-based pmap fails the doctests,
+  use a different implementation here:
 
        >>> from paramap import ps_map
        >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap = ps_map,direction = 'forward' )
@@ -145,7 +146,7 @@ from qfunc import fwrapper
 
 VERBOSE = False
 
-def derivatef( g0, x0, delta = 0.01, pmap = pool_map  , direction = 'central' ):
+def derivatef( g0, x0, delta = 0.01, pmap = pool_map, direction = 'central' ):
     '''
     Derivates another function numerically,
 
