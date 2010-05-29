@@ -1,7 +1,7 @@
 #!/usr/bin/python
 """
   Module for calculating the frequencies of a system. The main routine is
-  vibmodes(atoms, func, delta = 0.01, p_map = ps_map  , direction = 'central', alsovec = False)
+  vibmodes(atoms, func, delta = 0.01, pmap = ps_map  , direction = 'central', alsovec = False)
 
   atoms: atomic system to look at, the position of it has to be set (it will be
   the place where the frequencies are calculated)
@@ -13,7 +13,7 @@
   the hessian matrix direction = 'central' is highly recommended, delta gives
   the size of the steps taken to approximate the curvature
 
-  p_map says how the different calculations needed for the numerical approximating
+  pmap says how the different calculations needed for the numerical approximating
   the hessian are calculated, if it is a parallel map function this actions will be
   calculated in parallel, as default it is set to a function of the paramap module, which
   runs every calculation on its own process
@@ -31,19 +31,22 @@
        ...     return [ 2 * x[0] * x[1] * x[2]  , x[1]**2 , x[2] ]
 
 
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], p_map = ps_map,direction = 'forward' )
+  FXIME: why are we using the non-default par-map here?
+
+       >>> from paramap import ps_map
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap = ps_map,direction = 'forward' )
        >>> print hessian
        [[ 4.    0.    0.  ]
         [ 2.    4.01  0.  ]
         [ 4.    0.    1.  ]]
 
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], p_map = ps_map )
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap = ps_map )
        >>> print hessian
        [[ 4.  0.  0.]
         [ 2.  4.  0.]
         [ 4.  0.  1.]]
 
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0],p_map = ps_map,direction = 'backward' )
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0],pmap = ps_map,direction = 'backward' )
        >>> print hessian
        [[ 4.   -0.   -0.  ]
         [ 2.    3.99 -0.  ]
@@ -136,13 +139,13 @@ from numpy import argsort, savetxt
 from scipy.linalg import eigh
 import ase.atoms
 import ase.units as units
-from paramap import pa_map, ps_map, td_map, pmap, pool_map
+from paramap import pool_map
 from sys import stdout
 from qfunc import fwrapper
 
 VERBOSE = False
 
-def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' ):
+def derivatef( g0, x0, delta = 0.01, pmap = pool_map  , direction = 'central' ):
     '''
     Derivates another function numerically,
 
@@ -199,7 +202,7 @@ def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' )
 
     # calculation of the functionvalues for all the geometries
     # at the same time
-    g1 = p_map(g0, xs)
+    g1 = pmap(g0, xs)
     g1 = asarray(g1)
     # now it is possible to find out, how big g1 is
     # g1 may be an array (then we want the total length
@@ -262,7 +265,7 @@ def vibmod(mass, hessian):
 
     func should do the gradient call on a given geometry
 
-    if p_map is choosen as a parallel variant, all gradient calculations will be performed
+    if pmap is choosen as a parallel variant, all gradient calculations will be performed
     in parallel
     direction = 'central' should be the most accurate one but 'forward'/'backward' needs 
     fewer calculations all together (but the results may be really much worse, compare the results
