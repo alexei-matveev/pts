@@ -73,41 +73,28 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
   Calculate the vibration modes
 
-    >>> vibmodes(ar4, workhere=True)
-    ====================================================
-     Number  imag.   Energy in eV      Energy in cm^-1
-    ----------------------------------------------------
-      1       no          0.1548          1248.65
-      2       no          0.1095           882.95
-      3       no          0.1095           882.95
-      4       no          0.1095           882.95
-      5       no          0.0774           623.92
-      6       no          0.0774           623.92
-      7       yes         0.0000             0.00
-      8       yes         0.0000             0.00
-      9       yes         0.0000             0.00
-     10       yes         0.0022            17.58
-     11       yes         0.0022            17.58
-     12       yes         0.0022            17.58
-    ----------------------------------------------------
+    >>> freqs, modes = vibmodes(ar4, workhere=True)
+
+  Frequencies in cm-1, note that some are truly imaginary:
+
+    >>> from numpy import round
+    >>> round(cm(freqs), 2)
+    array([ 1248.65 +0.j  ,   882.95 +0.j  ,   882.95 +0.j  ,   882.95 +0.j  ,
+             623.92 +0.j  ,   623.92 +0.j  ,     0.00 +0.j  ,     0.00 +0.j  ,
+               0.00 +0.j  ,     0.00+17.58j,     0.00+17.58j,     0.00+17.58j])
+
     >>> from ase.constraints import FixAtoms
 
     >>> c = FixAtoms([1, 2])
     >>> ar4.set_constraint(c)
 
-    >>> vibmodes(ar4, workhere=True)
+    >>> freqs, modes = vibmodes(ar4, workhere=True)
     FWRAPPER: The following mask has been obtained from the constraints of the atoms
     [True, True, True, False, False, False, False, False, False, True, True, True]
-    ====================================================
-     Number  imag.   Energy in eV      Energy in cm^-1
-    ----------------------------------------------------
-      1       no          0.1291          1041.10
-      2       no          0.0948           764.64
-      3       no          0.0656           529.25
-      4       no          0.0547           441.39
-      5       no          0.0547           441.00
-      6       yes         0.0018            14.35
-    ----------------------------------------------------
+
+    >>> round(cm(freqs), 2)
+    array([ 1041.10 +0.j  ,   764.64 +0.j  ,   529.25 +0.j  ,   441.39 +0.j  ,
+             441.00 +0.j  ,     0.00+14.35j])
 
   second test System: N-N with EMT calculator
 
@@ -116,23 +103,23 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> n2 = Atoms('N2', [(0, 0, 0), (0, 0, 1.1)])
 
     >>> n2.set_calculator( EMT())
-    >>> vibmodes(n2, workhere=True)
-    ====================================================
-     Number  imag.   Energy in eV      Energy in cm^-1
-    ----------------------------------------------------
-      1       no          0.2540          2048.94
-      2       no          0.0000             0.00
-      3       no          0.0000             0.00
-      4       yes         0.0000             0.00
-      5       yes         0.0399           321.63
-      6       yes         0.0399           321.63
-    ----------------------------------------------------
+    >>> freqs, modes = vibmodes(n2, workhere=True)
 
+    >>> round(cm(freqs), 2)
+    array([ 2048.94  +0.j  ,     0.00  +0.j  ,     0.00  +0.j  ,
+               0.00  +0.j  ,     0.00+321.63j,     0.00+321.63j])
 
     >>> n2.set_positions([[  0.0, 0.0, 0.000],
     ...                   [  0.0, 0.0, 1.130]])
 
-    >>> vibmodes(n2, workhere=True)
+    >>> freqs, modes = vibmodes(n2, workhere=True)
+    >>> round(cm(freqs), 2)
+    array([ 1874.96+0.j,    37.51+0.j,    37.51+0.j,     0.00+0.j,
+               0.00+0.j,     0.00+0.j])
+
+  For pretty-printing the frequencies use:
+
+    >>> output(freqs)
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
@@ -143,7 +130,6 @@ Ar4 Cluster as first simple atomic/molecule test system with
       5       no          0.0000             0.00
       6       no          0.0000             0.00
     ----------------------------------------------------
-
 """
 from numpy import array, asarray, dot, zeros, max, abs, eye, diag, sqrt
 from numpy import argsort, savetxt
@@ -154,7 +140,7 @@ from paramap import pa_map, ps_map, td_map, pmap, pool_map
 from sys import stdout
 from qfunc import fwrapper
 
-MOREOUT = False
+VERBOSE = False
 
 def derivatef( g0, x0, delta = 0.01, p_map = pool_map  , direction = 'central' ):
     '''
@@ -261,7 +247,11 @@ def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, alsovec
         savetxt(save, hessian)
 
     freqs, modes = vibmod(mass, hessian)
-    output(freqs, modes, mass, alsovec)
+
+    if VERBOSE:
+        output(freqs, modes, mass, alsovec)
+
+    return freqs, modes
 
 def vibmod(mass, hessian):
     """
@@ -310,13 +300,26 @@ def vibmod(mass, hessian):
 
     return freqs, modes
 
-def output(freqs, eigvectors, mass, alsovec = False):
-    # scale eigenvalues in different units:
+def eV(w):
+    "Convert frequencies to eV"
+
     # E = hbar * omega [eV] = hvar * [1/s]
     # omega = sqrt(H /m), [H] = [kJ/Ang^2] , [m] = [amu], [omega] = [1/s] = [ J/m^2 /kg]
-    scalfact = units._hbar * 1e10 / units.Ang * sqrt( units.kJ /( units._amu * 1000 ) )
-    modeenerg =  scalfact * freqs
-    modeincm  = modeenerg * units._e / units._c / units._hplanck * 0.01
+    ev = units._hbar * 1e10 / units.Ang * sqrt( units.kJ /( units._amu * 1000 ) )
+
+    return w * ev
+
+def cm(w):
+    "Convert frequencies to cm^-1"
+
+    cm1 = units._e / units._c / units._hplanck * 0.01
+
+    return eV(w) * cm1
+
+def output(freqs, eigvectors=None, mass=None):
+    # scale eigenvalues to different units:
+    modeenerg = eV(freqs)
+    modeincm = cm(freqs)
     print "===================================================="
     print " Number  imag.   Energy in eV      Energy in cm^-1"
     print "----------------------------------------------------"
@@ -327,7 +330,9 @@ def output(freqs, eigvectors, mass, alsovec = False):
               print "%3d       no      %10.4f       %10.2f" % (i+1,  mode_e.real, modeincm[i].real)
     print "----------------------------------------------------"
 
-    if (alsovec):
+    if eigvectors is not None:
+         assert mass is not None
+
          write = stdout.write
 
          # we don't know if they are cartesian
@@ -357,7 +362,7 @@ def output(freqs, eigvectors, mass, alsovec = False):
 
 
 def check_eigensolver(a, V1, A, B):
-    if MOREOUT:
+    if VERBOSE:
         print "Check the results for the eigensolver:"
         #print dot(V, dot(A, V.T)) - a * eye(len(a))
         print "V^TAV -a, maximum value:", (abs(dot(V1.T, dot(A, V1)) - a * eye(len(a)))).max()
