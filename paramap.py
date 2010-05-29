@@ -338,25 +338,21 @@ def pa_map(f, xs, chadir = False):
 
 MAXPROCS = 12
 
-def pool_map(f, xs, processes=None):
+def pool_map(f, xs, processes=MAXPROCS):
     """
-    variant of map using the map function of the pool module
-    Here a pool with MAXPROCS or user defined number of processes
-    is initialized, which work on the function in parallel
-    a wrapper function makes the surounding things like working
-    directory changes
+    Variant of map using the map function of the pool module
+    Here a pool with MAXPROCS or user defined number of processes.
 
-    the pool object (of our python version at least) has some
+    The pool object (of our python version at least) has some
     problems with interactive use, therefore there are no tests
-    for it in the doctests of this module
+    for it in the doctests of this module.
     """
-    # it should also work with processes= None, that's the default of
-    # pool, then it should take cpuCount which seems to be only two
-    # on my computer?
-    if processes == None:
-        processes = MAXPROCS
+
+    # Initializing the Pool() with processes=None will
+    # start as many workers as there are CPUs on the workstation.
+
     # initializes the pool object
-    pool = Pool(processes=processes )
+    pool = Pool(processes=processes)
 
     res = pool.map(f, xs)
     pool.close()
