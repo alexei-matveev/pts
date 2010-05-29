@@ -92,25 +92,25 @@
 
        >>> from aof.vib import derivatef
 
-       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], p_map = ps_map )
+       >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap = ps_map )
        >>> print hessian
        [[ 4.  0.  0.]
         [ 2.  4.  0.]
         [ 4.  0.  1.]]
 
   Here is a test for a single argument to single argument test
-       >>> derivatef(g2, 2.4, p_map = ps_map)
+       >>> derivatef(g2, 2.4, pmap = ps_map)
        array([[ 4.]])
 
   test also 2 (3) -> 1
-       >>> derivatef(g3, [1.0, 2.0, 1.0], p_map = ps_map)
+       >>> derivatef(g3, [1.0, 2.0, 1.0], pmap = ps_map)
        array([[ 4.],
               [ 2.],
               [ 0.]])
 
  test that the results only comes if all finished and that they start
  not one after another (for the parallel versions)
-       >>> hessian = derivatef(g4, [1.0, 2.0, 1.0], p_map = td_map )
+       >>> hessian = derivatef(g4, [1.0, 2.0, 1.0], pmap = td_map )
        I take a nap
        I take a nap
        I take a nap
@@ -129,14 +129,14 @@
         [ 4.  0.  1.]]
 
   Testing the processes variant:
-       >>> derivatef(g, [1.0, 2.0, 1.0], p_map = ps_map )
+       >>> derivatef(g, [1.0, 2.0, 1.0], pmap = ps_map )
        array([[ 4.,  0.,  0.],
               [ 2.,  4.,  0.],
               [ 4.,  0.,  1.]])
 
 
   Do they start at once? Slow variant
-       >>> hessian = derivatef(g4, [1.0, 2.0, 1.0], p_map = ps_map )
+       >>> hessian = derivatef(g4, [1.0, 2.0, 1.0], pmap = ps_map )
        >>> print hessian
        [[ 4.  0.  0.]
         [ 2.  4.  0.]
