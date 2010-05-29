@@ -117,8 +117,12 @@ def _pmap(f, xs, Worker=Process, Queue=PQueue):
     It also gives the number where it calculates, if there would be
     a mixup in the queue
     """
+    # force evaluation of arguments, some callers may pass
+    # enumerate() or generator objects:
+    xs = [x for x in xs]
+
     # prepare placeholder for the return values
-    outcome = [None] * len(xs)
+    fxs = [None for x in xs]
 
     # each process should do its job and
     # store the result in the queue "q":
@@ -140,10 +144,10 @@ def _pmap(f, xs, Worker=Process, Queue=PQueue):
         # so far I'm not sure if they would be in the correct oder
         # by themselves
         w.join()
-        i, res = q.get()
-        outcome[i] = res
+        i, fx = q.get()
+        fxs[i] = fx
 
-    return outcome
+    return fxs
 
 def pmap(f, xs):
     return _pmap(f, xs, Process, PQueue)
