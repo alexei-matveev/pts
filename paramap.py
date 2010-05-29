@@ -7,23 +7,23 @@
   Test functions:
 
        >>> def g1(x):
-       ...     return [ 2 * x[0] * x[1] * x[2]  , x[1]**2 , x[2] ]
+       ...     return [ 2 * x[0] * x[1] * x[2], x[1]**2, x[2] ]
 
        >>> from time import sleep
        >>> def g2(x):
-       ...     print "I take a nap"
+       ...     print "g2: entered"
        ...     sleep(1)
-       ...     print "I'm back"
+       ...     print "g2: exit"
        ...     return g1(x)
 
-   Arguments for respective functions g1-g4:
+   Arguments for the test functions g1, g2:
 
        >>> x1 = [[1, 4, 5], [2, 2, 2], [2, 5, 7], [1, 0, 0]]
 
   Now calculates some things in parallel for one of the own functions,
   taking lists and giving some back two.
 
-  But first serial variant (from python) , just for comparing:
+  But first serial variant, just for comparing:
 
        >>> map(g1, x1)
        [[40, 16, 5], [16, 4, 2], [140, 25, 7], [0, 0, 0]]
@@ -33,32 +33,32 @@
        >>> pmap(g1, x1)
        [[40, 16, 5], [16, 4, 2], [140, 25, 7], [0, 0, 0]]
 
-  To see the time it takes: Same function as before but with
-  sleep(1) between I take a nap and I'm back
+  To see the time it takes: same function as before but with
+  sleep(1) between entry and exit:
 
        >>> map(g2, x1)
-       I take a nap
-       I'm back
-       I take a nap
-       I'm back
-       I take a nap
-       I'm back
-       I take a nap
-       I'm back
+       g2: entered
+       g2: exit
+       g2: entered
+       g2: exit
+       g2: entered
+       g2: exit
+       g2: entered
+       g2: exit
        [[40, 16, 5], [16, 4, 2], [140, 25, 7], [0, 0, 0]]
 
   For some reason the stdout output from process-based pmap is not
   visible here, use threaded version for testing:
 
        >>> tmap(g2, x1)
-       I take a nap
-       I take a nap
-       I take a nap
-       I take a nap
-       I'm back
-       I'm back
-       I'm back
-       I'm back
+       g2: entered
+       g2: entered
+       g2: entered
+       g2: entered
+       g2: exit
+       g2: exit
+       g2: exit
+       g2: exit
        [[40, 16, 5], [16, 4, 2], [140, 25, 7], [0, 0, 0]]
 
   Here testing togehter with the derivatef function from the vib module,
@@ -76,18 +76,18 @@
  test that the results only comes if all finished and that they start
  not one after another (for the parallel versions)
        >>> hessian = derivatef(g2, [1.0, 2.0, 1.0], pmap = tmap)
-       I take a nap
-       I take a nap
-       I take a nap
-       I take a nap
-       I take a nap
-       I take a nap
-       I'm back
-       I'm back
-       I'm back
-       I'm back
-       I'm back
-       I'm back
+       g2: entered
+       g2: entered
+       g2: entered
+       g2: entered
+       g2: entered
+       g2: entered
+       g2: exit
+       g2: exit
+       g2: exit
+       g2: exit
+       g2: exit
+       g2: exit
        >>> print hessian
        [[ 4.  0.  0.]
         [ 2.  4.  0.]
