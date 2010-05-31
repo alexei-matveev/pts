@@ -111,6 +111,33 @@ class QFunc(Func):
         # return both:
         return e, g
 
+from paramap import pmap
+
+def qmap(f, xs, map=pmap, format="%02d"):
+    """Apply (parallel) map with chdir() isolation for each evaluation.
+    Directories are created, if needed, following the format:
+
+        format % i
+
+    The default format leads to directory names: 00, 01, 02, ...
+    """
+
+    def _f(args):
+        i, x = args
+
+        if format is not None:
+            dir = format % i
+        else:
+            dir ="."
+
+        context = QContext(wd=dir)
+        with context:
+            fx = f(x)
+
+        return fx
+
+    return pmap(_f, enumerate(xs))
+
 # a list of restartfiles that might be usefull to copy-in
 # for a warm-start of a calculation, if it is complete, no
 # modifications to ASE are necessary:
