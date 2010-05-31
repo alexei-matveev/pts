@@ -250,10 +250,6 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
         # first rough estimate of the step:
         dR = onestep(1.0, G, H, R, tangents, lambdas)
 
-        if VERBOSE:
-            print "sopt: ODE one step:"
-            print "sopt: dR=", dR
-
         # FIXME: does it hold in general?
         if lambdas is None:
             # assume positive hessian, H > 0
@@ -262,9 +258,23 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
         # estimate the scaling factor for the step:
         h = 1.0
         if max(abs(dR)) > maxstep:
-            h = 0.9 * maxstep / max(abs(dR))
+            h *= 0.9 * maxstep / max(abs(dR))
 
-        dR = odestep(h, G, H, R, tangents, lambdas)
+        if VERBOSE:
+            print "sopt: ODE one step, propose h=", h
+            print "sopt: dR=", dR
+
+        # choose a step length below maxstep:
+        while True:
+            # FIXME: potentially wasting ODE integrations here:
+            dR = odestep(h, G, H, R, tangents, lambdas)
+
+            longest = max(abs(dR))
+            if longest <= maxstep:
+                break
+
+            print "sopt: WARNING: step too long by factor", longest/maxstep, "retrying"
+            h *= 0.9 * maxstep / longest
 
         if VERBOSE:
             print "ODE step, h=", h, ":"
