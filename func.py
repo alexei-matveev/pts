@@ -247,6 +247,82 @@ class Func(object):
     def __call__(self, *args, **kwargs):
         return self.f(*args, **kwargs)
 
+def elemental(f, map=map):
+    """A decorator for functions "f(x, ...)" that makes
+    them elemental in the first argument. Other arguments
+    are passed as is. By using a parallel map implementation
+    one can achive parallelizm.
+
+        >>> def f(x, a): return x * a
+        >>> f(2, 10)
+        20
+
+        >>> f = elemental(f)
+
+        >>> f([2, 3, 4], 10)
+        [20, 30, 40]
+    """
+
+    def _f(xs, *args, **kwargs):
+
+        def __f(x):
+            return f(x, *args, **kwargs)
+
+        return map(__f, xs)
+
+    return _f
+
+class Elemental(Func):
+    """Make a Func elemental over the first argument by F = Elemental(f).
+    Other arguments are passed as is. Provide a parallel map
+    implementation if you want to parallelize independent evaluations.
+
+    Example:
+
+        >>> f = Func(lambda x: x**2, lambda x: 2 * x)
+        >>> f(3), f.fprime(3)
+        (9, 6)
+
+    Make it elmental
+
+        >>> F = Elemental(f)
+
+    so that it can be now called with array-valued arguments:
+
+        >>> xs = [3, 4, 5]
+
+        >>> F(xs)
+        [9, 16, 25]
+
+        >>> F.fprime(xs)
+        [6, 8, 10]
+
+        >>> (F(xs), F.fprime(xs)) == F.taylor(xs)
+        True
+    """
+    def __init__(self, f, map=map):
+        self._args = f, map
+
+    def f(self, xs, *args, **kwargs):
+        F, map = self._args
+
+        return map(lambda x: F(x, *args, **kwargs), xs)
+
+    def fprime(self, xs, *args, **kwargs):
+        F, map = self._args
+
+        return map(lambda x: F.fprime(x, *args, **kwargs), xs)
+
+    def taylor(self, xs, *args, **kwargs):
+        F, map = self._args
+
+        fgs = map(lambda x: F.taylor(x, *args, **kwargs), xs)
+
+        fs = [f for f, g in fgs]
+        gs = [g for f, g in fgs]
+
+        return fs, gs
+
 class RhoInterval(Func):
     """Supports generation of bead density functions for placement of beads 
     at specific positions.
