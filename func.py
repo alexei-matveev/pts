@@ -887,6 +887,50 @@ class NumDiff(Func):
             # print 'dfdx=', dfdx
             return dfdx
 
+class Reshape(Func):
+    """
+    """
+    def __init__(self, f, xshape, fshape=None):
+        self._args = f, xshape, fshape
+
+    def f(self, x, *args, **kwargs):
+        F, xshape, fshape = self._args
+
+        ishape = shape(x)
+        x.shape = xshape
+        # FIXME: make a copy() here if other references to x
+        # which are also temprarily reshaped affect the behaviour of F:
+        fx =  F(x, *args, **kwargs)
+        x.shape = ishape
+
+        # shape the results:
+        if fshape is not None:
+            fx.shape = fshape
+
+        return fx
+
+    #
+    # fprime() is a fallback to taylor()
+    #
+
+    def taylor(self, x, *args, **kwargs):
+        F, xshape, fshape = self._args
+
+        ishape = shape(x)
+        x.shape = xshape
+        # FIXME: make a copy() here if other references to x
+        # which are also temprarily reshaped affect the behaviour of F:
+        fx, fxprime = F.taylor(x, *args, **kwargs)
+        x.shape = ishape
+
+        # shape the results:
+        if fshape is not None:
+            fx.shape = fshape
+            fxprime.shape = fshape + ishape
+        else:
+            fxprime.shape = shape(fx) + ishape
+
+        return fx, fxprime
 
 # python func.py [-v]:
 if __name__ == "__main__":
