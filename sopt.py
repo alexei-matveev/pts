@@ -21,8 +21,9 @@ CTOL = TOL   # constrain tolerance
 MAXITER = 50
 MAXSTEP = 0.05
 
-from chain import Spacing, Norm
-spacing = Spacing(Norm()).taylor
+from chain import Spacing, Norm, Norm2
+# spacing = Spacing(Norm())
+spacing = Spacing(Norm2())
 
 def tangent1(X):
     """For n geometries X[:] return n-2 tangents computed
@@ -32,6 +33,7 @@ def tangent1(X):
     for i in range(1, len(X) - 1):
         a = X[i] - X[i-1]
         b = X[i+1] - X[i]
+        # FIXME: works only for 1D arrays a and b:
         a /= sqrt(dot(a, a))
         b /= sqrt(dot(b, b))
         t = a + b
@@ -49,6 +51,7 @@ def tangent2(X):
         a = X[i-1]
         b = X[i+1]
         t = b - a
+        # FIXME: works only for 1D array t:
         t /= sqrt(dot(t, t))
         T.append(t)
 
@@ -87,9 +90,9 @@ def test(A, B):
 
     from mueller_brown import MB
 
-#   lambdas = mklambda1(mkconstr2(spacing, x[0], x[-1]))
-#   xm, stats = soptimize(MB, x, tangent1, lambdas, maxiter=20, maxstep=0.1, callback=callback)
-    xm, stats = soptimize(MB, x, tangent1, maxiter=20, maxstep=0.1, callback=callback)
+#   OUTDATED: lambdas = mklambda1(mkconstr2(spacing, x[0], x[-1]))
+    xm, stats = soptimize(MB, x, tangent1, spacing, maxiter=20, maxstep=0.1, callback=callback)
+#   xm, stats = soptimize(MB, x, tangent1, maxiter=20, maxstep=0.1, callback=callback)
     show_chain(xm)
 
     print "xm=", xm
@@ -98,54 +101,82 @@ from numpy import savetxt, loadtxt
 
 def callback(x):
     savetxt("path.txt", x)
-    print "chain spacing=", spacing(x)[0]
+    print "chain spacing=", spacing(x)
     # show_chain(x)
 
-def soptimize(pes, x0, tangent=tangent1, lambdas=None, callback=callback, **kwargs):
+from func import Elemental, Reshape
+
+def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=callback, **kwargs):
+    """
+    Several choices for pmap argument to allow for parallelizm, e.g.:
+
+        from paramap import pmap
+
+    for parallelizm in general, or
+
+        from qfunc import qmap
+
+    for parallelizm and chdir-isolation of QM calculations.
+
+    """
 
     n = len(x0)
     assert n >= 3
 
     x0 = asarray(x0)
 
-    # vector shape:
+    # string (long) vector shape:
     xshape = x0.shape
+
+    # position (short) vector shape:
     vshape = x0[0].shape
+
+    # position (short) vector dimension:
     vsize  = x0[0].size
 
+    #
+    # sopt() driver deals only with the collections of 1D vectors, so
+    #
+    # (1) reshape the input ...
     x0.shape = (n, vsize)
+    # FIXME: dont forget to restore the shape of input-only x0 on exit!
 
-    def grad(x):
-        save = x.shape
-        x.shape = vshape
+    # (2) "reshape" provided PES Func to make it accept 1D arrays:
+    pes = Reshape(pes, xshape=vshape)
 
-        g = pes.fprime(x)
+    # (3) if present, "reshape" the constraint Func:
+    if constraints is not None:
+        # here we assume n-2 constraints, one per moving image,
+        # the terminal images are fix anyway:
+        constraints = Reshape(constraints, xshape=xshape, fshape=(n-2,))
 
-        g.shape = save
-        x.shape = save
+    # (4) make PES function elemental, allow for parallelizm:
+    pes = Elemental(pes, pmap)
+    # FIXME: should we request the caller to provide "elemental" PES?
 
-        return g
-
-    def gradients(x):
-        return map(grad, x)
+    # FIXME: available tangent definitions already expect/accept
+    # (a group of) 1D vectors. Reshape them too, if needed.
 
     tangents = wrap(tangent, x0[0], x0[-1])
 
-    # by default apply constrains that only allow
+    # by default apply constraints that only allow
     # displacement orthogonal to the tangents:
-    if lambdas is None:
+    if constraints is None:
         # make dynamic constran function with this definition
         # of tangents:
-        constr = mkconstr1(tangents)
+        constraints = mkconstr1(tangents)
+    else:
+        # real constraints require also the terminal beads:
+        constraints = mkconstr2(constraints, x0[0], x0[-1])
 
-        # prepare function that will compute the largangian
-        # factors for this particular constran:
-        lambdas = mklambda1(constr)
+    # prepare function that will compute the largangian
+    # factors for this particular constran:
+    lambdas = mklambda1(constraints)
 
     if callback is not None:
         callback = wrap(callback, x0[0], x0[-1])
 
-    xm, stats = sopt(gradients, x0[1:-1], tangents, lambdas, callback=callback, **kwargs)
+    xm, stats = sopt(pes.taylor, x0[1:-1], tangents, lambdas, callback=callback, **kwargs)
 
     # put the terminal images back:
     xm = vstack((x0[0], xm, x0[-1]))
@@ -155,9 +186,16 @@ def soptimize(pes, x0, tangent=tangent1, lambdas=None, callback=callback, **kwar
 
     return xm, stats
 
-def sopt(gradients, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
+def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
         maxiter=MAXITER, maxstep=MAXSTEP, alpha=70., callback=None):
     """
+    |fg| is supposed to be an elemental function that returns a tuple
+
+        fg(X) == (values, derivatives)
+    
+    with values and derivatives being the arrays/lists of results
+    for all x in X. Note, that only the derivatives (gradients)
+    are used for optimization.
     """
 
     # init array of hessians:
@@ -177,14 +215,13 @@ def sopt(gradients, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
         iteration += 1
 
         if VERBOSE:
-            print "sopt: scheduling gradients for:"
-            print "sopt: R="
+            print "sopt: scheduling gradients for R="
             print R
 
-        # compute the gradients at all R[i]:
-        G = gradients(R)
+        # compute energy and gradients at all R[i]:
+        E, G = fg(R)
 
-        # FIXME: better make sure gradients() returns arrays:
+        # FIXME: better make sure gradients are returned as arrays:
         G = asarray(G)
 
         # purified gradient for CURRENT geometry, need tangents
@@ -193,13 +230,13 @@ def sopt(gradients, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
         g1, g2 = projections(G, T)
         if max(abs(g2)) < gtol:
             # FIXME: this may change after update step!
+            converged = True
             if VERBOSE:
                 print "sopt: converged by force max(abs(g2)))", max(abs(g2)), '<', gtol
-            converged = True
 
         if VERBOSE:
-            print "sopt: obtained gradients:"
-            print "sopt: G="
+            print "sopt: obtained energies E=", asarray(E)
+            print "sopt: obtained gradients G="
             print G
             print "sopt: g(para)=", g1
             print "sopt: g(ortho norms)=", asarray([sqrt(dot(g, g)) for g in g2])
@@ -235,9 +272,9 @@ def sopt(gradients, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
 
         # check convergence, if any:
         if max(abs(dR)) < stol:
+            converged = True
             if VERBOSE:
                 print "sopt: converged by step max(abs(dR))=", max(abs(dR)), '<', stol
-            converged = True
 
         # restrict the maximum component of the step:
         longest = max(abs(dR))
@@ -443,7 +480,7 @@ def mklambda1(constr):
     """
 
     def _lambdas(X, G1, G2, H, T):
-        # evaluate constrains and their derivatives:
+        # evaluate constraints and their derivatives:
         c, A = constr(X)
         # print "_lambdas: c=", c
 
@@ -465,17 +502,17 @@ def glambda(G, H, T, A):
          i    i     i   i
     """
 
-    # number of constrains:
+    # number of constraints:
     n = len(A)
 
     # FIXME: number of degrees of freedom same as number of
-    #        constrains:
+    #        constraints:
     assert len(T) == n
 
-    # dx / dh without constrains would be this:
+    # dx / dh without constraints would be this:
     xh = H.inv(-G)
 
-    # dc / dh without constrains would be this:
+    # dc / dh without constraints would be this:
     ch = zeros(n)
     for i in xrange(n):
         for j in xrange(n):
@@ -492,7 +529,7 @@ def glambda(G, H, T, A):
 
     # Lagrange factors to fullfill constains:
     lam = - solve(ct, ch) # linear equations
-    # FIXME: we cannot compensate constrains if the matrix is singular!
+    # FIXME: we cannot compensate constraints if the matrix is singular!
 
     return lam
 
@@ -517,11 +554,11 @@ def mkconstr1(tangents):
         n = len(T)
 
         A = zeros((n,) + shape(T))
-        # these constrains are local, A[i, j] == 0 if i /= j:
+        # these constraints are local, A[i, j] == 0 if i /= j:
         for i in xrange(n):
             A[i, i, :] = T[i]
 
-        # these constrains have no meaningful values,
+        # these constraints have no meaningful values,
         # only "derivatives":
         return [None]*len(T), A
 
@@ -536,7 +573,7 @@ def mkconstr2(spacing, A, B):
 
         # NOTE: spacing for N points returns N-2 results and its
         # N derivatives:
-        c, cprime = spacing(Y)
+        c, cprime = spacing.taylor(Y)
 
         # return derivatives wrt moving beads:
         return c, cprime[:, 1:-1]
@@ -586,19 +623,15 @@ def test1():
     es0 = array([pes(x) for x in x5])
 
     print "energies=", es0
+    print "spacing=", spacing(x5)
 
-    spc = Spacing()
-
-    print "spacing=", spc(x5)
-
-#   xm, fm, stats = smin(cha, x5, spc, maxiter=100)
-    xm, stats = soptimize(pes, x5, tangent1, maxiter=20, maxstep=0.1, callback=callback)
+#   xm, stats = soptimize(pes, x5, tangent1, maxiter=20, maxstep=0.1, callback=callback)
+    xm, stats = soptimize(pes, x5, tangent1, spacing, maxiter=50, maxstep=0.1, callback=callback)
 
     es1 = array([pes(x) for x in xm])
 
     print "energies=", es1
-
-    print "spacing=", spc(xm)
+    print "spacing=", spacing(xm)
 
     from aof.tools.jmol import jmol_view_path
     jmol_view_path(xm, syms=["Ar"]*4, refine=5)
@@ -607,8 +640,8 @@ def test1():
 if __name__ == "__main__":
     # import doctest
     # doctest.testmod()
-#   test1()
-#   exit()
+    test1()
+    exit()
     from mueller_brown import CHAIN_OF_STATES as P
     test(P[0], P[4])
 
