@@ -107,6 +107,12 @@ except:
     from processing import Queue as PQueue
     from processing import Pool
 
+def job(jid, queue, func, args=(), kwds={}):
+    """Each process should do its job and
+    store the result in the queue.
+    """
+    queue.put((jid, func(*args, **kwds)))
+
 class PMap(object):
     """A "classy" implementation of parallel map.
     """
@@ -127,16 +133,11 @@ class PMap(object):
         # prepare placeholder for the return values
         fxs = [None for x in xs]
 
-        # each process should do its job and
-        # store the result in the queue "q":
-        def workshare(i, x, q):
-            q.put((i, f(x)))
-
         # here I can put the results and get them back
-        q = Queue()
+        queue = Queue()
 
         # Initialize the porcesses that should be used
-        workers = [ Worker(target=workshare, args=(i, x, q)) for i, x in enumerate(xs) ]
+        workers = [ Worker(target=job, args=(jid, queue, f, (x,))) for jid, x in enumerate(xs) ]
 
         # start all processes
         for w in workers:
@@ -147,8 +148,8 @@ class PMap(object):
             # so far I'm not sure if they would be in the correct oder
             # by themselves
             w.join()
-            i, fx = q.get()
-            fxs[i] = fx
+            jid, fx = queue.get()
+            fxs[jid] = fx
 
         return fxs
 
