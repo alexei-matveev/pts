@@ -107,53 +107,53 @@ except:
     from processing import Queue as PQueue
     from processing import Pool
 
-def _pmap(f, xs, Worker=Process, Queue=PQueue):
+class PMap(object):
+    """A "classy" implementation of parallel map.
     """
-    Variant of map which works both with Threads or Processes (of
-    the processing/multiprocessing module)
-    The selection from those two is done by choosing Worker (and Queue as
-    the Queue.Queue does not work together with the Process)
-    The result is put in a Queue, the input is given directly
-    It also gives the number where it calculates, if there would be
-    a mixup in the queue
-    """
-    # force evaluation of arguments, some callers may pass
-    # enumerate() or generator objects:
-    xs = [x for x in xs]
 
-    # prepare placeholder for the return values
-    fxs = [None for x in xs]
+    def __init__(self, Worker=Process, Queue=PQueue):
+        self.__Worker = Worker
+        self.__Queue = Queue
 
-    # each process should do its job and
-    # store the result in the queue "q":
-    def workshare(i, x, q):
-        q.put((i, f(x)))
+    def __call__(self, f, xs):
+        # aliases:
+        Worker = self.__Worker
+        Queue = self.__Queue
 
-    # here I can put the results and get them back
-    q = Queue()
+        # force evaluation of arguments, some callers may pass
+        # enumerate() or generator objects:
+        xs = [x for x in xs]
 
-    # Initialize the porcesses that should be used
-    workers = [ Worker(target=workshare, args=(i, x, q)) for i, x in enumerate(xs) ]
+        # prepare placeholder for the return values
+        fxs = [None for x in xs]
 
-    # start all processes
-    for w in workers:
-        w.start()
+        # each process should do its job and
+        # store the result in the queue "q":
+        def workshare(i, x, q):
+            q.put((i, f(x)))
 
-    for w in workers:
-        # put the results in the return value
-        # so far I'm not sure if they would be in the correct oder
-        # by themselves
-        w.join()
-        i, fx = q.get()
-        fxs[i] = fx
+        # here I can put the results and get them back
+        q = Queue()
 
-    return fxs
+        # Initialize the porcesses that should be used
+        workers = [ Worker(target=workshare, args=(i, x, q)) for i, x in enumerate(xs) ]
 
-def pmap(f, xs):
-    return _pmap(f, xs, Process, PQueue)
+        # start all processes
+        for w in workers:
+            w.start()
 
-def tmap(f, xs):
-    return _pmap(f, xs, Thread, TQueue)
+        for w in workers:
+            # put the results in the return value
+            # so far I'm not sure if they would be in the correct oder
+            # by themselves
+            w.join()
+            i, fx = q.get()
+            fxs[i] = fx
+
+        return fxs
+
+pmap = PMap(Process, PQueue)
+tmap = PMap(Thread, TQueue)
 
 MAXPROCS = 12
 
