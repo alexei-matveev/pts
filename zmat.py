@@ -220,82 +220,12 @@ Now set dihedrals to pi or 0, to observe system at this limits:
     ...            1.0, 0.0, 1.0, 1.0, 1.0)
     >>> max(abs(bigone.fprime(xval) - bigone1.fprime(xval))) < 1.e-10
     True
-
-Now take also the rotation and translation of the whole system into account:
-For any given set of internal variables, together with a rotation and a
-translation vector, the Cartesian coordinates and their derivatives are given
-
-Set up a starting system (CH4)
-    >>> Zraw = [(), (0,), (0, 1), (0, 1, 2), (0, 1, 2)]
-    >>> ch, hch, hchh = 1.09, 109.5 / 180. * pi, 120. / 180. * pi
-    >>> ch4 = (ch, ch, hch, ch, hch, hchh, ch, hch, -hchh)
-    >>> ch4 = array(ch4)
-
-Some arbitrary vectors for rotation and translation:
-    >>> random = array((0.1, 0.8, 5.))
-    >>> move = array((1.0, 2.0, 1.0))
-
-Initialising the internal to cartesian converter
-    >>> zmat3 = ZMatrix3(Zraw)
-
-Results from it (with all derivatives)
-    >>> derint, derrot, dertr = zmat3.fprime(ch4, random, move)
-
-Initalise a function for NumDiff which only takes the internal variables as input
-    >>> class only_first_der():
-    ...   def __init__(self, Zr, v1, v2):
-    ...     self.zmat = ZMatrix3(Zr)
-    ...     self.v1 = v1
-    ...     self.v2 = v2
-    ...   def give(self, inter):
-    ...     zm, __ = self.zmat.taylor(inter, self.v1, self.v2)
-    ...     return zm
-
-
-Compare the results for the derivative after the internal coordinates
-    >>> d1 = only_first_der(Zraw, random, move)
-    >>> derv = NumDiff(d1.give)
-
-    >>> print (derv.fprime(ch4) - derint < 1e-10).all()
-    True
-
-The same for the derivatives after the rotation vector
-    >>> class only_second_der():
-    ...   def __init__(self, Zr, ints, v2):
-    ...     self.zmat2 = ZMatrix3(Zr)
-    ...     self.ints = ints
-    ...     self.v2 = v2
-    ...   def give(self, v):
-    ...     zm = self.zmat2.f(self.ints, v, self.v2)
-    ...     return zm
-
-    >>> d2 = only_second_der(Zraw, ch4, move)
-    >>> derv2 = NumDiff(d2.give)
-
-    >>> print (derv2.fprime(random) - derrot < 1e-10).all()
-    True
-
-And for the derivatives of the translation vector
-    >>> class only_third_der():
-    ...   def __init__(self, Zr, ints, v1):
-    ...     self.zmat2 = ZMatrix3(Zr)
-    ...     self.ints = ints
-    ...     self.v1 = v1
-    ...   def give(self, v):
-    ...     zm = self.zmat2.f(self.ints, self.v1, v)
-    ...     return zm
-
-    >>> d3 = only_third_der(Zraw, ch4, random)
-    >>> derv3 = NumDiff(d3.give)
-
-    >>> print (derv3.fprime(move) - dertr < 1e-10).all()
-    True
 """
 
 from numpy import pi, sin, cos, cross, dot, sqrt, arccos
 from numpy import array, asarray, empty, max, abs
 from numpy import eye, zeros, outer, hstack, vstack
-from numpy import any
+from numpy import any, shape
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
 from func import Func
@@ -620,55 +550,113 @@ class ZMat(Func):
         return vars
 
 
-class _ZMatrix(Func):
-    def __init__(self, zmat):
-        self.zmat = zmat
+class RT(Func):
+    """A wrapper for functions that return cartesian coordinates, e.g. ZMat().
+    An RT() is a Func() object that, in addition to the ZMat() coordinates V,
+    takes (skew)vector parameters, W and T, of a rotation and a translation and
+    applies the Rotate&Translate (RT) transformation.
 
-    def taylor(self, vars, v_rot, v_trans):
-        #Cartesian coordinates (and their derivatives) for the unrotated and
+    Set up a starting system (CH4)
+
+        >>> z = [(), (0,), (0, 1), (0, 1, 2), (0, 1, 2)]
+        >>> ch, hch, hchh = 1.09, 109.5 / 180. * pi, 120. / 180. * pi
+
+    Internal Z-matrix variables:
+
+        >>> V = (ch, ch, hch, ch, hch, hchh, ch, hch, -hchh)
+
+    Some arbitrary vectors for rotation and translation:
+
+        >>> W = (0.1, 0.8, 5.0)
+        >>> T = (1.0, 2.0, 1.0)
+
+    Initialising the internal to cartesian converter
+
+        >>> Z = ZMatrix3(z)
+
+    Cartesian coordiantes and three types of derivatives:
+
+        >>> X = Z(V, W, T)
+        >>> XV, XW, XT = Z.fprime(V, W, T)
+
+
+        >>> from func import NumDiff, Partial
+
+    NumDiff operates only with functions of a single variable,
+    these are three partial functions of V, W, and T:
+
+        >>> ZV = Partial(Z, 0, W, T)
+        >>> ZW = Partial(Z, 1, V, T)
+        >>> ZT = Partial(Z, 2, V, W)
+
+        >>> max(abs(XV - NumDiff(ZV).fprime(V))) < 1.e-10
+        True
+        >>> max(abs(XW - NumDiff(ZW).fprime(W))) < 1.e-10
+        True
+        >>> max(abs(XT - NumDiff(ZT).fprime(T))) < 1.e-10
+        True
+    """
+
+    def __init__(self, f):
+        # a Func() of a 1D array, that returns cartesian coordiantes
+        # as a (n, 3)-shaped array:
+        self.__f = f
+
+    def taylor(self, V, W, T):
+        # alias:
+        f = self.__f
+
+        # Cartesian coordinates (and their derivatives) for the unrotated and
         # untranslated system
-        Xna, Xprimena = self.zmat.taylor(vars)
-        # transform rotation vector in a rotationmatrix (for a single atom)
-        rot, rotprime = _rotmat(v_rot)
+        X, XV = f.taylor(V)
 
-        X = Xna.copy()
-        Xprime = Xprimena.copy()
+        # transform rotation vector in a rotation matrix (for a single atom)
+        R, RW = _rotmat(W)
 
-        # the shape of the derivatives Xprime should tell anything about the
-        # systemsize
-        n1, n2, n3 = Xprime.shape
-        # n1 = number atoms, n2 =3, n3 = number internal coordinates
-        # There are each three variables for trans. and rot.
-        # and every cartesian variable has an effect on them
-        allrotpr = zeros((n1,n2,3))
-        alltranspr = zeros((n1,n2,3))
+        # There are each three variables for translation and rotation.
+        # This will be the derivatives of cartesians wrt W and T:
+        XW = empty(shape(X) + shape(W))
+        XT = zeros(shape(X) + shape(T))
+
         # cycle over all Cartesian (three) atom positions
-        for i, xna in enumerate(Xna):
-            # change the positions according to rotation and translation
-            X[i] = dot(rot, xna) + v_trans
-            # update the derivatives
-            # trans: dc_ij/dt_k = 1 if j==t, else 0
-            alltranspr[i] = eye(3)
-            for j in range(n3):
-                # dX/di = rot * dX_unrotated/di
-                Xprime[i,:,j] = dot(rot, Xprime[i,:,j])
-                # dX/dv_r = X * dr/dv
-                allrotpr[i] = dot(xna, rotprime)
+        for i in range(len(X)): # == number of atoms
+            #
+            # First, update the derivatives, we use the unmodified positions X here,
+            # so it must be done before rotating/translating X.
+            #
 
-        return X, (Xprime, allrotpr, alltranspr)
+            #
+            # dX / dT  = 1
+            #   i    j    ij
+            #
+            XT[i] = eye(3)
 
-    def f(self, vars, v_rot, v_trans):
-         C, __ = self.taylor( vars, v_rot, v_trans)
-         return C
+            #
+            # dX / dV  := R   * dX / dV
+            #   i    j     ik     k    j
+            #
+            for j in range(len(V)): # == number of internal coordiantes
 
-    def fprime(self, vars, v_rot, v_trans):
-         __, (Cprime, Crotprime, Ctransprime) = self.taylor( vars, v_rot, v_trans)
-         return (Cprime, Crotprime, Ctransprime)
+                XV[i, :, j] = dot(R, XV[i, :, j])
 
+            #
+            # dX / dW  = dR  / dW * X
+            #   i    j     ik    j   k
+            #
+            for j in range(len(W)): # == 3
 
-class ZMatrix3(_ZMatrix):
+                XW[i, :, j] = dot(RW[..., j], X[i])
+
+            #
+            # Second, change the positions according to rotation and translation
+            #
+            X[i] = dot(R, X[i]) + T
+
+        return X, (XV, XW, XT)
+
+class ZMatrix3(RT):
     def __init__(self, zm, fixed = None):
-        self.zmat = ZMat(zm, fixed = fixed)
+        RT.__init__(self, ZMat(zm, fixed = fixed))
 
 def unit(v):
     "Normalize a vector"
