@@ -932,6 +932,50 @@ class Reshape(Func):
 
         return fx, fxprime
 
+class Partial(Func):
+    """From a multivariate function
+
+        f(a0, a1, a2, ...)
+
+    make a univariate function
+
+        f(aN)
+
+    by fixing all other arguments.
+    """
+    def __init__(self, f, n=0, *args):
+        self.__f = f
+        self.__n = n
+        self.__args = args # FIXME: tuple has no .copy()
+
+    def f(self, x):
+        n = self.__n
+        args = self.__args
+
+        args = args[:n] + (x,) + args[n:]
+
+        return self.__f.f(*args)
+
+    def fprime(self, x):
+        n = self.__n
+        args = self.__args
+
+        args = args[:n] + (x,) + args[n:]
+
+        fp =  self.__f.fprime(*args)
+
+        return fp[n]
+
+    def taylor(self, x):
+        n = self.__n
+        args = self.__args
+
+        args = args[:n] + (x,) + args[n:]
+
+        f, fp =  self.__f.taylor(*args)
+
+        return f, fp[n]
+
 # python func.py [-v]:
 if __name__ == "__main__":
     import doctest
