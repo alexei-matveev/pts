@@ -1,6 +1,51 @@
 #!/usr/bin/python
 """
 Hessian update schemes go here.
+
+    >>> from mueller_brown import gradient as g, CHAIN_OF_STATES
+
+Minimium A on MB surface:
+
+    >>> r = CHAIN_OF_STATES[0]
+
+    >>> from numpy import array
+
+Two steps ...
+
+    >>> s1 = 0.001 * array([1.0,  1.0])
+    >>> s2 = 0.001 * array([1.0, -1.0])
+
+... and two gradeint differences:
+
+    >>> y1 = g(r + s1) - g(r - s1)
+    >>> y2 = g(r + s2) - g(r - s2)
+
+One implementation:
+
+    >>> h1 = BFGS()
+
+    >>> h1.update( 2 * s1, y1)
+    >>> h1.update( 2 * s2, y2)
+
+    >>> h1.inv(y2)
+    array([ 0.002, -0.002])
+
+    >>> h1.inv(y1)
+    array([ 0.00200021,  0.00200021])
+
+Another implementation:
+
+    >>> h2 = LBFGS()
+
+    >>> h2.update( 2 * s1, y1)
+    >>> h2.update( 2 * s2, y2)
+
+    >>> h2.inv(y2)
+    array([ 0.002, -0.002])
+
+    >>> h2.inv(y1)
+    array([ 0.00200021,  0.00200021])
+
 """
 
 __all__ = ["LBFGS", "BFGS", "Array"]
