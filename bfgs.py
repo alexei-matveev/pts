@@ -168,7 +168,7 @@ class BFGS:
 
         # initial hessian (in case update is called first):
         if self.B is None:
-            self.B = self.B0 * eye(len(s))
+            self.B = self.B0 * eye(len(dr))
 
         # this is positive on *convex* surfaces:
         if self.positive and dot(dr, dg) <= 0:
