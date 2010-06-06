@@ -76,7 +76,7 @@ __all__ = ["SR1", "LBFGS", "BFGS", "Array"]
 
 from numpy import asarray, empty, dot
 from numpy import eye, outer
-from numpy.linalg import solve #, eigh
+#from numpy.linalg import solve #, eigh
 
 def _sr1(B, s, y, thresh=1.0e-7):
     """Update scheme for the direct/inverse hessian:
@@ -97,6 +97,74 @@ def _sr1(B, s, y, thresh=1.0e-7):
     else:
         # just skip the update:
         print "SR1: WARNING, skipping update, denominator too small!"
+
+
+# FIXME: we will use None as -infinity, because of this feature:
+assert None < -1.0
+
+def _bfgsB(B, s, y, thresh=None):
+    """BFGS update scheme for the direct hessian, one of several
+    equivalent expressions:
+
+        B    = B - (B * s) * (B * s)' / (s' * B * s) + y * y' / (y' * s)
+         k+1    k    k         k               k
+
+    where s is the step and y is the corresponding change in the gradient.
+
+    NOTE: modifies B in-place using +=
+    """
+
+    # this is positive on *convex* surfaces:
+    if dot(s, y) <= thresh:
+        # FIXME: with default thresh=None this is never True!
+
+        # just skip the update:
+        return
+
+        # FIXME: Only when we are doing MINIMIZATION!
+        #        For a general search of stationary points, it
+        #        must be better to have accurate hessian.
+
+    # for the negative term:
+    z = dot(B, s)
+
+    B += outer(y, y) / dot(s, y) - outer(z, z) / dot(s, z)
+
+def _bfgsH(H, s, y, thresh=None):
+    """BFGS update scheme for the inverse hessian, one of several
+    equivalent expressions:
+
+        H    = H  + (1 + y' * z) * s * s' / r - s * z' - z * s'
+         k+1    k
+
+    with
+
+        r = y' * s
+
+    and
+
+        z = H * y / r
+
+    where s is the step and y is the corresponding change in the gradient.
+
+    NOTE: modifies H in-place using +=
+    """
+
+    # this is positive on *convex* surfaces:
+    r = dot(s, y)
+    if r <= thresh:
+        # FIXME: with default thresh=None this is never True!
+
+        # just skip the update:
+        return
+
+        # FIXME: Only when we are doing MINIMIZATION!
+        #        For a general search of stationary points, it
+        #        must be better to have accurate hessian.
+
+    z = dot(H, y) / r
+
+    H += outer(s, s) * ((1.0 + dot(y, z)) / r) - outer(s, z) - outer(z, s)
 
 #
 # Hessian models below should implement at least update() and inv() methods.
@@ -246,37 +314,26 @@ class BFGS:
         self.B0 = B0
 
         # should we maintain positive definitness?
-        self.positive = positive
+        self.thresh = None # FIXME: -infifnity
+        if positive:
+            self.thresh = 0.0
 
         # hessian matrix (dont know dimensions yet):
         self.B = None
+        self.H = None
 
-    def update(self, dr, dg):
-        """Update scheme for the direct hessian:
-
-            B    = B - (B * s) * (B * s)' / (s' * B * s) + y * y' / (y' * s)
-             k+1    k    k         k               k
-
-        where s is the step and y is the corresponding change in the gradient.
-        """
+    def update(self, s, y):
 
         # initial hessian (in case update is called first):
         if self.B is None:
-            self.B = self.B0 * eye(len(dr))
+            self.B = eye(len(s)) * self.B0
 
-        # this is positive on *convex* surfaces:
-        if self.positive and dot(dr, dg) <= 0:
-            # just skip the update:
-            return
+        if self.H is None:
+            self.H = eye(len(s)) / self.B0
 
-            # FIXME: Only when we are doing MINIMIZATION!
-            #        For a general search of stationary points, it
-            #        must be better to have accurate hessian.
-
-        # for the negative term:
-        Bdr = dot(self.B, dr)
-
-        self.B += outer(dg, dg) / dot(dr, dg) - outer(Bdr, Bdr) / dot(dr, Bdr)
+        # update matrices in-place:
+        _bfgsB(self.B, s, y, self.thresh)
+        _bfgsH(self.H, s, y, self.thresh)
 
     def inv(self, y):
         """Computes s = H * y using internal representation
@@ -284,19 +341,19 @@ class BFGS:
         """
 
         # initial hessian (in case inv() is called first):
-        if self.B is None:
-            self.B = self.B0 * eye(len(y))
+        if self.H is None:
+            self.H = eye(len(y)) / self.B0
 
-        return solve(self.B, y)
+        return dot(self.H, y)
 
     def app(self, s):
         """Computes y = B * s using internal representation
         of the hessian B.
         """
 
-        # initial hessian (in case inv() is called first):
+        # initial hessian (in case app() is called first):
         if self.B is None:
-            self.B = self.B0 * eye(len(s))
+            self.B = eye(len(s)) * self.B0
 
         return dot(self.B, s)
 
@@ -321,12 +378,15 @@ class SR1:
 
         # hessian matrix (dont know dimensions yet):
         self.B = None
+        self.H = None
 
     def update(self, s, y):
 
         # initial hessian (in case update is called first):
         if self.B is None:
             self.B = eye(len(s)) * self.B0
+
+        if self.H is None:
             self.H = eye(len(s)) / self.B0
 
         # update direct/inverse hessians in-place:
