@@ -8,7 +8,7 @@ Minimium A on MB surface:
 
     >>> r = CHAIN_OF_STATES[0]
 
-    >>> from numpy import array
+    >>> from numpy import array, max, abs
 
 Two steps ...
 
@@ -24,8 +24,11 @@ One implementation:
 
     >>> h1 = BFGS()
 
-    >>> h1.update( 2 * s1, y1)
-    >>> h1.update( 2 * s2, y2)
+    >>> h1.update(2 * s1, y1)
+    >>> h1.update(2 * s2, y2)
+
+The two methods, inv() and app() apply inverse and direct
+hessians, respectively:
 
     >>> h1.inv(y2)
     array([ 0.002, -0.002])
@@ -33,19 +36,24 @@ One implementation:
     >>> h1.inv(y1)
     array([ 0.00200021,  0.00200021])
 
+    >>> max(abs(h1.inv(h1.app(s1)) - s1)) < 1.e-10
+    True
+
+    >>> max(abs(h1.inv(h1.app(s2)) - s2)) < 1.e-10
+    True
+
 Another implementation:
 
     >>> h2 = LBFGS()
 
-    >>> h2.update( 2 * s1, y1)
-    >>> h2.update( 2 * s2, y2)
+    >>> h2.update(2 * s1, y1)
+    >>> h2.update(2 * s2, y2)
 
     >>> h2.inv(y2)
     array([ 0.002, -0.002])
 
     >>> h2.inv(y1)
     array([ 0.00200021,  0.00200021])
-
 """
 
 __all__ = ["LBFGS", "BFGS", "Array"]
@@ -177,6 +185,11 @@ class LBFGS:
 
         return z
 
+    def app(self, s):
+        # FIXME: need a limited memory implementation for
+        # direct hessian. For the moment use BFGS() instead.
+        raise NotImplementedError
+
 class BFGS:
     """Update scheme for the direct hessian:
 
@@ -229,24 +242,27 @@ class BFGS:
 
         self.B += outer(dg, dg) / dot(dr, dg) - outer(Bdr, Bdr) / dot(dr, Bdr)
 
-    def inv(self, g):
-        """Computes z = H * g using internal representation
+    def inv(self, y):
+        """Computes s = H * y using internal representation
         of the inverse hessian, H = B^-1.
         """
 
         # initial hessian (in case inv() is called first):
         if self.B is None:
-            self.B = self.B0 * eye(len(g))
+            self.B = self.B0 * eye(len(y))
 
-        # quite an expensive way of solving linear equation
-        z = solve(self.B, g)
-        #   # B * z = g:
-        #   b, V = eigh(self.B)
+        return solve(self.B, y)
 
-        #   # update procedure maintains positive defiitness, so b > 0:
-        #   z = dot(V, dot(g, V) / b)
+    def app(self, s):
+        """Computes y = B * s using internal representation
+        of the hessian B.
+        """
 
-        return z
+        # initial hessian (in case inv() is called first):
+        if self.B is None:
+            self.B = self.B0 * eye(len(s))
+
+        return dot(self.B, s)
 
 
 class Array:
