@@ -77,32 +77,41 @@ def test(A, B):
     print "A=", A
     print "B=", B
 
-    p = Path([A, B])
-    n = 7
-    s = linspace(0., 1., n)
-    print "s=", s
-
-    x = map(p, s)
-    x = asarray(x)
-
-    print "x=", x
-    show_chain(x)
-
     from mueller_brown import MB
 
-#   OUTDATED: lambdas = mklambda1(mkconstr2(spacing, x[0], x[-1]))
-    xm, stats = soptimize(MB, x, tangent1, spacing, maxiter=20, maxstep=0.1, callback=callback)
-#   xm, stats = soptimize(MB, x, tangent1, maxiter=20, maxstep=0.1, callback=callback)
-    show_chain(xm)
+    x = [A, B]
+    n = 3
+    while True:
+        p = Path(x)
+        s = linspace(0., 1., n)
+        print "s=", s
 
-    print "xm=", xm
+        x = map(p, s)
+        x = asarray(x)
+
+        print "x=", x
+        show_chain(x)
+
+    #   x, stats = soptimize(MB, x, tangent1, spacing, maxiter=20, maxstep=0.1, callback=callback)
+        x, stats = soptimize(MB, x, tangent1, maxiter=20, maxstep=0.1, callback=callback)
+        savetxt("mb-path.txt", x)
+        show_chain(x)
+
+        print "x=", x
+        x = respace(x, tangent1, spacing)
+        print "x=", x
+        show_chain(x)
+
+        if n < 30:
+            # double the number of beads:
+            n = 2 * n + 1
 
 from numpy import savetxt, loadtxt
 
 def callback(x):
     savetxt("path.txt", x)
     print "chain spacing=", spacing(x)
-    # show_chain(x)
+#   show_chain(x)
 
 from func import Reshape, Elemental
 from memoize import Memoize
@@ -690,8 +699,8 @@ def test1():
 if __name__ == "__main__":
     # import doctest
     # doctest.testmod()
-    test1()
-    exit()
+#   test1()
+#   exit()
     from mueller_brown import CHAIN_OF_STATES as P
     test(P[0], P[4])
 
