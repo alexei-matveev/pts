@@ -20,7 +20,23 @@ Two steps ...
     >>> y1 = g(r + s1) - g(r - s1)
     >>> y2 = g(r + s2) - g(r - s2)
 
-One implementation:
+Symmetric rank-1 (SR1) implementation:
+
+    >>> h3 = SR1()
+
+    >>> h3.update( 2 * s1, y1)
+    >>> h3.update( 2 * s2, y2)
+
+    >>> h3.inv(y2)
+    array([ 0.002, -0.002])
+
+    >>> h3.inv(y1)
+    array([ 0.002,  0.002])
+
+    >>> h3.inv(h3.app(s1))
+    array([ 0.001,  0.001])
+
+BFGS implementation:
 
     >>> h1 = BFGS()
 
@@ -42,7 +58,7 @@ hessians, respectively:
     >>> max(abs(h1.inv(h1.app(s2)) - s2)) < 1.e-10
     True
 
-Another implementation:
+Limited-memory BFGS implementation (inverse only):
 
     >>> h2 = LBFGS()
 
@@ -56,7 +72,7 @@ Another implementation:
     array([ 0.00200021,  0.00200021])
 """
 
-__all__ = ["LBFGS", "BFGS", "Array"]
+__all__ = ["SR1", "LBFGS", "BFGS", "Array"]
 
 from numpy import asarray, empty, dot
 from numpy import eye, outer
@@ -212,7 +228,7 @@ class BFGS:
         # should we maintain positive definitness?
         self.positive = positive
 
-        # hessian matrix (dont know dimensions jet):
+        # hessian matrix (dont know dimensions yet):
         self.B = None
 
     def update(self, dr, dg):
@@ -259,6 +275,73 @@ class BFGS:
         """
 
         # initial hessian (in case inv() is called first):
+        if self.B is None:
+            self.B = self.B0 * eye(len(s))
+
+        return dot(self.B, s)
+
+class SR1:
+    """Update scheme for the direct/inverse hessian:
+
+        B    = B + z * z' / (z' * s )   with   z = y - B * s
+         k+1    k   k   k     k    k            k   k   k   k
+
+    where s is the step and y is the corresponding change in the gradient.
+    """
+
+    def __init__(self, B0=70.):
+        """
+        Parameters:
+
+        B0      Initial approximation of direct Hessian.
+                Note that this is never changed!
+        """
+
+        self.B0 = B0
+
+        # hessian matrix (dont know dimensions yet):
+        self.B = None
+
+    def update(self, s, y):
+        """Update scheme for the direct/inverse hessian:
+
+            B    = B  +  z * z' / (z' * s )   with   z = y - B * s
+             k+1    k     k   k     k    k            k   k   k   k
+
+        where s is the step and y is the corresponding change in the gradient.
+        """
+
+        # initial hessian (in case update is called first):
+        if self.B is None:
+            self.B = self.B0 * eye(len(s))
+
+        z = y - self.app(s)
+
+        # avoid small denominators:
+        if dot(z, s)**2 < dot(s, s) * dot(z, z) * 1.0e-14:
+            print "SR1: WARNING, skipping update, denominator too small!"
+            # just skip the update:
+            return
+
+        self.B += outer(z, z) / dot(z, s)
+
+    def inv(self, y):
+        """Computes s = H * y using internal representation
+        of the inverse hessian, H = B^-1.
+        """
+
+        # initial hessian (in case inv() is called first):
+        if self.B is None:
+            self.B = self.B0 * eye(len(y))
+
+        return solve(self.B, y)
+
+    def app(self, s):
+        """Computes y = B * s using internal representation
+        of the hessian B.
+        """
+
+        # initial hessian (in case app() is called first):
         if self.B is None:
             self.B = self.B0 * eye(len(s))
 
