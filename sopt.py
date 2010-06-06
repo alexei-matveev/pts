@@ -319,6 +319,72 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
     # of the gradient and step:
     return R, (iteration, converged, G, dR)
 
+def respace(x0, tangents, spacing):
+
+    n = len(x0)
+    assert n >= 3
+
+    x0 = asarray(x0)
+
+    # string (long) vector shape:
+    xshape = x0.shape
+
+    # position (short) vector shape:
+    vshape = x0[0].shape
+
+    # position (short) vector dimension:
+    vsize  = x0[0].size
+
+    #
+    # resp() deals only with the collections of 1D vectors, so
+    #
+    # (1) reshape the input ...
+    x0.shape = (n, vsize)
+    # FIXME: dont forget to restore the shape of input-only x0 on exit!
+
+    # (2) if present, "reshape" the spacing Func,
+    # here we assume n-2 constraints, one per moving image,
+    # the terminal images are fix anyway:
+    spacing = Reshape(spacing, xshape=xshape, fshape=(n-2,))
+
+    # FIXME: available tangent definitions already expect/accept
+    # (a group of) 1D vectors. Reshape them too, if needed.
+    tangents = wrap(tangents, x0[0], x0[-1])
+
+    # spacing also requires terminal beads:
+    lambdas = wrap(spacing, x0[0], x0[-1])
+
+    xm = resp(x0[1:-1], tangents, lambdas)
+
+    # put the terminal images back:
+    xm = vstack((x0[0], xm, x0[-1]))
+
+    xm.shape = xshape
+    x0.shape = xshape
+
+    return xm
+
+def resp(x, t, s):
+    """
+        dx / dh = - t(x) * s(x)
+    """
+
+    def f(h, y):
+        T = t(y)
+        S = s(y)
+        yprime = empty(shape(y))
+        for i in range(len(y)):
+            # FIXME: yes, with PLUS sign:
+            yprime[i] = T[i] * S[i]
+        return yprime
+
+    print "s(x0)=", s(x)
+
+    x8 = odeint1(0.0, x, f)
+
+    print "s(x8)=", s(x8)
+    return x8
+
 def Dot(A, B):
     "Compute dot(A, B) for a string"
 
