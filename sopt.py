@@ -104,7 +104,8 @@ def callback(x):
     print "chain spacing=", spacing(x)
     # show_chain(x)
 
-from func import Elemental, Reshape
+from func import Reshape, Elemental
+from memoize import Memoize
 
 def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=callback, **kwargs):
     """
@@ -175,6 +176,9 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=ca
 
     if callback is not None:
         callback = wrap(callback, x0[0], x0[-1])
+
+    # for restarts and post-analysis:
+    pes = Memoize(pes, filename="soptimize.pkl")
 
     xm, stats = sopt(pes.taylor, x0[1:-1], tangents, lambdas, callback=callback, **kwargs)
 
