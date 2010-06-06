@@ -282,6 +282,18 @@ class Memoize(Func):
             self.__d[key] = fprime
             return fprime
 
+    def taylor(self, *args):
+        # keys for the value and derivative:
+        key0 = (args, 0)
+        key1 = (args, 1)
+        if key0 in self.__d and key1 in self.__d:
+            return self.__d[key0], self.__d[key1]
+        else:
+            f, fprime = self.__f.taylor(*args)
+            self.__d[key0] = f
+            self.__d[key1] = fprime
+            return f, fprime
+
 # python memoize.py [-v]:
 if __name__ == "__main__":
     import doctest
