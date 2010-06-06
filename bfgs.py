@@ -362,13 +362,15 @@ class Array:
     def __getitem__(self, i):
         return self.__H[i]
 
-    def update(self, dR, dG):
-        for h, dr, dg in zip(self.__H, dR, dG):
-            h.update(dr, dg)
+    def update(self, S, Y):
+        for h, s, y in zip(self.__H, S, Y):
+            h.update(s, y)
 
-    def inv(self, G):
+    def inv(self, Y):
+        return asarray([ h.inv(y) for h, y in zip(self.__H, Y) ])
 
-        return asarray([ h.inv(g) for h, g in zip(self.__H, G) ])
+    def app(self, S):
+        return asarray([ h.app(s) for h, s in zip(self.__H, S) ])
 
 # python bfgs.py [-v]:
 if __name__ == "__main__":
