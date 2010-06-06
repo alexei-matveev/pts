@@ -78,6 +78,26 @@ from numpy import asarray, empty, dot
 from numpy import eye, outer
 from numpy.linalg import solve #, eigh
 
+def _sr1(B, s, y, thresh=1.0e-7):
+    """Update scheme for the direct/inverse hessian:
+
+        B    = B  +  z * z' / (z' * s )   with   z = y - B * s
+         k+1    k     k   k     k    k            k   k   k   k
+
+    where s is the step and y is the corresponding change in the gradient.
+
+    NOTE: modifies B in-place using +=
+    """
+
+    z = y - dot(B, s)
+
+    # avoid small denominators:
+    if dot(z, s)**2 > dot(s, s) * dot(z, z) * thresh**2:
+        B += outer(z, z) / dot(z, s)
+    else:
+        # just skip the update:
+        print "SR1: WARNING, skipping update, denominator too small!"
+
 #
 # Hessian models below should implement at least update() and inv() methods.
 #
@@ -303,27 +323,15 @@ class SR1:
         self.B = None
 
     def update(self, s, y):
-        """Update scheme for the direct/inverse hessian:
-
-            B    = B  +  z * z' / (z' * s )   with   z = y - B * s
-             k+1    k     k   k     k    k            k   k   k   k
-
-        where s is the step and y is the corresponding change in the gradient.
-        """
 
         # initial hessian (in case update is called first):
         if self.B is None:
-            self.B = self.B0 * eye(len(s))
+            self.B = eye(len(s)) * self.B0
+            self.H = eye(len(s)) / self.B0
 
-        z = y - self.app(s)
-
-        # avoid small denominators:
-        if dot(z, s)**2 < dot(s, s) * dot(z, z) * 1.0e-14:
-            print "SR1: WARNING, skipping update, denominator too small!"
-            # just skip the update:
-            return
-
-        self.B += outer(z, z) / dot(z, s)
+        # update direct/inverse hessians in-place:
+        _sr1(self.B, s, y)
+        _sr1(self.H, y, s)
 
     def inv(self, y):
         """Computes s = H * y using internal representation
@@ -331,10 +339,10 @@ class SR1:
         """
 
         # initial hessian (in case inv() is called first):
-        if self.B is None:
-            self.B = self.B0 * eye(len(y))
+        if self.H is None:
+            self.H = eye(len(y)) / self.B0
 
-        return solve(self.B, y)
+        return dot(self.H, y)
 
     def app(self, s):
         """Computes y = B * s using internal representation
@@ -343,7 +351,7 @@ class SR1:
 
         # initial hessian (in case app() is called first):
         if self.B is None:
-            self.B = self.B0 * eye(len(s))
+            self.B = eye(len(s)) * self.B0
 
         return dot(self.B, s)
 
