@@ -336,39 +336,6 @@ def projections(V, T):
 
     return V1, V2
 
-#
-# Unused in the current version:
-#
-def qnstep(G, H, T):
-    """QN-Step in the subspace orthogonal to tangents T:
-
-        dr = - ( 1 - t * t' ) * H * ( 1 - t * t' ) * g
-    """
-
-    # parallel and orthogonal components of the gradient:
-    G1, G2 = projections(G, T)
-
-    # step that would make the gradients vanish:
-    R = - H.inv(G2)
-
-    # parallel and orthogonal components of the step:
-    R1, R2 = projections(R, T)
-
-    return R2, G1
-
-#
-# Unused in the current version:
-#
-from ode import rk5
-
-def rk5step(h, G, H, R, tangents):
-
-    def f(t, x):
-        dx, lam = qnstep(G, H, tangents(x))
-        return dx
-
-    return rk5(0.0, R, f, h)
-
 from ode import odeint1
 from numpy import log, min, zeros
 
