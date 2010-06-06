@@ -215,6 +215,9 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
     iteration = -1 # prefer to increment at the top of the loop
     converged = False
 
+    # fixed trust radius:
+    TR = maxstep
+
     while not converged and iteration < maxiter:
         iteration += 1
 
@@ -261,24 +264,24 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
 
         # estimate the scaling factor for the step:
         h = 1.0
-        if max(abs(dR)) > maxstep:
-            h *= 0.9 * maxstep / max(abs(dR))
+        if max(abs(dR)) > TR:
+            h *= 0.9 * TR / max(abs(dR))
 
         if VERBOSE:
             print "sopt: ODE one step, propose h=", h
             print "sopt: dR=", dR
 
-        # choose a step length below maxstep:
+        # choose a step length below TR:
         while True:
             # FIXME: potentially wasting ODE integrations here:
             dR = odestep(h, G, H, R, tangents, lambdas)
 
             longest = max(abs(dR))
-            if longest <= maxstep:
+            if longest <= TR:
                 break
 
-            print "sopt: WARNING: step too long by factor", longest/maxstep, "retrying"
-            h *= 0.9 * maxstep / longest
+            print "sopt: WARNING: step too long by factor", longest/TR, "retrying"
+            h *= 0.9 * TR / longest
 
         if VERBOSE:
             print "ODE step, h=", h, ":"
@@ -292,8 +295,8 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
 
         # restrict the maximum component of the step:
         longest = max(abs(dR))
-        if longest > maxstep:
-            print "sopt: WARNING: step too long by factor", longest/maxstep, ", scale down !!!"
+        if longest > TR:
+            print "sopt: WARNING: step too long by factor", longest/TR, ", scale down !!!"
 
         # save for later comparison, need a copy, see "r += dr" below:
         R0 = R.copy()
