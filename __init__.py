@@ -104,9 +104,11 @@ def setup(argv):
         exit(1)
 
 
+    inputdir = os.path.dirname(reagents[0])
     names = [os.path.splitext(f)[0] for f in reagents]
+    names = [os.path.basename(f) for f in reagents]
     name = "_to_".join(names) + "_with_" + os.path.splitext(os.path.basename(params_file))[0]
 
-    return name, params_file, mol_strings, init_state_vec, prev_results_file, overrides
+    return name, params_file, mol_strings, init_state_vec, prev_results_file, overrides, inputdir
 
 
