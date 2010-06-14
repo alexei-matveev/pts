@@ -39,6 +39,10 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
     elif model == 'growingstring':
         CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1)#, growth_mode='search')
         growing = True
+    elif model == 'searchingstring':
+        CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1, growth_mode='search')
+        growing = True
+
     else:
         print "Unrecognised model", model
 
@@ -68,7 +72,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 
     xtol = 0.0
     etol = 0.000001
-    run_opt = lambda: aof.runopt(alg, CoS, tol, xtol, etol, maxit, callback, maxstep=0.1)
+    run_opt = lambda: aof.runopt(alg, CoS, tol, xtol, etol, maxit, callback, maxstep=0.05, extra={'alpha':0.5})
     print run_opt()
     """while CoS.must_regenerate or growing and CoS.grow_string():
         CoS.update_path()
@@ -85,13 +89,13 @@ if __name__ == "__main__":
     reagents_MB = [array([ 0.62349942,  0.02803776]), array([-0.558, 1.442])]
 #    reagents_MB = eval(aof.common.file2str("initial_pathway.txt"))
 #    reagents_MB = array([[ 0.62349942,  0.02803776], [-0.82200156,  0.62431281], [-0.558     ,  1.442     ]])
-#    test_StaticModel('neb', aof.pes.MuellerBrown(), reagents_MB, 12, 1., 'ase_lbfgs', tol=0.001)
+#    test_StaticModel('neb', aof.pes.MuellerBrown(), reagents_MB, 8, 3., 'ase_lbfgs', tol=0.001, plot='every')
 #    exit()
 
     MB_saddle1 = array([ 0.21248659,  0.29298832]) # energy = -0.072248940112325243
     MB_saddle2 = array([-0.82200156,  0.62431281]) # energy = -0.040664843508657414
 
-    test_StaticModel('growingstring', aof.pes.MuellerBrown(), reagents_MB, 8, 2., 'ase_lbfgs', tol=0.005, maxit=200, real_ts=MB_saddle2, plot='every')
+    test_StaticModel('searchingstring', aof.pes.MuellerBrown(), reagents_MB, 6, 2., 'multiopt', tol=0.005, maxit=200, real_ts=MB_saddle2, plot='every')
 
     exit()
     reagents = [array([0.,0.]), array([3.,3.])]

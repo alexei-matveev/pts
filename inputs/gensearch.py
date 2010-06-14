@@ -12,7 +12,7 @@ from aof.common import file2str
 from os.path import exists
 from aof.tools import pickle_path
 
-name, params_file, mol_strings, init_state_vec, prev_results_file, overrides = aof.setup(sys.argv)
+name, params_file, mol_strings, init_state_vec, prev_results_file, overrides, inputdir = aof.setup(sys.argv)
 
 # TODO: setup circular re-naming to prevent accidental overwrites
 logfile = open(name + '.log', 'w')

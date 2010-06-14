@@ -115,6 +115,14 @@ class MiniBFGS(Func, ObjLog):
 
         E_predicted = self.predictE(pos)
         self._rho = (energy - self._E0) / (E_predicted - self._E0 + 1e-8) # guard against divide by zero
+        if np.isnan(self._rho):
+            print "pos", pos
+            print "E_predicted", E_predicted
+            print "self._E0", self._E0
+            print "energy", energy
+            print "self.H", self.H
+            print "self._grad0", self._grad0
+
         
         # Assumes that the error in the 2nd order Taylor series energy varies
         # linearly with the step length and adjusts the step length to achieve 
@@ -149,7 +157,7 @@ class MiniBFGS(Func, ObjLog):
                 # reset Hessian to conservative value if energy goes up
 #                self.H *= np.eye(self._dims)
                 self.H = self.initH.copy()#np.min(self.initH[0,0], np.abs(self.H[0,0]).sum() * 2) * np.eye(self._dims)
-                self.slog("Bead %d: Energy went up, Hessian reset to" % self.id)
+                self.slog("Bead %d: Energy went up, Hessian reset to" % self.id, when='always')
                 self.slog(self.H)
                 self._H_resets += 1
                 self._step_scale = self._init_step_scale
@@ -162,9 +170,14 @@ class MiniBFGS(Func, ObjLog):
                     a = np.dot(dr, df)
                     dg = np.dot(self.H, dr)
                     b = np.dot(dr, dg)
+                    print "dr", dr
+                    print "a", a
+                    print "b", b
                     self.H += np.outer(df, df) / a - np.outer(dg, dg) / b
                     self.slog("Bead %d: Hessian (BFGS) updated to" % self.id)
                     self.slog(self.H)
+
+            self.slog('DB: Hessian min/max abs vals: %.2f %.2f' % (abs(self.H).min(), abs(self.H).max()), when='always')
 
         self._its += 1
        
@@ -308,7 +321,7 @@ class MultiOpt(Optimizer, ObjLog):
 
         dr = self.scale_step(dr, step_scales)
 
-        self.slog("Lengths of steps of each bead:", ['%.5f' % np.linalg.norm(dr_bead) for dr_bead in dr], when='always')
+        self.slog("DB: Lengths of steps of each bead:", ['%.5f' % np.linalg.norm(dr_bead) for dr_bead in dr], when='always')
  
         self.atoms.state_vec = (r + dr) 
 
