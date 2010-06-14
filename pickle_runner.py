@@ -57,6 +57,8 @@ def main(argv=None):
         if not isinstance(mol, coord_sys.CoordSys):
             raise PickleRunnerException("De-pickled molecule was not an instance of aof.coord_sys.CoordSys: " + str(type(mol)))
 
+        calc = mol.get_calculator()
+        print calc
         if not mol.get_calculator():
             raise PickleRunnerException("Molecule object had no calculator.")
 
