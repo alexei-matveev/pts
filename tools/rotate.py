@@ -3,6 +3,7 @@
 import sys
 import getopt
 from random import uniform
+from textwrap import fill
 
 from numpy import cos, sin, array, hstack, dot, sqrt, zeros
 from numpy.linalg import norm
@@ -45,8 +46,7 @@ def aaa_dist(geom):
     return ad
 
 class Usage(Exception):
-    def __init__(self, msg):
-        self.msg = msg
+    pass
 
 def main(argv=None):
     if argv is None:
@@ -58,13 +58,17 @@ def main(argv=None):
              raise Usage(msg)
         
         if len(args) < 2:
-            raise Usage("Must specify two files")
+            msg = fill("Takes two molecules specified in cartesian coordinates " +
+                "and rotates the second one so that some atoms (given in " +
+                "the code) are optimally aligned.") + \
+                "\nUsage: rotate.py [-h, --help] <molecule1.xyz> <molecule2.xyz> <atom pairs list>"
+            raise Usage(msg)
 
         sep_str = args[2]
         run(sep_str, args[0], args[1], [0,1,2,3,4])
 
     except Usage, err:
-        print >>sys.stderr, err.msg
+        print >>sys.stderr, err
         print >>sys.stderr, "for help use --help"
         return 2
 
@@ -281,6 +285,7 @@ def cart_diff(c0, c1):
 # "python gxmatrix.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
     if len(sys.argv) == 1:
+        print sys.argv[0], ": Running Doctests, use '-h' for help."
         import doctest
         doctest.testmod()
         exit()
