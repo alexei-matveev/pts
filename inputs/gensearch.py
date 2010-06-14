@@ -2,6 +2,7 @@
 
 import sys
 import os
+import pickle
 
 import numpy as np
 
@@ -31,13 +32,22 @@ print params_file_str
 exec(params_file_str)
 
 # HACK to allow locally defined calc
-if exists('calc.txt'):
-    params['calculator'] = eval(file2str('calc.txt'))
+calcfile = 'calc.txt'
+local_calc = False
+if exists(calcfile):
+    params['calculator'] = eval(file2str(calcfile))
+    local_calc = True
+elif exists(os.path.join(inputdir, calcfile)):
+    params['calculator'] = eval(file2str(os.path.join(inputdir, calcfile)))
+    local_calc = True
+if local_calc:
     print "Using locally defined calculator:", str(params['calculator'])
 
 # overwrite parameters as necessary
 print "The following overrides were specified..."
+print "(Start)"
 print overrides
+print "(End)"
 exec(overrides)
 
 # set up some objects
@@ -88,6 +98,9 @@ elif cos_type == 'neb':
           reporting=logfile)
 else:
     raise Exception('Unknown type: %s' % cos_type)
+
+CoS.arc_record = open("%s.archive.pickle" % name, 'w')
+pickle.dump(mi.build_coord_sys(init_state_vec[0]), CoS.arc_record)
 
 cb_count_debug = 0
 while True:
@@ -155,4 +168,6 @@ while True:
     # write out path to a file
     pickle_path(mi, CoS, "%s.path.pickle" % name)
 
+
+CoS.arc_record.close()
 

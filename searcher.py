@@ -24,6 +24,24 @@ import aof
 
 from history import History
 
+previous = []
+def test_previous(state_vec):
+    """
+    Mainly for testing. Keeps an additional record of calcs that have 
+    previously been performed.
+    """
+    prev = []
+    for v in state_vec:
+        matches = sum([(v == p).all() for p in previous])
+        if matches == 0:
+            prev.append(False)
+            previous.append(v)
+        elif matches == 1:
+            prev.append(True)
+        else:
+            assert False
+            
+    return prev
 
 lg = logging.getLogger("aof.searcher")
 lg.setLevel(logging.INFO)
@@ -47,29 +65,71 @@ def _functionId(nFramesUp):
     args = [str(a) for a in args]
     lg.info("**** " + sys._getframe(1).f_code.co_name + ' '.join(args))"""
 
-def masked_assign(mask, x, y):
+def masked_assign(mask, dst, src):
     """Assigns y to x if mask allows it.
 
     >>> m = [True, True]
     >>> orig = arange(4).reshape(2,-1)
     >>> x = orig.copy()
     >>> y = array([5,4,3,2]).reshape(2,-1)
-    >>> masked_assign(m, x, y)
+    >>> x = masked_assign(m, x, y)
     >>> (x == y).all()
     True
     >>> m = [False, False]
     >>> x = orig.copy()
-    >>> masked_assign(m, x, y)
-    >>> (x != y).all()
+    >>> (x != masked_assign(m, x, y)).all()
     True
     """
 
-    assert len(mask) == len(x) == len(y)
+    if len(dst) != len(src):
+        return src.copy()
 
-    for i, y_ in enumerate(y):
-        if mask[i]:
-            x[i] = y_
+    dstc = dst.copy()
+    print dstc
+    print src
+    print mask
+    assert len(dstc) == len(src), "%d != %d" % (len(dstc), len(src))
+    assert mask is None or len(mask) == len(dstc)
 
+
+    for i, src_ in enumerate(src):
+        if mask is None or mask[i]:
+            dstc[i] = src_
+
+    return dstc
+
+
+def minimal_update(new, old, new_ixs):
+    """
+    Replaces vectors in |new| with corresponding ones in |old|, where 
+    they do not correspond to the indices in new_ixs.
+
+    >>> new = array([1,1,1,1,1])
+    >>> old = array([0,0,0])
+    >>> new_ixs = (2,3)
+
+    >>> minimal_update(new, old, new_ixs)
+    >>> new
+    array([0, 0, 1, 1, 0])
+
+    """
+    assert len(new) == len(old) + len(new_ixs)
+
+    new_ixs = list(new_ixs)
+    new_ixs.sort()
+
+    for i in range(len(new)):
+        if i < new_ixs[0]:
+            print "yes",i
+            new[i] = old[i]
+        elif i > new_ixs[-1]:
+            print "yes",i
+            new[i] = old[i-len(new_ixs)]
+        else:
+            print "no",i
+
+def freeze_ends(bc):
+    return [False] + [True for i in range(bc-2)] + [False]
 
 class ReactionPathway(object):
     """Abstract object for chain-of-state reaction pathway."""
@@ -86,7 +146,16 @@ class ReactionPathway(object):
 
     string = False
 
-    def __init__(self, reagents, beads_count, qc_driver, parallel, reporting=None, convergence_beads=3, steps_cumm=3, freeze_beads=False, conv_mode='gradstep_new'):
+    def __init__(self, 
+            reagents, 
+            beads_count, 
+            qc_driver, 
+            parallel, 
+            reporting=None, 
+            convergence_beads=3, 
+            steps_cumm=3, 
+            freeze_beads=False, 
+            conv_mode='gradstep'):
         """
         convergence_beads:
             number of highest beads to consider when testing convergence
@@ -116,7 +185,7 @@ class ReactionPathway(object):
         self.history = History()
 
         # mask of gradients to update at each position
-        self.bead_update_mask = [False] + [True for i in range(beads_count-2)] + [False]
+        self.bead_update_mask = freeze_ends(self.beads_count)
 
         self._maxit = sys.maxint
         if reporting:
@@ -126,6 +195,9 @@ class ReactionPathway(object):
         legal_conv_modes = ('gradstep', 'energy', 'gradstep_new')
         assert conv_mode in legal_conv_modes
         self.conv_mode = conv_mode
+
+        # This can be set externally to a file object to allow recording of picled archive data
+        self.arc_record = None
 
     def initialise(self):
         beads_count = self.beads_count
@@ -149,8 +221,9 @@ class ReactionPathway(object):
         self._step = zeros(shape)
 
     def update_mask(self, perp_max=0.3):
-#        self.bead_update_mask = [False, False, False, True, True, False, False, False]
-#        return
+        assert False, "not using this"
+        #self.bead_update_mask = [False, False, False, True, True, False, False, False]
+        #return
         top3 = self.bead_pes_energies.argsort()[-3:]
         max_f = abs(self.perp_bead_forces[i]).max()
         self.bead_update_mask[i] = max_f > perp_max or i in top3
@@ -197,7 +270,7 @@ class ReactionPathway(object):
         if diff < etol:
             raise aof.Converged
         
-    def test_convergence_GS(self, f_tol, x_tol):
+    def test_convergence_GS(self, f_tol, x_tol, always_tight=False):
         """
         Raises Converged if converged, applying weaker convergence 
         criteria if growing string is not fully grown.
@@ -225,9 +298,9 @@ class ReactionPathway(object):
         if self.eg_calls == 0:
             # because forces are always zero at zeroth iteration
             return
-        elif self.growing and not self.grown():
-            lg.info("Testing During-Growth Convergence to %f: %f" % (f_tol*10, rmsf))
-            if rmsf < f_tol*10:
+        elif not always_tight and self.growing and not self.grown():
+            lg.info("Testing During-Growth Convergence to %f: %f" % (f_tol*5, rmsf))
+            if rmsf < f_tol*5:
                 raise aof.Converged
         else:
             max_step = self.history.step(self.convergence_beads, self.steps_cumm)
@@ -339,7 +412,8 @@ class ReactionPathway(object):
         maxf_beads = [abs(f).max() for f in self.bead_pes_gradients]
         path_pos, path_pos_old  = self.pathpos()
 
-        if path_pos == None: #NEB for example
+        if path_pos == None:
+             # set up dummy spline abscissa for non-spline methods
              path_pos = [0.0 for i in range(len(self.bead_pes_gradients))]
 
         eg_calls = self.eg_calls
@@ -353,10 +427,17 @@ class ReactionPathway(object):
         total_len_spline = 0
         if self.string:
             total_len_spline = self._path_rep.path_len
-            diff = self._path_rep.get_bead_separations().sum() - total_len_spline
+            seps_spline = self._path_rep.get_bead_separations()
+            diff = seps_spline.sum() - total_len_spline
             diff1, _ = self._path_rep._get_total_str_len()
             diff1 = abs(diff1 - total_len_spline)
             assert diff < 1e-6, "%e %e" % (diff, diff1)
+
+            # differences between spline and pythag distances
+            pyth_spl_diff = (seps_pythag - seps_spline) / seps_spline.max() * 100
+            print 'Spl / Pythag differences (%)',  ' '.join(['%.0f' % i for i in pyth_spl_diff])
+            
+
 
         state_sum, beads_sum = self.state_summary
 
@@ -389,7 +470,8 @@ class ReactionPathway(object):
                's': abs(step_raw).max(),
                's_ts_cumm': step_ts_estim_cumm,
                's_max_cumm': step_max_bead_cumm,
-               'ixhigh': self.bead_pes_energies.argmax()}
+               'ixhigh': self.bead_pes_energies.argmax(),
+               'bead_positions': self.bead_positions}
 
         if hasattr(self.qc_driver, 'eg_counts'):
             bead_es, bead_gs = self.qc_driver.eg_counts()
@@ -448,7 +530,17 @@ class ReactionPathway(object):
              "%-24s : %10.4f | %10.4f " % ("Barriers (Fwd|Rev)", barrier_fwd, barrier_rev),
              "Archive %s" % arc]
 
+        if self.arc_record:
+            assert type(self.arc_record) == file, type(self.arc_record)
+            sv = self.state_vec.reshape(self.beads_count,-1)
+            arc['state_vec'] = sv
+            arc['energies']  = self.bead_pes_energies.reshape(-1)
+            arc['gradients'] = self.bead_pes_gradients.reshape(self.beads_count, -1)
+            arc['pathps'] = self.pathpos()[0]
+            arc['pathpsold'] = self.pathpos()[1]
 
+            pickle.dump(arc, self.arc_record)
+            self.arc_record.flush()
 
         return '\n'.join(s)
 
@@ -513,6 +605,8 @@ class ReactionPathway(object):
 
     # commented out 06/05/2010 -> not needed? YES NEEDED
     def pathfs(self):
+        """Used for plotting Analytical PES's"""
+        return None
         return self.bead_separations
 
     @property
@@ -555,10 +649,10 @@ class ReactionPathway(object):
         # can be set to zero
 
         # update mask of beads to freeze i.e. not move or recalc energy/grad for
-        if self.freeze_beads:
-            self.update_mask()
+        #if self.freeze_beads:
+        #    self.update_mask()
 
-        # NOTE: this automatically skips if None
+        # NOTE: this automatically skips if new_state_vec == None
         self.state_vec = new_state_vec
 
 #        self.reporting.write("self.prev_state updated")
@@ -567,7 +661,12 @@ class ReactionPathway(object):
         if self.eg_calls >= self.maxit:
             raise aof.MaxIterations
 
-        lg.info("Chain of States Objective Function call.")
+        print "Objective function call: gradient = %s" % grad
+        # tests whether this has already been requested
+        print "Objective function call: Previously made calcs:", test_previous(self.state_vec)
+        print "Objective function call: Bead update mask:     ", self.bead_update_mask
+        print self.state_vec
+
         if self.bead_eg_calls == 0:
             self.bead_eg_calls += self.beads_count
         else:
@@ -588,13 +687,14 @@ class ReactionPathway(object):
 
         # get PES forces / project out stuff
         for i in range(self.beads_count):
+
             g = self.qc_driver.gradient(self.state_vec[i])
             self.bead_pes_gradients[i] = g.copy()
 
             t = self.tangents[i]
             perp_force, para_force = project_out(t, -g)
 
-            self.perp_bead_forces[i] = -perp_force
+            self.perp_bead_forces[i] = perp_force
             self.para_bead_forces[i] = para_force
 
         self.post_obj_func(grad)
@@ -827,6 +927,8 @@ class NEB(ReactionPathway):
         for i in range(self.beads_count):
             self.tangents[i] /= linalg.norm(self.tangents[i], 2)
 
+#        print "self.tangents", self.tangents
+
     def __len__(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
         return int(ceil((self.beads_count * self.dimension / 3.)))
@@ -836,7 +938,7 @@ class NEB(ReactionPathway):
 
     def get_forces(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
-        return common.make_like_atoms(self.obj_func_grad())
+        return -common.make_like_atoms(self.obj_func_grad())
 
     def get_potential_energy(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -847,6 +949,7 @@ class NEB(ReactionPathway):
         ReactionPathway.obj_func(self, new_state_vec, grad=True)
 
         result_bead_forces = zeros((self.beads_count, self.dimension))
+#        print "pbf", self.perp_bead_forces.reshape((-1,2))
         for i in range(self.beads_count):
             if not self.bead_update_mask[i]:
                 continue
@@ -861,6 +964,7 @@ class NEB(ReactionPathway):
             spring_force = spring_force_mag * self.tangents[i]
 
             total = self.perp_bead_forces[i] + spring_force
+#            print "spring", spring_force
 
             result_bead_forces[i] = total
 
@@ -1115,7 +1219,7 @@ class PathRepresentation(object):
 
         lengths = array(lengths).flatten()
 
-    def generate_beads(self, update = False):
+    def generate_beads(self, update = False, update_mask=None):
         """Returns an array of the self.__beads_count vectors of the coordinates 
         of beads along a reaction path, according to the established path 
         (line, parabola or spline) and the parameterisation density."""
@@ -1144,15 +1248,14 @@ class PathRepresentation(object):
         bead_tangents = array([self.__get_tangent(0)] + bead_tangents + [self.__get_tangent(1)])
 
         if update:
-            self.state_vec = bead_vectors
-            lg.debug("New beads generated: " + str(self.__state_vec))
+            # OLD: self.state_vec = bead_vectors
+            self.state_vec = masked_assign(update_mask, self.state_vec, bead_vectors)
 
-            self.__path_tangents = bead_tangents
-            lg.debug("Tangents updated:" + str(self.__path_tangents))
+            # OLD: self.__path_tangents = bead_tangents
+            self.__path_tangents = masked_assign(update_mask, self.__path_tangents, bead_tangents)
 
             self.__old_normalised_positions = self.__normalised_positions
             self.__normalised_positions = array([0.0] + normd_positions + [1.0])
-            lg.debug("Normalised positions updated:" + str(self.__normalised_positions))
 
         return bead_vectors
 
@@ -1291,9 +1394,47 @@ def get_bead_positions(E, ps):
     new_ps = psa[:new_i] + [new_p] + psa[new_i:]
     assert (array(new_ps).argsort() == arange(len(new_ps))).all()
 
-    return array(new_ps)
+    return array(new_ps), new_i
             
-    
+def get_bead_positions_grad(Es, gradients, tangents, ps):
+
+    # perform safety check
+    bad = 0
+    for i, p in list(enumerate(ps))[1:-1]:
+        dxds = tangents[i]
+        dEdx = gradients[i]
+        dEds = numpy.dot(dEdx, dxds)
+
+        if Es[i-1] < Es[i] < Es[i+1] and dEds < 0:
+            bad += 1
+        elif Es[i-1] > Es[i] > Es[i+1] and dEds > 0:
+            bad += 1
+
+    if bad:
+        print "WARNING: %d errors in calculated gradients along path, get_bead_positions_grad() might give unreliable results" % bad
+#        assert False # for the time being...
+
+    i_max = Es.argmax()
+    p_max = ps[i_max]
+    dEdx = gradients[i_max]
+
+    dxdp = tangents[i_max]
+
+    dEdp = numpy.dot(dEdx, dxdp)
+
+    if dEdp < 0:
+        new_p = (ps[i_max-1] + ps[i_max]) / 2.0
+        new_i = i_max
+    else:
+        new_p = (ps[i_max] + ps[i_max+1]) / 2.0
+        new_i = i_max+1
+
+    psa = ps.tolist()
+    new_ps = psa[:new_i] + [new_p] + psa[new_i:]
+    assert (array(new_ps).argsort() == arange(len(new_ps))).all()
+
+    return array(new_ps), new_i
+
 
 class GrowingString(ReactionPathway):
     """Implements growing and non-growing strings.
@@ -1338,8 +1479,8 @@ class GrowingString(ReactionPathway):
     string = True
 
     def __init__(self, reagents, qc_driver, beads_count = 10, 
-        rho = lambda x: 1, growing=True, parallel=False, head_size=None, 
-        max_sep_ratio = 0.1, reporting=None, growth_mode='normal'):
+        rho = lambda x: 1, growing=True, parallel=False, head_size=2, #None, 
+        max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=True):
 
         self.__qc_driver = qc_driver
 
@@ -1377,7 +1518,6 @@ class GrowingString(ReactionPathway):
         (self.grow_string, init) = self.growth_funcs[growth_mode]
         init()
 
-
         # Build path function based on reagents
         self._path_rep.regen_path_func()
 
@@ -1389,12 +1529,14 @@ class GrowingString(ReactionPathway):
 
         # Number of beads in growing heads of growing string to calculate 
         # gradients for. All others are left as zero.
-        assert head_size == None, "Not yet properly implemented, problem when beads are respaced."
+        #assert head_size == None, "Not yet properly implemented, problem when beads are respaced."
         assert head_size == None or (growing and beads_count / 2 -1 >= head_size > 0)
         self.head_size = head_size
 
         # maximum allowed ratio between (max bead sep - min bead sep) and (average bead sep)
         self.__max_sep_ratio = max_sep_ratio
+
+        self.freeze_beads = freeze_beads
 
 
     def search_string_init(self):
@@ -1405,8 +1547,8 @@ class GrowingString(ReactionPathway):
 
         return len(common.make_like_atoms(self.state_vec))
 
-    # commented out 06/05/2010 -> not needed? YES needed by plotter used for analytical PES's
     def pathfs(self):
+        """Used for plotting Analytical PES's."""
         return self._path_rep.fs
 
     def pathpos(self):
@@ -1428,6 +1570,7 @@ class GrowingString(ReactionPathway):
     def set_state_vec(self, x):
         assert not '_state_vec' in self.__dict__
 
+        print "here"
         if x != None:
 
             self.update_path(x, respace = False)
@@ -1492,10 +1635,21 @@ class GrowingString(ReactionPathway):
 
         return i
 
-    def grown(self):
-        return self.beads_count == self.__final_beads_count
+    def grown(self, max_beads_equiv=30):
+        """Returns true if the number of beads has reached the max allowed 
+        number, or if the interbead spacing has become smaller than would be
+        experienced if there were max_beads_equiv beads.
+        """
 
-    def grow_string_search(self):
+        ps = self.bead_positions
+        diffs = [ps[i+1] - ps[i] for i in range(self.beads_count-1)]
+        print "grown(): Difference in bead spacings:", diffs
+        min_diff = min(diffs)
+        too_closely_spaced = min_diff < 1.0 / (max_beads_equiv - 1.0)
+
+        return self.beads_count == self.__final_beads_count or too_closely_spaced
+
+    def grow_string_search(self, energy_only=False):
         assert self.beads_count <= self.__final_beads_count
 
         if self.grown():
@@ -1503,25 +1657,55 @@ class GrowingString(ReactionPathway):
         else:
             self.beads_count += 1
 
+        
+        # Build piecewise bead density function
         _, es = self.energies
         path = Path(es, self.bead_positions)
-        self.bead_positions = get_bead_positions(path, self.bead_positions)
+        if energy_only:
+            self.bead_positions, new_i = get_bead_positions(path, self.bead_positions)
+        else:
+            self.bead_positions, new_i = get_bead_positions_grad(self.bead_pes_energies, self.bead_pes_gradients, self.tangents, self.bead_positions)
+        new_ixs = (new_i,)
+
+        if new_i == self.beads_count - 2:
+            moving_beads = [new_i-2, new_i-1, new_i]
+        elif new_i == 0:
+            moving_beads = [new_i+1, new_i+2, new_i+3]
+        else:
+            moving_beads = [new_i-1, new_i, new_i+1]
+        
 
         rho = RhoInterval(self.bead_positions).f
         self._path_rep.set_rho(rho)
-        self._path_rep.generate_beads(update = True)
-        self._path_rep.regen_path_func() #TODO: for grow class as well
+
+        # The following block of code ensures that all beads other than the
+        # newly added one stay in exactly the same position. Otherwise, 
+        # numerical inaccuraties cause them to move.
+        old = self.state_vec.copy()
+        new = self._path_rep.generate_beads(update = True)
+        minimal_update(new, old, new_ixs)
+        self.bead_update_mask = freeze_ends(self.beads_count)
+        self.state_vec = new
+        print "old", old
+        print "new", new
+        print "state_vec", self.state_vec
+
+        # Mask of beads to freeze, includes only end beads at present
+        if self.freeze_beads:
+            self.bead_update_mask = [i in moving_beads for i in range(self.beads_count)]
+        else:
+            e = 1
+            m = self.beads_count - 2 * e
+            self.bead_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
+
+        # HCM 26/05/10: following line now done by self.state_vec assignment
+        #self._path_rep.regen_path_func() #TODO: for grow class as well
 
 
         # HCM 06/05/10: the following line does nothing, see definition of setter for self.beads_count
         # self._path_rep.beads_count = self.beads_count
 
         self.initialise()
-
-        e = 1
-        m = self.beads_count - 2 * e
-        self.bead_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
-        lg.debug("Bead Freezing MASK: " + str(self.bead_update_mask))
 
         lg.info("******** String Grown to %d beads ********", self.beads_count)
 
@@ -1540,34 +1724,47 @@ class GrowingString(ReactionPathway):
         if self.grown():
             return False
         elif self.__final_beads_count - self.beads_count == 1:
+            new_ixs = (self.beads_count / 2,)
             self.beads_count += 1
         else:
+            i = self.beads_count / 2
+            new_ixs = (i, i+1)
             self.beads_count += 2
 
+
         #self.expand_internal_arrays(self.beads_count)
-        self.initialise()
 
-
+        # Does nothing? self.beads_count references self._path_rep.beads_count anyway. - HCM 26/05/10
         self._path_rep.beads_count = self.beads_count
 
         # build new bead density function based on updated number of beads
         self.update_rho()
-        self._path_rep.generate_beads(update = True)
+        old = self.state_vec.copy()
+        new = self._path_rep.generate_beads(update = True)
+        minimal_update(new, old, new_ixs)
 
-        # Build mask of gradients to calculate, effectively freezing some if 
+        # create a new bead_update_mask that permits us to set the state to what we want
+        self.bead_update_mask = freeze_ends(self.beads_count)
+        self.state_vec = new
+        print "old", old
+        print "new", new
+        print "state_vec", self.state_vec
+
+        self.initialise()
+
+        self.prev_state = self.state_vec.copy()
+
+        # Build mask of beads to calculate, effectively freezing some if 
         # head_size, i.e. the size of the growing heads, is specified.
-        if self.head_size:
+        if self.freeze_beads:
             e = self.beads_count / 2 - self.head_size + self.beads_count % 2
         else:
             e = 1
         m = self.beads_count - 2 * e
         self.bead_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
-        lg.debug("Bead Freezing MASK: " + str(self.bead_update_mask))
+        lg.info("Bead Freezing MASK: " + str(self.bead_update_mask))
 
-        lg.info("******** String Grown to %d beads ********", self.beads_count)
-
-        self.prev_state = self.state_vec.copy()
-
+        print "******** String Grown to %d beads ********" % self.beads_count
         return True
 
     def update_rho(self):
@@ -1655,12 +1852,13 @@ class GrowingString(ReactionPathway):
         if raw:
             from_array = self.bead_pes_gradients
         else:
-            from_array = self.perp_bead_forces
+            from_array = -self.perp_bead_forces
 
         for i in range(self.beads_count):
             if self.bead_update_mask[i]:
                 result_bead_forces[i] = from_array[i]
 
+        print "result_bead_forces", result_bead_forces
         g = result_bead_forces.flatten()
         return g
 
@@ -1692,7 +1890,7 @@ class GrowingString(ReactionPathway):
                 pythag_seps = common.pythag_seps(self.state_vec)
 
                 if len(self.state_vec) > 4:
-                    # This is a kind of dodgy hack to prevent the bits of
+                    # This is a kind of hack to prevent the bits of
                     # spline between the end beads from becoming too curved.
                     pythag_seps[0] *= 0.7
                     pythag_seps[-1] *= 0.7
@@ -1700,7 +1898,7 @@ class GrowingString(ReactionPathway):
                 new_abscissa /= new_abscissa[-1]
                 self._path_rep.regen_path_func(normalised_positions=new_abscissa)
 
-            self._path_rep.generate_beads(update = True)
+            self._path_rep.generate_beads(update=True, update_mask=self.bead_update_mask)
 
             # The following line ensure that the path used for the next 
             # step is the same as the one that is generated, at a later date,

@@ -37,7 +37,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
     elif model == 'string':
         CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=False)
     elif model == 'growingstring':
-        CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1)#, growth_mode='search')
+        CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1, growth_mode='normal')
         growing = True
     elif model == 'searchingstring':
         CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1, growth_mode='search')

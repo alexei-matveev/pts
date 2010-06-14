@@ -34,7 +34,7 @@ class SurfPlot():
         Gnuplot.funcutils.compute_GridData(xrange, yrange, 
             lambda x,y: self.__pes.energy([x,y]), filename=tmpPESDataFile, binary=0)
 
-        g = Gnuplot.Gnuplot(debug=1)
+        g = Gnuplot.Gnuplot(debug=0)
         g('set contour')
         g('set cntrparam levels 100')
 
@@ -106,7 +106,7 @@ class Plot2D:
         """
 
     def plot(self, pes, cos, path_res = 0.002):
-        g = Gnuplot.Gnuplot(debug=1)
+        g = Gnuplot.Gnuplot(debug=0)
 
         state = cos.state_vec.copy()
         xs = state[:,0]

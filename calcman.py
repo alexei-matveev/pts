@@ -87,7 +87,7 @@ class CalcManager():
 
         # calculation has aleady been performed, will use cached version
         elif result.has_field(type):
-            lg.debug("Already have result for %s, using cached version." % vec_summarise(v))
+            lg.info("Already have result for %s, bead %d using cached version." % (vec_summarise(v), bead_ix))
             return
 
         # find dir containing previous calc to use as guess for wavefunction
