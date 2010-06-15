@@ -1480,7 +1480,7 @@ class GrowingString(ReactionPathway):
 
     def __init__(self, reagents, qc_driver, beads_count = 10, 
         rho = lambda x: 1, growing=True, parallel=False, head_size=2, #None, 
-        max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=True):
+        max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False):
 
         self.__qc_driver = qc_driver
 
@@ -1528,9 +1528,9 @@ class GrowingString(ReactionPathway):
         self.parallel = parallel
 
         # Number of beads in growing heads of growing string to calculate 
-        # gradients for. All others are left as zero.
+        # gradients for. All others become frozen.
         #assert head_size == None, "Not yet properly implemented, problem when beads are respaced."
-        assert head_size == None or (growing and beads_count / 2 -1 >= head_size > 0)
+        assert head_size == None or (growing and beads_count / 2 - 1 >= head_size > 0 and freeze_beads)
         self.head_size = head_size
 
         # maximum allowed ratio between (max bead sep - min bead sep) and (average bead sep)
@@ -1680,10 +1680,11 @@ class GrowingString(ReactionPathway):
 
         # The following block of code ensures that all beads other than the
         # newly added one stay in exactly the same position. Otherwise, 
-        # numerical inaccuraties cause them to move.
+        # numerical inaccuraties cause them to move and additional beads
+        # to have their energies calculated.
         old = self.state_vec.copy()
         new = self._path_rep.generate_beads(update = True)
-        minimal_update(new, old, new_ixs)
+        minimal_update(new, old, new_ixs) # only updates new_ixs
         self.bead_update_mask = freeze_ends(self.beads_count)
         self.state_vec = new
         print "old", old

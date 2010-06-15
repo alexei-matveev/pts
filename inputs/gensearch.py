@@ -70,6 +70,8 @@ if cos_type == 'string':
           growing=False,
           parallel=True,
           reporting=logfile,
+          freeze_beads=False,
+          head_size=None,
           max_sep_ratio=0.3)
 elif cos_type == 'growingstring':
     CoS = aof.searcher.GrowingString(init_state_vec, 
@@ -78,6 +80,8 @@ elif cos_type == 'growingstring':
           growing=True,
           parallel=True,
           reporting=logfile,
+          freeze_beads=False,
+          head_size=None,
           max_sep_ratio=0.3)
 elif cos_type == 'searchingstring':
     CoS = aof.searcher.GrowingString(init_state_vec, 
@@ -87,6 +91,8 @@ elif cos_type == 'searchingstring':
           parallel=True,
           reporting=logfile,
           max_sep_ratio=0.3,
+          freeze_beads=True,
+          head_size=None, # has no meaning for searching string
           growth_mode='search')
 
 elif cos_type == 'neb':
