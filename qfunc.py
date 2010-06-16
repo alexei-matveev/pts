@@ -56,7 +56,7 @@ try:
     def current_process_name(): return current_process().name
 except:
     from processing import currentProcess
-    def current_process_name(): return currentProcess().getName
+    def current_process_name(): return currentProcess().getName()
 
 from shutil import copy2 as cp
 import numpy as np
