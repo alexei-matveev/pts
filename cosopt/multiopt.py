@@ -172,12 +172,14 @@ class MiniBFGS(Func, ObjLog):
 
                     print "dr", dr
                     if self.method == 'SR1':
-                        c = dg - np.dot(self.H, dr)
+                        c = df - np.dot(self.H, dr)
                         print "c",c
 
                         # guard against division by very small denominator
                         if np.linalg.norm(c) * np.linalg.norm(c) > 1e-8:
                             self.H += np.outer(c, c) / np.dot(c, dr)
+                        else:
+                            self.slog("Bead %d: skipping SR1 update, denominator too small" % self.id, when='always')
                     elif self.method == 'BFGS':
                         a = np.dot(dr, df)
                         b = np.dot(dr, dg)
