@@ -99,6 +99,7 @@ class MiniBFGS(Func, ObjLog):
         self._max_H_resets = max_H_resets
         self._H_resets = 0
         self.id = id
+        self.method = 'SR1'
 
     def predictE(self, pos):
         dx = pos - self._pos0
@@ -167,13 +168,24 @@ class MiniBFGS(Func, ObjLog):
                 if np.abs(dr).max() >= 1e-7:
                     # BFGS update
                     df = grad - self._grad0
-                    a = np.dot(dr, df)
                     dg = np.dot(self.H, dr)
-                    b = np.dot(dr, dg)
+
                     print "dr", dr
-                    print "a", a
-                    print "b", b
-                    self.H += np.outer(df, df) / a - np.outer(dg, dg) / b
+                    if self.method == 'SR1':
+                        c = dg - np.dot(self.H, dr)
+                        print "c",c
+
+                        # guard against division by very small denominator
+                        if np.linalg.norm(c) * np.linalg.norm(c) > 1e-8:
+                            self.H += np.outer(c, c) / np.dot(c, dr)
+                    elif self.method == 'BFGS':
+                        a = np.dot(dr, df)
+                        b = np.dot(dr, dg)
+                        print "a", a
+                        print "b", b
+                        self.H += np.outer(df, df) / a - np.outer(dg, dg) / b
+                    else:
+                        assert False, 'Should never happen'
                     self.slog("Bead %d: Hessian (BFGS) updated to" % self.id)
                     self.slog(self.H)
 
@@ -234,6 +246,8 @@ def calc_step(dir, H, grad, energy):
     dir = dir / np.linalg.norm(dir)
     def quadradic_energy(s):
         return s*np.dot(grad, dir) + 0.5*s*s*np.dot(dir, np.dot(H, dir))
+
+    # This is silly: I need to change it to solving teh quadratic
     dist = np.atleast_1d(fminbound(quadradic_energy, 0., 2.))[0]
     assert dist > 0.
 
