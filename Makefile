@@ -12,6 +12,7 @@ src =	\
 	ridders.py \
 	npz.py \
 	func.py \
+	ode.py \
 	path.py \
 	bezier.py \
 	chebyshev.py \
