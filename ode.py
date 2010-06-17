@@ -12,7 +12,7 @@ __all__ = ["odeint1", "rk45", "rk4", "rk5"]
 from numpy import asarray, max, abs
 from scipy.integrate import odeint
 
-def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7, maxiter=3):
+def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7, maxiter=7):
     """Integrate
 
         dy / dt = f(t, y)
