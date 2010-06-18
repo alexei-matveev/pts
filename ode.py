@@ -15,7 +15,7 @@ from func import Func
 
 VERBOSE = False
 
-def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7, maxiter=7):
+def odeint1(t0, y0, f, T=None, tol=1.0e-7, maxiter=12):
     """Integrate
 
         dy / dt = f(t, y)
@@ -37,67 +37,33 @@ def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7, maxiter=7):
         array([ 100.,  100.])
     """
 
-    y = asarray(y0).copy()
-
-    yshape = y.shape
-    ysize = y.size
-
-    # odeint() from scipy expects f(y, t) and flat array y:
-    def f1(y, t):
-
-        # restore shape:
-        y.shape = yshape
-
-        # call original function:
-        yp = f(t, y, *args)
-
-        # flatten:
-        y.shape = ysize
-        yp.shape = ysize
-
-        return yp
-
-    # initial values:
-    t = t0
-    y.shape = ysize
+    y = ODE(t0, y0, f)
 
     if T is not None:
-        #
-        # compute y(t + T):
-        #
-        ys = odeint(f1, y, [t, t + T])
-
-        y = ys[1]
+        return y(T)
     else:
-        # guess for the upper integration limit:
+        # integrate to infinity, for that guess
+        # the upper integration limit:
         T = 1.0
 
+        # will be comparing these two:
+        y1, y2 = y(T), y(2*T)
+
         iteration = -1
-        while iteration < maxiter:
+        while max(abs(y2 - y1)) > tol and iteration < maxiter:
             iteration += 1
-            #
-            # compute y(t + T) and y(t + 2 * T):
-            #
-            ys = odeint(f1, y, [t, t + T, t + 2 * T])
 
-            if max(abs(ys[2] - ys[1])) < tol:
-#               print "odeint1: T=", t + 2 * T
-                break
-
-            # advance and scale the upper limit:
-            t += 2 * T
-            T *= 4
-            y = ys[2]
+            # scale the upper limit and advance:
+            T *= 2
+            y1, y2 = y2, y(2*T)
 
         if iteration >= maxiter:
             print "odeint1: WARNING: maxiter=", maxiter, "exceeded"
 
-        y = ys[2]
+        if VERBOSE:
+            print "odeint1: T=", 2 * T, "guessed", iteration, "times"
 
-    # return in original shape:
-    y.shape = yshape
-
-    return y
+        return y2
 
 class ODE(Func):
     def __init__(self, t0, y0, f, args=()):
