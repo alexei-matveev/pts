@@ -9,8 +9,11 @@ way?
 
 __all__ = ["odeint1", "rk45", "rk4", "rk5"]
 
-from numpy import asarray, max, abs
+from numpy import asarray, max, abs, searchsorted
 from scipy.integrate import odeint
+from func import Func
+
+VERBOSE = False
 
 def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7, maxiter=7):
     """Integrate
@@ -95,6 +98,124 @@ def odeint1(t0, y0, f, T=None, args=(), tol=1.0e-7, maxiter=7):
     y.shape = yshape
 
     return y
+
+class ODE(Func):
+    def __init__(self, t0, y0, f, args=()):
+        """Build a Func() y(t) by integrating
+
+            dy / dt = f(t, y, *args)
+
+        from t0 to t
+
+        Example:
+
+            >>> def f(t, y):
+            ...     yp = - (y - 100.0)
+            ...     yp[0] *= 0.01
+            ...     yp[1] *= 100.
+            ...     return yp
+
+            >>> t0 = 0.0
+            >>> y0 = [80., 120]
+
+            >>> y = ODE(t0, y0, f)
+
+            >>> y(0.0)
+            array([  80.,  120.])
+
+            >>> y(1.0)
+            array([ 80.19900377, 100.        ])
+
+            >>> y(10000.0)
+            array([ 100.,  100.])
+
+            >>> y.fprime(2.0) - f(2.0, y(2.0))
+            array([ 0.,  0.])
+        """
+
+        y0 = asarray(y0).copy()
+
+        # table of know results:
+        self.__ts = [t0]
+        self.__ys = {t0 : y0}
+
+        self.__yshape = y0.shape
+        self.__ysize = y0.size
+
+        # odeint() from scipy expects f(y, t) and flat array y:
+        def f1(y, t):
+
+            # restore shape:
+            y.shape = self.__yshape
+
+            # call original function:
+            yp = f(t, y, *args)
+
+            # flatten:
+            y.shape = self.__ysize
+            yp.shape = self.__ysize
+
+            return yp
+
+        # this 1D-array valued function will be integrated:
+        self.__f1 = f1
+
+    def f(self, t):
+
+        # aliases:
+        ts = self.__ts
+        ys = self.__ys
+        f1 = self.__f1
+
+        if t in ts:
+            return ys[t]
+
+        i = searchsorted(ts, t)
+
+        # FIXME: t >= t0:
+        assert i > 0
+
+        # integrate from t0 < t:
+        t0 = ts[i-1]
+        y0 = ys[t0]
+
+        assert t > t0
+
+        # reshape temporarily:
+        y0.shape = self.__ysize
+
+        #
+        # compute y(t):
+        #
+        ytab = odeint(f1, y0, [t0, t])
+
+        y = ytab[1]
+
+        # restore original shape:
+        y0.shape = self.__yshape
+        y.shape = self.__yshape
+
+        # insert new result into table:
+        ts.insert(i, t)
+        ys[t] = y
+
+        if VERBOSE:
+            print "ODE: ts=", ts
+            print "ODE: ys=", ys
+
+        return y.copy()
+
+    def fprime(self, t):
+
+        y = self.f(t)
+
+        y.shape = self.__ysize
+
+        yp = self.__f1(y, t)
+
+        yp.shape = self.__yshape
+
+        return yp
 
 def rk45(t1, x1, f, h, args=()):
     """Returns RK4 and RK5 steps as a tuple.
