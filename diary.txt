@@ -359,3 +359,228 @@ Paper plan
 
  - mixed coordinate systems, z-matrices with cartesians
 
+17/06/2010
+----------
+
+Time to start writing in diary again
+
+Working on hydrogen shift reaction:
+ - sometimes overall step is almost parallel to the path
+   (starts off perp, then gets slowly non perp)
+   - test that non-respaced step is perp to path (YES)
+   - try without respace
+   - try step to minimum along line between old bead and new bead after respace
+     - try using adjacent beads to add more parallel character to per bead hessians
+
+Why do we need the new optimiser?
+
+ - The original approach was to:
+   - project out the tangential component of the force at each bead
+   - using a global Hessian, a (scaled) quasi-newton step was taken and beads 
+     respaced
+   - the Hessian was updated using the perpendicular forces along the new, 
+     respaced path
+ 
+ - Using the original approach, the following was observed for the H-shift 
+   reaction:
+   - at times, the optimiser would generate step directions of some beads 
+     with a large tangential component
+     - it was confirmed that this tangential component came from the 
+       Quasi-Newton step itself and not from the respace operation
+     - steps with a large tangential component lead to the formation of kinks
+       in the spline (areas of high curvature which, in general, completely
+       destabilise the optimisation)
+   - Changing to a steepest descent step direction, the problem was eliminated.
+ 
+ - It was proposed to project out the tangential component of the step, in 
+   addition to projecting it out of the gradient
+   - This raised the questions / issues
+     - If projecting out tangential components of the step, why would we need 
+       to project it out of the gradient?
+
+     - If the Hessian is constructed from raw forces rather than projected 
+       ones (which depend in a complicated manner on the shape of the path),
+       then it should represent the PES more accurately.
+
+- Based on these motivating factors, a new optimisation strategy was tried 
+  wherein raw (i.e. non-projected) gradients used to construct the Hessian and
+  projected Quasi-Newton steps were taken. I.e., the component of the step that
+  moved beads parallel to the path was removed.
+
+  - This would fail in some instances when, for example:
+    - the Quasi-Newton step was largely tangential to the path (as earlier), 
+      causing the step length perpendicular to the path to approach zero.
+    - The curvature was negative, leading to steps in the wrong direction
+
+- The above two points indicated that
+  - Quasi-Newtons steps are inappropriate even if their tangential component 
+    is removed
+
+- To solve the above issue, the following was undertaken.
+
+  - Steps for each were chosen such that:
+    - the direction of bead movement was always along the projected force
+      i.e. downhill perpendicular to the string
+    - the distance of bead movement was no more than:
+      a) the distance to the minimum in the above direction
+      b) a maximum step length (if curvature was negative)
+
+- In addition to the above changes, the following (generally desirable but
+  previously absent) additions were made
+  - a per-bead rather than global Hessian is used
+  - For each step on each bead:
+    - the optimiser examines the actually energy change *of each bead* and 
+      compares it to the predicted energy change.
+    - based on this estimate of the error, a "trust factor" is calculated and
+      multiplied by the original step length, to limit the length of steps in
+      regions in which the quadratic model is inaccurate.
+    - NOTE: the above step size control was impossible with the previous 
+      optimiser since:
+      - it operated on a global energy with a global Hessian
+      - it was not possible to predict the energy change of a bead in a given
+        step because the forces leading to calculation of the approximate 
+        Hessian were projected and non-conservative.
+
+- Mindful of the above experience and motivating factors, a new optimiser was
+  implemented and proved succesful on initial tests.
+
+23/06/2010
+----------
+
+Description of scheduling infrastructure
+
+- NEB()/String():
+  - Passes all requested calculations to the CalcManager
+    - CalcManager():
+      - determines for which jobs cached results already exist, and 
+        what the minimal list of required calculations is.
+      - passes minimal list of jobs to ParaSched()
+        - ParaSched():
+          - manages all threads responsible for running electronic structure 
+            programs
+          - Builds two thread safe queues:
+            - a SchedQueue() of pending jobs
+            - a normal python queue() for results
+          - SchedQueue():
+            - contains the following information:
+              - the min/max allowed processors per job
+              - a Topology() objecta model of the compute infrastructure to 
+                keep track of which 
+                processors are free
+              - an sub-class of type SchedStrategy(), which performs the 
+                actual scheduling
+
+The precise type of SchedStrategy() is specified when SchedQueue() is 
+instantiated, and it's implementation controls the scheduling behaviour. At 
+present the class SchedStrategy_HCM_Simple(SchedStrategy) is used, and this 
+makes heavy use of the Topology() object it is provided with. Both these will
+now be discussed.
+
+SchedStrategy() objects have a method generate() that returns a list of 
+allocations. The scheduler SchedStrategy_HCM_Simple() implements the following
+two mode algorithm.
+
+Note: pmin and pmax are the min and max number of processors to assign to a job.
+
+  1. While the remaining jobs left are sufficient to completely fill the 
+     available computing resources, jobs are allocated to run on the minimum
+     number of processors.
+
+  2. Once there are fewer jobs (i.e. remaining_jobs * pmin >= total_processors)
+     the scheduler generates the list of all possible processor allocations for 
+     all remaining jobs between pmin and pmax and chooses the one that has the 
+     smallest number of unused processors.
+
+Note: Later, when jobs are actually run, the precise cpu indices generated by
+the scheduler are not necessarily respected, only the node into which the job
+was scheduled. The cpu indices on which to run are re-generated dynamically,
+depending on which ones are available at the instant that the job starts. This 
+just makes the scheduling a bit more flexible.
+
+
+The Topology() object contains a model of a multiprocessor system and this is used both during scheduling AND when jobs are actually run (as mentioned in the last sentence above).
+
+The "main functionality" of both Topology() and SchedStrategy() appear below.
+
+class Topology():
+    def leftover(self, task_cpus):                                               
+        """Calculates the number of leftover cpus when tasks with the numbers    
+        of cpus in task_cpus are all placed in the system, biggest first. Returns
+        the total number of cpus if the requested job sizes don't fit.           
+
+    def put_range(self, id):                                 
+        """Relinquish ownership of cpus allocated with id."""
+
+    def get_range(self, n):                                                      
+        """Try to find a range of n cpus in the system.                          
+                                                                                 
+        If possible, (A) returns cpus in a partition of exactly n cpus, otherwise
+        (B) returns cpus in a partition with exactly n remaining cpus, otherwise 
+        (C) returns the range that maximises the number of leftover cpus in the  
+        partition, otherwise (D) returns None, indicating failure.               
+                                                                                 
+        Returns a 4-tuple (ixs_global, ix_part, ixs_local, id)                   
+            ixs_global: list of global cpu indices in system                     
+            ix_part:    index of the system partition/node node                  
+            ixs_local:  list of cpu indices within a partition/node              
+            id:         unique number for every allocation made, intended to     
+                        facilitate simple relinquishment of cpu ranges.          
+        """                                                                      
+
+class SchedStrategy:                                                                                      
+    """Abstract object representing a method of placing jobs on some parallel computing infrastructure."""
+    def __init__(self, procs):                                                                            
+        """                                                                                               
+        procs:                                                                                            
+            2-tuple (max, min): allowable range of processors on which to                                 
+            schedule jobs. Intended to provide a simple mechanism to deal with                            
+            decreasing efficiency as the degree of parallelism increases.                                 
+        """                                                                                               
+                                                                                                          
+    def generate(self, topology, job_count, job_costs=None, params=None):                                 
+        """                                                                                               
+        Generate a scheduling strategy                                                                    
+                                                                                                          
+        topology:   model of system cpu sets                                                              
+        job_count:  total number of jobs to schedule                                                      
+        job_costs:  relative cost of each job (optional)                                                  
+        params:     any other params, instructions                                                        
+                                                                                                          
+        returns:                                                                                          
+            A list of tuples of length |job_count| where each tuple describes                             
+            the scheduling info for each job. The tuples have the following form:                         
+                                                                                                          
+                (global cpu indices, partition index, local cpu indices, id)                              
+                                                                                                          
+                where:                                                                                    
+                    global cpu indices:                                                                   
+                        list of cpu indices                                                               
+                    partition index:                                                                      
+                        index of partition in which job runs                                              
+                    local cpu indices:                                                                    
+                        list of cpu indices *within* the partition                                        
+                    id:                                                                                   
+                        unique number per allocation to facilitate the                                    
+                        relinquishing of groups of cpus, just by quoting the                              
+                        number                                                                            
+                                                                                                          
+                    NOTE:                                                                                 
+                        global cpu index = partition index + local cpu index                              
+                                                                                                          
+        """                                                                                               
+
+
+24/06/2010
+----------
+
+Remaining (possible) coding tasks
+
+ - search along step
+ - move optimiser code around
+ - bfgs search for TS, only up along smallest mode
+ - respace how often?
+   - optimiser could test cos.lengths_disparate() and call cos.respace() if necessary
+ - check if pure spline TS estim methods get right bracket
+
+TODO:
+ - was writing testexaminer.py
