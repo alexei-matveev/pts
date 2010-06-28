@@ -1,7 +1,5 @@
 """Provides a uniform interface to a variety of optimisers."""
 
-import os
-
 from aof.cosopt.lbfgsb import fmin_l_bfgs_b
 from scipy.optimize import fmin_cg
 
@@ -13,6 +11,12 @@ from aof.common import important
 __all__ = ["opt"]
 
 names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line', 'multiopt', 'ase_bfgs']
+
+
+def record_event(cos, s):
+    print important(s)
+    if cos.arc_record:
+        pickle.dump(cos.arc_record, 'Event: ' + s)
 
 def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict()):
     assert name in names
@@ -32,20 +36,19 @@ def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict
             runopt_inner(name, CoS, ftol*0.01, maxit*100, cb, extra, maxstep=maxstep)
         except MustRegenerate:
             CoS.update_path()
-            print important("Optimisation RESTARTED (respaced)")
+            record_event(CoS, "Optimisation RESTARTED (respaced)")
             continue
 
         except MaxIterations:
-            print important("Optimisation STOPPED (maximum iterations)")
+            record_event(CoS, "Optimisation STOPPED (maximum iterations)")
             break
 
         except Converged:
-            print important("Optimisation Converged")
+            s = "Optimisation Converged"
+            record_event(CoS, s)
 
         if CoS.grow_string():
             print important("Optimisation RESTARTED (string grown)")
-            if clean_after_grow:
-                os.system('rm -r beadjob??') # FIXME: ugly hack
             continue
         else:
             break

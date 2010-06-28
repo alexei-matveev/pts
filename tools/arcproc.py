@@ -18,17 +18,21 @@ import aof
 import aof.tools.rotate as rot
 from aof.common import file2str, rms
 
+all_estim_methods = ['SplCubic', 'High', 'Spl', 'SplAvg', 'Bell']
+
+
 def usage():
     print "Usage: " + sys.argv[0] + " [options] file.pickle [ts-actual.xyz]"
     print "Options:"
-    print " -t          : find TS aprpoximation from path"
+    print " -t          : find TS approximation from path"
     print " -g          : gnuplot output"
     print " -m          : display modes"
+    print " -e <methods>: comma delimited list of methods out of", ','.join(all_estim_methods)
     print " -q          : query records"
     print " -v          : verbose"
-    print " -j <header> : generate QC job for local search using <header>."
+    print " -j <data> : generate QC job for local search using data, QC program specific."
     print " -r <range>  : specify range of iterations to process"
-    print " -l <label>  : label"
+    print " -l <label>  : label prepended to certain output filenames (optional)"
 
 class Usage(Exception):
     pass
@@ -70,7 +74,7 @@ def main(argv=None):
         argv = sys.argv
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "j:htmgfq:vr:l:", ["help"])
+            opts, args = getopt.getopt(argv[1:], "j:htmgfq:vr:l:e:", ["help"])
         except getopt.error, msg:
              usage()
              return
@@ -84,22 +88,24 @@ def main(argv=None):
         query = False
         write_jobs = False
         label = 'label'
-        path_rec_ixs = [-1]
-        ts_rec_ixs = [-1]
+        rec_ixs = [-1]
+        estim_methods = ['SplCubic']
         for o, a in opts:
             if o in ("-h", "--help"):
                 usage()
                 return 
             elif o == "-r":
                 rec_ixs = range2ixs(a)
+            elif o == '-e':
+                estim_methods = a.split(',')
+                for m in estim_methods:
+                    assert m in all_estim_methods, "%s not in %s" % (m, all_estim_methods)
             elif o == "-t":
                 ts_from_path = True
-#                ts_rec_ixs = range2ixs(a)
             elif o in ("-f"):
                 forces = True
             elif o in ("-g"):
                 gnuplot_out = True
-#                path_rec_ixs = range2ixs(a)
             elif o in ("-m"):
                 modes = True
             elif o in ('-q'):
@@ -124,13 +130,24 @@ def main(argv=None):
         f_arc = open(fn_pickle)
         entries = []
 
-        cs = pickle.load(f_arc)
-        #TODO: something like: assert issubclass(cs, aof.coord_sys.CoordSys)
+        header = pickle.load(f_arc)
+        if not type(header) == str:
+            cs = header
+            header = 'blank'
+        else:
+            # load coord sys file
+            cs = pickle.load(f_arc)
+            #TODO: something like: assert issubclass(cs, aof.coord_sys.CoordSys)
 
         e_prev = None
+        arc_strings = []
         while True:
             try:
                 e = pickle.load(f_arc)
+                if type(e) == str:
+                    arc_strings.append(e)
+                    continue
+
                 if e_prev is None or e['N'] != e_prev['N']:
                     entries.append(e)
                 e_prev = e
@@ -194,17 +211,16 @@ def main(argv=None):
                 pt = aof.tools.PathTools(state, es, gs, ss)
 
                 methods = {'SplCubic': pt.ts_splcub,
-#                           'High': pt.ts_highest,
-#                           'Spl': pt.ts_spl
-#                           'SplAvg': pt.ts_splavg,
-#                           'Bell': pt.ts_bell
+                           'High': pt.ts_highest,
+                           'Spl': pt.ts_spl,
+                           'SplAvg': pt.ts_splavg,
+                           'Bell': pt.ts_bell
                           }
 
 
                 def estims():
-                    ks = methods.keys()
-                    ks.sort()
-                    for k in ks:
+                    keys.sort()
+                    for k in keys:
                         res = methods[k]()
                         if res != []:
                             yield (k, res[-1])
@@ -257,12 +273,12 @@ def make_job_gau(data):
 
 blah
 
-%(spin)d %(mult)d
+%(charge)d %(mult)d
 """
 
-    lot, spin, mult = data.split(',')
+    lot, charge, mult = data.split(',')
 
-    return s % {'lot': lot, 'spin': int(spin), 'mult': int(mult)}
+    return s % {'lot': lot, 'charge': int(charge), 'mult': int(mult)}
 
 
 if __name__ == "__main__":
