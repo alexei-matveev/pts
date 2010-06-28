@@ -31,9 +31,13 @@ class Item():
 
 
 class SchedStrategy:
+    """Abstract object representing a method of placing jobs on some parallel computing infrastructure."""
     def __init__(self, procs):
         """
-        procs: procs 2-tuple (max, min)
+        procs:
+            2-tuple (max, min): allowable range of processors on which to 
+            schedule jobs. Intended to provide a simple mechanism to deal with 
+            decreasing efficiency as the degree of parallelism increases.
         """
         self.procs = procs
         pmax, pmin = self.procs
@@ -46,6 +50,27 @@ class SchedStrategy:
         job_count:  total number of jobs to schedule
         job_costs:  relative cost of each job (optional)
         params:     any other params, instructions
+
+        returns:
+            A list of tuples of length |job_count| where each tuple describes 
+            the scheduling info for each job. The tuples have the following form:
+
+                (global cpu indices, partition index, local cpu indices, id)
+
+                where:
+                    global cpu indices:
+                        list of cpu indices 
+                    partition index:
+                        index of partition in which job runs
+                    local cpu indices:
+                        list of cpu indices *within* the partition
+                    id:
+                        unique number per allocation to facilitate the 
+                        relinquishing of groups of cpus, just by quoting the 
+                        number
+
+                    NOTE:
+                        global cpu index = partition index + local cpu index
         """
 
         assert False, "Abstract Function"
@@ -313,6 +338,17 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
             ...
         AssertionError
 
+        >>> s._gen_combs(2,4,4)
+        array([[1, 1, 1, 1],
+               [2, 1, 1, 1],
+               [2, 2, 1, 1],
+               [2, 2, 2, 1],
+               [2, 2, 2, 2],
+               [3, 2, 2, 2],
+               [3, 3, 2, 2],
+               [3, 3, 3, 2],
+               [3, 3, 3, 3]])
+
         """
         assert pmax >= pmin
         assert n > 0
@@ -490,7 +526,6 @@ class Topology(object):
         >>> l2 = [t2.leftover(c) for c in list]
         >>> l1 == l2
         True
-
 
         """
         

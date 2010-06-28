@@ -120,13 +120,14 @@ def minimal_update(new, old, new_ixs):
 
     for i in range(len(new)):
         if i < new_ixs[0]:
-            print "yes",i
+#            print "yes",i
             new[i] = old[i]
         elif i > new_ixs[-1]:
-            print "yes",i
+#            print "yes",i
             new[i] = old[i-len(new_ixs)]
         else:
-            print "no",i
+#            print "no",i
+            pass
 
 def freeze_ends(bc):
     return [False] + [True for i in range(bc-2)] + [False]
@@ -234,6 +235,10 @@ class ReactionPathway(object):
 
     def signal_callback(self):
         self.callbacks += 1
+
+        # This functionality below was used with generic 3rd party optimisers,
+        # i.e. it would force the optimiser to exit, so that a respace could 
+        # be done.
         if self.lengths_disparate():
             raise aof.MustRegenerate
 
@@ -1479,7 +1484,7 @@ class GrowingString(ReactionPathway):
     string = True
 
     def __init__(self, reagents, qc_driver, beads_count = 10, 
-        rho = lambda x: 1, growing=True, parallel=False, head_size=2, #None, 
+        rho = lambda x: 1, growing=True, parallel=False, head_size=None, 
         max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False):
 
         self.__qc_driver = qc_driver
@@ -1635,7 +1640,7 @@ class GrowingString(ReactionPathway):
 
         return i
 
-    def grown(self, max_beads_equiv=30):
+    def grown(self, max_beads_equiv=13):
         """Returns true if the number of beads has reached the max allowed 
         number, or if the interbead spacing has become smaller than would be
         experienced if there were max_beads_equiv beads.
@@ -1815,7 +1820,7 @@ class GrowingString(ReactionPathway):
         shortest segments) to the average segment length is above a certain 
         value (self.__max_sep_ratio).
 
-        Is this description out of date?
+        FIXME: Is this description out of date?
         """
 
         seps = self._path_rep.get_bead_separations()
