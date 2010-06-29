@@ -1,5 +1,7 @@
 """Provides a uniform interface to a variety of optimisers."""
 
+import os
+
 from aof.cosopt.lbfgsb import fmin_l_bfgs_b
 from scipy.optimize import fmin_cg
 
@@ -15,6 +17,7 @@ names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy
 def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict()):
     assert name in names
 
+    clean_after_grow = extra.pop('clean_after_grow', False)
     CoS.maxit = maxit
     def cb(x):
         y = callback(x)
@@ -41,6 +44,8 @@ def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict
 
         if CoS.grow_string():
             print important("Optimisation RESTARTED (string grown)")
+            if clean_after_grow:
+                os.system('rm -r beadjob??') # FIXME: ugly hack
             continue
         else:
             break
