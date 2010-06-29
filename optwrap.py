@@ -1,5 +1,8 @@
 """Provides a uniform interface to a variety of optimisers."""
 
+import os
+import pickle
+
 from aof.cosopt.lbfgsb import fmin_l_bfgs_b
 from scipy.optimize import fmin_cg
 
@@ -48,7 +51,11 @@ def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict
             record_event(CoS, s)
 
         if CoS.grow_string():
-            print important("Optimisation RESTARTED (string grown)")
+            if clean_after_grow:
+                os.system('rm -r beadjob??') # FIXME: ugly hack
+
+            s = "Optimisation RESTARTED (string grown)"
+            record_event(CoS, s)
             continue
         else:
             break
