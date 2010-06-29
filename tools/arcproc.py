@@ -28,9 +28,9 @@ def usage():
     print " -g          : gnuplot output"
     print " -m          : display modes"
     print " -e <methods>: comma delimited list of methods out of", ','.join(all_estim_methods)
-    print " -q          : query records"
+    print " -q <var>    : query variable <var>"
     print " -v          : verbose"
-    print " -j <data> : generate QC job for local search using data, QC program specific."
+    print " -j <data>   : generate QC job for local search using data, QC program specific."
     print " -r <range>  : specify range of iterations to process"
     print " -l <label>  : label prepended to certain output filenames (optional)"
 
@@ -133,7 +133,7 @@ def main(argv=None):
         header = pickle.load(f_arc)
         if not type(header) == str:
             cs = header
-            header = 'blank'
+            header = '<Blank Header>'
         else:
             # load coord sys file
             cs = pickle.load(f_arc)
@@ -141,9 +141,11 @@ def main(argv=None):
 
         e_prev = None
         arc_strings = []
+        all = []
         while True:
             try:
                 e = pickle.load(f_arc)
+                all.append(e)
                 if type(e) == str:
                     arc_strings.append(e)
                     continue
@@ -161,9 +163,13 @@ def main(argv=None):
                 keys.sort()
                 print '\n'.join(keys)
                 exit(1)
+            print header
             print '#', query
-            for i, record in enumerate(entries):
-                print i, record[query]
+            for i, record in enumerate(all):
+                if type(record) == dict:
+                    print i, record[query]
+                else:
+                    print i, record
             exit()
 
         path_list = []
@@ -219,8 +225,7 @@ def main(argv=None):
 
 
                 def estims():
-                    keys.sort()
-                    for k in keys:
+                    for k in estim_methods:
                         res = methods[k]()
                         if res != []:
                             yield (k, res[-1])
