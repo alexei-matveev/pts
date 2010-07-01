@@ -1,10 +1,22 @@
 #!/usr/bin/env python
 
-"""
-Path Pickle to Transition State Error
+"""Examines an archive (*archive.pickle) from a calculation and performs any of
+a number of analysis tasks:
 
-Converts a pickle of (state_vec, energies, gradients, MolInterface) to the 
-error between various estimates of the transition state and the real transition state.
+    Usage: " + sys.argv[0] + " [options] file.pickle [ts-actual.xyz]
+    Options:"
+     -t          : find TS approximation from path
+     -g          : dispaly evolution of path in 3D
+     -m          : display modes ??? is this working? Astrid's code?
+     -e <methods>: comma delimited list of any of the TS interpolation 
+                   methods: SplCubic, High, Spl, SplAvg, Bell
+     -q <var>    : query variable <var>
+     -v          : verbose
+     -j <data>   : generate QC job for local search using data, QC program 
+                   specific. See code.
+     -r <range>  : specify range of iterations to process. If '-' is given, 
+                   all are inspected
+     -l <label>  : label prepended to certain files generated (optional)
 
 """
 
@@ -22,17 +34,7 @@ all_estim_methods = ['SplCubic', 'High', 'Spl', 'SplAvg', 'Bell']
 
 
 def usage():
-    print "Usage: " + sys.argv[0] + " [options] file.pickle [ts-actual.xyz]"
-    print "Options:"
-    print " -t          : find TS approximation from path"
-    print " -g          : gnuplot output"
-    print " -m          : display modes"
-    print " -e <methods>: comma delimited list of methods out of", ','.join(all_estim_methods)
-    print " -q <var>    : query variable <var>"
-    print " -v          : verbose"
-    print " -j <data>   : generate QC job for local search using data, QC program specific."
-    print " -r <range>  : specify range of iterations to process"
-    print " -l <label>  : label prepended to certain output filenames (optional)"
+    print __doc__
 
 class Usage(Exception):
     pass
@@ -256,8 +258,6 @@ def main(argv=None):
 
                         print "%s: (E_est - E_corr) = %.3f ;Geom err = %.3f ;bracket = %.1f-%.1f" % (name.ljust(20), energy_err, error, s0, s1)
 
-#        print len(ts_list)
-#        exit()
         if gnuplot_out:
             aof.tools.gnuplot_path3D(path_list, ts_list, fn_pickle)
 

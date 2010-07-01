@@ -1,6 +1,25 @@
 #!/usr/bin/env python
 
-"""Displays a couple of ASE GUIs to facilitate the ordering of atoms in pairs of molecules."""
+"""\
+Displays a couple of ASE GUIs to facilitate the ordering of atoms in pairs of 
+molecules.
+
+Usage:
+
+    $ python labeller.py [-h|--help] mol1.xyz mol2.xyz
+
+After the first window appears, you must click close. This doesn't actually 
+close it but allows the second window to open. I know that doesn't make sense,
+it must be to do with a bug/quirk in ASE.
+
+When the user clicks on an atom with the MIDDLE button, the program prints to 
+stdout the indices of the atoms in the order that they are clicked on, and 
+marks the atoms that have already been clicked.
+
+By clicking on atoms in molecule 1, then molecule 2, then molecule 1, etc. the
+text which is written to stdout can by used by tools/rotate.py to re-order and
+align molecules given in cartesian coordinates.
+"""
 
 from ase.gui.images import Images
 from ase.gui.gui import GUI
@@ -36,7 +55,7 @@ def main(argv=None):
              raise Usage(msg)
         
         if len(args) < 2:
-            raise Usage("Must specify two files")
+            raise Usage(__doc__)
         run(args)
 
     except Usage, err:

@@ -1,5 +1,19 @@
+"""
+Contains code to analyse the path and generate TS guesses via interpolation.
+
+Not intended to be run on its own, but
+
+    $ python pathtools.py
+
+will run the doctests.
+
+"""
+
+import sys
 import pickle
 import os
+import logging
+
 
 from aof.path import Path
 import numpy as np
@@ -7,6 +21,9 @@ from aof.common import vector_angle
 import aof.func as func
 import scipy as sp
 from aof.threepointmin import ts_3p_gr
+
+lg = logging.getLogger("aof.tools")
+lg.setLevel(logging.INFO)
 
 class PathTools:
     """
@@ -407,7 +424,7 @@ class PathTools:
                 dEds_1 = self.dEds_all[i]
             dEdss = np.array([dEds_0, dEds_1])
 
-            print "dEdss(%d) = %s" % (i, dEdss)
+            lg.debug("dEdss(%d) = %s" % (i, dEdss))
 
             self.s.append("E_1 %s" % E_1)
             self.s.append("Checking: i = %d E_1 = %f E_0 = %f dEds_1 = %f dEds_0 = %f" % (i, E_1, E_0, dEds_1, dEds_0))
@@ -577,8 +594,13 @@ def gnuplot_path3D(arc_list, ts_list, filename):
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
+    print "Running doctests"
     import doctest
     doctest.testmod()
+
+    print __doc__
+
+
 
 # You need to add "set modeline" and eventually "set modelines=5"
 # to your ~/.vimrc for this to take effect.

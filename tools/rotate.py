@@ -1,5 +1,42 @@
 #!/usr/bin/env python
 
+
+"""Takes two molecules specified in cartesian coordinates and
+1. re-orders the atops as specified
+2. rotates/translates the second molecule so that the specified atoms 
+   optimally aligned.
+
+After performing the minimisation, it displays the molecules graphically so
+that the user can visually inspect whether the desired alignment has been
+achieved. Two files named the same as the inputs but with the '.t' extension
+are written and these contain the rotated/translated geometries with the new
+ordering.
+
+Usage:
+
+    $ rotate.py [-h, --help] <mol1.xyz> <mol2.xyz> "<ixs>" "<atom pairs list>"
+
+where:
+    <mol(1|2).xyz> are the molecules in cartesian coordinates.
+
+    <ixs> is the indices (in Python list format) of atoms to use to measure the
+    alignment, and must have that the length > 3.
+
+    Note that the <ixs> are used on the atoms AFTER they have been re-ordered
+    according to <atom pairs list>.
+
+    <atom pairs list> is the list of atom indices to allow for the case that
+    atoms may be ordered differently in mol(1|2).xyz. For an identical 
+    ordering, use "0 0 1 1 2 2 3 3 4 4". For a reversed ordering use 
+    "0 3 1 2 2 1 3 0".
+
+    The program tools/labeller.py can be used to graphically create this 
+    string.
+
+Examples:
+    $ python rotate.py mol1.xyz mol2.xyz "[0,1,2]" "0 3 1 1 2 0 3 2"
+"""
+
 import sys
 import getopt
 from random import uniform
@@ -50,29 +87,35 @@ class Usage(Exception):
 
 def main(argv=None):
     if argv is None:
-        argv = sys.argv
+        argv = sys.argv[1:]
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "h", ["help"])
+            opts, args = getopt.getopt(argv, "h", ["help"])
         except getopt.error, msg:
              raise Usage(msg)
         
-        if len(args) < 2:
-            msg = fill("Takes two molecules specified in cartesian coordinates " +
-                "and rotates the second one so that some atoms (given in " +
-                "the code) are optimally aligned.") + \
-                "\nUsage: rotate.py [-h, --help] <molecule1.xyz> <molecule2.xyz> <atom pairs list>"
-            raise Usage(msg)
+        # examine options
+        for o, a in opts:
+            if o in ("-h", "--help"):
+                raise Usage(__doc__)
+            else:
+                assert False, "Bad command line option, but should have been caught by getopt()."
 
-        sep_str = args[2]
-        run(sep_str, args[0], args[1], [0,1,2,3,4])
+        if len(args) != 4:
+            raise Usage("Must have 4 command line arguments.")
+
+        mol1, mol2, ixs, sep_str = args
+        ixs = eval(ixs)
+        if len(ixs) < 3:
+            raise Usage("Length of atoms indices must be >= 3.")
+        run(sep_str, args[0], args[1], ixs)
 
     except Usage, err:
         print >>sys.stderr, err
         print >>sys.stderr, "for help use --help"
         return 2
 
-def run(order_str, fn1, fn2, ixs=None):
+def run(order_str, fn1, fn2, ixs):
     """ Setup everything and run minimisation.
 
     Based on ordering given in order_Str, geometries in fn1 and fn2, and the 
@@ -84,19 +127,19 @@ def run(order_str, fn1, fn2, ixs=None):
     order = order_str.split()
     order = array([int(o) for o in order])
     tot = len(order)
-    assert tot % 2 == 0
+    assert tot % 2 == 0, "Atom ordering given has odd number of indices."
     order = order.reshape(-1,2)
 
     order1 = order[:,0].copy()
     order2 = order[:,1].copy()
     order1.sort(), order2.sort()
-    assert (order1 == order2).all()
+    assert (order1 == order2).all(), "Atom ordering given has non-matching numbers."
 
     a1 = ase.read(fn1)
     a2 = ase.read(fn2)
-    assert len(a1) == len(a2)
+    assert len(a1) == len(a2), "Molecules specified don't have the same number of atoms."
     n = len(a1)
-    assert len(order) == len(a1)
+    assert len(order) == len(a1), "Number of atoms was %d but number of pairs given was %d." % (len(a1), len(order))
 
     # get coords
     geom1 = a1.get_positions().copy()
@@ -285,9 +328,10 @@ def cart_diff(c0, c1):
 # "python gxmatrix.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        print sys.argv[0], ": Running Doctests, use '-h' for help."
+        print sys.argv[0], ": Running Doctests"
         import doctest
         doctest.testmod()
+        
         exit()
 
     sys.exit(main())

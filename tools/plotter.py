@@ -1,7 +1,15 @@
 #!/usr/bin/env python
 
+"""Generates plots (via GNUPlot) to examine convergence.
 
-"""Displays a couple of ASE GUIs to facilitate the ordering of atoms in pairs of molecules."""
+Usage:
+    
+    $ python plotter.py file.log
+
+    Warning:
+     - In the process of being deprecated. Not sure how much longer this tool will be usable.
+     - See: tools/arcproc.py
+"""
 
 import os
 import sys
@@ -257,7 +265,7 @@ def main(argv=None):
              raise Usage(msg)
         
         if len(args) < 1:
-            raise Usage("Must specify at least one file")
+            raise Usage(__doc__)
 
         extra = {'pre_energy': '', 'post_energy': ''}
         for o, a in opts:
