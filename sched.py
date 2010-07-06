@@ -9,6 +9,9 @@ from Queue import Queue
 import time
 import logging
 import numpy as np
+from config import DEFAULT_TOPOLOGY, DEFAULT_PMIN, DEFAULT_PMAX
+from sys import exit
+
 
 from aof.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR
 import aof
@@ -28,7 +31,52 @@ class Item():
     def __str__(self):
         return str((self.job, self.tag))
 
+class Strategy:
+    """
+    Wrapper around the SchedStrategy class,
+    Make scheduling strategy easily available for other functions
+    This wrapper gives only the Strategy and has no other functions
+    which interact with the rest of the scheduling algorithm
 
+    >>> strat = Strategy()
+    >>> strat(4)
+    [(0, [0]), (0, [0]), (0, [0]), (0, [0])]
+
+    >>> strat = Strategy([4,4],2,4)
+    >>> strat(5)
+    [(0, [0, 1]), (0, [2, 3]), (1, [0, 1]), (1, [2, 3]), (0, [0, 1, 2, 3])]
+    >>> strat(4)
+    [(0, [0, 1]), (0, [2, 3]), (1, [0, 1]), (1, [2, 3])]
+    """
+    def __init__(self, topology = None, pmin = None, pmax = None):
+
+        if topology == None:
+           self.topstring = DEFAULT_TOPOLOGY
+        else:
+           self.topstring = topology
+
+        if pmin == None:
+           self.pmin = DEFAULT_PMIN
+        else:
+           self.pmin = pmin
+
+        if pmax == None:
+           self.pmax = DEFAULT_PMAX
+        else:
+           self.pmax = pmax
+
+        self.s = SchedStrategy_HCM_Simple((self.pmax,self.pmin))
+        self.top = Topology(self.topstring)
+
+    def __call__(self, n):
+        sched = self.s.generate(self.top, n)
+        scheds = [r[1:3] for r in sched]
+        return scheds
+
+    def call_extended(self, n):
+        sched = self.s.generate(self.top, n)
+        scheds = [r[:3] for r in sched]
+        return scheds
 
 class SchedStrategy:
     """Abstract object representing a method of placing jobs on some parallel computing infrastructure."""
@@ -725,7 +773,7 @@ class SchedQueue():
 
     _sleeptime = 0.01
 
-    def __init__(self, processors, sched_strategy=None):
+    def __init__(self, processors = (DEFAULT_TOPOLOGY, DEFAULT_PMAX, DEFAULT_PMIN), sched_strategy=None):
 #        lg.info(self.__class__.__name__ + ": Topology: %s CPUs: %s" % (topology, procs))
         topology, max_CPUs, min_CPUs = processors
         procs = max_CPUs, min_CPUs
@@ -734,6 +782,7 @@ class SchedQueue():
         self._topology = Topology(topology, f_timing=f)
         if sched_strategy == None:
             self._sched_strategy = SchedStrategy_HCM_Simple(procs)
+            self.pure_strategy = Strategy(topology, min_CPUs, max_CPUs)
         else:
             self._sched_strategy = sched_strategy
 
@@ -747,6 +796,10 @@ class SchedQueue():
             for i, j in zip(self._deque, self._sched_info):
                 s += '\n' + str(i) + ': ' + str(j)
             return s
+
+    def generate_strategy(self, n):
+         return self.pure_strategy(n)
+
 
     def put(self, items):
         """Places an item, or list of items, into the queue, and update the 
