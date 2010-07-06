@@ -194,22 +194,24 @@ class MolInterface:
         assert len(mol_strings) > 1
 
         first = mol_strings[0]
-        if csys.ZMatrix2.matches(first):
+        if csys.ComplexCoordSys.matches(first):
+            mols = [csys.ComplexCoordSys(s) for s in mol_strings]
+        elif csys.ZMatrix2.matches(first):
             mols = [csys.ZMatrix2(s) for s in mol_strings]
         elif csys.XYZ.matches(first):
             mols = [csys.XYZ(s) for s in mol_strings]
-        elif csys.ComplexCoordSys.matches(first):
-            mols = [csys.ComplexCoordSys(s) for s in mol_strings]
         else:
             raise MolInterfaceException("Unrecognised geometry string:\n" + first)
 
         self._kwargs = kwargs
         calculator = kwargs.get('calculator', None)
+        pre_calc_function = kwargs.get('pre_calc_function', None)
         mask       = kwargs.get('mask', None)
         placement  = kwargs.get('placement', None)
         pbc        = kwargs.get('pbc', None)
         cell       = kwargs.get('cell', None)
         name       = kwargs.get('name', None)
+        self.output_path = kwargs.get('output_path', None)
 
         # used to number input files as they are created and run
         self.job_counter = 0
@@ -276,9 +278,9 @@ class MolInterface:
 
         self.calc_tuple = self.pre_calc_function = None
         if calculator != None:
-            a,b,c,d = calculator
-            self.calc_tuple = a,b,c
-            self.pre_calc_function = d
+            #a,b,c = calculator
+            self.calc_tuple = calculator
+            self.pre_calc_function = pre_calc_function
 
         self.mol = mols[0]
 
@@ -340,10 +342,10 @@ class MolInterface:
             m.set_internals(v)
             tuple = deepcopy(self.calc_tuple)
 
-            if calc_kwargs:
-                assert type(tuple[2]) == dict
-                assert type(calc_kwargs) == dict
-                tuple[2].update(calc_kwargs)
+           #if calc_kwargs:
+           #    assert type(tuple[2]) == dict
+           #    assert type(calc_kwargs) == dict
+           #    tuple[2].update(calc_kwargs)
 
             m.set_calculator(tuple)
             return m
@@ -358,7 +360,10 @@ class MolInterface:
         ix = self.__get_job_counter()
         if job.num_bead != None:
             ix = job.num_bead
-        job_name = "beadjob%2.2i" % ix
+        if self.output_path != None:
+            job_name = self.output_path + "/" + "beadjob%2.2i" % ix
+        else:
+            job_name = "beadjob%2.2i" % ix
         item.job_name = job_name
 
         mol_pickled = os.path.join(tmp_dir, job_name + common.INPICKLE_EXT)

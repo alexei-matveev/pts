@@ -250,13 +250,16 @@ def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
     N = "-iter_" + str(CoS.eg_calls)
 
     name = params['name'] + N
-    dump_beads(molinterface, CoS, name + "-CoS")
+    if params["output_level"] > 2:
+        dump_beads(molinterface, CoS, name + "-CoS")
     l = CoS.history.ts_estim(len(CoS.history))
 
-    if l != []:
+    if l != [] and params["output_level"] > 2:
         energies, history, _,  _, _, _, _ = zip(*l)
         mol_list_to_traj(molinterface, history, energies, name + "-evol")
-    common.str2file(CoS.state_vec, name + "-state_vec" + common.LOGFILE_EXT)
+
+    if params["output_level"] > 2:
+        common.str2file(CoS.state_vec, name + "-state_vec" + common.LOGFILE_EXT)
 
     if correct_ts != None:
         ts1 = CoS.ts_estims(mode='highest')[-1][-1]

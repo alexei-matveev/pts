@@ -143,6 +143,29 @@ def qmap(f, xs, map=pmap, format="%02d"):
 # modifications to ASE are necessary:
 RESTARTFILES = ["WAVECAR", "CHG", "CHGCAR" , "saved_scfstate.dat", "*.testme", "input"]
 
+def constraints2mask(atoms):
+    """
+    Given an atomic object (ase/aof) there is
+    tried to get a mask, using some of the fixing methods
+    of the constraints
+    """
+    mask0 = None
+    fix = atoms._get_constraints()
+    if not fix == []:
+        mask0 = [True for i in range(len(atoms.get_positions().flatten()))]
+        for fix1 in fix:
+                fixstr = str(fix1)
+                if fixstr.startswith("FixScaled"):
+                     num = fix1.a
+                     mask1 = fix1.mask
+                     mask1 -= True
+                     mask0[num * 3: num * 3 + 3] = mask1
+                elif fixstr.startswith("FixAtoms"):
+                     nums = fix1.index
+                     for num in nums:
+                         mask1 = [False for i in range(3)]
+                         mask0[num * 3: num * 3 + 3] = mask1
+    return mask0
 
 class fwrapper(object):
     """
@@ -175,24 +198,12 @@ class fwrapper(object):
              else:
                  self.start = self.wopl + '/' + startdir
         if mask == None and not self.atoms == None:
-            fix = self.atoms._get_constraints()
-            if not fix == []:
-                mask0 = [True for i in range(len(self.atoms.get_positions().flatten()))]
-                for fix1 in fix:
-                        fixstr = str(fix1)
-                        if fixstr.startswith("FixScaled"):
-                             num = fix1.a
-                             mask1 = fix1.mask
-                             mask1 -= True
-                             mask0[num * 3: num * 3 + 3] = mask1
-                        elif fixstr.startswith("FixAtoms"):
-                             nums = fix1.index
-                             for num in nums:
-                                 mask1 = [False for i in range(3)]
-                                 mask0[num * 3: num * 3 + 3] = mask1
-                print "FWRAPPER: The following mask has been obtained from the constraints of the atoms"
-                print mask0
-                self.mask = mask0
+             mask0 = constraints2mask(atoms)
+             if not mask0 == None:
+                 print "FWRAPPER: The following mask has been obtained from the constraints of the atoms"
+                 print mask0
+                 self.mask = mask0
+
 
     def getmassfromatoms(self):
         """
@@ -285,7 +296,7 @@ class fwrapper(object):
                      m_count += 1
         return xout
 
-    def perform(self,x):
+    def perform(self,x, num = None):
         """
         This is the function which should be called by the
         processes for mapping and so on
@@ -298,7 +309,10 @@ class fwrapper(object):
         # the name of the working directory is just the name
         # of the current Process
         if not self.workhere:
-            wx = current_process_name()
+            if num == None:
+                wx = current_process_name()
+            else:
+                wx = "Geometrycalculation%s" % (str(num))
 
             if not path.exists(wx):
                 mkdir(wx)

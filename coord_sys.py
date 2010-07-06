@@ -285,15 +285,16 @@ class CoordSys(object):
         if calc_tuple == None:
             return
 
-        con, args, kwargs = calc_tuple
-        assert callable(con)
-        assert type(args) == list
-        assert type(kwargs) == dict
+       #con, args, kwargs = calc_tuple
+       #assert callable(con)
+       #assert type(args) == list
+       #assert type(kwargs) == dict
+        calc = calc_tuple
 
-        try:
-            calc = con(*args, **kwargs)
-        except TypeError, e:
-           raise CoordSysException(str(e) + " (Are you supplying the wrong keyword arguments to this calculator?)")
+       #try:
+       #    calc = con(*args, **kwargs)
+       #except TypeError, e:
+       #   raise CoordSysException(str(e) + " (Are you supplying the wrong keyword arguments to this calculator?)")
         self._atoms.set_calculator(calc)
 
     """def copy(self):
@@ -770,10 +771,14 @@ class ComplexCoordSys(CoordSys):
         #TODO: even better would be if this function returned Boolean, "reason"
 
         ccs = None
-        try:
-            exec(s)
-        except SyntaxError, err:
-            return False
+
+        if type(s) is str:
+            try:
+                exec(s)
+            except SyntaxError, err:
+                return False
+        else:
+            ccs = s
 
         if ccs == None:
             return False
@@ -824,6 +829,13 @@ class ComplexCoordSys(CoordSys):
         if from_str:
             self.test_matches(s)
             exec(s)
+            self._parts = ccs.parts
+            if ccs.carts != None:
+                carts = ccs.carts.get_cartesians()
+            mask = ccs.mask
+        elif self.matches(s):
+            ccs = None
+            ccs = s
             self._parts = ccs.parts
             if ccs.carts != None:
                 carts = ccs.carts.get_cartesians()
@@ -1101,7 +1113,7 @@ class ZMatrix2(CoordSys):
                              \s*(\w\w?\s+\d+\s+\S+\s*
                              \s*(\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s*
                              ([ ]*\w\w?\s+\d+\s+\S+\s+\d+\s+\S+\s+\d+\s+\S+[ ]*\n)*)?)?)[ \t]*\n
-                             (([ ]*\w+\s+[+-]?\d+\.\d*[ \t\r\f\v]*\n)+)\s*$""", re.X)
+                             (([ ]*\w+(\s*|\s*[=]\s*)[+-]?(\d+\.\d*[ \t\r\f\v]*\n|\n))+)\s*$""", re.X)
         return (zmt.match(mol_text) != None)
 
     def __init__(self, mol, anchor=Dummy()):
@@ -1125,8 +1137,12 @@ class ZMatrix2(CoordSys):
         # variables text, specifies values of variables
         variables_text = parts.group("vars")
         self.var_names = re.findall(r"(\w+).*?\n", variables_text)
-        coords = re.findall(r"\w+\s+([+-]?\d+\.\d*)\n", variables_text)
-        self._coords = numpy.array([float(c) for c in coords])
+        coordsall = re.findall(r"\w+(\s+|\s*[=]\s*)([+-]?\d+\.\d*)\n", variables_text)
+        coords = [ci[1] for ci in coordsall]
+        if coords == []:
+            self._coords = numpy.array([1. for var in self.var_names])
+        else:
+            self._coords = numpy.array([float(c) for c in coords])
         N = len(self._coords)
     
         # Create data structure of atoms. There is both an ordered list and an 
