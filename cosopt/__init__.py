@@ -6,7 +6,6 @@
 from lbfgsb import fmin_l_bfgs_b
 
 from ase.optimize.sciopt import SciPyOptimizer
-from ase.optimize import Optimizer
 from multiopt import MultiOpt
 
 __all__ = filter(lambda s:not s.startswith('_'),dir())
