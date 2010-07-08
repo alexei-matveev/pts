@@ -211,7 +211,7 @@ __all__ = ["Path", "PathRepresentation"]
 
 import scipy.optimize
 import scipy.integrate
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 from numpy import linalg, array, dot, sqrt, ones, arange, column_stack
 from numpy import ndarray
@@ -324,9 +324,9 @@ class Path(Func):
         f = open(fn, 'w')
         ss = arange(0., 1., 1e-3)
 
-        if False:
-            fs = array([self.f(s) for s in ss])
-            plt.plot(fs[:,0], fs[:,1], '-')
+#       if False:
+#           fs = array([self.f(s) for s in ss])
+#           plt.plot(fs[:,0], fs[:,1], '-')
 
         for s in ss:
             f.write('\t'.join(['%f' % num for num in self.f(s)]))
