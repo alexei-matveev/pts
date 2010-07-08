@@ -1,41 +1,40 @@
 #!/usr/bin/python
 """
-This tool should be the user interface to the sting and neb methods
-the usage is something like this:
+This tool is the interface to the string and NEB methods.
 
-python pathsearcher.py --parmeter some minima1 minima2
+Usage:
 
-Both methods need at least to know the two geometries of the minima
-and the calculator specified, all other values may be taken from the default
-parameters The way of specifying them is descriebed below
-one parameter (the calculator has to be specified in any case)
+  pathsearcher.py --calculator CALC GEOM1 GEOM2
 
-GEOMETRIES
+For either string or NEB methods one needs to specify at least two geometries
+and the calculator.
 
-Geometries can be provided in all kind of files, which can be interpreted from
-ase (as par example .xyz -files and POSCARs (the last nead to contain POSCAR in
-their names, so that they can be recognised), additional gxfiles (if containing
-gx in their names) are also valid with an recent ASE version.
+GEOMETRY
 
-The file may also be in a format directly usable by aof, thus for example a
+Geometries can be provided as files, which can be interpreted by ASE. This
+includes xyz-, POSCAR, and gx-files. File format is in part determied from the
+file name or extension, e.g. POSCAR and gx-files by the presence of "POSCAR" or
+"gx" substrings.
+
+The file may also be in a format directly usable by AOF, thus for example a
 zmatrix with all the values set correctly. Also an mixed coordinate system as
 specified as ccsspec object in a small script, selecting by hand, which part is
-in internal and which one is in cartesian, whith the possibility of giving the inital
-values for the internal part also in cartesians for the corresponding objects.
-In this way the choose of the variable name is free
+in internal and which one is in cartesian, whith the possibility of giving the
+inital values for the internal part also in cartesians for the corresponding
+objects.  In this way the choose of the variable name is free
 
-Another method of getting an internal (or mixed coordinate system) is by giving the
-geometries in cartesians (or as ase-files) and specifying only the zmatrix once.
-It will then be set by writing --zmatrix zmat_file
-It will then be read in from there and used to generate zmatrix or mixed coordinate object
-if variables should appear more than once, they should not be named var and then something
-on the other hand, if a mixed coordinate system is wanted, the internal variables should all
-be named var? with ? a number between 1 and number of internal variables. This way the function
-can recognise by its own, that there are fewer variables than needed and fill up with cartesian
-ones.
-In the zmatrix the values have to be listed, at least if they are not all named var?, but they
-do not need to have a value given. If it is done this way, these starting values would be replaced
-anyhow.
+Another method of getting an internal (or mixed coordinate system) is by giving
+the geometries in cartesians (or as ase-files) and specifying only the zmatrix
+once.  It will then be set by writing --zmatrix zmat_file It will then be read
+in from there and used to generate zmatrix or mixed coordinate object if
+variables should appear more than once, they should not be named var and then
+something on the other hand, if a mixed coordinate system is wanted, the
+internal variables should all be named var? with ? a number between 1 and
+number of internal variables. This way the function can recognise by its own,
+that there are fewer variables than needed and fill up with cartesian ones.  In
+the zmatrix the values have to be listed, at least if they are not all named
+var?, but they do not need to have a value given. If it is done this way, these
+starting values would be replaced anyhow.
 
 ZMATRIX
 
@@ -56,133 +55,168 @@ var5 = 1.0
 var6 = 1.0
 var7 = 1.0
 ""
-The angles are in degree; if only arbitrary values are set (for beeing overwriten by the cartesian
-input make sure that no distance is set to 0, which would lead to a crash)
 
-setting VARIABLES
+The angles are in degree; if only arbitrary values are set (for beeing
+overwriten by the cartesian input make sure that no distance is set to 0, which
+would lead to a crash)
 
-There are some other parameters specified, which decide on how the program will run. There is a list
-of default parameters
-python pathsearcher.py --defaults
-shows all of them
-They can be changed in two different ways:
-by including in the parameters in the calculation above: --paramfile filename
-all the variables could be set in the file filename
-or by giving directly --parameter_to_change new_value
+SETTING VARIABLES
+
+There are some other parameters specified, which decide on how the program will
+run. There is a list of default parameters
+
+  pathsearcher.py --defaults
+
+shows all of them They can be changed in two different ways: by including in
+the parameters in the calculation above:
+
+  --paramfile filename
+
+all the variables could be set in the file filename or by giving directly
+
+  --parameter_to_change new_value
+
 this only works for parameters which take a string, a float or a integer
-(always a single number, or a name), ch tells if they could changed by giving the parameter values
-directly in the parameter list, so for example --name NewName would set the name to NewName in the parameters
-If the same variable is set in both the paramfile and directly, the directly set value is taken
+(always a single number, or a name), ch tells if they could changed by giving
+the parameter values directly in the parameter list, so for example
+
+  --name NewName
+  
+would set the name to NewName in the parameters If the same variable is set in
+both the paramfile and directly, the directly set value is taken
 
 There exists:
-Parameter    ch    short description directly
- "cos_type"  yes   what calculation is really wanted, like neb, string, growingstring or searchingstring
- "opt_type"  yes   what kind of optimizer is used for changing the geometries of the string, as default
-                   the new multiopt is used for the string methods, while neb is reset to ase_lbgfs
- "pmax"      yes   maximal number of CPUs per bead, with our workarounds normaly only indirect used
- "pmin"      yes   minimal number of CPUs per bead, with our workarounds normaly only indirect used
- "cpu_architecture" no  descriebes the computer architecture, which should be used, with our workaround
-                        only indirect used, pmax, pmin and cpu_architecture should be adapted to each other
- "name"      yes   the name of the calculation, appears as basis of the names for all the output, needn't
-                   be set, as a default it takes the cos_type as name
- "calculator" no   the quantum chemstry program to use, like Vasp or ParaGauss
- "placement"  no   executable function for placing processes on beads, only used for advanced calculations
- "cell"       no   the cell in which the molecule is situated
- "pbc"        no   which cell directions have periodic boundary conditions
- "mask"       no   which of the given geometry variables are supposed to be changed (True) and which should
-                   stay fix during the calculation (False), should be a string containing for each of the
-                   variables the given value. The default does not set this variable and then all of them
-                   are optimized
- "beads_count" yes   how many beads (with the two minima) are there at maximum (growingstring and
-                        searchingstring start with less)
- "ftol"       yes   the force convergence criteria, calculation stops if RMS(force) < ftol
- "xtol"       yes   the step convergence criteria, only used if force has at least ftol * 10
+Parameter    ch     short description directly
+ "cos_type"  yes    what calculation is really wanted, like neb, string,
+                    growingstring or searchingstring
+ "opt_type"  yes    what kind of optimizer is used for changing the geometries
+                    of the string, as default the new multiopt is used for the
+                    string methods, while neb is reset to ase_lbgfs
+ "pmax"      yes    maximal number of CPUs per bead, with our workarounds normaly
+                    only indirect used
+ "pmin"      yes    minimal number of CPUs per bead, with our workarounds normaly
+                    only indirect used
+ "cpu_architecture" no  descriebes the computer architecture, which should be used,
+                    with our workaround only indirect used, pmax, pmin and
+                    cpu_architecture should be adapted to each other
+ "name"      yes    the name of the calculation, appears as basis of the names
+                    for all the output, needn't be set, as a default it takes
+                    the cos_type as name
+ "calculator" no    the quantum chemstry program to use, like Vasp or ParaGauss
+ "placement"  no    executable function for placing processes on beads, only
+                    used for advanced calculations
+ "cell"       no    the cell in which the molecule is situated
+ "pbc"        no    which cell directions have periodic boundary conditions
+ "mask"       no    which of the given geometry variables are supposed to be
+                    changed (True) and which should stay fix during the
+                    calculation (False), should be a string containing for each
+                    of the variables the given value. The default does not set
+                    this variable and then all of them
+                    are optimized
+ "beads_count" yes  how many beads (with the two minima) are there at maximum
+                    (growingstring and searchingstring start with less)
+ "ftol"       yes   the force convergence criteria, calculation stops if
+                    RMS(force) < ftol
+ "xtol"       yes   the step convergence criteria, only used if force has at
+                    least ftol * 10
  "etol"       yes   energy convergence criteria, not really used
- "maxit"      yes   if the convergence criteria are still not met at maxit iterations, the calculation is
-                    stopped anyhow
+ "maxit"      yes   if the convergence criteria are still not met at maxit
+                    iterations, the calculation is stopped anyhow
  "maxstep"    yes   the maximum step a path can take
  "str_const"  yes   the spring constant, only needed for neb
  "pre_calc_function"  no function for precalculations, for gaussian ect.
  "output_level" yes the amount of output is decided here
                        0  minimal output, not recommended
-                          only logfile, geometries of the beads for the last iteration (named Bead?)
-                          and the output needed for the calculation to run
-                       1  recommended output level (default)
-                          additional the ResultDict.pickle (usable for rerunning or extending the
-                            calculation without having to repeat the quantum chemical calculations)
-                          and a path.pickle of the last path, may be used as input for some other
-                          tools, stores the "whole" path at it is in a special foramt
-                       2  additional a path.pickle for every path, good if development of path is
+                          only logfile, geometries of the beads for the last
+                          iteration (named Bead?) and the output needed for
+                          the calculation to run
+                       1  recommended output level (default) additional the
+                          ResultDict.pickle (usable for rerunning or extending the
+                          calculation without having to repeat the quantum
+                          chemical calculations) and a path.pickle of the last
+                          path, may be used as input for some other tools,
+                          stores the "whole" path at it is in a special foramt
+                       2  additional a path.pickle for every path, good if
+                          development of path is
                           wanted to be seen (with the additional tools)
-                       3 some more output in every iteration, for debugging ect.
+                       3  some more output in every iteration, for debugging ect.
 
- "output_path"   yes   place where most of the output is stored, thus the working directory
-                       is not filled up too much
- "output_geo_format" yes ASE format, to write the outputgeometries of the last iteration to
-                         is xyz as default, but can be changed for example to gx or vasp (POSCAR)
+ "output_path"   yes   place where most of the output is stored, thus the
+                       working directory is not filled up too much
+ "output_geo_format" yes ASE format, to write the outputgeometries of the
+                       last iteration to is xyz as default, but can be changed
+                       for example to gx or vasp (POSCAR)
 
-ADDITIONAL INFORMATIONS can be taken from the minima ASE inputs
-The ase atoms objects may contain more informations than only the chemical symbols and the
-geometries of the wanted object. For example if reading in POSCARs there are additional informations
-as about the cell (pbc would be also set automatically to true in all directions). This informations
-can also be read in by this tool, if they are available, they are only used, if these variables still
-contain the default parameters.
-Additionally ase can hold some constraints, which may be taken from a POSCAR or set directly. Some
-of them can be also used to generate a mask. This is only done if cartesian coordinates are used.
+Additional informations can be taken from the minima ASE inputs. The ase atoms
+objects may contain more informations than only the chemical symbols and the
+geometries of the wanted object. For example if reading in POSCARs there are
+additional informations as about the cell (pbc would be also set automatically
+to true in all directions). This informations can also be read in by this tool,
+if they are available, they are only used, if these variables still contain the
+default parameters.  Additionally ase can hold some constraints, which may be
+taken from a POSCAR or set directly. Some of them can be also used to generate
+a mask. This is only done if cartesian coordinates are used.
 
-The CALCULATOR
+CALCULATOR
 
-The calculator can be given in ASE format. It can be set in the paramfile or in an own file
-via --calculator calc_file.
-Additionally one can use some of the default specified calculators by for example:
---calculator default_vasp
+The calculator can be given in ASE format. It can be set in the paramfile or in
+an own file via
+
+  --calculator calc_file
+
+Additionally one can use some of the default specified calculators by for
+example:
+
+  --calculator default_vasp
+
 The way to set up those calculators is given best on the ASE homepage at:
- https://wiki.fysik.dtu.dk/ase/ase/calculators/calculators.html#module-calculators
+
+  https://wiki.fysik.dtu.dk/ase/ase/calculators/calculators.html#module-calculators
 
 Reuse RESULTS FROM PREVIOUS CALCULATIONS
-It is possible to store the results of the quantum chemical calculations (which are the computational
-most expensive part of the calculation) in a ResultDict.pickle file. It is done by default for
-an output level with at least 1. If a calculation with the same system should be done, or the system
-should be repeated, this results can be reused (the QC- program mustn't be changed, as well as the
-geometries of the two minima). To reuse this results say in the parameters:
+
+It is possible to store the results of the quantum chemical calculations (which
+are the computational most expensive part of the calculation) in a
+ResultDict.pickle file. It is done by default for an output level with at least
+1. If a calculation with the same system should be done, or the system should
+be repeated, this results can be reused (the QC- program mustn't be changed, as
+well as the geometries of the two minima). To reuse this results say in the
+parameters:
+
   --old_results filename
-filename should be directed on the file (with location) where the Results are stored
 
-Set an INITIAL PATH
+filename should be directed on the file (with location) where the Results are
+stored
 
-There are different ways of setting an initial path. One of the additonal files generated with output
-level 3 is a state_vector, which can be given directly as input for --init_path state_vec
-This would than in the next calculation let it start with the path discriebed by this. If such a state_vec
-is not available one can also provide the inital path by giving geometries as for the two minima (all in
-the same format, please). In this case the call of the method would be something like
-python pathsearcher.py --parmeter some_params minima1 bead2 bead3 bead4  minima2
+INITIAL PATH
+
+There are different ways of setting an initial path. One of the additonal files
+generated with output level 3 is a state_vector, which can be given directly as
+input for --init_path state_vec This would than in the next calculation let it
+start with the path discriebed by this. If such a state_vec is not available
+one can also provide the inital path by giving geometries as for the two minima
+(all in the same format, please). In this case the call of the method would be
+something like
+
+  pathsearcher.py --parmeter some_params minima1 bead2 bead3 bead4  minima2
+
 or for example:
-python pathsearcher.py --parmeter some_params POSCAR? POSCAR??
+
+  pathsearcher.py --parmeter some_params POSCAR? POSCAR??
 
 The number of inital points and beads need not be the same.
 
 EXAMPLES
 
 A minimal one:
-python pathsearcher.py --calculator default_lj left.xyz right.xyz
 
-Having several POSCAR's for the inital path (from POSCAR0 to POSCAR11). A parameterfile (called params.py)
-should hold some parameters, so especially the calculator) but ftol is anyway 0.07
-python pathsearcher.py --parmfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
+  pathsearcher.py --calculator default_lj left.xyz right.xyz
 
-POSSIBILITY OF USING THE FUNCTION DIRECTLY
+Having several POSCAR's for the inital path (from POSCAR0 to POSCAR11). A
+parameterfile (called params.py) should hold some parameters, so especially the
+calculator) but ftol is anyway 0.07
 
-It is also possible to use the pathsearcher function directly in a script.
-at it is the main function of the call above. It looks like:
-pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, paramfile = None, zmatrix = None, **parameter)
-tbead_left and tbead_right are the terminal beads (thus the two minima).
-Do not provide a filename anywhere else, than for the old_results, all others (geoemtries, paramfiles) should be given as
-string or ASE atoms object. The parameter file (and others like init_path, zmatrix) can be read in by file2str out of, for
-example:
-from aof.common import file2str
-In the parameter's all parameters given above can be reset, not only those specified with ch=yes.
-The init_path can still be given by a serie of ASE objects, in this case, make a list of them, not forgetting the two
-minima and give them as init_path
+  pathsearcher.py --parmfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
 
 """
 from sys import argv, exit
@@ -211,6 +245,28 @@ from ase import write as write_ase
 cb_count_debug = 0
 
 def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, paramfile = None, zmatrix = None, **parameter):
+    """
+    ...
+    It is also possible to use the pathsearcher() function in a python script. It
+    looks like:
+
+      from ??? import pathsearcher
+
+      pathsearcher(left, right, **kwargs) ??? calculator ???
+
+    left and right are the (??names of the files with geometries of??) terminal
+    beads (thus the two minima).  Do not provide a filename anywhere else, than
+    for the old_results, all others (geoemtries, paramfiles) should be given as
+    string or ASE atoms object. The parameter file (and others like init_path,
+    zmatrix) can be read in by file2str out of, for example:
+
+      from aof.common import file2str
+
+    In the parameter's all parameters given above can be reset, not only those
+    specified with ch=yes.  The init_path can still be given by a serie of ASE
+    objects, in this case, make a list of them, not forgetting the two minima and
+    give them as init_path
+    """
     # set up parameters (fill them in a dictionary)
     params_dict = set_defaults()
     if not paramfile == None:
