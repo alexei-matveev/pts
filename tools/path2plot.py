@@ -20,15 +20,6 @@ on the kind choosen. There are the possiblilities:
                                      the plane atoms must not be on a line)
 
 der are other options which may be set:
-    --log  filename string num   : reads in filename which should be a .log file output file of
-                                   a string or neb calculation and takes string line of the num'th
-                                   iteration as some extra bead data to plot
-                                   the x-value used for this plot are the same x-values as from the
-                                   last path.pickle given before this option
-
-    --lognf filename             : new log as before, but reuses the string and num from the last one
-                                   only the logfile is changed
-    --lognn num                  : new log plot as above, but takes another iteration than the last one
     --diff                       :for the next two internal coordinates the difference 
                                   will be taken, instead of the values
     --expand cellfile expandfile : the atoms will be exanded with atoms choosen as
@@ -46,6 +37,15 @@ der are other options which may be set:
                                    files the names could be given by repeatly set --name string
                                    but in this case the name of the i'th call of --name option
                                    always refers to the i'th file, no matter in which order given
+    --log  filename string num   : reads in filename which should be a .log file output file of
+                                   a string or neb calculation and takes string line of the num'th
+                                   iteration as some extra bead data to plot
+                                   the x-value used for this plot are the same x-values as from the
+                                   last path.pickle given before this option
+
+    --lognf filename             : new log as before, but reuses the string and num from the last one
+                                   only the logfile is changed
+    --lognn num                  : new log plot as above, but takes another iteration than the last one
 
 """
 
@@ -369,6 +369,7 @@ def makeoption(num_i, diff, symm, symshift):
               for k, m in symshift:
                   if k == i:
                       opt += " %f" % (m)
+              many -= 2
           if i in diff:
               opt += " d %i" % (i)
               second = True
