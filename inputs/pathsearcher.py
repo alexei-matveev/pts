@@ -531,7 +531,7 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
 
         # ASE atoms may contain a lot more informations than just atom numbers and geometries:
 
-        if (params_dict['cell'] == default_params['cell']) and (tbead_left.get_cell() != default_params['cell']).any():
+        if (params_dict['cell'] == default_params['cell']):
              print "Change cell for atoms: using cell given by atoms object:"
              params_dict['cell'] = tbead_left.get_cell()
              assert (tbead_left.get_cell() == tbead_right.get_cell()).all()

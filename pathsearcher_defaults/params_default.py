@@ -18,9 +18,7 @@ default_params = {
     "name" : None,             # for output
     "calculator" : None,       # quantum chemistry calculator, e.g. Vasp or ParaGauss
     "placement" : None,
-    "cell" : [[ 1.,  0.,  0.],
-             [ 0.,  1.,  0.],
-             [ 0.,  0.,  1.]],   # ase default cell
+    "cell" : None,             # no cell given
     "pbc" : False,             # no periodic boundary conditions
     "mask" : None,             # freeze none of the coordinates
     "beads_count" : 7,          # 7 beads, thus 5 moving points on path
