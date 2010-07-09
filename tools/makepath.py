@@ -60,13 +60,13 @@ if sys.argv[1] == '--help':
     sys.exit()
 
 from ase import read, write
-from aof.coord_sys import ZMatrix2, RotAndTrans, XYZ
+from aof.coord_sys import ZMatrix2, RotAndTrans, XYZ, ccsspec, ComplexCoordSys
 from aof.path import Path
 from aof.common import file2str
 from numpy import linspace, round, pi, asarray, array
 from string import count
 from pydoc import help
-from aof.inputs.pathsearcher import fake_xyz_string
+from aof.inputs.pathsearcher import fake_xyz_string, expand_zmat
 
 # Defaultvalues for parameters
 # output as xyz, and 7 beads
@@ -100,14 +100,7 @@ for k in range(len(args)):
          args = args[2:]
          # The variables in the zmat may not be set yet
          #then do this as service
-         elem_num = count(zmts, "var")
-         #print elem_num
-         if elem_num > 0:
-             a1, a2, a3 = zmts.partition("var%d" % elem_num)
-             if len(a2) > 0:
-                 zmts += "\n"
-                 for i in range(1,elem_num + 1):
-                     zmts += "   var%d  1.0\n" % i
+         zmts, elem_num = expand_zmat(zmts)
 #the two files for the minima
     elif m1 == None:
          m1 = read(args[0])
@@ -122,6 +115,7 @@ assert m2 != None
 # mol is the ase-atom object to create the ase output
 # the xyz or poscar files
 mol = m1
+num_atoms = len(mol.get_atomic_numbers())
 
 if zmts == None:
     # Cartesian coordinates are in a ZMatrix2 object
@@ -132,6 +126,28 @@ if zmts == None:
     zmt2.set_cartesians(m2.get_positions())
     # The next one is the one for the current geometry
     zmtinter = XYZ( fake_xyz_string(m1))
+elif num_atoms * 3 > elem_num + 6:
+    # internal coordinates are in a ZMatrix2 object
+    # Two for the minima, they can be set already
+    zmt1s = ZMatrix2(zmts, RotAndTrans())
+    zmt2s = ZMatrix2(zmts, RotAndTrans())
+    # The next one is the one for the current geometry
+    zmtinters = ZMatrix2(zmts, RotAndTrans())
+    symb_atoms = mol.get_chemical_symbols()
+    carts = XYZ(fake_xyz_string(m1))
+    carts2 = XYZ(fake_xyz_string(m2))
+    carts3 = XYZ(fake_xyz_string(m1))
+    diffhere =   (elem_num +6) / 3
+    co_all = XYZ(fake_xyz_string(m1, start = diffhere))
+    co_alli = XYZ(fake_xyz_string(m1, start = diffhere))
+    ccs1 =  ccsspec([zmt1s, co_all], carts=carts)
+    ccsi =  ccsspec([zmtinters, co_alli], carts=carts2)
+    carts = m2.get_positions()
+    co_all2 = XYZ(fake_xyz_string(m2, start = diffhere))
+    ccs2 =  ccsspec([zmt2s, co_all2], carts=carts3)
+    zmt1 = ComplexCoordSys(ccs1)
+    zmt2 = ComplexCoordSys(ccs2)
+    zmtinter = ComplexCoordSys(ccsi)
 else:
     # internal coordinates are in a ZMatrix2 object
     # Two for the minima, they can be set already

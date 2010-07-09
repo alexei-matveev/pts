@@ -486,8 +486,8 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
 
     # zmatrix may be only contain the connection but not values for the variables (if
     # they should be specified later), the ccsspec's can only handle the full zmatrix
-    #if not zmatrix == None:
-    #    zmatrix = expand_zmat(zmatrix)
+    if not zmatrix == None:
+        zmatrix, num_int_raw = expand_zmat(zmatrix)
 
     # the original input for the atoms objects are strings; they contain a xyz file or
     # a zmatrix/ mixed coordinate object
@@ -502,26 +502,26 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
             zmt2 = ZMatrix2(zmatrix, RotAndTrans())
 
             # check if mixed or only all in internals"
-            co1 = findall(r"([+-]?\d+\.\d*)", tbead_left)
+            atom_symbols = findall(r"([a-zA-Z][a-zA-Z]?).+?\n", tbead_left)
             # number of cartesian variables: number atoms * 3
-            num_c = len(co1) * 3
             # number internal varialbes: (zmat should hold each double) + rot + trans
-            num_int = count(zmatrix, "var")/2 + 6
-            num_diff = len(co) - (num_c - num_int)/ 3
+            num_int = num_int_raw + 6
+            num_c = len(atom_symbols) * 3
             # first case varialbles all the same, second zmt has unrecognisable var-names
             # hopefully it is a complete zmat
-            if num_c == num_int or num_int == 6:
+            if num_c == num_int:
                 ccsl = ccsspec([zmt1], carts=XYZ(tbead_left))
                 ccsr = ccsspec([zmt2], carts=XYZ(tbead_right))
             else:
-                atom_symbols = re.findall(r"([a-zA-Z][a-zA-Z]?).+?\n", tbead_left)
-                co_all = zip(atom_symbols, co1)
-                co_cart = zip(atom_symbols[num_diff:], co1[num_diff:])
-                ccsl = ccsspec([zmt1, co_cart], carts=XYZ(co_all))
-                co2 = findall(r"([+-]?\d+\.\d*)", tbead_right)
-                co_all2 = zip(atom_symbols, co2)
-                co_cart2 = zip(atom_symbols[num_diff:], co[num_diff:])
-                ccsr = ccsspec([zmt2, co_cart2], carts=XYZ(co_all2))
+                lines = tbead_left.splitlines(True)
+                num_carts_ats = len(atom_symbols) - (num_int / 3)
+                co_cart = "%d\n\n" % num_carts_ats
+                for i in range(1, num_carts_ats + 1):
+                    print i, co_cart
+                    co_cart += lines[-i]
+                print co_cart
+                ccsl = ccsspec([zmt1, XYZ(co_cart)], carts=XYZ(tbead_left))
+                ccsr = ccsspec([zmt2, XYZ(co_cart)], carts=XYZ(tbead_right))
             mol_strings = [ccsl, ccsr]
     else:
         # the minimas are given as real atoms objects (or aof asemol'ones?)
@@ -571,20 +571,20 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
             xyz = tbead_left.get_positions()
             num_c = len(xyz) * 3
             # number internal variables: (zmat should hold each double) + rot + trans
-            num_int = count(zmatrix, "var")/2 + 6
-            num_diff = len(xyz) - (num_c - num_int)/ 3
+            num_int = num_int_raw + 6
+            num_diff = num_int / 3
             # go on for internals
             zmt1 = ZMatrix2(zmatrix, RotAndTrans())
             zmt2 = ZMatrix2(zmatrix, RotAndTrans())
-            if num_c == num_int or num_int == 6:
+            if num_c == num_int:
                 ccsl = ccsspec([zmt1], carts=XYZ(tbl_str))
                 ccsr = ccsspec([zmt2], carts=XYZ(tbr_str))
             else:
-                co_cart = xyz[num_diff:]
-                ccsl = ccsspec([zmt1, co_cart], carts=XYZ(xyz))
+                co_cart = XYZ(fake_xyz_string(tbead_left, start = num_diff))
+                ccsl = ccsspec([zmt1, co_cart], carts=XYZ(tbl_str))
                 xyz2 = tbead_right.get_positions()
-                co_cart2 = xyz2[num_diff:]
-                ccsr = ccsspec([zmt2, co_cart2], carts=XYZ(xyz2))
+                co_cart2 = XYZ(fake_xyz_string(tbead_right, start = num_diff))
+                ccsr = ccsspec([zmt2, co_cart2], carts=XYZ(tbr_str))
             mol_strings = [ccsl, ccsr]
 
     # extract parameters from the dictionary
@@ -635,21 +635,40 @@ def expand_zmat(zmts):
     If zmatrix only contains the matix itsself, add here
     the initial variables (the value is unimportant right now)
     """
-    # name them var?, with ? beiing a number going from 1 up
-    # otherwise specify the variables yourself
-    elem_num = count(zmts, "var")
-    #print elem_num
-    # if there are some var's set
-    if elem_num > 0:
-        a1, a2, a3 = zmts.partition("var%d" % elem_num)
-        # check if they are given once (without value)
-        # or already twice
-        if len(a2) > 0:
-            # add the variables
-            zmts += "\n"
-            for i in range(1,elem_num + 1):
-                zmts += "   var%d  1.0\n" % i
-    return zmts
+    # variables should be proceeded by a number specifying the new
+    # atom this varible is connected to:
+    # could not use whitespace, because has to stay int he line
+    vars = findall(r"\d[ \t\r\f\v]+[a-zA-Z_]\w*",zmts)
+    # some variables may appear more than once:
+    allvars = dict()
+    # the number of variables help to decide if its an zmatrix or
+    # an complex coordinate system
+    num_vars = len(vars)
+    for vari in vars:
+        # get rid of the number stored in front
+        fields = vari.split()
+        var = fields[1]
+        # if we have to keep them all, count the
+        # multiplicity of them, maybe useful some time
+        if var in allvars.keys():
+            allvars[var] += 1
+        else:
+            allvars[var] = 1
+
+    zmts_new = zmts
+    # an empty line is the dividor between zmatrix part and
+    # part of initalized variables
+    empty_line = findall(r"\n\n",zmts)
+
+    # it this is not already here, add variable initializing part
+    # set all of them to 1
+    if empty_line == []:
+        zmts_new += "\n"
+        for var1 in allvars.keys():
+            zmts_new += "%s  1.0\n" % (var1)
+        print "Expanded zmatrix, added initial values"
+        print zmts_new
+    return zmts_new, num_vars
 
 def set_calculator(params):
     calc = params["calculator"]
@@ -661,14 +680,18 @@ def set_calculator(params):
         params["calculator"] = calculator
     return params
 
-def fake_xyz_string(ase_atoms):
+def fake_xyz_string(ase_atoms, start = None ):
     """
     Like creating an xyz-file but let it go to a string
     """
     symbols = ase_atoms.get_chemical_symbols()
-    xyz_str = '%d\n\n' % len(symbols)
-    for s, (x, y, z) in zip(symbols, ase_atoms.get_positions()):
-        xyz_str += '%-2s %22.15f %22.15f %22.15f\n' % (s, x, y, z)
+    if start == None:
+        xyz_str = '%d\n\n' % len(symbols)
+    else:
+        xyz_str = '%d\n\n' % (len(symbols) - start)
+    for i, (s, (x, y, z)) in enumerate(zip(symbols, ase_atoms.get_positions())):
+        if start == None or (i - start > -1):
+            xyz_str += '%-2s %22.15f %22.15f %22.15f\n' % (s, x, y, z)
     return xyz_str
 
 def tell_default_params():
