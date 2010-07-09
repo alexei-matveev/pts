@@ -225,6 +225,7 @@ from os import path, mkdir
 from aof.pathsearcher_defaults.params_default import *
 from aof.pathsearcher_defaults import *
 from ase.calculators import *
+from ase import Atoms
 from ase import read as read_ase
 from aof import MolInterface, CalcManager, generic_callback
 from aof.searcher import GrowingString, NEB
@@ -385,9 +386,12 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
     # main optimisation loop
     print runopt(CoS)
 
+    cs = mi.build_coord_sys(CoS.get_state_vec()[0])
+    ase_cs = Atoms(cs.get_chemical_symbols())
     for i, state in enumerate(CoS.get_state_vec()):
         cs = mi.build_coord_sys(state)
-        write_ase("BEAD_%0.2i" % (i), cs, format = params_dict["output_geo_format"])
+        ase_cs.set_positions(cs.get_cartesians())
+        write_ase("BEAD_%0.2i" % (i), ase_cs, format = params_dict["output_geo_format"])
 
     # get best estimate(s) of TS from band/string
     tss, modes = CoS.ts_estims(alsomodes = True, converter = mi.build_coord_sys(CoS.get_state_vec()[0]))
@@ -401,8 +405,11 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
         e, v, s0, s1,_ ,bead0_i, bead1_i = ts
         cs = mi.build_coord_sys(v)
         print "Energy = %.4f eV, between beads %d and %d." % (e, bead0_i, bead1_i)
-        print cs.xyz_str()
-        write_ase("TSESTIMATE_%i" % (i), cs, format = params_dict["output_geo_format"])
+        cs = mi.build_coord_sys(state)
+        ase_cs.set_positions(cs.get_cartesians())
+        for num, line in zip(ase_cs.get_chemical_symbols(), ase_cs.get_positions()):
+            print "%s   %12.8f  %12.8f  %12.8f" % (num, line[0], line[1], line[2])
+        write_ase("TSESTIMATE_%i" % (i), ase_cs, format = params_dict["output_geo_format"])
         print "proposed vector for the lowest mode"
         f_mod = open("MODEVEC_%i" %(i),"w")
         for line in modes[i]:
