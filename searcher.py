@@ -156,6 +156,7 @@ class ReactionPathway(object):
             convergence_beads=3, 
             steps_cumm=3, 
             freeze_beads=False, 
+            output_level = 3,
             conv_mode='gradstep'):
         """
         convergence_beads:
@@ -199,6 +200,7 @@ class ReactionPathway(object):
 
         # This can be set externally to a file object to allow recording of picled archive data
         self.arc_record = None
+        self.output_level = output_level
 
     def initialise(self):
         beads_count = self.beads_count
@@ -464,26 +466,27 @@ class ReactionPathway(object):
         step_max_bead_cumm = self.history.step(self.convergence_beads, self.steps_cumm).max()
         step_ts_estim_cumm = self.history.step(ts_ix, self.steps_cumm).max()
 
-        arc = {'bc': self.beads_count,
-               'N': eg_calls,
-               'resp': self.respaces,
-               'cb': self.callbacks, 
-               'rmsf': rmsf_perp_total, 
-               'maxf': self.maxf_perp,
-               'e': e_total,
-               'maxe': e_max,
-               's': abs(step_raw).max(),
-               's_ts_cumm': step_ts_estim_cumm,
-               's_max_cumm': step_max_bead_cumm,
-               'ixhigh': self.bead_pes_energies.argmax(),
-               'bead_positions': self.bead_positions}
+        if self.output_level > 2:
+            arc = {'bc': self.beads_count,
+                   'N': eg_calls,
+                   'resp': self.respaces,
+                   'cb': self.callbacks, 
+                   'rmsf': rmsf_perp_total, 
+                   'maxf': self.maxf_perp,
+                   'e': e_total,
+                   'maxe': e_max,
+                   's': abs(step_raw).max(),
+                   's_ts_cumm': step_ts_estim_cumm,
+                   's_max_cumm': step_max_bead_cumm,
+                   'ixhigh': self.bead_pes_energies.argmax()}# ,
+                   #'bead_positions': self.bead_positions}
 
-        if hasattr(self.qc_driver, 'eg_counts'):
-            bead_es, bead_gs = self.qc_driver.eg_counts()
-        else:
-            bead_es = bead_gs = (self.beads_count - 2) * eg_calls + 2
-        arc['bead_es'] = bead_es
-        arc['bead_gs'] = bead_gs
+            if hasattr(self.qc_driver, 'eg_counts'):
+                bead_es, bead_gs = self.qc_driver.eg_counts()
+            else:
+                bead_es = bead_gs = (self.beads_count - 2) * eg_calls + 2
+            arc['bead_es'] = bead_es
+            arc['bead_gs'] = bead_gs
 
         # Write out the cartesian coordinates of two transition state
         # estimates: highest bead and from spline estimation.
@@ -500,8 +503,9 @@ class ReactionPathway(object):
 
             delnl = lambda a: ''.join(repr(a).split('\n'))
             a2s = lambda a: '[' + ', '.join(['%.3f'%f for f in a]) + ']'
-            arc["ts_estim_carts"] = ts_estim_energy, delnl(ts_estim)
-            arc["bead_carts"] = delnl(bead_carts)
+            if self.output_level > 2:
+                arc["ts_estim_carts"] = ts_estim_energy, delnl(ts_estim)
+                arc["bead_carts"] = delnl(bead_carts)
 
 
         f = '%10.3e'
@@ -513,6 +517,7 @@ class ReactionPathway(object):
              "%-24s : %10.4f | %10.4f" %  ("Step Size (RMS|MAX)", step_total, step_raw.max()),
              "%-24s : %10.4f" % ("Cumulative steps (max bead)", step_max_bead_cumm),
              "%-24s : %10.4f" % ("Cumulative steps (ts estim)", step_ts_estim_cumm),
+             "%-24s : %8s %10.4f" % ("Bead Sep ratio (Pythagorean)", "|", seps_pythag.max() / seps_pythag.min()),
 
              "VALUES FOR SINGLE BEADS",
              "%-24s : %s" % ("Bead Energies",format('%10.4f', e_beads)) ,
@@ -522,7 +527,6 @@ class ReactionPathway(object):
              "%-24s : %s" % ("RMS Step Size", format(f, step_beads)),
              "%-24s : %12s %s |" % ("Bead Angles","|" , format('%10.0f', angles)),
              "%-24s : %6s %s" % ("Bead Separations (Pythagorean)", "|", format(f, seps_pythag)),
-             "%-24s : %6s %f" % ("Bead Sep ratio (Pythagorean)", "|", seps_pythag.max() / seps_pythag.min()),
              "%-24s : %s" % ("Bead Path Position", format(f, path_pos)),
              "%-24s :" % ("Raw State Vector"),
              all_coordinates,
@@ -532,10 +536,12 @@ class ReactionPathway(object):
              "%-24s : %.4f %.4f" % ("Total Length (Pythag|Spline)", total_len_pythag, total_len_spline),
              "%-24s : %10s" % ("State Summary (total)", state_sum),
              "%-24s : %s" % ("State Summary (beads)", format('%10s', beads_sum)),
-             "%-24s : %10.4f | %10.4f " % ("Barriers (Fwd|Rev)", barrier_fwd, barrier_rev),
-             "Archive %s" % arc]
+             "%-24s : %10.4f | %10.4f " % ("Barriers (Fwd|Rev)", barrier_fwd, barrier_rev)]
 
-        if self.arc_record:
+        if self.output_level > 2:
+            s += ["Archive %s" % arc]
+
+        if self.arc_record and self.output_level > 2:
             assert type(self.arc_record) == file, type(self.arc_record)
             sv = self.state_vec.reshape(self.beads_count,-1)
             arc['state_vec'] = sv
@@ -751,7 +757,7 @@ class ReactionPathway(object):
 
         self.bead_pes_energies = array(bead_pes_energies)
 
-    def ts_estims(self):
+    def ts_estims(self, alsomodes = False, converter = None):
         """TODO: Maybe this whole function should be made external."""
 
         self.pt = aof.tools.PathTools(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)
@@ -761,10 +767,26 @@ class ReactionPathway(object):
         f.write(self.pt.plot_str)
         f.close()
 
+        tsisspl = True
         if len(estims) < 1:
             lg.warn("No transition state found, using highest bead.")
             estims = self.pt.ts_highest()
+            tsisspl = False
         estims.sort()
+        if alsomodes:
+            cx = converter
+            bestmode = []
+            for est in estims:
+                energies, coords, s0, s1, s_ts,  l, r = est
+                cx.set_internals(coords)
+                modes =  self.pt.modeandcurvature(s_ts, l, r, cx)
+                for mo in modes:
+                    mo_name, value = mo
+                    if tsisspl and mo_name=="frompath":
+                        bestmode.append(value)
+                    if not tsisspl and mo_name=="directinternal":
+                        bestmode.append(value)
+                return estims, bestmode
         return estims
        
         
@@ -871,10 +893,10 @@ class NEB(ReactionPathway):
 
     growing = False
     def __init__(self, reagents, qc_driver, base_spr_const, beads_count=10, 
-        parallel=False, reporting=None):
+        parallel=False, reporting=None, output_level = 3):
 
         ReactionPathway.__init__(self, reagents, beads_count, qc_driver, 
-            parallel=parallel, reporting=reporting)
+            parallel=parallel, reporting=reporting, output_level = output_level)
 
         self.base_spr_const = base_spr_const
 
@@ -1484,7 +1506,7 @@ class GrowingString(ReactionPathway):
     string = True
 
     def __init__(self, reagents, qc_driver, beads_count = 10, 
-        rho = lambda x: 1, growing=True, parallel=False, head_size=None, 
+        rho = lambda x: 1, growing=True, parallel=False, head_size=None, output_level = 3,
         max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False):
 
         self.__qc_driver = qc_driver
@@ -1499,7 +1521,7 @@ class GrowingString(ReactionPathway):
 
         # create PathRepresentation object
         self._path_rep = PathRepresentation(reagents, initial_beads_count, rho)
-        ReactionPathway.__init__(self, reagents, initial_beads_count, qc_driver, parallel, reporting=reporting)
+        ReactionPathway.__init__(self, reagents, initial_beads_count, qc_driver, parallel, reporting=reporting, output_level = output_level)
 
         # final bead spacing density function for grown string
         # make sure it is normalised
@@ -1575,7 +1597,6 @@ class GrowingString(ReactionPathway):
     def set_state_vec(self, x):
         assert not '_state_vec' in self.__dict__
 
-        print "here"
         if x != None:
 
             self.update_path(x, respace = False)

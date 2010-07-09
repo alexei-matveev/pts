@@ -30,8 +30,6 @@ default_params = {
     "maxit" : 35,              # maximal number of iterations
     "maxstep" : 0.2,           # maximal step size
     "str_const" : 5.0,         # only for NEB: spring_constant
-    "growing" : False,          # only for the strings: if the string is growing, automatically
-                               #  changed if cos_type requires it
     "pre_calc_function" : None,
     "output_level" : 1,
     "output_path" : "workplace",
@@ -44,7 +42,7 @@ default_calcs = {
     }
 
 are_floats = ["ftol", "xtol", "etol", "maxstep", "str_const"]
-are_ints = ["maxit", "beads_count", "output_level"]
+are_ints = ["maxit", "beads_count", "output_level", "pmin", "pmax"]
 
 default_lj  = LennardJones(
   epsilon = 1.0,

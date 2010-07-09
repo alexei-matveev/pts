@@ -321,6 +321,7 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
                reporting=logfile,
                freeze_beads=False,
                head_size=None,
+               output_level = params_dict["output_level"],
                max_sep_ratio=0.3)
     elif cos_type == 'growingstring':
          CoS = GrowingString(init_path,
@@ -331,6 +332,7 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
                reporting=logfile,
                freeze_beads=False,
                head_size=None,
+               output_level = params_dict["output_level"],
                max_sep_ratio=0.3)
     elif cos_type == 'searchingstring':
          CoS = GrowingString(init_path,
@@ -339,6 +341,7 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
                growing=True,
                parallel=True,
                reporting=logfile,
+               output_level = params_dict["output_level"],
                max_sep_ratio=0.3,
                freeze_beads=True,
                head_size=None, # has no meaning for searching string
@@ -349,6 +352,7 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
                params_dict["spr_const"],
                params_dict["beads_count"],
                parallel=True,
+               output_level = params_dict["output_level"],
                reporting=logfile)
     else:
          raise Exception('Unknown type: %s' % cos_type)
@@ -381,8 +385,12 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
     # main optimisation loop
     print runopt(CoS)
 
+    for i, state in enumerate(CoS.get_state_vec()):
+        cs = mi.build_coord_sys(state)
+        write_ase("BEAD_%0.2i" % (i), cs, format = params_dict["output_geo_format"])
+
     # get best estimate(s) of TS from band/string
-    tss = CoS.ts_estims()
+    tss, modes = CoS.ts_estims(alsomodes = True, converter = mi.build_coord_sys(CoS.get_state_vec()[0]))
 
     # write out path to a file
     if params_dict["output_level"] > 0:
@@ -394,11 +402,13 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
         cs = mi.build_coord_sys(v)
         print "Energy = %.4f eV, between beads %d and %d." % (e, bead0_i, bead1_i)
         print cs.xyz_str()
-        write_ase("Tsestimate%i" % (i), cs, format =params_dict["output_geo_format"])
+        write_ase("TSESTIMATE_%i" % (i), cs, format = params_dict["output_geo_format"])
+        print "proposed vector for the lowest mode"
+        f_mod = open("MODEVEC_%i" %(i),"w")
+        for line in modes[i]:
+            f_mod.write("   %12.8f  %12.8f  %12.8f\n" % (line[0], line[1], line[2]))
+            print "   %12.8f  %12.8f  %12.8f" % (line[0], line[1], line[2])
 
-    for i, state in enumerate(CoS.get_state_vec()):
-        cs = mi.build_coord_sys(state)
-        write_ase("Bead%i" % (i), cs, format =params_dict["output_geo_format"])
 
     #CoS.arc_record.close()
 
@@ -485,7 +495,6 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
         assert type(tbead_right) is str
         if zmatrix == None:
             # they can be directly used
-            print "this way"
             mol_strings = [tbead_left, tbead_right]
         elif XYZ.matches(tbead_left):
             # a bit advanced: wants zmatrix object but has only xyz geometries (as string)
