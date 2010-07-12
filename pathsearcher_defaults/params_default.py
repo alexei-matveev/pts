@@ -8,13 +8,14 @@ and than overwritten by explicitly given ones in the params file or in the
 standard input
 """
 from ase.calculators import Vasp, LennardJones
+import aof.config as config
 
 default_params = {
     "cos_type" : "string",     # what way, e.g. NEB, string, growingstring, searchingstring
     "opt_type" : "multiopt",  # the optimizer
-    "pmax" : 100,
-    "pmin" : 1,
-    "cpu_architecture" : [1],
+    "pmax" : config.DEFAULT_PMAX,
+    "pmin" : config.DEFAULT_PMIN,
+    "cpu_architecture" : config.DEFAULT_TOPOLOGY,
     "name" : None,             # for output
     "calculator" : None,       # quantum chemistry calculator, e.g. Vasp or ParaGauss
     "placement" : None,
