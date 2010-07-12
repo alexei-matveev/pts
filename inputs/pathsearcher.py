@@ -444,22 +444,18 @@ def reset_params_f(params_dict, lines):
     glob = locals()
     print glob.keys()
 
-#   for param in glob.keys():
-#       if not param in glob_olds.keys():
-#            if param == "glob_olds":
-#                # There is one more new variable, which is not wanted to be taken into account
-#                pass
-#            elif not param in params_dict.keys():
-#                # this parameter are set during exec of the parameterfile, but they are not known
-#                print "ERROR: unrecognised variable in parameter input file"
-#                print "The variable", param," is unknown"
-#                exit()
-#            else:
-#                # Parameters may be overwritten by the fileinput
-#                params_dict[param] = glob[param]
-    for param in params_dict.keys():
-         if param in glob.keys():
-             params_dict[param] = glob[param]
+    for param in glob.keys():
+        if not param in glob_olds.keys():
+             if param == "glob_olds":
+                 # There is one more new variable, which is not wanted to be taken into account
+                 pass
+             elif not param in params_dict.keys():
+                 # this parameter are set during exec of the parameterfile, but they are not known
+                 print "WARNING: unrecognised variable in parameter input file"
+                 print "The variable", param," is unknown"
+             else:
+                 # Parameters may be overwritten by the fileinput
+                 params_dict[param] = glob[param]
 
     return params_dict
 
