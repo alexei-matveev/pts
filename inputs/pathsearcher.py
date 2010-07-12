@@ -123,7 +123,7 @@ Parameter    ch     short description directly
  "maxit"      yes   if the convergence criteria are still not met at maxit
                     iterations, the calculation is stopped anyhow
  "maxstep"    yes   the maximum step a path can take
- "str_const"  yes   the spring constant, only needed for neb
+ "spring"  yes   the spring constant, only needed for neb
  "pre_calc_function"  no function for precalculations, for gaussian ect.
  "output_level" yes the amount of output is decided here
                        0  minimal output, not recommended
