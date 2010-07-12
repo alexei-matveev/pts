@@ -210,7 +210,9 @@ EXAMPLES
 
 A minimal one:
 
-  pathsearcher.py --calculator default_lj left.xyz right.xyz
+Having several POSCAR's for the inital path (from POSCAR0 to POSCAR11). A parameterfile (called params.py)
+should hold some parameters, so especially the calculator) but ftol is anyway 0.07
+python pathsearcher.py --parmfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
 
 Having several POSCAR's for the inital path (from POSCAR0 to POSCAR11). A
 parameterfile (called params.py) should hold some parameters, so especially the
@@ -438,32 +440,26 @@ def reset_params_f(params_dict, lines):
     # so that the calculators from there can be used
     import ase
 
-    # check if all the variables specified are valid
-    linescheck = lines.split("\n")
-    for line in linescheck:
-         equal = line.find('=')
-         if line.startswith("#"):
-             # this line is just a commend
-             pass
-         elif not equal == -1:
-             # line contains a =, now find out if
-             # the things before it are in the params_dict
-             variab = line[:equal].split()
-             # it should be only one
-             for var in variab:
-                 if not var in params_dict:
-                     print "ERROR: unrecognised variable in parameter input file"
-                     print "The variable", var," is unknown"
-                     exit()
     # execute the string, the variables should be set in the locals
+    glob_olds = locals().copy()
+    print glob_olds.keys()
     exec(lines)
     glob = locals()
+    print glob.keys()
 
-    # check for every variable in our dictionary if it is also in the
-    # locals, thus has been set by the lines
-    for param in params_dict.keys():
-        if  param in glob.keys():
-             params_dict[param] = glob[param]
+    for param in glob.keys():
+        if not param in glob_olds.keys():
+             if param == "glob_olds":
+                 # There is one more new variable, which is not wanted to be taken into account
+                 pass
+             elif not param in params_dict.keys():
+                 # this parameter are set during exec of the parameterfile, but they are not known
+                 print "ERROR: unrecognised variable in parameter input file"
+                 print "The variable", param," is unknown"
+                 exit()
+             else:
+                 # Parameters may be overwritten by the fileinput
+                 params_dict[param] = glob[param]
 
     return params_dict
 
