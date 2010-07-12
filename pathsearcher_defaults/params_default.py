@@ -28,7 +28,7 @@ default_params = {
     "etol" : 0.03,             # energy convergence criteria
     "maxit" : 35,              # maximal number of iterations
     "maxstep" : 0.2,           # maximal step size
-    "str_const" : 5.0,         # only for NEB: spring_constant
+    "spring" : 5.0,         # only for NEB: spring_constant
     "pre_calc_function" : None,
     "output_level" : 1,
     "output_path" : "workplace",
@@ -40,7 +40,7 @@ default_calcs = {
     "default_lj" : True
     }
 
-are_floats = ["ftol", "xtol", "etol", "maxstep", "str_const"]
+are_floats = ["ftol", "xtol", "etol", "maxstep", "spring"]
 are_ints = ["maxit", "beads_count", "output_level", "pmin", "pmax"]
 
 default_lj  = LennardJones(

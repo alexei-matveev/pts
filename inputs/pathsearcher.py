@@ -350,7 +350,7 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
     elif cos_type == 'neb':
          CoS = NEB(init_path,
                calc_man,
-               params_dict["spr_const"],
+               params_dict["spring"],
                params_dict["beads_count"],
                parallel=True,
                output_level = params_dict["output_level"],
