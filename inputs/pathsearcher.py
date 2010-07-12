@@ -210,16 +210,13 @@ EXAMPLES
 
 A minimal one:
 
-Having several POSCAR's for the inital path (from POSCAR0 to POSCAR11). A parameterfile (called params.py)
-should hold some parameters, so especially the calculator) but ftol is anyway 0.07
-python pathsearcher.py --parmfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
+  pathsearcher.py --calculator default_lj left.xyz right.xyz
 
 Having several POSCAR's for the inital path (from POSCAR0 to POSCAR11). A
 parameterfile (called params.py) should hold some parameters, so especially the
 calculator) but ftol is anyway 0.07
 
-  pathsearcher.py --parmfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
-
+  pathsearcher.py --paramfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
 """
 from sys import argv, exit
 from re import findall
