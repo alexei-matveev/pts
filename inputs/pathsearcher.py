@@ -830,7 +830,13 @@ def transformgeo(str1):
        res = [file2str(st1) for st1 in str1]
     return res
 
-if __name__ == "__main__":
+def main(argv):
+    "To be used as main(sys.argv[1:])"
     #tell_default_params()
-    tbead_left, tbead_right, init_path, old_results, paramfile, zmatrix, params = interpret_sysargs(argv[1:])
+    tbead_left, tbead_right, init_path, old_results, paramfile, zmatrix, params = interpret_sysargs(argv)
     pathsearcher(tbead_left, tbead_right, init_path = init_path, paramfile = paramfile, zmatrix = zmatrix, old_results = old_results, **params)
+
+if __name__ == "__main__":
+    main(argv[1:])
+
+# Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
