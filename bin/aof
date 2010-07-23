@@ -23,16 +23,13 @@ Search transition path between A and B using default VASP settings.
 """
 import sys
 
-def usage():
-    print >> sys.stderr, __doc__
-
 def main(argv):
     """Subcommand dispatcher, depending on argv[0] call subcommand
     specific methods. To be used as main(sys.argv[1:]).
     """
 
     if len(argv) < 1:
-        usage()
+        print >> sys.stderr, __doc__
         sys.exit(1)
 
     # first argument is the keyword for the subtask:
@@ -64,7 +61,7 @@ def main(argv):
 
     if not valid_cmd:
         print >> sys.stderr, "aof: no such command:", cmd
-        usage()
+        print >> sys.stderr, __doc__
         sys.exit(1)
 
 if __name__ == "__main__":
