@@ -8,6 +8,8 @@ where CMD is one of the following:
 
     energy              Compute and print total energy in eV
     forces              Compute and print forces in eV/A
+    frequencies         Compute frequencies by numerical
+                        differentiation of forces
 
     neb                 Nudged Elastic Band calculation
     string              String optimization, similar to NEB
@@ -67,6 +69,13 @@ def main(argv):
         from aof.inputs.pathsearcher import main as pathsearcher
         # print "aof: call pathsearcher(", argv[1:], ")"
         pathsearcher(argv[1:])
+
+    if cmd == "frequencies":
+        valid_cmd = True
+
+        from aof.vib import main as frequencies
+        # print "aof: call frequencies(", argv[1:], ")"
+        frequencies(argv[1:])
 
     if not valid_cmd:
         print >> sys.stderr, "aof: no such command:", cmd
