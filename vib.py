@@ -141,7 +141,7 @@ from scipy.linalg import eigh
 import ase.atoms
 import ase.units as units
 from paramap import pool_map
-from sys import stdout
+import sys
 from qfunc import fwrapper
 
 VERBOSE = False
@@ -339,7 +339,7 @@ def output(freqs, eigvectors=None, mass=None):
     if eigvectors is not None:
          assert mass is not None
 
-         write = stdout.write
+         write = sys.stdout.write
 
          # we don't know if they are cartesian
          print "The corresponding eigenvectors  are:"
