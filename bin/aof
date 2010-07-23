@@ -6,6 +6,9 @@ Usage:
 
 where CMD is one of the following:
 
+    energy              Compute and print total energy in eV
+    forces              Compute and print forces in eV/A
+
     neb                 Nudged Elastic Band calculation
     string              String optimization, similar to NEB
     growingstring
@@ -40,7 +43,13 @@ def main(argv):
 
     # the rest of the command line is delegated to the
     # subtask for interpretation:
-    if cmd == "string" or cmd == "neb" or cmd == "growingstring" or cmd == "searchingstring":
+    if cmd in ("energy", "forces"):
+        valid_cmd = True
+
+        # print "aof: call single_point(", argv[1:], ")"
+        single_point(argv)
+
+    if cmd in ("string", "neb", "growingstring", "searchingstring"):
         valid_cmd = True
 
         # import right here in order not to import everything,
@@ -49,20 +58,72 @@ def main(argv):
 
         # prepend a flag for pathsearcher to understand the method:
         argv1 = ["--cos_type"] + argv
-        print "aof: call pathsearcher(", argv1, ")"
+        # print "aof: call pathsearcher(", argv1, ")"
         pathsearcher(argv1)
 
     if cmd == "pathsearcher":
         valid_cmd = True
 
         from aof.inputs.pathsearcher import main as pathsearcher
-        print "aof: call pathsearcher(", argv[1:], ")"
+        # print "aof: call pathsearcher(", argv[1:], ")"
         pathsearcher(argv[1:])
 
     if not valid_cmd:
         print >> sys.stderr, "aof: no such command:", cmd
         print >> sys.stderr, __doc__
         sys.exit(1)
+
+#
+# Example: calculations of energy/forces:
+#
+def single_point(argv):
+    """Usage:
+
+        energy --calculator <calculator file> <geometry file 1> [ <geometry file 2> ... ]
+
+    or
+
+        forces --calculator <calculator file> <geometry file 1> [ <geometry file 2> ... ]
+    """
+    from aof.cmdline import get_options, get_calculator
+    import ase
+
+    # first arg tells what to do:
+    if argv[0] not in ("energy", "forces"):
+        print >> sys.stderr, energy.__doc__
+        sys.exit(1)
+
+    # accepts only one option (so far):
+    opts, args = get_options(argv[1:], long_options=["calculator="])
+
+    # and one or more files molecular files:
+    if len(args) < 1:
+        print >> sys.stderr, energy.__doc__
+        sys.exit(1)
+
+    assert opts[0][0] == "--calculator"
+
+    calculator = get_calculator(opts[0][1])
+
+    for file in args:
+        atoms = ase.read(file)
+        # print atoms.get_positions()
+        atoms.set_calculator(calculator)
+
+        if argv[0] == "energy":
+            # calculate total energy:
+            e = atoms.get_potential_energy()
+
+            # print results to stdout
+            print e
+
+        if argv[0] == "forces":
+            # calculate total energy:
+            f = atoms.get_forces()
+
+            # print results to stdout
+            print f
+            print "" # separate blocks by a new line
 
 if __name__ == "__main__":
     main(sys.argv[1:])
