@@ -428,6 +428,36 @@ def funm(M, fun):
 
     return dot(V, dot(diag(fm), V.T))
 
+def main(argv):
+    """Usage:
+
+        frequencies --calculator <calculator file> <geometry file>
+    """
+    from cmdline import get_options, get_calculator
+
+    # vibration module accepts only one option (so far):
+    opts, args = get_options(argv, long_options=["calculator="])
+
+    # and one geometry:
+    if len(args) != 1:
+        print >> sys.stderr, main.__doc__
+        sys.exit(1)
+
+    atoms = ase.read(args[0])
+
+    assert opts[0][0] == "--calculator"
+
+    calculator = get_calculator(opts[0][1])
+
+    atoms.set_calculator(calculator)
+
+    # calculate the vibration modes
+    freqs, modes = vibmodes(atoms, workhere=False)
+
+    # prints results to stdout, FIXME: output() requires both modes
+    # and mass-matrix for some reason:
+    output(freqs) #, modes, mass)
+
 # python vib.py [-v]:
 if __name__ == "__main__":
     import doctest
