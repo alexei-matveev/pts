@@ -234,8 +234,9 @@ class f_schedwr():
           node, processes = env
           np = len(processes)
           value = ""
-          for proc in processes:
-               value += "%s " % (proc)
+          for proc in processes[:-1]:
+               value += "%s," % (proc)
+          value += "%s" % (processes[-1])
           # the environment variables should contain something
           # like: node number_of_procs number of the procs (on the node)
           environ['AOF_SCHED_JOB_HOST'] = "%s" % (node)
