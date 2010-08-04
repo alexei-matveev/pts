@@ -233,7 +233,7 @@ def derivatef( g0, x0, delta = 0.01, pmap = pool_map, direction = 'central' ):
             deriv[i,:] = (gval - gmiddle) / delta
     return deriv
 
-def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, alsovec=False, **kwargs):
+def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, give_output = 0, **kwargs):
     """
     Wrapper around vibmode, which used the atoms objects
     The hessian is calculated by derivatef
@@ -254,8 +254,15 @@ def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, alsovec
 
     freqs, modes = vibmod(mass, hessian)
 
-    if VERBOSE:
-        output(freqs, modes, mass, alsovec)
+    # the output will be printed on demand, with modes if wanted
+    # the output for the freqs can easily be recreated later on, but
+    # for the mode vectors the mass (not included in the direct output_
+    # is needed
+    if VERBOSE or give_output == 2:
+        output(freqs, modes, mass)
+    elif give_output == 1:
+        output(freqs)
+
 
     return freqs, modes
 
@@ -435,8 +442,12 @@ def main(argv):
     """
     from cmdline import get_options, get_calculator
 
-    # vibration module accepts only one option (so far):
-    opts, args = get_options(argv, long_options=["calculator="])
+    if argv[0] == "--help":
+         print main.__doc__
+         sys.exit()
+
+    # vibration module  options (not all that the vibmodes function has):
+    opts, args = get_options(argv, long_options=["calculator=", "alsovec="])
 
     # and one geometry:
     if len(args) != 1:
@@ -445,18 +456,25 @@ def main(argv):
 
     atoms = ase.read(args[0])
 
-    assert opts[0][0] == "--calculator"
+    # default values for the options
+    calculator = None
+    go = 1
 
-    calculator = get_calculator(opts[0][1])
+
+    for opt, value in opts:
+         if opt == "--calculator":
+             calculator = get_calculator(value)
+         elif opt =="--alsovec":
+             # set output level (only eigvalues or also eigvectors)
+             if str(value)=="True":
+                 go = 2
+
+    # this option has to be given!!
+    assert calculator != None
 
     atoms.set_calculator(calculator)
-
-    # calculate the vibration modes
-    freqs, modes = vibmodes(atoms, workhere=False)
-
-    # prints results to stdout, FIXME: output() requires both modes
-    # and mass-matrix for some reason:
-    output(freqs) #, modes, mass)
+    # calculate the vibration modes, gives also already the output (to stdout)
+    vibmodes(atoms, workhere=True, give_output = go)
 
 # python vib.py [-v]:
 if __name__ == "__main__":
