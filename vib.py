@@ -461,6 +461,11 @@ def main(argv):
 # python vib.py [-v]:
 if __name__ == "__main__":
     import doctest
+    from sys import argv as sargs
+    # make a message (the complete docstring available)
+    if len(sargs) > 1:
+        print __doc__
+        sys.exit()
     doctest.testmod()
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
