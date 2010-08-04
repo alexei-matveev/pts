@@ -441,13 +441,15 @@ def main(argv):
         frequencies --calculator <calculator file> <geometry file>
     """
     from cmdline import get_options, get_calculator
+    from aof.sched import Strategy
+    from aof.paramap import PMap3
 
     if argv[0] == "--help":
          print main.__doc__
          sys.exit()
 
     # vibration module  options (not all that the vibmodes function has):
-    opts, args = get_options(argv, long_options=["calculator=", "alsovec="])
+    opts, args = get_options(argv, long_options=["calculator=", "num-procs=", "alsovec="])
 
     # and one geometry:
     if len(args) != 1:
@@ -459,7 +461,8 @@ def main(argv):
     # default values for the options
     calculator = None
     go = 1
-
+    # for parallel calculations
+    num_procs = None
 
     for opt, value in opts:
          if opt == "--calculator":
@@ -468,13 +471,26 @@ def main(argv):
              # set output level (only eigvalues or also eigvectors)
              if str(value)=="True":
                  go = 2
+         elif opt == "--num-procs":
+             num_procs = int(value)
 
     # this option has to be given!!
     assert calculator != None
 
     atoms.set_calculator(calculator)
     # calculate the vibration modes, gives also already the output (to stdout)
-    vibmodes(atoms, workhere=True, give_output = go)
+    if num_procs == None:
+        # default values for paramap (pool_map does not need topology)
+        vibmodes(atoms, workhere=True, give_output = go)
+    else:
+        # use PMap with hcm strategy:
+        # num_procs should hold the number of procces available for the complete job
+        # they will be distributed as good as possible
+        sched = Strategy(topology = [num_procs], pmin = 1, pmax = num_procs)
+        # new paramap version, using this Strategy (the pmap topolgy specifications
+        # are put in environment variables, which could be used by the qm-program
+        pmap = PMap3(strat = sched)
+        vibmodes(atoms, pmap = pmap, workhere = True, give_output = go)
 
 # python vib.py [-v]:
 if __name__ == "__main__":
