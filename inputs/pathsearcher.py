@@ -44,8 +44,8 @@ A zmatrix may look something like:
 C
 H 1 var1
 H 1 var2 2 var3
-H 1 var4 2 var5 3
-H 1 var6 2 var7 4
+H 1 var4 2 var5 3 var6
+H 1 var7 2 var8 4 var9
 
 var1 = 1.0
 var2 = 1.0
@@ -54,6 +54,8 @@ var4 = 1.0
 var5 = 1.0
 var6 = 1.0
 var7 = 1.0
+var8 = 1.0
+var9 = 1.0
 ""
 
 The angles are in degree; if only arbitrary values are set (for beeing
