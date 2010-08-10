@@ -115,12 +115,15 @@ def main(argv=None):
                      fileout2 = 'energyandforce.dat'
                      calculateforces = True
                      printvectors = False
-                     if not argv[1].startswith('--'):
-                        try:
-                            int(argv[1])
-                        except:
-                            fileout = argv[1]
-                            argv = argv[1:]
+                     try:
+                         if not argv[1].startswith('--'):
+                           try:
+                             int(argv[1])
+                           except:
+                             fileout = argv[1]
+                             argv = argv[1:]
+                     except:
+                       pass
                 elif arg.startswith('f'):
                      calculateforces = True
                      printvectors = False
