@@ -461,12 +461,13 @@ def getforces(ts_sum, cs, file, reloadfile, file2, dump):
             forces = cs.get_forces()
             chdir(wopl)
 
-        force2 = get_reducedforces(forces, cs)
+        cartforces = np.asarray(cartforces)
+
         if dump:
             projection = []
             for  namemd, modevec in modes:
                  projection.append(np.dot(np.asarray(modevec).flatten(), np.asarray(cartforces).flatten()))
-            para, perp = para_perp_forces( np.asarray(modevec).flatten(), np.asarray(force2).flatten() )
+            para, perp = para_perp_forces( np.asarray(modevec).flatten(), np.asarray(cartforces).flatten() )
             force2rms = np.sqrt(np.dot(perp.flatten(), perp.flatten()))
             write2("  %16.9e  %16.9e  %16.9e   %16.9e   %16.9e   %16.9e  %16.9e  %16.9e   %16.9e   %16.9e\n" % ( trueE, energy,  (energy - trueE), abs(forces).max(),for1, projection[2], for3 , for2, force2rms, for4))
             continue
@@ -483,7 +484,7 @@ def getforces(ts_sum, cs, file, reloadfile, file2, dump):
         write2("The energies are approximated %16.9e and true was %19.6e\n" % (energy, trueE))
         write2("The difference in Energy (approx - true) is: %16.9e\n" % (energy - trueE))
         write2("The   maximum  internal force component  is: %16.9e\n" % abs(forces).max() )
-        write2("The   maximum Cartesian force component  is: %16.9e\n" % abs(force2).max() )
+        write2("The   maximum Cartesian force component  is: %16.9e\n" % abs(cartforces.flatten()).max() )
 
         write2("\nThe force component projected on the modevectors\n")
         write2("            modevector     |      value\n")
@@ -496,7 +497,7 @@ def getforces(ts_sum, cs, file, reloadfile, file2, dump):
         #     write2("       has the value:     %16.9e\n" % projection)
              write2("  %24s | %16.9e\n" % (namemd, projection))
              if namemd == "frompath":
-                para, perp = para_perp_forces( np.asarray(modevec).flatten(), np.asarray(force2).flatten() )
+                para, perp = para_perp_forces( np.asarray(modevec).flatten(), np.asarray(cartforces).flatten() )
                 force2rms = np.sqrt(np.dot(perp.flatten(), perp.flatten()))
 
         if not para == None:
@@ -539,11 +540,6 @@ def transformforces(c_forces, cs):
      forces_coord_sys = cs.apply_constraints(forces_coord_sys)
      make_like_atoms(forces_coord_sys)
      return forces_coord_sys
-
-def get_reducedforces(force_intermediate, cs):
-     transform_matrix, errors = cs.get_transform_matrix(cs._mask(cs._coords))
-     return np.dot(force_intermediate.flatten(), transform_matrix)
-
 
 def reloadfande(file, name, num):
      lines = open(file)
