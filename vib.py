@@ -83,9 +83,8 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
     >>> from numpy import round
     >>> round(cm(freqs), 2)
-    array([ 1248.65 +0.j  ,   882.95 +0.j  ,   882.95 +0.j  ,   882.95 +0.j  ,
-             623.92 +0.j  ,   623.92 +0.j  ,     0.00 +0.j  ,     0.00 +0.j  ,
-               0.00 +0.j  ,     0.00+17.58j,     0.00+17.58j,     0.00+17.58j])
+    array([ 1248.65 +0.j  ,   882.95 +0.j  ,   882.95 +0.j  ,   882.95 +0.j  ,   623.92 +0.j  ,   623.92 +0.j  ,     0.00 +0.j  ,     0.00 +0.j  ,     0.00 +0.j  ,     0.00+17.58j,
+               0.00+17.58j,     0.00+17.58j])
 
     >>> from ase.constraints import FixAtoms
 
@@ -97,8 +96,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
     [True, True, True, False, False, False, False, False, False, True, True, True]
 
     >>> round(cm(freqs), 2)
-    array([ 1041.10 +0.j  ,   764.64 +0.j  ,   529.25 +0.j  ,   441.39 +0.j  ,
-             441.00 +0.j  ,     0.00+14.35j])
+    array([ 1041.10 +0.j  ,   764.64 +0.j  ,   529.25 +0.j  ,   441.39 +0.j  ,   441.00 +0.j  ,     0.00+14.35j])
 
   second test System: N-N with EMT calculator
 
@@ -110,16 +108,14 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> freqs, modes = vibmodes(n2, workhere=True)
 
     >>> round(cm(freqs), 2)
-    array([ 2048.94  +0.j  ,     0.00  +0.j  ,     0.00  +0.j  ,
-               0.00  +0.j  ,     0.00+321.63j,     0.00+321.63j])
+    array([ 2048.94  +0.j  ,     0.00  +0.j  ,     0.00  +0.j  ,     0.00  +0.j  ,     0.00+321.63j,     0.00+321.63j])
 
     >>> n2.set_positions([[  0.0, 0.0, 0.000],
     ...                   [  0.0, 0.0, 1.130]])
 
     >>> freqs, modes = vibmodes(n2, workhere=True)
     >>> round(cm(freqs), 2)
-    array([ 1874.96+0.j,    37.51+0.j,    37.51+0.j,     0.00+0.j,
-               0.00+0.j,     0.00+0.j])
+    array([ 1874.96+0.j,    37.51+0.j,    37.51+0.j,     0.00+0.j,     0.00+0.j,     0.00+0.j])
 
   For pretty-printing the frequencies use:
 
@@ -132,7 +128,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
       3       no          0.0047            37.51
       4       no          0.0000             0.00
       5       no          0.0000             0.00
-      6       no          0.0000             0.00
+      6       yes         0.0000             0.00
     ----------------------------------------------------
 """
 from numpy import array, asarray, dot, zeros, max, abs, eye, diag, sqrt

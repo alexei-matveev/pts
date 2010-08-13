@@ -157,6 +157,11 @@ Straight path
 
     >>> p.beads_count = 5
     >>> p.generate_beads(update=True)
+    array([[-100., -100.],
+           [ -50.,  -50.],
+           [   0.,    0.],
+           [  50.,   50.],
+           [ 100.,  100.]])
     >>> p.get_bead_separations().sum() == 2*(100*100 + 100*100)**(0.5)
     True
 

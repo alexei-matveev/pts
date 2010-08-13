@@ -73,6 +73,11 @@ def masked_assign(mask, dst, src):
     >>> x = orig.copy()
     >>> y = array([5,4,3,2]).reshape(2,-1)
     >>> x = masked_assign(m, x, y)
+    [[0 1]
+     [2 3]]
+    [[5 4]
+     [3 2]]
+    [True, True]
     >>> (x == y).all()
     True
     >>> m = [False, False]
@@ -825,9 +830,23 @@ class NEB(ReactionPathway):
            [ 1. ,  1. ]])
 
     >>> neb.obj_func()
+    Objective function call: gradient = False
+    Objective function call: Previously made calcs: [True, False, False, True]
+    Objective function call: Bead update mask:      [False, True, True, False]
+    [[ 0.   0. ]
+     [ 0.2  0.2]
+     [ 0.7  0.7]
+     [ 1.   1. ]]
     -2.6541709711655024
 
     >>> neb.obj_func_grad().round(3)
+    Objective function call: gradient = True
+    Objective function call: Previously made calcs: [True, True, True, True]
+    Objective function call: Bead update mask:      [False, True, True, False]
+    [[ 0.   0. ]
+     [ 0.2  0.2]
+     [ 0.7  0.7]
+     [ 1.   1. ]]
     array([-0.   , -0.   , -0.291, -0.309,  0.327,  0.073, -0.   , -0.   ])
 
     >>> neb.step
@@ -837,6 +856,13 @@ class NEB(ReactionPathway):
            [ 0.,  0.]]))
 
     >>> neb.obj_func_grad([[0,0],[0.3,0.3],[0.9,0.9],[1,1]]).round(3)
+    Objective function call: gradient = True
+    Objective function call: Previously made calcs: [True, True, True, True]
+    Objective function call: Bead update mask:      [False, True, True, False]
+    [[ 0.   0. ]
+     [ 0.3  0.3]
+     [ 0.9  0.9]
+     [ 1.   1. ]]
     array([-0.   , -0.   , -0.282, -0.318,  0.714,  0.286, -0.   , -0.   ])
 
     >>> neb.step[1].round(1)
@@ -846,9 +872,24 @@ class NEB(ReactionPathway):
     2
 
     >>> neb = NEB([[0,0],[3,3]], aof.pes.GaussianPES(), 1., beads_count = 10)
+    Starting slow function: _get_total_str_len()
+    Finishing slow function: _get_total_str_len()
     >>> neb.angles
     array([ 180.,  180.,  180.,  180.,  180.,  180.,  180.,  180.])
     >>> neb.obj_func()
+    Objective function call: gradient = False
+    Objective function call: Previously made calcs: [True, False, False, False, False, False, False, False, False, False]
+    Objective function call: Bead update mask:      [False, True, True, True, True, True, True, True, True, False]
+    [[ 0.      0.    ]
+     [ 0.3333  0.3333]
+     [ 0.6666  0.6666]
+     [ 0.9999  0.9999]
+     [ 1.3329  1.3329]
+     [ 1.6662  1.6662]
+     [ 1.9995  1.9995]
+     [ 2.3328  2.3328]
+     [ 2.6661  2.6661]
+     [ 3.      3.    ]]
     -4.5561921505021239
     >>> neb.tangents
     array([[ 0.70710678,  0.70710678],
@@ -867,9 +908,17 @@ class NEB(ReactionPathway):
     array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
     >>> neb = NEB([[0,0],[1,1]], aof.pes.GaussianPES(), 1., beads_count = 3)
+    Starting slow function: _get_total_str_len()
+    Finishing slow function: _get_total_str_len()
     >>> neb.angles
     array([ 180.])
     >>> neb.obj_func([[0,0],[0,1],[1,1]])
+    Objective function call: gradient = False
+    Objective function call: Previously made calcs: [True, False, True]
+    Objective function call: Bead update mask:      [False, True, False]
+    [[ 0.  0.]
+     [ 0.  1.]
+     [ 1.  1.]]
     -1.6878414761432885
     >>> neb.tangents
     array([[ 0.,  1.],
@@ -1469,6 +1518,17 @@ class GrowingString(ReactionPathway):
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
     >>> qc = aof.pes.GaussianPES()
     >>> s = GrowingString(path, qc, beads_count=4, growing=False)
+    Starting slow function: _get_total_str_len()
+    Finishing slow function: _get_total_str_len()
+    [[ 0.   0. ]
+     [ 0.2  0.2]
+     [ 0.7  0.7]
+     [ 1.   1. ]]
+    [[ 0.          0.        ]
+     [ 0.32149034  0.32149034]
+     [ 0.660736    0.660736  ]
+     [ 1.          1.        ]]
+    None
     >>> s.state_vec.round(1)
     array([[ 0. ,  0. ],
            [ 0.3,  0.3],
@@ -1477,10 +1537,28 @@ class GrowingString(ReactionPathway):
 
     >>> new = s.state_vec.round(2).copy()
     >>> s.obj_func()
+    Objective function call: gradient = False
+    Objective function call: Previously made calcs: [False, False, False, False]
+    Objective function call: Bead update mask:      [False, True, True, False]
+    [[ 0.          0.        ]
+     [ 0.32149034  0.32149034]
+     [ 0.660736    0.660736  ]
+     [ 1.          1.        ]]
     -2.5884273157684441
 
     >>> s.obj_func_grad().round(3)
-    array([-0.   , -0.   ,  0.021, -0.021,  0.11 , -0.11 , -0.   , -0.   ])
+    Objective function call: gradient = True
+    Objective function call: Previously made calcs: [True, True, True, True]
+    Objective function call: Bead update mask:      [False, True, True, False]
+    [[ 0.          0.        ]
+     [ 0.32149034  0.32149034]
+     [ 0.660736    0.660736  ]
+     [ 1.          1.        ]]
+    result_bead_forces [[ 0.          0.        ]
+     [ 0.02061132 -0.02061132]
+     [ 0.11027833 -0.11027833]
+     [ 0.          0.        ]]
+    array([ 0.   ,  0.   ,  0.021, -0.021,  0.11 , -0.11 ,  0.   ,  0.   ])
 
     >>> s.step
     (0.0, array([ 0.,  0.,  0.,  0.]), array([[ 0.,  0.],
@@ -1489,12 +1567,34 @@ class GrowingString(ReactionPathway):
            [ 0.,  0.]]))
 
     >>> s.obj_func_grad(new)
-    array([-0.        , -0.        ,  0.02041863, -0.02041863,  0.10998242, -0.10998242, -0.        , -0.        ])
+    Objective function call: gradient = True
+    Objective function call: Previously made calcs: [True, False, False, True]
+    Objective function call: Bead update mask:      [False, True, True, False]
+    [[ 0.    0.  ]
+     [ 0.32  0.32]
+     [ 0.66  0.66]
+     [ 1.    1.  ]]
+    result_bead_forces [[ 0.          0.        ]
+     [ 0.02041863 -0.02041863]
+     [ 0.10998242 -0.10998242]
+     [ 0.          0.        ]]
+    array([ 0.        ,  0.        ,  0.02041863, -0.02041863,  0.10998242, -0.10998242,  0.        ,  0.        ])
     >>> array(s.step[1])
     array([ 0.        ,  0.00149034,  0.000736  ,  0.        ])
 
     >>> s.obj_func_grad([[0,0],[0.3,0.3],[0.9,0.9],[1,1]]).round(3)
-    array([-0.   , -0.   ,  0.018, -0.018,  0.214, -0.214, -0.   , -0.   ])
+    Objective function call: gradient = True
+    Objective function call: Previously made calcs: [True, False, False, True]
+    Objective function call: Bead update mask:      [False, True, True, False]
+    [[ 0.   0. ]
+     [ 0.3  0.3]
+     [ 0.9  0.9]
+     [ 1.   1. ]]
+    result_bead_forces [[ 0.          0.        ]
+     [ 0.01796772 -0.01796772]
+     [ 0.21435123 -0.21435123]
+     [ 0.          0.        ]]
+    array([ 0.   ,  0.   ,  0.018, -0.018,  0.214, -0.214,  0.   ,  0.   ])
     >>> s.lengths_disparate()
     True
 
