@@ -38,7 +38,7 @@ class Strategy:
     This wrapper gives only the Strategy and has no other functions
     which interact with the rest of the scheduling algorithm
 
-    >>> strat = Strategy()
+    >>> strat = Strategy([1],1,1)
     >>> strat(4)
     [(0, [0]), (0, [0]), (0, [0]), (0, [0])]
 
@@ -387,15 +387,15 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
         AssertionError
 
         >>> s._gen_combs(2,4,4)
-        array([[1, 1, 1, 1],
-               [2, 1, 1, 1],
-               [2, 2, 1, 1],
-               [2, 2, 2, 1],
-               [2, 2, 2, 2],
+        array([[2, 2, 2, 2],
                [3, 2, 2, 2],
                [3, 3, 2, 2],
                [3, 3, 3, 2],
-               [3, 3, 3, 3]])
+               [3, 3, 3, 3],
+               [4, 3, 3, 3],
+               [4, 4, 3, 3],
+               [4, 4, 4, 3],
+               [4, 4, 4, 4]])
 
         """
         assert pmax >= pmin
