@@ -642,6 +642,8 @@ def expand_zmat(zmts):
     vars = findall(r"\d[ \t\r\f\v]+[a-zA-Z_]\w*",zmts)
     # some variables may appear more than once:
     allvars = dict()
+    allvars_orderd = []
+
     # the number of variables help to decide if its an zmatrix or
     # an complex coordinate system
     num_vars = len(vars)
@@ -655,6 +657,7 @@ def expand_zmat(zmts):
             allvars[var] += 1
         else:
             allvars[var] = 1
+            allvars_orderd.append(var)
 
     zmts_new = zmts
     # an empty line is the dividor between zmatrix part and
@@ -665,7 +668,7 @@ def expand_zmat(zmts):
     # set all of them to 1
     if empty_line == []:
         zmts_new += "\n"
-        for var1 in allvars.keys():
+        for var1 in allvars_orderd:
             zmts_new += "%s  1.0\n" % (var1)
         print "Expanded zmatrix, added initial values"
         print zmts_new
