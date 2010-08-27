@@ -16,6 +16,13 @@
        ...     print "g2: exit"
        ...     return g1(x)
 
+       >>> from numpy import sqrt
+       >>> def gn(x, n):
+       ...     print "gn: entered"
+       ...     sleep(0.01)
+       ...     print "gn: exit"
+       ...     return (n, sqrt(x))
+
        >>> from os import getenv, system
        >>> def g3(x):
        ...  #  system("echo $AOF_SCHED_JOB_HOST")
@@ -52,6 +59,11 @@
 
        >>> pmap2(g1, x1)
        [[40, 16, 5], [16, 4, 2], [140, 25, 7], [0, 0, 0]]
+
+       >>> pmap3(g1_1, x1)
+       [[40, 16, 5], [16, 4, 2], [140, 25, 7], [0, 0, 0]]
+
+      #>>> pmap3(gn, range(1000))
 
   To see the time it takes: same function as before but with
   sleep(1) between entry and exit:
@@ -138,11 +150,11 @@ from time import sleep
 try:
     from multiprocessing import Process
     from multiprocessing import Queue as PQueue
-    from multiprocessing import Pool, Manager, Event
+    from multiprocessing import Pool, Manager, Event, RLock
 except:
     from processing import Process
     from processing import Queue as PQueue
-    from processing import Pool, Manager, Event
+    from processing import Pool, Manager, Event, RLock
 
 def job(jid, queue, func, args=(), kwds={}):
     """Each process should do its job and
@@ -219,17 +231,14 @@ def pool_map(f, xs, processes=MAXPROCS):
 
     return res
 
-class f_schedwr():
+def f_schedwr(f):
      """
      Wrapper around the function to
      take first care of the environment variable
 
      Described as seperate class to please pool_map
      """
-     def __init__(self, f):
-          self.f = f
-
-     def __call__(self, xplus, num = None):
+     def f1(xplus, num = None):
           x, env = xplus
           node, processes = env
           np = len(processes)
@@ -243,9 +252,11 @@ class f_schedwr():
           environ['AOF_SCHED_JOB_NPROCS'] = "%s" % (np)
           environ['AOF_SCHED_JOB_CPUS'] = value
           if num == None:
-              return self.f(x)
+              return f(x)
           else:
-              return self.f(x, num)
+              return f(x, num)
+
+     return f1
 
 class PMap3(object):
     """A implemention of parallel map, which uses the scheduler of sched.py
@@ -254,12 +265,10 @@ class PMap3(object):
        function by setting some environment variables (for the specific process).
     """
 
-    def __init__(self, Worker=Process, Queue=PQueue, strat = Strategy(), wait = 0.333):
+    def __init__(self, Worker=Process, Queue=PQueue, strat = Strategy()):
         self.__Worker = Worker
         self.__Queue = Queue
         self.strat = strat
-        # FIXME: is this waiting time reasonable? Or is it too large?
-        self.wait = wait
 
     def __call__(self, f, xs, processes = None):
         # processes just given for consistency (not needed anywhere
@@ -286,6 +295,7 @@ class PMap3(object):
         # the other may not interfere during setting
         event = Event()
         event.set()
+        lock = RLock()
 
         def worker(inq, outq):
                 # worker for a single job
@@ -305,9 +315,8 @@ class PMap3(object):
                      # (as there are several things to do the lock of the manager
                      # should not be enough)
                      event.wait()
-
+                     lock.acquire()
                      # lock dict for the other processes (they will wait at event.wait)
-                     event.clear()
                      #print occupied.keys()
                      still_occupied = False
                      for cpu in distr:
@@ -323,17 +332,17 @@ class PMap3(object):
                      else:
                          # release the occupied dict for the other processes
                          # (maybe they will find what they need)
-                         event.set()
-                         # wait some time before trying again
-                         sleep(self.wait)
+                         lock.release()
+                         event.clear()
 
                 # starting job
                 for cpu in distr:
                     # the cpus in distr should be used for the job
                     # thus now they are "occupied"
-                    occupied[cpu] = True
-                    # now the other proccesses can try occupied again
-                    event.set()
+                    occupied[cpu] = jid
+
+                # now the other proccesses can try occupied
+                lock.release()
 
                 # the function needs also the information on the node and cpus
                 xplus = (x, (node, cpus))
@@ -346,7 +355,7 @@ class PMap3(object):
                 # wants to release this special cpu at this time
                 for cpu in distr:
                     del occupied[cpu]
-
+                event.set()
 
         # force evaluation of arguments, some callers may pass
         # enumerate() or generator objects:
