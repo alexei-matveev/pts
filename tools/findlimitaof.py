@@ -22,7 +22,7 @@ class storedata:
         self.withvalues = False
         self.maxbead = None
         # the specialopts are decided here:
-        specialalrg = argv[2]
+        specialalrg = argv[2][1:]
         if specialalrg =='mb':
             self.maxbead = []
             specialalrg = 'n'
@@ -276,7 +276,7 @@ class interpretvalues():
                 # if there are no special options we can allow orself
                 # the luxury in not saying it, but the storedataclass
                 # wants it
-                arg2.append('n')
+                arg2.append('-n')
             # create one storedataobject, extract wanted data from file
             # and produce the limits
             self.st1 = storedata(self.file, arg2)
@@ -287,9 +287,9 @@ class interpretvalues():
         else:
             # if there are more than one variable, we need to know, how to
             # connect them, there exist the options and or or
-            if sys.argv[-1] == 'a' :
+            if sys.argv[-1] == '-a' :
                 self.merge = 0
-            elif sys.argv[-1] == 'o':
+            elif sys.argv[-1] == '-o':
                 self.merge = 1
             else:
                 print "ERROR: You need to specify the interaction between the different"
@@ -479,30 +479,30 @@ The programme looks for the reaching of the limit in each bead and for all beads
 A typical call for it may look like:
 
   *** Example: ***
-findlimitaof.py chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 n "Bead Energies" 0.9 % "RMS Step Size" 0.01 n  a
+findlimitaof.py chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 -n "Bead Energies" 0.9 % "RMS Step Size" 0.01 -n  -a
   ***----------***
 
 In this case it looks for the variables RMS Perp Forces, Bead Energies and RMS Step Size.
 
-The a at the and says, it looks for the case where all limits are reached in all variables (the and case);
-it can also look for the case, where only one variable has to reach its limit (the or case) anounced by o.
+The -a at the and says, it looks for the case where all limits are reached in all variables (the and case);
+it can also look for the case, where only one variable has to reach its limit (the or case) anounced by -o.
 If there are several variables at once, this flag has to be specified; if there is only one, there is of course no
 need and no allowance for it.
 The settings for one variable looks something like:
-   "Full name of Variable to look at" limit special_option
+   "Full name of Variable to look at" limit -special_option
 
 available special options are:
-   %  : limit is procentual value of change in variable (of each bead)
-   d  : the limit of the difference of two suceeding iterations is wanted
-   w  : gives also the values of the variable for the last iteration
-   %w : % and w together
-   dw : d and w together
-   mb : the limit is also searched for the maximum bead, if several
+  -%  : limit is procentual value of change in variable (of each bead)
+  -d  : the limit of the difference of two suceeding iterations is wanted
+  -w  : gives also the values of the variable for the last iteration
+  -%w : % and w together
+  -dw : d and w together
+  -mb : the limit is also searched for the maximum bead, if several
         parameters are set, mb has to be set for the first to be used
         mb can be combined with any other special option, but in this
         case mb has to be first, so mbd is maximum bead search and the
         values is taken as differences
-   n  : nothing special
+  -n  : nothing special
 the last option is of course to ensure that the length fo each variable block
 is the same, this is only needed if there are several variables for one the
 settings
@@ -511,7 +511,7 @@ settings
 are the same.
 
 To return to the example above:
-findlimitaof.py chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 n "Bead Energies" 0.9 % "RMS Step Size" 0.01 n  a
+findlimitaof.py chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 -n "Bead Energies" 0.9 % "RMS Step Size" 0.01 -n  -a
 This means that in the file chch2_to_cch2_with_params.log there is a search when the variable RMS Perp Forces is below 0.5,
 the Bead Energies has fallen 90% of its change and at the same iteration the RMS Step Size has fallen below 0.01
 
