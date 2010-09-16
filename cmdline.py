@@ -27,4 +27,9 @@ def get_calculator(file_name):
 
     return scope["calculator"]
 
+def get_mask(strmask):
+    mask = eval("%s" % (strmask))
+    print mask
+    return mask
+
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax

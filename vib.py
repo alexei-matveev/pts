@@ -8,8 +8,6 @@
   the place where the frequencies are calculated)
 
 
-FIXME: This description is outdated, vibmodes() doesnt accept these arguments:
-
       delta and direction are values of the derivatef function used to build up
       the hessian matrix direction = 'central' is highly recommended, delta gives
       the size of the steps taken to approximate the curvature
@@ -435,8 +433,14 @@ def main(argv):
     """Usage:
 
         frequencies --calculator <calculator file> <geometry file>
+
+        accepts also the options:
+           --num_procs  <n> : number of processors available
+           --alosvec    <True/False> : the eigenvector is also given back as output
+           --mask  string : string should contain the mask, which Cartesian coordinates should
+                            be fixed
     """
-    from cmdline import get_options, get_calculator
+    from cmdline import get_options, get_calculator, get_mask
     from aof.sched import Strategy
     from aof.paramap import PMap3
 
@@ -445,7 +449,7 @@ def main(argv):
          sys.exit()
 
     # vibration module  options (not all that the vibmodes function has):
-    opts, args = get_options(argv, long_options=["calculator=", "num-procs=", "alsovec="])
+    opts, args = get_options(argv, long_options=["calculator=","mask=", "num-procs=", "alsovec="])
 
     # and one geometry:
     if len(args) != 1:
@@ -459,16 +463,19 @@ def main(argv):
     go = 1
     # for parallel calculations
     num_procs = None
+    mask = None
 
     for opt, value in opts:
          if opt == "--calculator":
              calculator = get_calculator(value)
          elif opt =="--alsovec":
              # set output level (only eigvalues or also eigvectors)
-             if str(value)=="True":
+             if str(value) in ["True", "true","t"]:
                  go = 2
          elif opt == "--num-procs":
              num_procs = int(value)
+         elif opt == "--mask":
+             mask = get_mask(value)
 
     # this option has to be given!!
     assert calculator != None
@@ -477,7 +484,7 @@ def main(argv):
     # calculate the vibration modes, gives also already the output (to stdout)
     if num_procs == None:
         # default values for paramap (pool_map does not need topology)
-        vibmodes(atoms, workhere=True, give_output = go)
+        vibmodes(atoms, mask = mask, give_output = go)
     else:
         # use PMap with hcm strategy:
         # num_procs should hold the number of procces available for the complete job
@@ -486,7 +493,7 @@ def main(argv):
         # new paramap version, using this Strategy (the pmap topolgy specifications
         # are put in environment variables, which could be used by the qm-program
         pmap = PMap3(strat = sched)
-        vibmodes(atoms, pmap = pmap, workhere = True, give_output = go)
+        vibmodes(atoms, pmap = pmap, mask = mask, give_output = go)
 
 # python vib.py [-v]:
 if __name__ == "__main__":
