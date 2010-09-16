@@ -163,7 +163,7 @@ def main(argv=None):
 
     # if none is choosen, all are selected
     if wanted == []:
-        wanted = [1, 2, 3, 4, 5, 6]
+        wanted = [1, 2, 3, 4, 6]
 
     posonstring = None
     posonstring2 = None
