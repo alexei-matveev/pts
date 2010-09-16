@@ -440,10 +440,6 @@ def dump_beads(molinterface, chain_of_states, name):
     mols = chain_of_states.get_bead_coords()
     energies = chain_of_states.bead_pes_energies
 
-   # the values we also wanted:
- 
-    #print "States", chain_of_states
-    ### SEEVALUES
 
     mol_list_to_traj(molinterface, mols, energies, name)
 
