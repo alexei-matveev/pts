@@ -241,6 +241,133 @@ class RotAndTrans(Anchor):
 
         return res
 
+class RotAndTransLin(RotAndTrans):
+    _dims = 5
+
+    def __init__(self, initial=ones(5), parent = None):
+        """
+        initial:
+            initial value
+
+        parent:
+            Other anchored object that this anchor gives an orientation
+            relative to.
+        """
+        Anchor.__init__(self, initial)
+        self._parent = parent
+
+        initial = numpy.array(initial)
+        self._coords = initial
+        self.kinds = ['anc_q' for i in 1,2] + ['anc_c' for i in 1,2,3]
+        self.ac = None
+
+    def set_cartesians(self, new, orig, ftol=1e-8):
+        """
+        Sets value of internal quaternion / translation data using transformed
+        and non-transformed cartesian coordinates.
+
+        >>> r = RotAndTrans(arange(6)*1.0)
+        >>> orig = array([[0.,0,0],[0,0,1],[0,1,0]])
+        >>> new =  array([[0.,0,0],[0,1,0],[1,0,0]])
+        >>> r.set_cartesians(new, orig)
+        >>> new2 = r.reposition(orig)
+        >>> abs((new2 - new).round(4))
+        array([[ 0.,  0.,  0.],
+               [ 0.,  0.,  0.],
+               [ 0.,  0.,  0.]])
+
+        >>> r = RotAndTrans(arange(6)*1.0)
+        >>> orig = array([[0.,0,0],[0,0,1],[0,1,0]])
+        >>> new  = array([[0.,0,0],[0,0,1],[0,1,0]])
+        >>> r.set_cartesians(new, orig)
+        >>> new3 = r.reposition(orig)
+        >>> abs((new3 - new).round(4))
+        array([[ 0.,  0.,  0.],
+               [ 0.,  0.,  0.],
+               [ 0.,  0.,  0.]])
+        """
+        assert (orig[0] == numpy.zeros(3)).all()
+
+        Anchor.set_cartesians(self)
+
+        # we have only two points for sure
+        # they are required to determine rotation/translation
+        new = new[:2].copy()
+        orig = orig[:2].copy()
+
+        if self._parent != None:
+            new -= self._parent.get_centroid()
+        self._coords[2:] = new[0]
+
+        # coords as they would be after rotation but not translation
+        rotated = new - self._coords[2:]
+        free_axis = orig[1] - orig[0]
+
+        def f(i):
+            j = self.complete_vec(i,free_axis)
+            mat = vec_to_mat(j)
+            transformed = array([numpy.dot(mat, o) for o in orig])
+            v =  (transformed - rotated).flatten()
+            tmp = numpy.dot(v, v)
+            return tmp
+
+        # FIXME: add feature to allow a hint for a starting point for the
+        # optimisation procedure to find the quaternion. That's what is hard
+        # coded below.
+        old_rot = numpy.array([1.68555226, -0.90792125])#self._coords[:3].copy()
+        best, err, _, _, _  = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0, maxiter=2000)
+        print "HHHHHHHHH rotation mat", best, err
+        if err > ftol:
+            raise CoordSysException("Didn't converge in anchor parameterisation, %.20f > %.20f" %(err, ftol))
+        self._coords[0:2] = best
+        #return self._coords
+
+    def complete_vec(self, v, axis):
+        """the vector for the rotation matrix, expandation of the two
+           compontents still there, as the third can be calculated together
+           with the free axis of rotation (for the linear object) axis with
+           v*axis = 0"""
+
+        # this should be stored, to be the same during the whole calculation
+        # hopefully the not transformed cartesian coordinates should start with
+        # the same ones, self.ac is the indice which will not be used by the vector
+        if self.ac == None:
+           laxis = list(axis)
+           self.ac = laxis.index(max(laxis))
+
+        w = numpy.zeros((3,))
+        nv = []
+        for i in range(3):
+          if not i==self.ac:
+            nv.append(i)
+
+        for j, n in enumerate(nv):
+          w[n] = v[j]
+
+        # x[self.ac] ==0 on the right hand side, thus need not be omited from the dot
+        # product
+        w[self.ac] = numpy.dot(w,axis) /axis[self.ac]
+
+        return w
+
+    def reposition(self, carts):
+        """Based on a quaternion and a translation, transforms a set of
+        cartesion positions x."""
+
+        rot_vec1 = self.coords[0:2]
+        rot_vec = self.complete_vec(rot_vec1, carts[1]-carts[0])
+        trans_vec  = self.coords[2:]
+
+        # TODO: need to normalise?
+        rot_mat = vec_to_mat(rot_vec)
+
+        transform = lambda vec3d: numpy.dot(rot_mat, vec3d) + trans_vec
+        res = numpy.array(map(transform, carts))
+
+        if self._parent != None:
+            res += self._parent.get_centroid()
+
+        return res
 class CoordSys(object):
     """Abstract coordinate system. Sits on top of an ASE Atoms object."""
 

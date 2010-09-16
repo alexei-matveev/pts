@@ -232,6 +232,7 @@ from aof import MolInterface, CalcManager, generic_callback
 from aof.searcher import GrowingString, NEB
 from aof.optwrap import runopt as runopt_aof
 from aof.coord_sys import ZMatrix2, XYZ, ComplexCoordSys, ccsspec, CoordSys, RotAndTrans
+from aof.coord_sys import RotAndTransLin
 from pickle import dump
 from aof.tools import pickle_path
 from aof.common import file2str
@@ -246,7 +247,7 @@ from ase import write as write_ase
 # needed as global variable
 cb_count_debug = 0
 
-def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, paramfile = None, zmatrix = None, **parameter):
+def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, paramfile = None, zmatrix = [], **parameter):
     """
     ...
     It is also possible to use the pathsearcher() function in a python script. It
@@ -487,42 +488,55 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
 
     # zmatrix may be only contain the connection but not values for the variables (if
     # they should be specified later), the ccsspec's can only handle the full zmatrix
-    if not zmatrix == None:
-        zmatrix, num_int_raw = expand_zmat(zmatrix)
+    if not zmatrix == []:
+        num_int_raw = 0
+        num_int_raw_s = []
+        for i, zmati in enumerate(zmatrix):
+          zmatrix[i], num_int_s = expand_zmat(zmati)
+          num_int_raw += num_int_s + 6
+          if num_int_s == 1:
+            num_int_raw -= 1
+          num_int_raw_s.append(num_int_s)
 
     # the original input for the atoms objects are strings; they contain a xyz file or
     # a zmatrix/ mixed coordinate object
     if type(tbead_left) is str:
         assert type(tbead_right) is str
-        if zmatrix == None:
+        if zmatrix == []:
             # they can be directly used
             mol_strings = [tbead_left, tbead_right]
         elif XYZ.matches(tbead_left):
             # a bit advanced: wants zmatrix object but has only xyz geometries (as string)
-            zmt1 = ZMatrix2(zmatrix, RotAndTrans())
-            zmt2 = ZMatrix2(zmatrix, RotAndTrans())
 
             # check if mixed or only all in internals"
             atom_symbols = findall(r"([a-zA-Z][a-zA-Z]?).+?\n", tbead_left)
             # number of cartesian variables: number atoms * 3
             # number internal varialbes: (zmat should hold each double) + rot + trans
-            num_int = num_int_raw + 6
             num_c = len(atom_symbols) * 3
-            # first case varialbles all the same, second zmt has unrecognisable var-names
-            # hopefully it is a complete zmat
-            if num_c == num_int:
-                ccsl = ccsspec([zmt1], carts=XYZ(tbead_left))
-                ccsr = ccsspec([zmt2], carts=XYZ(tbead_right))
-            else:
+            # make zmatrix object(s)
+            zmt1 = []
+            zmt2 = []
+            for i,zmati in enumerate(zmatrix):
+              if num_int_raw_s[i] == 1:
+                zmt1.append(ZMatrix2(zmati, RotAndTransLin()))
+                zmt2.append(ZMatrix2(zmati, RotAndTransLin()))
+              else:
+                zmt1.append(ZMatrix2(zmati, RotAndTrans()))
+                zmt2.append(ZMatrix2(zmati, RotAndTrans()))
+
+            if num_c != num_int_raw:
                 lines = tbead_left.splitlines(True)
-                num_carts_ats = len(atom_symbols) - (num_int / 3)
+                num_carts_ats = len(atom_symbols) - (num_int_raw / 3)
                 co_cart = "%d\n\n" % num_carts_ats
                 for i in range(1, num_carts_ats + 1):
-                    print i, co_cart
                     co_cart += lines[-i]
-                print co_cart
-                ccsl = ccsspec([zmt1, XYZ(co_cart)], carts=XYZ(tbead_left))
-                ccsr = ccsspec([zmt2, XYZ(co_cart)], carts=XYZ(tbead_right))
+
+                zmt1.append(XYZ(co_cart))
+                zmt2.append(XYZ(co_cart))
+
+            # now create the coordinate system objects
+            ccsl = ccsspec(zmt1, carts=XYZ(tbead_left))
+            ccsr = ccsspec(zmt2, carts=XYZ(tbead_right))
             mol_strings = [ccsl, ccsr]
     else:
         # the minimas are given as real atoms objects (or aof asemol'ones?)
@@ -565,27 +579,33 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
              params_dict['mask'] = mask0
              print mask0
 
-        if zmatrix == None:
+        if zmatrix == []:
             # wanted in Cartesian
             mol_strings = [tbl_str, tbr_str]
         else:
             xyz = tbead_left.get_positions()
             num_c = len(xyz) * 3
             # number internal variables: (zmat should hold each double) + rot + trans
-            num_int = num_int_raw + 6
-            num_diff = num_int / 3
+            num_diff = num_int_raw / 3
             # go on for internals
-            zmt1 = ZMatrix2(zmatrix, RotAndTrans())
-            zmt2 = ZMatrix2(zmatrix, RotAndTrans())
-            if num_c == num_int:
-                ccsl = ccsspec([zmt1], carts=XYZ(tbl_str))
-                ccsr = ccsspec([zmt2], carts=XYZ(tbr_str))
-            else:
+            zmt1 = []
+            zmt2 = []
+            for i,zmati in enumerate(zmatrix):
+              if num_int_raw_s[i] == 1:
+                zmt1.append(ZMatrix2(zmati, RotAndTransLin()))
+                zmt2.append(ZMatrix2(zmati, RotAndTransLin()))
+              else:
+                zmt1.append(ZMatrix2(zmati, RotAndTrans()))
+                zmt2.append(ZMatrix2(zmati, RotAndTrans()))
+
+            if num_c != num_int_raw:
                 co_cart = XYZ(fake_xyz_string(tbead_left, start = num_diff))
-                ccsl = ccsspec([zmt1, co_cart], carts=XYZ(tbl_str))
+                zmt1.append(co_cart)
                 xyz2 = tbead_right.get_positions()
                 co_cart2 = XYZ(fake_xyz_string(tbead_right, start = num_diff))
-                ccsr = ccsspec([zmt2, co_cart2], carts=XYZ(tbr_str))
+                zmt2.append(co_cart2)
+            ccsl = ccsspec(zmt1, carts=XYZ(tbl_str))
+            ccsr = ccsspec(zmt2, carts=XYZ(tbr_str))
             mol_strings = [ccsl, ccsr]
 
     # extract parameters from the dictionary
@@ -717,11 +737,12 @@ def tell_params(params, has_initpath, zmatrix, old_results):
     if has_initpath:
          print "An initial path has been provided"
 
-    if zmatrix != None:
-         print "A zmatrix has been handed to the system intedependent form the geometries"
+    if zmatrix != []:
+         print "A zmatrix has been handed to the system intedependent from the geometries"
          print "The geoemtries and the zmatrix have been merged"
          print "The zmatrix gave the following structure:"
-         print zmatrix
+         for zmati in zmatrix:
+           print zmati
 
     if old_results != None:
          print "Results from previous calculations are read in from %s", old_results
@@ -735,7 +756,7 @@ def interpret_sysargs(rest):
     # This values have to be there in any case
     old_results = None
     paramfile = None
-    zmatrix = None
+    zmatrix = []
     init_path = None
 
     if "--help" in rest:
@@ -774,7 +795,7 @@ def interpret_sysargs(rest):
                 old_results = a
             elif o in ("--zmatrix"):
                 # zmatrix if given separate to the geometries
-                zmatrix = file2str(a)
+                zmatrix.append(file2str(a))
             else:
                 # suppose that the rest are setting parameters
                 # compare the default_params
