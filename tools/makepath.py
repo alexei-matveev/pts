@@ -41,14 +41,13 @@ var5   1.0
 "
 
 The last part giving the initial values for the variables
-needn't be there, but then the variables have to be named
-var1 -> varN
+needn't be there
 
 some additional paramters contain the output:
 If none of them  is set the output will in xyz format to the
 stdout
   --pos:      the output will be given as poscars in (direct)
-            style as pos0 to posN
+            style as POSCAR0 to POSCARN
   --allcoord: This way all the coordinates in internal and
             Cartesian will be given to the stdout
             (in Cartesian interpolation they are the same)
