@@ -1,7 +1,7 @@
 #!/usr/bin/python
 """
 This tools takes  path.pickle files
-reads it in and gives a picture back of some preselected internal coordiantes
+reads it in and gives a picture back of some preselected internal coordinates
 
 As input the path.pickle file(s) have to be given and at least two
 internal coordinates have to be choosen
