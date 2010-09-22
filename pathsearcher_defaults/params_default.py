@@ -30,7 +30,7 @@ default_params = {
     "maxstep" : 0.2,           # maximal step size
     "spring" : 5.0,         # only for NEB: spring_constant
     "pre_calc_function" : None,
-    "output_level" : 1,
+    "output_level" : 2,
     "output_path" : "workplace",
     "output_geo_format" : "xyz"
     }
