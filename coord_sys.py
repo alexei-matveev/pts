@@ -116,6 +116,14 @@ class Anchor(object):
 
     coords = property(get, set)
 
+
+    def need_for_completation(self):
+        # What is needed to get complete quaternion from
+        # the stored variables, default case there is not even
+        # an  really anchor (thus None) (for example for Dummy Anchor)
+        return None, numpy.zeros(3)
+
+
 class Dummy(Anchor):
     _dims = 0
     kinds = []
@@ -241,6 +249,11 @@ class RotAndTrans(Anchor):
 
         return res
 
+    def need_for_completation(self):
+        # In this case an Anchor exists, but is already complete,
+        # thus -1 seperates it from the rest
+        return -1, numpy.zeros(3)
+
 class RotAndTransLin(RotAndTrans):
     _dims = 5
 
@@ -260,6 +273,7 @@ class RotAndTransLin(RotAndTrans):
         self._coords = initial
         self.kinds = ['anc_q' for i in 1,2] + ['anc_c' for i in 1,2,3]
         self.ac = None
+        self.axis = numpy.zeros(3)
 
     def set_cartesians(self, new, orig, ftol=1e-8):
         """
@@ -302,6 +316,7 @@ class RotAndTransLin(RotAndTrans):
         # coords as they would be after rotation but not translation
         rotated = new - self._coords[2:]
         free_axis = orig[1] - orig[0]
+        free_axis = free_axis / numpy.linalg.norm(free_axis)
 
         def f(i):
             j = self.complete_vec(i,free_axis)
@@ -335,27 +350,20 @@ class RotAndTransLin(RotAndTrans):
            laxis = list(axis)
            self.ac = laxis.index(max(laxis))
 
-        w = numpy.zeros((3,))
-        nv = []
-        for i in range(3):
-          if not i==self.ac:
-            nv.append(i)
+        if not (self.axis == axis).all():
+          self.axis = axis
 
-        for j, n in enumerate(nv):
-          w[n] = v[j]
-
-        # x[self.ac] ==0 on the right hand side, thus need not be omited from the dot
-        # product
-        w[self.ac] = numpy.dot(w,axis) /axis[self.ac]
-
-        return w
+        return vector_completation(self.ac, v, axis)
 
     def reposition(self, carts):
         """Based on a quaternion and a translation, transforms a set of
         cartesion positions x."""
 
         rot_vec1 = self.coords[0:2]
-        rot_vec = self.complete_vec(rot_vec1, carts[1]-carts[0])
+        free_axis = carts[1] - carts[0]
+        free_axis = free_axis / numpy.linalg.norm(free_axis)
+
+        rot_vec = self.complete_vec(rot_vec1, free_axis)
         trans_vec  = self.coords[2:]
 
         # TODO: need to normalise?
@@ -368,6 +376,34 @@ class RotAndTransLin(RotAndTrans):
             res += self._parent.get_centroid()
 
         return res
+
+    def need_for_completation(self):
+        # This is the case, where it was originally designed for: there is
+        # an anchor but only two coordinates are given as variables
+        return self.ac, self.axis
+
+def vector_completation(ac, v, axis):
+    """
+    What to do to get a complete vector, which defines a quaternion
+    from a two variable case, ac is the variable in the three vector
+    case, which has been skipped, v is the 2 dimensional vector, axis
+    defines the axis, along which the product w * axis vanishes
+    """
+    w = numpy.zeros((3,))
+    nv = []
+    for i in range(3):
+      if not i==ac:
+        nv.append(i)
+
+    for j, n in enumerate(nv):
+      w[n] = v[j]
+
+    # w[self.ac] ==0 on the right hand side, thus need not be omited from the dot
+    # product
+    w[ac] = numpy.dot(w,axis) /axis[ac]
+
+    return w
+
 class CoordSys(object):
     """Abstract coordinate system. Sits on top of an ASE Atoms object."""
 
@@ -404,6 +440,10 @@ class CoordSys(object):
             return common.file2str(s)
         else:
             return s
+
+    def completion_anchor(self):
+        # returns informations of included anchor
+        return [self._anchor.need_for_completation()]
 
     def set_calculator(self, calc_tuple):
 #        print "set_calc",type(self), calc_tuple
@@ -1002,6 +1042,13 @@ class ComplexCoordSys(CoordSys):
         list = [p.kinds for p in self._parts]
         self._kinds = reduce(operator.add, list)
 
+    def completion_anchor(self):
+        # returns for each part the values for completing the anchor objects
+        # starts with None for object without real anchor (e.g. Cartesian part)
+        # -1 for complete anchor and else the number of the variable to add
+        # the second part of the tuple is the axis vector
+        return [p._anchor.need_for_completation() for p in self._parts]
+
     def get_internals(self):
         ilist = [p.get_internals() for p in self._parts]
         iarray = numpy.hstack(ilist)
@@ -1406,6 +1453,143 @@ def fake_xyz_string(ase_atoms, start = None ):
             xyz_str += '%-2s %22.15f %22.15f %22.15f\n' % (s, x, y, z)
     return xyz_str
 
+
+# The next three routines take a plain ase atoms object and transform it:
+# to one of the possible coordinate systems given in this module
+
+def ase2xyz(c_ase):
+    c_xyz = XYZ( fake_xyz_string(c_ase))
+    c_xyz.set_cartesians(c_ase.get_positions())
+    return c_xyz
+
+def ase2int(c_ase, zmts, nums):
+    if nums > 1:
+      c_int = ZMatrix2(zmts, RotAndTrans())
+    else:
+      c_int = ZMatrix2(zmts, RotAndTransLin())
+    c_int.set_cartesians(c_ase.get_positions())
+    return c_int
+
+def ase2ccs(c_ase, zmts, el_nums, elem_num):
+    zmt1s = []
+    for i, zmt1 in enumerate(zmts):
+      if el_nums[i] > 1:
+        zmt1s_1 = ZMatrix2(zmt1, RotAndTrans())
+      else:
+        zmt1s_1 = ZMatrix2(zmt1, RotAndTransLin())
+      zmt1s.append(zmt1s_1)
+
+    num_atoms = len(c_ase.get_atomic_numbers())
+    symb_atoms = c_ase.get_chemical_symbols()
+    carts = XYZ(fake_xyz_string(c_ase))
+    diffhere =  (elem_num) / 3
+    if diffhere < num_atoms:
+      co_all = XYZ(fake_xyz_string(c_ase, start = diffhere))
+      zmt1s.append(co_all)
+    ccs1 =  ccsspec(zmt1s, carts=carts)
+    zmt1 = ComplexCoordSys(ccs1)
+    return zmt1
+
+def enforce_short_way(zmti):
+  from numpy import pi, zeros, dot
+  from numpy.linalg import norm
+  """
+  This routine takes a list of coordinate system objects and
+  transforms them in a way, which ensures that by an interpolation
+  the shortest way is taken. This is especially important for dihedral
+  angles, where each angle can be given in a multiple way, differing by
+  2 * PI but describing exactly the same system. And there are quaternions
+  which may be defined different ways. As the interpolation is later on just
+  linear in all coordinates, these special coordiantes are identified and
+  adapted if needed
+  """
+  for i_n1, zm in enumerate(zmti):
+    m1 =  zm.get_internals()
+    can1 = zm.completion_anchor()
+    i_n2 = i_n1 + 1
+    # just ckeck two succeding geometry objects, for the last
+    # make dummy compare with isself (needs FIXME?)
+    # competion anchor is needed if there are internal parts in the geometries
+    # which have only two atoms
+    if i_n2 > len(zmti) - 1:
+       i_n2 = len(zmti) - 1
+    m2 = zmti[i_n2].get_internals()
+    can2 = zmti[i_n2].completion_anchor()
+    ancs = []
+    anc = []
+    need_three = 0
+
+    for i, k in enumerate(zm.kinds):
+       if k == "dih":
+           # dihedrals can just be handled by themselves
+           delta = m2[i] - m1[i]
+           while delta >  pi: delta -= 2.0 * pi
+           while delta < -pi: delta += 2.0 * pi
+           m2[i] = m1[i] + delta
+       elif k == "anc_q":
+           # the quaternions need some more logic, one has to deal
+           # with the three variables defining one in one go, thus
+           # only collect them here.
+           if ancs == []:
+             last = i
+           else:
+             last = ancs[-1]
+           # the quaternion kinds have to follow directly after each other
+           # if there is a gap, the variable belongs to the next one
+           if (i-last) > 1:
+              # store this quaternion already
+              anc.append(ancs)
+              ancs = []
+              need_three = 0
+           ancs.append(i) # collect for one quaternion
+           need_three += 1
+    if ancs != []: # store the last one
+       anc.append(ancs)
+    icm = -1
+    # now loop over the quaternions rather than all variables
+    for i, anchor in enumerate(anc):
+       ic1 = (None, zeros(3))
+       b_back = [0, 1, 2]
+       while ic1[0] == None:
+         icm += 1
+         # get information to get complete quaternion, if only two
+         # variables are stored, None means non-internal object, if it
+         # is not none, one is reached, where the anchor gives variables
+         # to the complete system
+         ic1 = can1[icm]
+       v1 = m1[anchor]
+       v2 = m2[anchor]
+       # v1 and v2 are the quaternion (there are two to compare)
+       # first enlarge them, if the reduced (linear) kind has been given
+       if len(anchor) < 3:
+          assert(ic1[0] > -1)
+          b_back.remove(ic1[0])
+          v1 = vector_completation(ic1[0], v1, ic1[1])
+          v2 = vector_completation(can2[icm][0], v2, can2[icm][1])
+       # from now on they are complete three vector kinds
+       lv1 = norm(v1)
+       lv2 = norm(v2)
+       # norm is value for angle
+       if dot(v1, v2) < 0:
+          # find out if they are lying in the same direction
+          lv2 *= -1.0
+       # make norm(vi) = 1
+       v2 /= lv2
+       v1 /= lv1
+       delta = lv2 - lv1
+       # normalize the interval between two angles:
+       while delta >  pi: delta -=  2.0 * pi
+       while delta < -pi: delta +=  2.0 * pi
+       lv2 = lv1 + delta
+       # give back changed norm
+       v2 *= lv2
+       v1 *= lv1
+       # reduce result if necessary
+       m1[anchor] = v1[b_back]
+       m2[anchor] = v2[b_back]
+    # return changed values
+    zmti[i_n1].set_internals(m1)
+    zmti[i_n2].set_internals(m2)
 
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:

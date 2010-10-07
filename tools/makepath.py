@@ -43,6 +43,13 @@ var5   1.0
 The last part giving the initial values for the variables
 needn't be there
 
+It is also possible to interpolate in mixed coordinates, thus
+using a zmatrix for only the first atoms, and leave the rest in
+Cartesian or to use several zmatrices. In the last case for each of
+them there should be a call --zmat ZMATi. The order is important, the
+zmatrices always take the atoms from the top of the Cartesian
+coordinates.
+
 some additional paramters contain the output:
 If none of them  is set the output will in xyz format to the
 stdout
@@ -59,13 +66,14 @@ if sys.argv[1] == '--help':
     sys.exit()
 
 from ase import read, write
-from aof.coord_sys import ZMatrix2, RotAndTrans, XYZ, ccsspec, ComplexCoordSys
+from aof.coord_sys import ZMatrix2, RotAndTrans, XYZ, ccsspec, ComplexCoordSys, RotAndTransLin
+from aof.coord_sys import vector_completation, ase2xyz, ase2int, ase2ccs, enforce_short_way
 from aof.path import Path
 from aof.common import file2str
-from numpy import linspace, round, pi, asarray, array
+from numpy import linspace
 from string import count
 from pydoc import help
-from aof.inputs.pathsearcher import fake_xyz_string, expand_zmat
+from aof.inputs.pathsearcher import expand_zmat
 
 # Defaultvalues for parameters
 # output as xyz, and 7 beads
@@ -74,8 +82,11 @@ steps = 7
 
 args = sys.argv[1:]
 
-zmts = None
+zmts = []
+elem_num = 0
+el_nums = []
 m1 = None
+mi = []
 
 for k in range(len(args)):
     if args == []:
@@ -94,86 +105,64 @@ for k in range(len(args)):
          args = args[2:]
     elif args[0] == "--zmat":
 #Then read in the zmatrix in ag form
-         zmts = file2str(args[1])
+         zmts1 = file2str(args[1])
          #print "interpolation in internal coordinates"
          args = args[2:]
          # The variables in the zmat may not be set yet
          #then do this as service
-         zmts, elem_num = expand_zmat(zmts)
+         zmts1, elem_num1 = expand_zmat(zmts1)
+         zmts.append(zmts1)
+         elem_num += elem_num1 + 6
+         if (elem_num1 ==1):
+             elem_num -= 1
+             el_nums.append(elem_num1)
+         else:
+             el_nums.append(elem_num1)
+
 #the two files for the minima
-    elif m1 == None:
-         m1 = read(args[0])
-         args = args[1:]
-    else :
-         m2 = read(args[0])
+    else:
+         mi.append(read(args[0]))
          args = args[1:]
 
-assert m1 != None
-assert m2 != None
+assert len(mi) > 1
 
 # mol is the ase-atom object to create the ase output
 # the xyz or poscar files
-mol = m1
+mol = mi[0]
 num_atoms = len(mol.get_atomic_numbers())
+zmti = []
 
-if zmts == None:
+if zmts == []:
     # Cartesian coordinates are in a ZMatrix2 object
     # Two for the minima, they can be set already
-    zmt1 = XYZ( fake_xyz_string(m1))
-    zmt1.set_cartesians(m1.get_positions())
-    zmt2 = XYZ( fake_xyz_string(m2))
-    zmt2.set_cartesians(m2.get_positions())
+    for m in mi:
+       zmti.append(ase2xyz(m))
     # The next one is the one for the current geometry
-    zmtinter = XYZ( fake_xyz_string(m1))
-elif num_atoms * 3 > elem_num + 6:
+    zmtinter = ase2xyz(mi[0])
+elif num_atoms * 3 > elem_num or len(zmts) > 1:
     # internal coordinates are in a ZMatrix2 object
     # Two for the minima, they can be set already
-    zmt1s = ZMatrix2(zmts, RotAndTrans())
-    zmt2s = ZMatrix2(zmts, RotAndTrans())
-    # The next one is the one for the current geometry
-    zmtinters = ZMatrix2(zmts, RotAndTrans())
-    symb_atoms = mol.get_chemical_symbols()
-    carts = XYZ(fake_xyz_string(m1))
-    carts2 = XYZ(fake_xyz_string(m2))
-    carts3 = XYZ(fake_xyz_string(m1))
-    diffhere =   (elem_num +6) / 3
-    co_all = XYZ(fake_xyz_string(m1, start = diffhere))
-    co_alli = XYZ(fake_xyz_string(m1, start = diffhere))
-    ccs1 =  ccsspec([zmt1s, co_all], carts=carts)
-    ccsi =  ccsspec([zmtinters, co_alli], carts=carts2)
-    carts = m2.get_positions()
-    co_all2 = XYZ(fake_xyz_string(m2, start = diffhere))
-    ccs2 =  ccsspec([zmt2s, co_all2], carts=carts3)
-    zmt1 = ComplexCoordSys(ccs1)
-    zmt2 = ComplexCoordSys(ccs2)
-    zmtinter = ComplexCoordSys(ccsi)
+    for m in mi:
+      zmti.append(ase2ccs(m, zmts, el_nums, elem_num))
+    zmtinter =  ase2ccs(mi[0], zmts, el_nums, elem_num)
 else:
     # internal coordinates are in a ZMatrix2 object
     # Two for the minima, they can be set already
-    zmt1 = ZMatrix2(zmts, RotAndTrans())
-    zmt1.set_cartesians(m1.get_positions())
-    zmt2 = ZMatrix2(zmts, RotAndTrans())
-    zmt2.set_cartesians(m2.get_positions())
+    zmts = str(zmts[0])
+    for m in mi:
+      zmti.append(ase2int(m, zmts, elem_num))
     # The next one is the one for the current geometry
-    zmtinter = ZMatrix2(zmts, RotAndTrans())
+    zmtinter = ase2int(mi[0], zmts, elem_num)
+
+if zmts != []:
+  enforce_short_way(zmti)
 
 # redefine symbols to contain only geometries (internal):
-m1 = zmt1.get_internals()
-m2 = zmt2.get_internals()
-
-if zmts != None:
-    # interpolation of dihedral angles needs more logic,
-    # say for interpolation from -pi+x to pi-y with small x and y:
-    for i, k in enumerate(zmt1.kinds):
-       if k == "dih":
-           delta = m2[i] - m1[i]
-           # normalize the interval between two angles:
-           while delta >  pi: delta -= 2.0 * pi
-           while delta < -pi: delta += 2.0 * pi
-           m2[i] = m1[i] + delta
+for i, zm in enumerate(zmti):
+  mi[i] = zm.get_internals()
 
 # path between two minima (linear in coordinates):
-ipm1m2 = Path([m1, m2])
+ipm1m2 = Path(mi)
 
 if output == 2:
     if zmts == None:
@@ -204,3 +193,4 @@ for i, x in enumerate(linspace(0., 1., steps)):
        write("POSCAR%i" % i, mol, format="vasp", direct = "True")
    elif output == 0:
        write("-" , mol)
+
