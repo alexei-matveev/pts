@@ -1391,6 +1391,22 @@ class ZMatrix2(CoordSys):
 
         return xyz_coords
 
+def fake_xyz_string(ase_atoms, start = None ):
+    """
+    Like creating an xyz-file but let it go to a string
+    The string can be read in and understod by MolInterface
+    """
+    symbols = ase_atoms.get_chemical_symbols()
+    if start == None:
+        xyz_str = '%d\n\n' % len(symbols)
+    else:
+        xyz_str = '%d\n\n' % (len(symbols) - start)
+    for i, (s, (x, y, z)) in enumerate(zip(symbols, ase_atoms.get_positions())):
+        if start == None or (i - start > -1):
+            xyz_str += '%-2s %22.15f %22.15f %22.15f\n' % (s, x, y, z)
+    return xyz_str
+
+
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
 if __name__ == "__main__":

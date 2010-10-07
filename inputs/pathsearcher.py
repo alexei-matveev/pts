@@ -232,7 +232,7 @@ from aof import MolInterface, CalcManager, generic_callback
 from aof.searcher import GrowingString, NEB
 from aof.optwrap import runopt as runopt_aof
 from aof.coord_sys import ZMatrix2, XYZ, ComplexCoordSys, ccsspec, CoordSys, RotAndTrans
-from aof.coord_sys import RotAndTransLin
+from aof.coord_sys import RotAndTransLin, fake_xyz_string
 from pickle import dump
 from aof.tools import pickle_path
 from aof.common import file2str
@@ -703,20 +703,6 @@ def set_calculator(params):
         exec(str1)
         params["calculator"] = calculator
     return params
-
-def fake_xyz_string(ase_atoms, start = None ):
-    """
-    Like creating an xyz-file but let it go to a string
-    """
-    symbols = ase_atoms.get_chemical_symbols()
-    if start == None:
-        xyz_str = '%d\n\n' % len(symbols)
-    else:
-        xyz_str = '%d\n\n' % (len(symbols) - start)
-    for i, (s, (x, y, z)) in enumerate(zip(symbols, ase_atoms.get_positions())):
-        if start == None or (i - start > -1):
-            xyz_str += '%-2s %22.15f %22.15f %22.15f\n' % (s, x, y, z)
-    return xyz_str
 
 def tell_default_params():
     """
