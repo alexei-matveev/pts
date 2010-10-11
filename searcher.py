@@ -791,7 +791,7 @@ class ReactionPathway(object):
                         bestmode.append(value)
                     if not tsisspl and mo_name=="directinternal":
                         bestmode.append(value)
-                return estims, bestmode
+            return estims, bestmode
         return estims
        
         
