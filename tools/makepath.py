@@ -15,6 +15,9 @@ or
 --num gives the number of interpolated points, default
 would be 7
 
+if given more than two geometries, the path will go
+though all of them.
+
 if interpolation is wanted in internal coordinates,
 add --zmat ZMAT
 where the zmatrix in ZMAT (can be generated in ag),
@@ -66,7 +69,7 @@ if sys.argv[1] == '--help':
     sys.exit()
 
 from ase import read, write
-from aof.coord_sys import ZMatrix2, RotAndTrans, XYZ, ccsspec, ComplexCoordSys, RotAndTransLin
+from aof.coord_sys import   ComplexCoordSys
 from aof.coord_sys import vector_completation, ase2xyz, ase2int, ase2ccs, enforce_short_way
 from aof.path import Path
 from aof.common import file2str
