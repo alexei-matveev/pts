@@ -1487,7 +1487,29 @@ def ase2ccs(c_ase, zmts, el_nums, elem_num):
       co_all = XYZ(fake_xyz_string(c_ase, start = diffhere))
       zmt1s.append(co_all)
     ccs1 =  ccsspec(zmt1s, carts=carts)
-    zmt1 = ComplexCoordSys(ccs1)
+    return ccs1
+
+def xyz2ccs(xyz_str, zmts, el_nums, elem_num):
+    zmt1s = []
+    for i, zmt1 in enumerate(zmts):
+      if el_nums[i] > 1:
+        zmt1s_1 = ZMatrix2(zmt1, RotAndTrans())
+      else:
+        zmt1s_1 = ZMatrix2(zmt1, RotAndTransLin())
+      zmt1s.append(zmt1s_1)
+
+    symb_atoms = findall(r"([a-zA-Z][a-zA-Z]?).+?\n", xyz_str)
+    num_atoms = len(symb_atoms)
+    carts = XYZ(fake_xyz_string(c_ase))
+    diffhere =  (elem_num) / 3
+    if diffhere < num_atoms:
+      lines = xyz_str.splitlines(True)
+      num_carts_ats = num_atoms - (elem_num/ 3)
+      co_cart = "%d\n\n" % num_carts_ats
+      for i in range(1, num_carts_ats + 1):
+          co_cart += lines[-i]
+      zmt1s.append(co_all)
+    ccs1 =  ccsspec(zmt1s, carts=xyz_str)
     return zmt1
 
 def enforce_short_way(zmti):

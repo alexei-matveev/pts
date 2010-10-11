@@ -231,8 +231,8 @@ from ase import read as read_ase
 from aof import MolInterface, CalcManager, generic_callback
 from aof.searcher import GrowingString, NEB
 from aof.optwrap import runopt as runopt_aof
-from aof.coord_sys import ZMatrix2, XYZ, ComplexCoordSys, ccsspec, CoordSys, RotAndTrans
-from aof.coord_sys import RotAndTransLin, fake_xyz_string
+from aof.coord_sys import ZMatrix2, XYZ, ComplexCoordSys, CoordSys, enforce_short_way
+from aof.coord_sys import RotAndTransLin, fake_xyz_string, ase2ccs, xyz2ccs
 from pickle import dump
 from aof.tools import pickle_path
 from aof.common import file2str
@@ -498,54 +498,31 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
             num_int_raw -= 1
           num_int_raw_s.append(num_int_s)
 
+    mols = [tbead_left, tbead_right]
+    has_initpath = False
+    # some more code to add an initial path (from different ways)
+    if type(init_path) is str:
+        init_path = eval(init_path)
+        init_path = asarray(init_path)
+        has_initpath = True
+    elif init_path!=None:
+        mols = [int_s for int_s in init_path]
+        mols[0] = tbead_left
+        mols[-1] = tbead_right
+
     # the original input for the atoms objects are strings; they contain a xyz file or
     # a zmatrix/ mixed coordinate object
     if type(tbead_left) is str:
         assert type(tbead_right) is str
         if zmatrix == []:
             # they can be directly used
-            mol_strings = [tbead_left, tbead_right]
+            mol_strings = mols
         elif XYZ.matches(tbead_left):
             # a bit advanced: wants zmatrix object but has only xyz geometries (as string)
-
-            # check if mixed or only all in internals"
-            atom_symbols = findall(r"([a-zA-Z][a-zA-Z]?).+?\n", tbead_left)
-            # number of cartesian variables: number atoms * 3
-            # number internal varialbes: (zmat should hold each double) + rot + trans
-            num_c = len(atom_symbols) * 3
-            # make zmatrix object(s)
-            zmt1 = []
-            zmt2 = []
-            for i,zmati in enumerate(zmatrix):
-              if num_int_raw_s[i] == 1:
-                zmt1.append(ZMatrix2(zmati, RotAndTransLin()))
-                zmt2.append(ZMatrix2(zmati, RotAndTransLin()))
-              else:
-                zmt1.append(ZMatrix2(zmati, RotAndTrans()))
-                zmt2.append(ZMatrix2(zmati, RotAndTrans()))
-
-            if num_c != num_int_raw:
-                lines = tbead_left.splitlines(True)
-                num_carts_ats = len(atom_symbols) - (num_int_raw / 3)
-                co_cart = "%d\n\n" % num_carts_ats
-                for i in range(1, num_carts_ats + 1):
-                    co_cart += lines[-i]
-
-                zmt1.append(XYZ(co_cart))
-                zmt2.append(XYZ(co_cart))
-
             # now create the coordinate system objects
-            ccsl = ccsspec(zmt1, carts=XYZ(tbead_left))
-            ccsr = ccsspec(zmt2, carts=XYZ(tbead_right))
-            mol_strings = [ccsl, ccsr]
+            mol_strings = [xyz2ccs(mol, zmatrix,num_int_raw_s, num_int_raw) for mol in mols]
     else:
-        # the minimas are given as real atoms objects (or aof asemol'ones?)
-        # we fake here the xyz-string as wanted by the MI
-        tbl_str = fake_xyz_string(tbead_left)
-        tbr_str = fake_xyz_string(tbead_right)
-
         # ASE atoms may contain a lot more informations than just atom numbers and geometries:
-
         if (params_dict['cell'] == default_params['cell']):
              print "Change cell for atoms: using cell given by atoms object:"
              params_dict['cell'] = tbead_left.get_cell()
@@ -580,73 +557,46 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
              print mask0
 
         if zmatrix == []:
-            # wanted in Cartesian
-            mol_strings = [tbl_str, tbr_str]
+           # wanted in Cartesian
+           # the minimas are given as real atoms objects (or aof asemol'ones?)
+           # we fake here the xyz-string as wanted by the MI
+           tbl_str = fake_xyz_string(tbead_left)
+           tbr_str = fake_xyz_string(tbead_right)
+           mol_strings = [fake_xyz_string(mol) for mol in mols]
         else:
-            xyz = tbead_left.get_positions()
-            num_c = len(xyz) * 3
-            # number internal variables: (zmat should hold each double) + rot + trans
-            num_diff = num_int_raw / 3
-            # go on for internals
-            zmt1 = []
-            zmt2 = []
-            for i,zmati in enumerate(zmatrix):
-              if num_int_raw_s[i] == 1:
-                zmt1.append(ZMatrix2(zmati, RotAndTransLin()))
-                zmt2.append(ZMatrix2(zmati, RotAndTransLin()))
-              else:
-                zmt1.append(ZMatrix2(zmati, RotAndTrans()))
-                zmt2.append(ZMatrix2(zmati, RotAndTrans()))
-
-            if num_c != num_int_raw:
-                co_cart = XYZ(fake_xyz_string(tbead_left, start = num_diff))
-                zmt1.append(co_cart)
-                xyz2 = tbead_right.get_positions()
-                co_cart2 = XYZ(fake_xyz_string(tbead_right, start = num_diff))
-                zmt2.append(co_cart2)
-            ccsl = ccsspec(zmt1, carts=XYZ(tbl_str))
-            ccsr = ccsspec(zmt2, carts=XYZ(tbr_str))
-            mol_strings = [ccsl, ccsr]
+           ccsl = ase2ccs(tbead_left, zmatrix,num_int_raw_s, num_int_raw)
+           ccsr = ase2ccs(tbead_right, zmatrix,num_int_raw_s, num_int_raw)
+           mol_strings = [ase2ccs(mol, zmatrix,num_int_raw_s, num_int_raw) for mol in mols]
 
     # extract parameters from the dictionary
     for x in ["output_level","output_path", "calculator", "placement", "cell", "pbc", "mask", "pre_calc_function"]:
         params[x] = params_dict[x]
     params["name"] = params_dict["output_path"] + "/" + params_dict["name"]
 
+    reactants = [mol_strings[0], mol_strings[-1]]
     # the MI:
-    mi = MolInterface(mol_strings, **params)
+    mi = MolInterface(reactants, **params)
 
-    has_initpath = False
     # some more code to add an initial path (from different ways)
-    if init_path == None:
+    if not has_initpath:
+      if init_path == None:
         init_path = mi.reagent_coords
-    elif type(init_path) is str:
-        init_path = eval(init_path)
-        has_initpath = True
-    else:
-        init_ls = []
+      else:
         if ComplexCoordSys.matches(mol_strings[0]):
-            css = ComplexCoordSys(mol_strings[0])
+            init_ls = [ComplexCoordSys(mol) for mol in mol_strings]
         elif XYZ.matches(mol_strings[0]):
             css = XYZ(mol_strings[0])
+            init_ls = [XYZ(mol) for mol in mol_strings]
         else:
             print "ERROR: This should not be possible"
             print "the resulting string should either be a cartesian"
             print " or an mixed coordinate system"
             exit()
 
-        css.set_var_mask(params_dict["mask"])
-
-        for int_s in init_path:
-             if type(int_s) == str:
-                 co = findall(r"([+-]?\d+\.\d*)", int_s)
-                 cof = array([float(c) for c in co])
-                 css.set_cartesians(cof)
-             else:
-                 css.set_cartesians(int_s.get_positions())
-             init_ls.append(css.get_internals())
-
-        init_path = asarray(init_ls)
+        # the shortest way has to be selected, if there are several (seen on
+        # dihedrals and quaternions)
+        enforce_short_way(init_ls)
+        init_path = asarray([ccs.get_internals() for ccs in init_ls])
         has_initpath = True
 
     return  mi, params, init_path, has_initpath, params_dict, zmatrix
@@ -690,8 +640,8 @@ def expand_zmat(zmts):
         zmts_new += "\n"
         for var1 in allvars_orderd:
             zmts_new += "%s  1.0\n" % (var1)
-        print "Expanded zmatrix, added initial values"
-        print zmts_new
+        #print "Expanded zmatrix, added initial values"
+        #print zmts_new
     return zmts_new, num_vars
 
 def set_calculator(params):
