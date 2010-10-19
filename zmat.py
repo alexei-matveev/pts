@@ -570,15 +570,24 @@ class RT(Func):
         >>> W = (0.1, 0.8, 5.0)
         >>> T = (1.0, 2.0, 1.0)
 
+        >>> U = (ch, ch, hch, ch, hch, hchh, ch, hch, -hchh, 0.1, 0.8, 5.0, 1.0, 2.0, 1.0)
+
     Initialising the internal to cartesian converter
 
-        >>> Z = ZMatrix3(z)
+        >>> Z = RT(ZMat(z))
+
+        >>> ZM = ZMatrix3(z)
 
     Cartesian coordiantes and three types of derivatives:
 
         >>> X = Z(V, W, T)
         >>> XV, XW, XT = Z.fprime(V, W, T)
 
+        >>> X2 = ZM(U)
+
+        >>> X2.shape = (-1, 3)
+        >>> max(abs(X - X2)) < 1.e-10
+        True
 
         >>> from func import NumDiff, Partial
 
@@ -594,6 +603,10 @@ class RT(Func):
         >>> max(abs(XW - NumDiff(ZW).fprime(W))) < 1.e-10
         True
         >>> max(abs(XT - NumDiff(ZT).fprime(T))) < 1.e-10
+        True
+
+        >>> ZMD = ZM.fprime(U)
+        >>> max(abs(ZMD - NumDiff(ZM).fprime(U))) < 1.e-10
         True
     """
 
@@ -654,9 +667,27 @@ class RT(Func):
 
         return X, (XV, XW, XT)
 
-class ZMatrix3(RT):
+class ZMatrix3(Func):
     def __init__(self, zm, fixed = None):
-        RT.__init__(self, ZMat(zm, fixed = fixed))
+        self.rt = RT(ZMat(zm, fixed = fixed))
+
+    def taylor(self, y):
+        v = y[:-6]
+        w = y[-6:-3]
+        t = y[-3:]
+
+        x, (xv, xw, xt) = self.rt.taylor(v, w, t)
+
+        dx = zeros((len(x[:,0]), 3, len(y)))
+
+        dx[:,:,:-6] = xv
+        dx[:,:,-6:-3] = xw
+        dx[:,:,-3:] = xt
+
+        x.shape = (-1)
+        dx.shape = (-1, len(y))
+
+        return x, dx
 
 def unit(v):
     "Normalize a vector"
