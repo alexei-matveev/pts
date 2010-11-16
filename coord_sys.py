@@ -159,16 +159,6 @@ class RotAndTrans(Anchor):
         self._coords = initial
         self.kinds = ['anc_q' for i in 1,2,3] + ['anc_c' for i in 1,2,3]
 
-    def quaternion2rot_mat(self, quaternion):
-        """See http://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation"""
-        a,b,c,d = quaternion
-
-        m = numpy.array([[ a*a + b*b - c*c - d*d , 2*b*c + 2*a*d,         2*b*d - 2*a*c  ],
-                         [ 2*b*c - 2*a*d         , a*a - b*b + c*c - d*d, 2*c*d + 2*a*b  ],
-                         [ 2*b*d + 2*a*c         , 2*c*d - 2*a*b        , a*a - b*b - c*c + d*d  ]])
-
-        return m
-
     def set_cartesians(self, new, orig, ftol=1e-8):
         """
         Sets value of internal quaternion / translation data using transformed 
