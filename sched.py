@@ -177,8 +177,8 @@ class SchedStrategy_HCM_Simple(SchedStrategy):
 
             if pmin < pmax and remaining_jobs * pmin < sum(simtop.all):
                 pmin += 1
-                print "pmin",pmin
-                print "remaining_jobs", remaining_jobs
+#               print "pmin",pmin
+#               print "remaining_jobs", remaining_jobs
 
             # keep filling up machine with jobs using minimum processor count
             jobs_in_round = 0
