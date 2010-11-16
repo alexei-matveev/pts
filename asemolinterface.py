@@ -366,7 +366,7 @@ class MolInterface:
         results_file = job_name + common.OUTPICKLE_EXT
         results_file = os.path.join(tmp_dir, results_file)
 
-        print "HERE", tmp_dir, job_name
+#       print "HERE", tmp_dir, job_name
         # compile package of extra data
         extra_data = dict()
         extra_data['item'] = item
