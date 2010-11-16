@@ -1,7 +1,7 @@
 """
 Quaternions and rotation matrices here.
 
-    >>> from numpy import pi, round, max, abs
+    >>> from numpy import pi, round, max, abs, all
 
 Three unitary quaternions:
 
@@ -42,7 +42,7 @@ The funciton rotmat(v) is a composition of two:
     rotmat(v) = qrotmat(uquat(v))
 
     >>> random = (0.1, 0.8, 5.)
-    >>> (rotmat(random) == qrotmat(uquat(random))).all()
+    >>> all(rotmat(random) == qrotmat(uquat(random)))
     True
 
 Derivatives:
@@ -53,55 +53,28 @@ NumDiff:
 
 First for the uquat function:
 
-Comparision
-    >>> der1 = NumDiff(uquat)
-    >>> deriv1 = der1.fprime(random)
+    >>> value1, derivative1 = NumDiff(uquat).taylor(random)
 
-The _* functions give also the analytical derivative;
-    >>> q, deriv2 = _uquat(random)
+The functions prefixed by underscore give also the
+analytical derivative:
 
-    >>> (deriv2 - deriv1 < 1e-10).all()
+    >>> value2, derivative2 = _uquat(random)
+
+    >>> max(abs(derivative2 - derivative1)) < 1e-10
     True
 
 The same for the qrotmat function
-    >>> der2 = NumDiff(qrotmat)
-    >>> deriv3 = der2.fprime(q)
-    >>> rot, deriv4 = _qrotmat(q)
-    >>> (deriv3 - deriv4 < 1e-10).all()
-    True
 
-    >>> deriv3x = der2.fprime(qx)
-    >>> rotx, deriv4x = _qrotmat(qx)
-    >>> (deriv3x - deriv4x < 1e-10).all()
-    True
-    >>> deriv3y = der2.fprime(qy)
-    >>> roty, deriv4y = _qrotmat(qy)
-    >>> (deriv3y - deriv4y < 1e-10).all()
-    True
-    >>> deriv3z = der2.fprime(qz)
-    >>> rotz, deriv4z = _qrotmat(qz)
-    >>> (deriv3z - deriv4z < 1e-10).all()
-    True
-
-The two derivatives after one another should be
-the same as the one for the complete (rotmat(v)) function
-    >>> derivall = dot(deriv4, deriv2)
-
-    >>> dern = NumDiff(rotmat)
-    >>> deriv5 = dern.fprime(random)
-    >>> (derivall - deriv5 < 1e-10).all()
+    >>> value1, derivative1 = NumDiff(qrotmat).taylor(q)
+    >>> value2, derivative2 = _qrotmat(q)
+    >>> max(abs(derivative2 - derivative1)) < 1e-10
     True
 
 Rotmat has also an analytical derivative:
-    >>> rot2, deriv6 = _rotmat(random)
-    >>> (deriv5 - deriv6 < 1e-10).all()
-    True
-    >>> (derivall - deriv6 < 1e-10).all()
-    True
 
-Just compare that the two rotation matrices given here
-are really the same
-    >>> (rot - rot2 < 1e-10).all()
+    >>> value1, derivative1 = NumDiff(rotmat).taylor(random)
+    >>> value2, derivative2 = _rotmat(random)
+    >>> max(abs(derivative2 - derivative1)) < 1e-10
     True
 """
 from numpy import asarray, empty, dot, sqrt, sin, cos, abs, array, eye, diag, zeros
