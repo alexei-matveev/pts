@@ -96,21 +96,20 @@ def uquat(v):
 
 
 def _uquat(v):
+    """
+    Exponential of a purely imaginary quaternion:
+
+    q = exp(v) = cos(phi/2) + (v/|v|) * sin(phi/2), phi = |v|
+
+    Note that:
+
+      (v/|v|) * sin(phi/2) = (v/2) * sin(phi/2) / (phi/2)
+                           = (v/2) * sinc(phi/2)
+    """
 
     v = asarray(v)
 
     assert len(v) == 3 # (axial) vector
-
-    #
-    # Exponential of a purely imaginary quaternion:
-    #
-    # q = exp(v) = cos(phi/2) + (v/|v|) * sin(phi/2), phi = |v|
-    #
-    # Note that:
-    #
-    #   (v/|v|) * sin(phi/2) = (v/2) * sin(phi/2) / (phi/2)
-    #                        = (v/2) * sinc(phi/2)
-    #
 
     phi = sqrt(dot(v, v))
 
