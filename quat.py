@@ -206,12 +206,14 @@ def rotvec(m):
     # To get axis look at skew-symmetrix matrix (m - m'):
     #
     n = zeros(3)
-    if ( phi != 0.0 ):
-        n[0] = (m[2, 1] - m[1, 2]) / (2.0 * sin(phi))
-        n[1] = (m[0, 2] - m[2, 0]) / (2.0 * sin(phi))
-        n[2] = (m[1, 0] - m[0, 1]) / (2.0 * sin(phi))
+    n[0] = m[2, 1] - m[1, 2]
+    n[1] = m[0, 2] - m[2, 0]
+    n[2] = m[1, 0] - m[0, 1]
 
-    return phi * n
+    #
+    # FIXME: problem with angles close to |pi|:
+    #
+    return n / ( 2.0 * sinc(phi))
 
 
 def _rotmat(v):
