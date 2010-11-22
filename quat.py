@@ -78,6 +78,7 @@ Rotmat has also an analytical derivative:
     True
 """
 from numpy import asarray, empty, dot, sqrt, sin, cos, abs, array, eye, diag, zeros
+from numpy import arccos
 
 def uquat(v):
     """Returns unitary quaternion corresponding to rotation vector "v",
@@ -135,7 +136,7 @@ def _uquat(v):
     return q, dq
 
 def rotmat(v):
-    """Generates rotation matrix based on vector v, whose length specifies 
+    """Generates rotation matrix based on vector v, whose length specifies
     the rotation angle and whose direction specifies an axis about which to
     rotate.
 
@@ -163,6 +164,55 @@ def rotmat(v):
     """
 
     return qrotmat(uquat(v))
+
+def rotvec(m):
+    """
+    Given orthogonal rotation matrix |m| compute the corresponding
+    rotation vector |v| so that m == rotmat(v). This should always
+    hold:
+
+        m == rotmat(rotvec(m))
+
+    But this holds only "modulo 2*pi" for the vector length:
+
+        v == rotvec(rotmat(v))
+
+    Examples:
+
+        >>> from numpy import pi, round
+
+        >>> v = array((0.5, -0.3, 1.0))
+
+        >>> max(abs(rotvec(rotmat(v)) - v)) < 1.0e-10
+        True
+
+        >>> max(abs(rotvec(rotmat(-v)) + v)) < 1.0e-10
+        True
+
+    Note that the length of the skew-vector is only defined
+    modulo 2 pi:
+
+        >>> v = array((0.0, 0.0, 6.0 * pi + 0.1))
+        >>> rotvec(rotmat(v))
+        array([ 0. ,  0. ,  0.1])
+    """
+
+    #
+    # cos \phi = ( Tr(m) - 1 ) / 2
+    #
+    phi = arccos((m[0, 0] + m[1, 1] + m[2, 2] - 1.0) / 2.0)
+
+    #
+    # To get axis look at skew-symmetrix matrix (m - m'):
+    #
+    n = zeros(3)
+    if ( phi != 0.0 ):
+        n[0] = (m[2, 1] - m[1, 2]) / (2.0 * sin(phi))
+        n[1] = (m[0, 2] - m[2, 0]) / (2.0 * sin(phi))
+        n[2] = (m[1, 0] - m[0, 1]) / (2.0 * sin(phi))
+
+    return phi * n
+
 
 def _rotmat(v):
    uq, duq = _uquat(v)
