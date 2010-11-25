@@ -48,20 +48,19 @@ default_lj  = LennardJones(
   sigma = 1.0
   )
 
-default_vasp = Vasp( ismear = '1'
-    , sigma  = '0.15'
+default_vasp = Vasp( ismear = 1
+    , sigma  = 0.15
     , xc     = 'PW91'
-    , isif   = '2'
-    , gga    = '91'
-    , enmax  = '400'
-    , ialgo  = '48'
-    , enaug  =  '650'
-    , ediffg =  '-0.02'
-    , voskown= '1'
-    , nelmin =  '4'
-    , lreal  = '.FALSE.'
-    , lmaxpaw = '0'
-    , lcharg = '.FALSE.'
-    , lwave  = '.FALSE.'
-    , kpts   = [5,5,1]
+    , isif   = 2
+    , gga    = 91
+    , enmax  = 400
+    , ialgo  = 48
+    , enaug  =  650
+    , ediffg =  -0.02
+    , voskown= 1
+    , nelmin =  4
+    , lreal  =  False
+    , lcharg = False
+    , lwave  = False
+    , kpts   = (5,5,1)
     )
