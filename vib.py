@@ -441,8 +441,8 @@ def main(argv):
                             be fixed
     """
     from cmdline import get_options, get_calculator, get_mask
-    from aof.sched import Strategy
-    from aof.paramap import PMap3
+    from pts.sched import Strategy
+    from pts.paramap import PMap3
 
     if argv[0] == "--help":
          print main.__doc__

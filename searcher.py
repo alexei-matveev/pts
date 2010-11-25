@@ -19,8 +19,8 @@ from path import Path
 from func import CubicFunc, QuadFunc, RhoInterval
 
 from common import * # TODO: must unify
-import aof.common as common
-import aof
+import pts.common as common
+import pts
 
 from history import History
 
@@ -43,7 +43,7 @@ def test_previous(state_vec):
             
     return prev
 
-lg = logging.getLogger("aof.searcher")
+lg = logging.getLogger("pts.searcher")
 lg.setLevel(logging.INFO)
 
 if not globals().has_key("lg"):
@@ -247,7 +247,7 @@ class ReactionPathway(object):
         # i.e. it would force the optimiser to exit, so that a respace could 
         # be done.
         if self.lengths_disparate():
-            raise aof.MustRegenerate
+            raise pts.MustRegenerate
 
     def test_convergence(self, etol, ftol, xtol):
         
@@ -280,7 +280,7 @@ class ReactionPathway(object):
 
         lg.info("Testing Convergence of %f to %f eV / moving bead / step." % (diff, etol))
         if diff < etol:
-            raise aof.Converged
+            raise pts.Converged
         
     def test_convergence_GS(self, f_tol, x_tol, always_tight=False):
         """
@@ -313,13 +313,13 @@ class ReactionPathway(object):
         elif not always_tight and self.growing and not self.grown():
             lg.info("Testing During-Growth Convergence to %f: %f" % (f_tol*5, rmsf))
             if rmsf < f_tol*5:
-                raise aof.Converged
+                raise pts.Converged
         else:
             max_step = self.history.step(self.convergence_beads, self.steps_cumm)
             max_step = abs(max_step).max()
             lg.info("Testing Non-Growing Convergence to f: %f / %f, x: %f / %f" % (rmsf, f_tol, max_step, x_tol))
             if rmsf < f_tol or (self.eg_calls > self.steps_cumm and max_step < x_tol and rmsf < 5*f_tol):
-                raise aof.Converged
+                raise pts.Converged
 
     def test_convergence_GS_new(self, f_tol, x_tol):
         """
@@ -356,11 +356,11 @@ class ReactionPathway(object):
         elif self.growing and not self.grown():
             lg.info("Testing During-Growth Convergence to f: %f / %f (max), x: %f / %f" % (f, 5*f_tol, max_step, 2*x_tol))
             if f < f_tol*5 or (self.eg_calls > self.steps_cumm and max_step < 2*x_tol):
-                raise aof.Converged
+                raise pts.Converged
         else:
             lg.info("Testing Non-Growing Convergence to f: %f / %f (max), x: %f / %f" % (f, f_tol, max_step, x_tol))
             if f < f_tol or (self.eg_calls > self.steps_cumm and max_step < x_tol):
-                raise aof.Converged
+                raise pts.Converged
 
     @property
     def rmsf_perp(self):
@@ -675,7 +675,7 @@ class ReactionPathway(object):
 #        self.prev_state = self.state_vec.copy()
 
         if self.eg_calls >= self.maxit:
-            raise aof.MaxIterations
+            raise pts.MaxIterations
 
         print "Objective function call: gradient = %s" % grad
         # tests whether this has already been requested
@@ -765,7 +765,7 @@ class ReactionPathway(object):
     def ts_estims(self, alsomodes = False, converter = None):
         """TODO: Maybe this whole function should be made external."""
 
-        self.pt = aof.tools.PathTools(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)
+        self.pt = pts.tools.PathTools(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)
 
         estims = self.pt.ts_splcub()
         f = open("tsplot.dat", "w")
@@ -821,7 +821,7 @@ class NEB(ReactionPathway):
     """Implements a Nudged Elastic Band (NEB) transition state searcher.
     
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
-    >>> qc = aof.pes.GaussianPES()
+    >>> qc = pts.pes.GaussianPES()
     >>> neb = NEB(path, qc, 1.0, beads_count = 4)
     >>> neb.state_vec
     array([[ 0. ,  0. ],
@@ -871,7 +871,7 @@ class NEB(ReactionPathway):
     >>> neb.eg_calls
     2
 
-    >>> neb = NEB([[0,0],[3,3]], aof.pes.GaussianPES(), 1., beads_count = 10)
+    >>> neb = NEB([[0,0],[3,3]], pts.pes.GaussianPES(), 1., beads_count = 10)
     Starting slow function: _get_total_str_len()
     Finishing slow function: _get_total_str_len()
     >>> neb.angles
@@ -907,7 +907,7 @@ class NEB(ReactionPathway):
     >>> abs(neb.step[1] - ones(neb.beads_count) * 0.1).round()
     array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
-    >>> neb = NEB([[0,0],[1,1]], aof.pes.GaussianPES(), 1., beads_count = 3)
+    >>> neb = NEB([[0,0],[1,1]], pts.pes.GaussianPES(), 1., beads_count = 3)
     Starting slow function: _get_total_str_len()
     Finishing slow function: _get_total_str_len()
     >>> neb.angles
@@ -1516,7 +1516,7 @@ class GrowingString(ReactionPathway):
     """Implements growing and non-growing strings.
 
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
-    >>> qc = aof.pes.GaussianPES()
+    >>> qc = pts.pes.GaussianPES()
     >>> s = GrowingString(path, qc, beads_count=4, growing=False)
     Starting slow function: _get_total_str_len()
     Finishing slow function: _get_total_str_len()

@@ -3,10 +3,10 @@
 import sys
 import getopt
 import os
-import aof.common as common
-import aof.coord_sys as coord_sys
+import pts.common as common
+import pts.coord_sys as coord_sys
 import pickle
-#from aof.sched import Item
+#from pts.sched import Item
 #from common import Job.G
 
 import ase
@@ -55,7 +55,7 @@ def main(argv=None):
         print "mol", str(mol)
 
         if not isinstance(mol, coord_sys.CoordSys):
-            raise PickleRunnerException("De-pickled molecule was not an instance of aof.coord_sys.CoordSys: " + str(type(mol)))
+            raise PickleRunnerException("De-pickled molecule was not an instance of pts.coord_sys.CoordSys: " + str(type(mol)))
 
         calc = mol.get_calculator()
         print calc

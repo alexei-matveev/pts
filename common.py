@@ -9,9 +9,9 @@ import logging
 
 import numpy
 
-import aof
+import pts
 
-lg = logging.getLogger("aof.common")
+lg = logging.getLogger("pts.common")
 
 PROGNAME = "searcher"
 ERROR_STR = "error"
@@ -270,10 +270,10 @@ def file2str(f):
 
 def file2carts(f):
     s = file2str(f)
-    if aof.coord_sys.XYZ.matches(s):
-        return aof.coord_sys.XYZ(s).get_cartesians()
-    elif aof.coord_sys.ZMatrix.matches(s):
-        return aof.coord_sys.ZMatrix(s).get_cartesians()
+    if pts.coord_sys.XYZ.matches(s):
+        return pts.coord_sys.XYZ(s).get_cartesians()
+    elif pts.coord_sys.ZMatrix.matches(s):
+        return pts.coord_sys.ZMatrix(s).get_cartesians()
     else:
         raise False, "Unrecognised file format in:\n" + s
 

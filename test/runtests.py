@@ -3,11 +3,11 @@
 import unittest
 import sys
 print "tsdf"
-import aof.test.numerical as numerical
-import aof.test.zmatrix as zmatrix
-import aof.test.searcher as searcher
-import aof.test.coord_sys as coord_sys
-import aof.test.gaussian as gaussian
+import pts.test.numerical as numerical
+import pts.test.zmatrix as zmatrix
+import pts.test.searcher as searcher
+import pts.test.coord_sys as coord_sys
+import pts.test.gaussian as gaussian
 
 print "here"
 test_suites = {

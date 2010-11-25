@@ -16,8 +16,8 @@ import ase
 from ase.calculators import SinglePointCalculator
 from ase.io.trajectory import write_trajectory
 
-import aof
-import aof.common as common
+import pts
+import pts.common as common
 from common import ParseError
 
 file_dump_count = 0
@@ -29,7 +29,7 @@ def get_file_dump_count():
 start_time = time.time()
 
 # setup logging
-lg = logging.getLogger("aof")
+lg = logging.getLogger("pts")
 lg.setLevel(logging.INFO)
 ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG)
@@ -217,9 +217,9 @@ def setup_and_run(mol_strings, params):
 
     # setup MoIinterface
     # molinterface_params = setup_params(params)
-    molinterface = aof.MolInterface(mol_strings, params)
+    molinterface = pts.MolInterface(mol_strings, params)
 
-    calc_man = aof.CalcManager(molinterface, params['processors']) # TODO: check (earlier) that this param is a tuple / correct format
+    calc_man = pts.CalcManager(molinterface, params['processors']) # TODO: check (earlier) that this param is a tuple / correct format
 
     # SETUP / RUN SEARCHER
     print "Molecule Interface..."
@@ -286,7 +286,7 @@ def string_calc(molinterface, calc_man, reagent_coords, params):
     """Setup String object, optimiser, etc."""
 
     beads_count = int(params["beads_count"])
-    string = aof.searcher.GrowingString(molinterface.reagent_coords,
+    string = pts.searcher.GrowingString(molinterface.reagent_coords,
                                     calc_man,
                                     beads_count,
                                     rho = lambda x: 1,
@@ -304,7 +304,7 @@ def string_calc(molinterface, calc_man, reagent_coords, params):
 
     print "Launching optimiser..."
     if params['growing']:
-        gqs = aof.searcher.QuadraticStringMethod(string, callback = mycb, update_trust_rads = True)
+        gqs = pts.searcher.QuadraticStringMethod(string, callback = mycb, update_trust_rads = True)
         while True:
             opt = gqs.opt()
 
@@ -328,7 +328,7 @@ def string_calc(molinterface, calc_man, reagent_coords, params):
         print dict
 
     elif params["optimizer"] == "quadratic_string":
-        qs = aof.searcher.QuadraticStringMethod(string, callback = mycb, update_trust_rads = True)
+        qs = pts.searcher.QuadraticStringMethod(string, callback = mycb, update_trust_rads = True)
         opt = qs.opt()
         print opt
 
@@ -369,7 +369,7 @@ def neb_calc(molinterface, calc_man, params):
 
     spr_const = float(params["spr_const"])
     beads_count = int(params["beads_count"])
-    neb = aof.searcher.NEB(molinterface.reagent_coords, 
+    neb = pts.searcher.NEB(molinterface.reagent_coords,
               calc_man, 
               spr_const, 
               beads_count,

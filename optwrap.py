@@ -3,13 +3,13 @@
 import os
 import pickle
 
-from aof.cosopt.lbfgsb import fmin_l_bfgs_b
+from pts.cosopt.lbfgsb import fmin_l_bfgs_b
 from scipy.optimize import fmin_cg
 
 import ase
-import aof
-from aof import MustRegenerate, MaxIterations, Converged
-from aof.common import important
+import pts
+from pts import MustRegenerate, MaxIterations, Converged
+from pts.common import important
 
 __all__ = ["opt"]
 
@@ -73,7 +73,7 @@ def runopt_inner(name, CoS, ftol, maxit, callback, extra, maxstep=0.2):
         return dict
 
     elif name == 'multiopt':
-        opt = aof.cosopt.MultiOpt(CoS, maxstep=maxstep, **extra)
+        opt = pts.cosopt.MultiOpt(CoS, maxstep=maxstep, **extra)
         opt.string = CoS.string
         opt.attach(lambda: callback(None), interval=1)
         opt.run(fmax=ftol)
@@ -93,7 +93,7 @@ def runopt_inner(name, CoS, ftol, maxit, callback, extra, maxstep=0.2):
         elif name == 'ase_scipy_cg':
             opt = ase.SciPyFminCG(CoS)
         elif name == 'ase_scipy_lbfgsb':
-            opt = aof.cosopt.SciPyFminLBFGSB(CoS, alpha=400)
+            opt = pts.cosopt.SciPyFminLBFGSB(CoS, alpha=400)
         else:
             assert False, ' '.join(["Unrecognised algorithm", name, "not in"] + names)
 
@@ -106,7 +106,7 @@ def runopt_inner(name, CoS, ftol, maxit, callback, extra, maxstep=0.2):
         return None
 
     elif name == 'quadratic_string':
-        gqs = aof.searcher.QuadraticStringMethod(CoS, callback=callback, update_trust_rads = True)
+        gqs = pts.searcher.QuadraticStringMethod(CoS, callback=callback, update_trust_rads = True)
         opt = gqs.opt()
     else:
         assert False, ' '.join(["Unrecognised algorithm", name, "not in"] + names)

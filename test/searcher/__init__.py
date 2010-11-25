@@ -1,34 +1,34 @@
 import unittest
 
 import sys
-import aof.test
+import pts.test
 import numpy as np
 
 
-import aof.common as com
+import pts.common as com
 
-from aof.searcher import NEB
-import aof.searcher
+from pts.searcher import NEB
+import pts.searcher
 
-class TestNEB(aof.test.MyTestCase):
+class TestNEB(pts.test.MyTestCase):
     def setUp(self):
         pass
 
     def test_project_out(self):
         v1 = np.array([1,0])
         v2 = np.array([1,0])
-        v3 = aof.searcher.project_out(v1,v2)
+        v3 = pts.searcher.project_out(v1,v2)
         self.assertAlmostEqualVec(v3, np.zeros(2))
 
         v4 = np.array([3,1])
         v5 = np.array([1,0])
-        v6 = aof.searcher.project_out(v5,v4)
+        v6 = pts.searcher.project_out(v5,v4)
         v7 = com.normalise(v6)
         self.assertAlmostEqualVec(v7, np.array([0,1]))
 
         v4 = np.array([3,1])
         v5 = np.array([-1,0])
-        v6 = aof.searcher.project_out(v5,v4)
+        v6 = pts.searcher.project_out(v5,v4)
         v7 = com.normalise(v6)
         self.assertAlmostEqualVec(v7, np.array([0,1]))
 
@@ -38,7 +38,7 @@ class TestNEB(aof.test.MyTestCase):
         reactants = np.array([0,0])
         products = np.array([3,3])
 
-        neb = NEB([reactants, products], lambda x: True, aof.qcdrivers.GaussianPES(), default_spr_const, beads_count = 10)
+        neb = NEB([reactants, products], lambda x: True, pts.qcdrivers.GaussianPES(), default_spr_const, beads_count = 10)
 
         angs = neb.get_angles()
         self.assertAlmostEqualVec(angs, 180. * np.ones(neb.beads_count - 2))
@@ -60,7 +60,7 @@ class TestNEB(aof.test.MyTestCase):
         reactants = np.array([0,0])
         products = np.array([1,1])
 
-        neb = NEB([reactants, products], lambda x: True, aof.qcdrivers.GaussianPES(), default_spr_const, beads_count = 3)
+        neb = NEB([reactants, products], lambda x: True, pts.qcdrivers.GaussianPES(), default_spr_const, beads_count = 3)
         neb.obj_func(np.array([[0,0],[0,1],[1,1]]))
         print neb.bead_pes_energies
         neb.update_tangents()

@@ -42,7 +42,7 @@ import numpy as np
 from matplotlib.pyplot import plot, show, legend, rcParams, xlabel, ylabel, xscale, yscale
 from matplotlib.pyplot import gca
 from matplotlib.pyplot import title as set_title
-from aof.path import Path
+from pts.path import Path
 
 def read_tab(filename):
     """

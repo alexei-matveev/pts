@@ -223,26 +223,26 @@ calculator) but ftol is anyway 0.07
 from sys import argv, exit
 from re import findall
 from os import path, mkdir
-from aof.pathsearcher_defaults.params_default import *
-from aof.pathsearcher_defaults import *
+from pts.pathsearcher_defaults.params_default import *
+from pts.pathsearcher_defaults import *
 from ase.calculators import *
 from ase import Atoms
 from ase import read as read_ase
-from aof import MolInterface, CalcManager, generic_callback
-from aof.searcher import GrowingString, NEB
-from aof.optwrap import runopt as runopt_aof
-from aof.coord_sys import ZMatrix2, XYZ, ComplexCoordSys, CoordSys, enforce_short_way
-from aof.coord_sys import RotAndTransLin, fake_xyz_string, ase2ccs, xyz2ccs
+from pts import MolInterface, CalcManager, generic_callback
+from pts.searcher import GrowingString, NEB
+from pts.optwrap import runopt as runopt_aof
+from pts.coord_sys import ZMatrix2, XYZ, ComplexCoordSys, CoordSys, enforce_short_way
+from pts.coord_sys import RotAndTransLin, fake_xyz_string, ase2ccs, xyz2ccs
 from pickle import dump
-from aof.tools import pickle_path
-from aof.common import file2str
-from aof.qfunc import constraints2mask
+from pts.tools import pickle_path
+from pts.common import file2str
+from pts.qfunc import constraints2mask
 # be careful: array is needed, when the init_path is an array
 # do not delete it, even if it never occures directly in this module!
 from numpy import array, asarray
 from string import count
 from ase import write as write_ase
-#from aof.parasearch import generic_callback
+#from pts.parasearch import generic_callback
 
 # needed as global variable
 cb_count_debug = 0
@@ -263,7 +263,7 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
     string or ASE atoms object. The parameter file (and others like init_path,
     zmatrix) can be read in by file2str out of, for example:
 
-      from aof.common import file2str
+      from pts.common import file2str
 
     In the parameter's all parameters given above can be reset, not only those
     specified with ch=yes.  The init_path can still be given by a serie of ASE

@@ -1,11 +1,11 @@
 import unittest
 
 import sys
-import aof.test
+import pts.test
 
-import aof.numerical as num
+import pts.numerical as num
 
-class TestNumerical(aof.test.MyTestCase):
+class TestNumerical(pts.test.MyTestCase):
     def setUp(self):
         self.nd = num.NumDiff()
         self.NUM_DIFF_ERR = 1e-6

@@ -15,15 +15,15 @@ mask = None #[False for i in range(12*3)] + [True for i in range(3*3)]
 #   Performs any necessary actions on ASE style calculator |calc| based on 
 #   dictionary |data|.
 calc_tuple_test = (
-    ase.EMT,#aof.qcdrivers.Gaussian, 
+    ase.EMT,#pts.qcdrivers.Gaussian, 
     [], 
     {},#{'basis': '3-21G', 'charge': 0, 'mult': 1}, 
-    None)#aof.qcdrivers.pre_calc_function_g03)
+    None)#pts.qcdrivers.pre_calc_function_g03)
 calc_tuple_g = (
-    aof.qcdrivers.Gaussian, 
+    pts.qcdrivers.Gaussian, 
     [], 
     {'basis': '3-21G', 'charge': -1, 'mult': 1}, 
-    aof.qcdrivers.pre_calc_function_g03)
+    pts.qcdrivers.pre_calc_function_g03)
 
 calc_tuple = calc_tuple_g
 
@@ -47,7 +47,7 @@ params = {
     'calculator': calc_tuple,
 
     # name of function to generate placement commant
-    'placement': None,#aof.common.place_str_dplace, 
+    'placement': None,#pts.common.place_str_dplace, 
 
     # cell shape, see ASE documentation
     'cell': None, 

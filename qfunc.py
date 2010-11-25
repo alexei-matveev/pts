@@ -145,7 +145,7 @@ RESTARTFILES = ["WAVECAR", "CHG", "CHGCAR" , "saved_scfstate.dat", "*.testme"]
 
 def constraints2mask(atoms):
     """
-    Given an atomic object (ase/aof) there is
+    Given an atomic object (ase/ptf) there is
     tried to get a mask, using some of the fixing methods
     of the constraints
     """

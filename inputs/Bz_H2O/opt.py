@@ -1,5 +1,5 @@
 from ase import *
-from aof import *
+from pts import *
 
 # read in starting geometry
 cs = coord_sys.XYZ(common.file2str("Bz_H2O-2.xyz"))

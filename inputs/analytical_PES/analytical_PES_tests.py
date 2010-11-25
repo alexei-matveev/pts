@@ -1,6 +1,6 @@
 """Module to run tests on analytical potentials."""
 
-import aof
+import pts
 import ase
 from numpy import array
 from numpy.linalg import norm
@@ -33,14 +33,14 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 
     growing = False
     if model == 'neb':
-        CoS = aof.searcher.NEB(reagents, qc, k, beads_count=N)
+        CoS = pts.searcher.NEB(reagents, qc, k, beads_count=N)
     elif model == 'string':
-        CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=False)
+        CoS = pts.searcher.GrowingString(reagents, qc, beads_count=N, growing=False)
     elif model == 'growingstring':
-        CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1, growth_mode='normal')
+        CoS = pts.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1, growth_mode='normal')
         growing = True
     elif model == 'searchingstring':
-        CoS = aof.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1, growth_mode='search')
+        CoS = pts.searcher.GrowingString(reagents, qc, beads_count=N, growing=True, max_sep_ratio=0.1, growth_mode='search')
         growing = True
 
     else:
@@ -50,15 +50,15 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 
     # Wrapper callback function
     def callback(x):
-        print aof.common.line()
+        print pts.common.line()
         print CoS
 
         # Display the string/band
         if plot == 'every':
-            p = aof.pes.Plot2D()
+            p = pts.pes.Plot2D()
             p.plot(qc, CoS)
-        print aof.common.line()
-        aof.common.str2file(CoS.state_vec, "test.txt")
+        print pts.common.line()
+        pts.common.str2file(CoS.state_vec, "test.txt")
 
         # If we know the true transition state, compare it with the current 
         # best estimate after each iteration.
@@ -72,8 +72,8 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 
     xtol = 0.0
     etol = 0.000001
-    run_opt = lambda: aof.runopt(alg, CoS, tol, xtol, etol, maxit, callback, maxstep=0.05, extra={'alpha':0.5})
-    print run_opt()
+    run_opt = lambda: pts.runopt(alg, CoS, tol, xtol, etol, maxit, callback, maxstep=0.05, extra={'alpha':0.5})
+    print run_opt(pts)
     """while CoS.must_regenerate or growing and CoS.grow_string():
         CoS.update_path()
         print "Optimisation RESTARTED"
@@ -81,26 +81,26 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 
     print CoS.ts_estims()
 
-    p = aof.pes.Plot2D()
+    p = pts.pes.Plot2D()
     p.plot(qc, CoS)
 
 # python path_representation.py [-v]:
 if __name__ == "__main__":
     reagents_MB = [array([ 0.62349942,  0.02803776]), array([-0.558, 1.442])]
-#    reagents_MB = eval(aof.common.file2str("initial_pathway.txt"))
+#    reagents_MB = eval(pts.common.file2str("initial_pathway.txt"))
 #    reagents_MB = array([[ 0.62349942,  0.02803776], [-0.82200156,  0.62431281], [-0.558     ,  1.442     ]])
-#    test_StaticModel('neb', aof.pes.MuellerBrown(), reagents_MB, 8, 3., 'ase_lbfgs', tol=0.001, plot='every')
+#    test_StaticModel('neb', pts.pes.MuellerBrown(), reagents_MB, 8, 3., 'ase_lbfgs', tol=0.001, plot='every')
 #    exit()
 
     MB_saddle1 = array([ 0.21248659,  0.29298832]) # energy = -0.072248940112325243
     MB_saddle2 = array([-0.82200156,  0.62431281]) # energy = -0.040664843508657414
 
-    test_StaticModel('searchingstring', aof.pes.MuellerBrown(), reagents_MB, 6, 2., 'multiopt', tol=0.005, maxit=200, real_ts=MB_saddle2, plot='every')
+    test_StaticModel('searchingstring', pts.pes.MuellerBrown(), reagents_MB, 6, 2., 'multiopt', tol=0.005, maxit=200, real_ts=MB_saddle2, plot='every')
 
     exit()
     reagents = [array([0.,0.]), array([3.,3.])]
-    test_StaticModel('neb', aof.pes.GaussianPES(), reagents, 8, 1., 'scipy_lbfgsb')
-    test_StaticModel('string', aof.pes.GaussianPES(), reagents, 8, 1., 'scipy_lbfgsb')
+    test_StaticModel('neb', pts.pes.GaussianPES(), reagents, 8, 1., 'scipy_lbfgsb')
+    test_StaticModel('string', pts.pes.GaussianPES(), reagents, 8, 1., 'scipy_lbfgsb')
 
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax

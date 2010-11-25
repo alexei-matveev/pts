@@ -2,8 +2,8 @@ import sys
 import unittest
 import os
 
-import aof
-from aof.zmatrix import *
+import pts
+from pts.zmatrix import *
 
 def file2str(f):
     f = open(f, "r")
@@ -13,7 +13,7 @@ def file2str(f):
 
 print "__file__", __file__
 
-class TestZMatrixAndAtom(aof.test.MyTestCase):
+class TestZMatrixAndAtom(pts.test.MyTestCase):
 
     def setUp(self):
         self.original_dir = os.getcwd()

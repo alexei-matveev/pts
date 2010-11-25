@@ -4,8 +4,8 @@ XYZ coordinates. See code.
 
 print __doc__
 
-from aof.coord_sys import ZMatrix2, XYZ
-from aof.common import file2str
+from pts.coord_sys import ZMatrix2, XYZ
+from pts.common import file2str
 
 # zmatrix
 spec = "temp.zmt"

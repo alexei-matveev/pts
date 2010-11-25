@@ -14,9 +14,9 @@ import pickle
 
 import numpy as np
 
-import aof
-import aof.tools.rotate as rot
-from aof.common import file2str, rms
+import pts
+import pts.tools.rotate as rot
+from pts.common import file2str, rms
 
 def usage():
     print "Usage: " + sys.argv[0] + " [options] file.pickle [ts-actual.xyz]"
@@ -96,7 +96,7 @@ def main(argv=None):
         ts_known = len(args) == 2
         if ts_known:
              fn_ts = args[1]
-             ts = aof.coord_sys.XYZ(file2str(fn_ts))
+             ts = pts.coord_sys.XYZ(file2str(fn_ts))
              ts_carts = ts.get_cartesians()
              ts_energy = ts.get_potential_energy()
 
@@ -104,10 +104,10 @@ def main(argv=None):
             s = '\n'.join(['%.2f' % e for e in es])
             print s
 
-        pt = aof.tools.PathTools(state, es, gradients=gs)
+        pt = pts.tools.PathTools(state, es, gradients=gs)
 
         if gnuplot_out:
-            aof.tools.gnuplot_path(pt, fn_pickle)
+            pts.tools.gnuplot_path(pt, fn_pickle)
 
         methods = {'Spling and cubic': pt.ts_splcub,
                    'Highest': pt.ts_highest,
@@ -120,7 +120,7 @@ def main(argv=None):
             disp_forces(pt)
 
         if ss != None:
-            pt2 = aof.tools.PathTools(state, es, gs, ss)
+            pt2 = pts.tools.PathTools(state, es, gs, ss)
             methods2 = {'Spline only (with abscissa)': pt2.ts_spl,
                         'Spline and average (with abscissa)': pt2.ts_splavg,
                         'Spline and cubic (with abscissa)': pt2.ts_splcub

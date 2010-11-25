@@ -49,13 +49,13 @@ der are other options which may be set:
 
 """
 
-from aof.path import Path
+from pts.path import Path
 from sys import exit
 from sys import argv as sargv
 from pickle import load
-from aof.tools.path2xyz import read_in_path
-from aof.tools.xyz2tabint import returnall, interestingvalue, expandlist
-from aof.tools.tab2plot import plot_tabs
+from pts.tools.path2xyz import read_in_path
+from pts.tools.xyz2tabint import returnall, interestingvalue, expandlist
+from pts.tools.tab2plot import plot_tabs
 import numpy as np
 
 

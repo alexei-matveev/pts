@@ -14,9 +14,9 @@ import numpy
 from ase.data import chemical_symbols
 
 # this will break *standalone* comaptibility with ASE 
-import aof.common as common
+import pts.common as common
 
-lg = logging.getLogger("aof.qcdrivers.gaussian")
+lg = logging.getLogger("pts.qcdrivers.gaussian")
 
 class Gaussian:
     """Class for doing Gaussian calculations."""

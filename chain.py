@@ -123,7 +123,7 @@ And the spacing is enforced:
 
 You can visualize the path by executing:
 
-#   >>> from aof.tools.jmol import jmol_view_path
+#   >>> from pts.tools.jmol import jmol_view_path
 #   >>> jmol_view_path(xm, syms=["Ar"]*4, refine=5)
 """
 

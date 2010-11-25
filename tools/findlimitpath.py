@@ -463,11 +463,11 @@ class interpretvalues():
                 print "Here the maximum bead was number (counting starts with 1):",stx[0].maxbead[res.maxbeadlimit-1]+1
         print " "
 
-def findlimitaof():
+def findlimitpath():
     """
 This programme was designed to interpret the output data one gets with the neb, string or growing string method from
-the aof framework
-It uses the *.log file for it (created by the aof framework), which contains data like:
+the ParaTools framework
+It uses the *.log file for it (created by the ParaTools framework), which contains data like:
 Bead Energies            :   -61.4932 |   -61.1503 |   -60.2848 |   -59.9914 |   -60.4461 |   -60.9149 |   -61.1336
 RMS Perp Forces          :  8.609e-03 |  9.350e-01 |  1.006e+00 |  6.541e-01 |  6.370e-01 |  3.819e-01 |  9.167e-03
 The programme takes one of this variables and searches for the iteration in which a given limit is first reached,
@@ -479,7 +479,7 @@ The programme looks for the reaching of the limit in each bead and for all beads
 A typical call for it may look like:
 
   *** Example: ***
-findlimitaof.py chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 -n "Bead Energies" 0.9 % "RMS Step Size" 0.01 -n  -a
+findlimitpath.py chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 -n "Bead Energies" 0.9 % "RMS Step Size" 0.01 -n  -a
   ***----------***
 
 In this case it looks for the variables RMS Perp Forces, Bead Energies and RMS Step Size.
@@ -511,7 +511,7 @@ settings
 are the same.
 
 To return to the example above:
-findlimitaof.py chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 -n "Bead Energies" 0.9 % "RMS Step Size" 0.01 -n  -a
+findlimitpath.py chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 -n "Bead Energies" 0.9 % "RMS Step Size" 0.01 -n  -a
 This means that in the file chch2_to_cch2_with_params.log there is a search when the variable RMS Perp Forces is below 0.5,
 the Bead Energies has fallen 90% of its change and at the same iteration the RMS Step Size has fallen below 0.01
 
@@ -574,7 +574,7 @@ not fallen above afterwards
         find.outputall(find.stn, result)
 
 if sys.argv[1] == '--help':
-    help(findlimitaof)
+    help(findlimitpath)
 else:
-    findlimitaof()
+    findlimitpath()
 

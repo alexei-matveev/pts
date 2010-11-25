@@ -1,6 +1,6 @@
 import sys
-import aof
-import aof.coord_sys as csys
+import pts
+import pts.coord_sys as csys
 
 file = sys.argv[1]
 s = aof.common.file2str(file)

@@ -692,7 +692,7 @@ def test1():
     print "energies=", es1
     print "spacing=", spacing(xm)
 
-    from aof.tools.jmol import jmol_view_path
+    from pts.tools.jmol import jmol_view_path
     jmol_view_path(xm, syms=["Ar"]*4, refine=5)
 
 # python fopt.py [-v]:

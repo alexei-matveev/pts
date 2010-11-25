@@ -26,7 +26,7 @@ This could be done by:
 
 """
 
-from aof.path import Path
+from pts.path import Path
 from sys import exit
 from sys import argv as sargv
 from pickle import load

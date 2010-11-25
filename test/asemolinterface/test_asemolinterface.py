@@ -6,12 +6,12 @@ import pickle
 import numpy
 import ase
 
-import aof
-import aof.asemolinterface as ami
-import aof.coord_sys as cs
-import aof.common as common
-from aof.common import Job
-from aof.common import file2str
+import pts
+import pts.asemolinterface as ami
+import pts.coord_sys as cs
+import pts.common as common
+from pts.common import Job
+from pts.common import file2str
 
 # whether to perform tests quickly
 quick = True
@@ -23,9 +23,10 @@ def test_calc(**kwargs):
     if quick:
         return ase.EMT()
     else:
+        # FIXME: this should not work
         return aof.aof.ase_gau.Gaussian(**kwargs)
 
-class TestAseMolInterface(aof.test.MyTestCase):
+class TestAseMolInterface(pts.test.MyTestCase):
 
     def setUp(self):
         self.original_dir = os.getcwd()

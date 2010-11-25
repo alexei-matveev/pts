@@ -13,11 +13,11 @@ from config import DEFAULT_TOPOLOGY, DEFAULT_PMIN, DEFAULT_PMAX
 from sys import exit
 
 
-from aof.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR
-import aof
+from pts.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR
+import pts
 
 # setup logging
-lg = logging.getLogger("aof.sched")
+lg = logging.getLogger("pts.sched")
 lg.setLevel(logging.INFO)
 
 class Item():
@@ -944,12 +944,12 @@ class ParaSched(object):
     """
     """
 
-    >>> ps = ParaSched(aof.pes.GaussianPES(fake_delay=0.2), ([8], 3, 1))
+    >>> ps = ParaSched(pts.pes.GaussianPES(fake_delay=0.2), ([8], 3, 1))
     >>> vecs = np.arange(12).reshape(-1,2)
     >>> jobs = [Job(i,[]) for i in vecs]
     >>> ps.batch_run(jobs)
     >>> res = np.array([r.g for r in ps.get_results()]).flatten()
-    >>> correct = np.array([aof.pes.GaussianPES().gradient(v) for v in vecs]).flatten()
+    >>> correct = np.array([pts.pes.GaussianPES().gradient(v) for v in vecs]).flatten()
     >>> correct.sort()
     >>> res.sort()
     >>> (res == correct).all()

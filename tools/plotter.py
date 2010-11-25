@@ -15,7 +15,7 @@ import os
 import sys
 import getopt
 from os.path import basename
-import aof
+import pts
 import numpy as np
 from numpy import array # needed for eval to work
 
@@ -147,7 +147,7 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
                 ts_max_err = 1
                 if 'ts_estim_carts' in d:
                     a_ts_estim = eval(d['ts_estim_carts'][1])
-                    aa_dists_ts_estim = aof.common.atom_atom_dists(a_ts_estim)
+                    aa_dists_ts_estim = pts.common.atom_atom_dists(a_ts_estim)
                     ts_estim_err = np.linalg.norm(known_ts_aa_dists - aa_dists_ts_estim)
                     #print "ts_estim_err", ts_estim_err
 
@@ -155,7 +155,7 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
                     a_max = eval(d['bead_carts'])
                     a_max.sort()
                     a_max = a_max[-1][1]
-                    aa_dists_max = aof.common.atom_atom_dists(a_max)
+                    aa_dists_max = pts.common.atom_atom_dists(a_max)
                     ts_max_err = np.linalg.norm(known_ts_aa_dists - aa_dists_max)
                     #print "ts_max_err", ts_max_err
 
@@ -274,7 +274,7 @@ def main(argv=None):
                 extra[section] = code
             elif o == '--ts':
                 known_ts_file = a
-                known_ts_aa_dists = aof.common.atom_atom_dists(aof.common.file2carts(known_ts_file))
+                known_ts_aa_dists = pts.common.atom_atom_dists(pts.common.file2carts(known_ts_file))
                 #print "known_ts_aa_dists", known_ts_aa_dists
                 
         run(args, extra, known_ts_aa_dists=known_ts_aa_dists)

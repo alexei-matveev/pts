@@ -3,10 +3,10 @@
 import sys
 import pickle
 
-from aof.tools.pathtools import PathTools
-from aof.searcher import PathRepresentation
-from aof.path import Path
-from aof.common import make_like_atoms
+from pts.tools.pathtools import PathTools
+from pts.searcher import PathRepresentation
+from pts.path import Path
+from pts.common import make_like_atoms
 import numpy as np
 from pydoc import help
 from os import path, mkdir, chdir, getcwd, system

@@ -1,13 +1,13 @@
 """Module to plot Potential Energy Surfaces and strings/bands."""
 
-import aof
+import pts
 from copy import deepcopy
 import numpy as np
 from numpy import array, arange, vstack
 import tempfile, os
 
 import logging
-lg = logging.getLogger("aof.pes")
+lg = logging.getLogger("pts.pes")
 lg.setLevel(logging.INFO)
 
 
@@ -99,9 +99,9 @@ class Plot2D:
         """Given a path object cos, displays the a 2D depiction of it's 
         first two dimensions as a graph.
         
-        >>> neb = aof.searcher.NEB(array([[0,0.],[3.,3]]), aof.pes.GaussianPES(), 1)
+        >>> neb = pts.searcher.NEB(array([[0,0.],[3.,3]]), pts.pes.GaussianPES(), 1)
         >>> p = Plot2D()
-        >>> p.plot(aof.pes.GaussianPES(), neb) 
+        >>> p.plot(pts.pes.GaussianPES(), neb)
         Press to continue...
         """
 

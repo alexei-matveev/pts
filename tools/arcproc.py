@@ -26,9 +26,9 @@ import pickle
 
 import numpy as np
 
-import aof
-import aof.tools.rotate as rot
-from aof.common import file2str, rms
+import pts
+import pts.tools.rotate as rot
+from pts.common import file2str, rms
 
 all_estim_methods = ['SplCubic', 'High', 'Spl', 'SplAvg', 'Bell']
 
@@ -139,7 +139,7 @@ def main(argv=None):
         else:
             # load coord sys file
             cs = pickle.load(f_arc)
-            #TODO: something like: assert issubclass(cs, aof.coord_sys.CoordSys)
+            #TODO: something like: assert issubclass(cs, pts.coord_sys.CoordSys)
 
         e_prev = None
         arc_strings = []
@@ -199,7 +199,7 @@ def main(argv=None):
         ts_known = len(args) == 2
         if ts_known:
              fn_ts = args[1]
-             ts = aof.coord_sys.XYZ(file2str(fn_ts))
+             ts = pts.coord_sys.XYZ(file2str(fn_ts))
              ts_carts = ts.get_cartesians()
              ts_energy = ts.get_potential_energy()
 
@@ -216,7 +216,7 @@ def main(argv=None):
                 i, state, es, gs, ss = path
 
                 print "Analysing path %d of %d beads..." % (i, len(es))
-                pt = aof.tools.PathTools(state, es, gs, ss)
+                pt = pts.tools.PathTools(state, es, gs, ss)
 
                 methods = {'SplCubic': pt.ts_splcub,
                            'High': pt.ts_highest,
@@ -259,7 +259,7 @@ def main(argv=None):
                         print "%s: (E_est - E_corr) = %.3f ;Geom err = %.3f ;bracket = %.1f-%.1f" % (name.ljust(20), energy_err, error, s0, s1)
 
         if gnuplot_out:
-            aof.tools.gnuplot_path3D(path_list, ts_list, fn_pickle)
+            pts.tools.gnuplot_path3D(path_list, ts_list, fn_pickle)
 
     except Usage, err:
         print >>sys.stderr, err

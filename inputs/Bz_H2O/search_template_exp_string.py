@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import sys
-import aof
+import pts
 import ase
-import aof.cosopt.lbfgsb as so
+import pts.cosopt.lbfgsb as so
 
 """BEGIN USER DEFINED SETTINGS"""
 
@@ -16,7 +16,7 @@ mask = [False for i in range(12*3)] + [True for i in range(3*3)]
 
 # calculator 3-tuple: 
 # (constructor, arguments (list), keyword arguments (dictionary))
-calc_tuple = (aof.qcdrivers.Gaussian, [], {'basis': '3-21G'})
+calc_tuple = (pts.qcdrivers.Gaussian, [], {'basis': '3-21G'})
 
 # scheduling information
 # Field 1: list of processors per node e.g.
@@ -36,7 +36,7 @@ params = {
     'calculator': calc_tuple,
 
     # name of function to generate placement commant
-    'placement': None, #aof.common.place_str_dplace, 
+    'placement': None, #pts.common.place_str_dplace, 
 
     # cell shape, see ASE documentation
     'cell': None, 
@@ -56,13 +56,13 @@ growing = False  # is the string growing
 """END USER DEFINED SETTINGS"""
 
 # set up some objects
-mol_strings = aof.read_files(reagent_files)
-mi          = aof.MolInterface(mol_strings, params)
+mol_strings = pts.read_files(reagent_files)
+mi          = pts.MolInterface(mol_strings, params)
 procs_tuple = (available, job_max, job_min)
-calc_man    = aof.CalcManager(mi, procs_tuple)
+calc_man    = pts.CalcManager(mi, procs_tuple)
 
 # setup searcher i.e. String or NEB
-CoS = aof.searcher.GrowingString(mi.reagent_coords, 
+CoS = pts.searcher.GrowingString(mi.reagent_coords, 
           calc_man, 
           beads_count,
           rho = lambda x: 1,
@@ -71,7 +71,7 @@ CoS = aof.searcher.GrowingString(mi.reagent_coords,
           head_size=None)
 
 # callback function
-mycb = lambda x: aof.generic_callback(x, mi, CoS, params)
+mycb = lambda x: pts.generic_callback(x, mi, CoS, params)
 
 
 # main optimisation loop

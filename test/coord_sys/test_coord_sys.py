@@ -6,10 +6,10 @@ import pickle
 import numpy
 import ase
 
-import aof
-import aof.coord_sys as cs
-import aof.common as common
-from aof.common import file2str
+import pts
+import pts.coord_sys as cs
+import pts.common as common
+from pts.common import file2str
 
 # whether to perform tests quickly
 quick = True
@@ -21,7 +21,7 @@ def test_calc(**kwargs):
     if quick:
         return (ase.EMT, [], {})
     else:
-        return (aof.ase_gau.Gaussian, [], kwargs)
+        return (pts.ase_gau.Gaussian, [], kwargs)
 
 def geom_str_summ(s,n=2):
     """Summarises a string containing a molecular geometry so that very similar 
@@ -39,7 +39,7 @@ def geom_str_summ(s,n=2):
     return summary
 
 
-class TestComplexCoordSys(aof.test.MyTestCase):
+class TestComplexCoordSys(pts.test.MyTestCase):
 
     def setUp(self):
         self.original_dir = os.getcwd()

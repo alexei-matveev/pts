@@ -1,7 +1,7 @@
-from aof.coord_sys import *
-from aof.common import file2str
+from pts.coord_sys import *
+from pts.common import file2str
 import ase
-from aof.gaussian import Gaussian
+from pts.gaussian import Gaussian
 from ase.io.trajectory import PickleTrajectory
 
 import sys

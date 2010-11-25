@@ -4,8 +4,8 @@ import numpy as np
 from scipy.optimize.optimize import fminbound
 from ase.optimize.optimize import Optimizer
 
-from aof.func import Func
-from aof.common import ObjLog
+from pts.func import Func
+from pts.common import ObjLog
 
 def disp_step(dr, f):
     dr_f = np.dot(dr.flatten(), f.flatten())

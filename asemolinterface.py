@@ -15,12 +15,12 @@ import pickle
 import path
 
 import numpy
-from aof.coord_sys import enforce_short_way
+from pts.coord_sys import enforce_short_way
 
-import aof.common as common
-import aof.coord_sys as csys
+import pts.common as common
+import pts.coord_sys as csys
 
-lg = logging.getLogger('aof.asemolinterface') #common.PROGNAME)
+lg = logging.getLogger('pts.asemolinterface') #common.PROGNAME)
 
 numpy.set_printoptions(linewidth=180)
 
@@ -379,7 +379,7 @@ class MolInterface:
         pickle.dump(packet, f, protocol=2)
         f.close()
 
-        cmd = ["python", "-m", "aof.pickle_runner", mol_pickled]
+        cmd = ["python", "-m", "pts.pickle_runner", mol_pickled]
 
         # Generate placement command, e.g. for dplace
         if callable(self.place_str):

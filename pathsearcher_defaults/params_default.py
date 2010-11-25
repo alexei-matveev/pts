@@ -8,7 +8,7 @@ and than overwritten by explicitly given ones in the params file or in the
 standard input
 """
 from ase.calculators import Vasp, LennardJones
-import aof.config as config
+import pts.config as config
 
 default_params = {
     "cos_type" : "string",     # what way, e.g. NEB, string, growingstring, searchingstring

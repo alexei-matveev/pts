@@ -1,13 +1,13 @@
 import logging
 
-from aof.sched import ParaSched
-from aof.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR, vec_summarise
-import aof
+from pts.sched import ParaSched
+from pts.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR, vec_summarise
+import pts
 import numpy as np
 import pickle
 
 # setup logging
-lg = logging.getLogger("aof.calcman")
+lg = logging.getLogger("pts.calcman")
 lg.setLevel(logging.INFO)
 
 class CalcManagerException(Exception):
@@ -24,7 +24,7 @@ class CalcManager():
     Only (a) and (c) implemented at present.
 
 
-    >>> cm = CalcManager(aof.pes.GaussianPES())
+    >>> cm = CalcManager(pts.pes.GaussianPES())
     """
 
     def __init__(self, qc_driver, processors=None, to_cache=None, from_cache=None):
@@ -221,13 +221,13 @@ def test_CalcManager(qc_driver, inputs, procs, to_cache=None, from_cache=None):
     >>> input1 = [tmp * x for x in range(10)]
     >>> input2 = [[random(),random()] for x in range(1000)]
     >>> procs = ([4,3,2,1], 6,1)
-    >>> test_CalcManager(aof.pes.GaussianPES(fake_delay=0.3), input1, procs)
-    >>> test_CalcManager(aof.pes.GaussianPES(fake_delay=0.3), input1, procs, to_cache="")
+    >>> test_CalcManager(pts.pes.GaussianPES(fake_delay=0.3), input1, procs)
+    >>> test_CalcManager(pts.pes.GaussianPES(fake_delay=0.3), input1, procs, to_cache="")
     Traceback (most recent call last):
         ...
     CalcManagerException: [Errno 2] No such file or directory: ''
-    >>> test_CalcManager(aof.pes.GaussianPES(fake_delay=0.3), input1, procs, to_cache='test_CalcManager.tmp')
-    >>> test_CalcManager(aof.pes.GaussianPES(fake_delay=0.3), input1, procs, from_cache='test_CalcManager.tmp')
+    >>> test_CalcManager(pts.pes.GaussianPES(fake_delay=0.3), input1, procs, to_cache='test_CalcManager.tmp')
+    >>> test_CalcManager(pts.pes.GaussianPES(fake_delay=0.3), input1, procs, from_cache='test_CalcManager.tmp')
     """
 
     cm = CalcManager(qc_driver, procs, from_cache=from_cache, to_cache=to_cache)

@@ -21,7 +21,7 @@ the origional images) will be shown
 
 Alternatively
 
-    >>> from aof.tools.jmol import jmol_view_path
+    >>> from pts.tools.jmol import jmol_view_path
     >>> geoms = [[(0., 0., 0.), (0., 0., 1.)],
     ...          [(0., 0., 0.), (1., 0., 0.)]]
 
@@ -53,7 +53,7 @@ import os
 from tempfile import mkstemp
 
 import ase
-from aof.path import Path
+from pts.path import Path
 from numpy import linspace
 
 def jmol_view_file(file):

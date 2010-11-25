@@ -15,14 +15,14 @@ import os
 import logging
 
 
-from aof.path import Path
+from pts.path import Path
 import numpy as np
-from aof.common import vector_angle
-import aof.func as func
+from pts.common import vector_angle
+import pts.func as func
 import scipy as sp
-from aof.threepointmin import ts_3p_gr
+from pts.threepointmin import ts_3p_gr
 
-lg = logging.getLogger("aof.tools")
+lg = logging.getLogger("pts.tools")
 lg.setLevel(logging.INFO)
 
 class PathTools:

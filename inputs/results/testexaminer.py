@@ -10,7 +10,7 @@ from subprocess import Popen, PIPE
 
 import numpy as np
 
-import aof
+import pts
 
 args = sys.argv[1:]
 
@@ -109,8 +109,8 @@ def examine_job(logfile, tsfile, rcfile):
         return 'NotConverged'
 
     found_ts_str = Popen(["babel", "-ig03", logfile, '-oxyz'], stdout=PIPE).communicate()[0]
-    found_ts = aof.coord_sys.XYZ(found_ts_str).get_cartesians()
-    known_ts = aof.coord_sys.XYZ(open(tsfile).read()).get_cartesians()
+    found_ts = pts.coord_sys.XYZ(found_ts_str).get_cartesians()
+    known_ts = pts.coord_sys.XYZ(open(tsfile).read()).get_cartesians()
     found_ts_error = get_rc_error(found_ts, known_ts, rc_ixs)
 
     if found_ts_error < 0.01:
@@ -167,13 +167,13 @@ def get_rc_error(carts, carts_correct, ixs):
         carts = carts.reshape(-1,3)
         try:
             if len(ix) == 2:
-                d = aof.rc.distance(carts[ix])
+                d = pts.rc.distance(carts[ix])
                 assert d > 0
                 return d
             if len(ix) == 3:
-                return aof.rc.angle(carts[ix])
+                return pts.rc.angle(carts[ix])
             if len(ix) == 4:
-                return aof.rc.dihedral(carts[ix])
+                return pts.rc.dihedral(carts[ix])
         except:
             print carts
             print ixs

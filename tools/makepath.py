@@ -3,7 +3,7 @@
 """
 Script to interpolate between two minima
 in internal or cartesian coordinates,
-ase and aof needs to be known when running
+ase and ParaTools needs to be known when running
 The input can be in any ase format, in the files GEOL
 and GEOR
 
@@ -69,14 +69,14 @@ if sys.argv[1] == '--help':
     sys.exit()
 
 from ase import read, write
-from aof.coord_sys import   ComplexCoordSys
-from aof.coord_sys import vector_completation, ase2xyz, ase2int, ase2ccs, enforce_short_way
-from aof.path import Path
-from aof.common import file2str
+from pts.coord_sys import   ComplexCoordSys
+from pts.coord_sys import vector_completation, ase2xyz, ase2int, ase2ccs, enforce_short_way
+from pts.path import Path
+from pts.common import file2str
 from numpy import linspace
 from string import count
 from pydoc import help
-from aof.inputs.pathsearcher import expand_zmat
+from pts.inputs.pathsearcher import expand_zmat
 
 # Defaultvalues for parameters
 # output as xyz, and 7 beads

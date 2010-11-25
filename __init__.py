@@ -56,7 +56,7 @@ def setup(argv):
     """Deal with command line arguments"""
 
     import os
-    from aof.common import file2str
+    from pts.common import file2str
     import getopt
     from numpy import array, ndarray
 

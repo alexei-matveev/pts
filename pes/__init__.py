@@ -5,8 +5,7 @@ import numpy as np
 
 import mueller_brown as mb
 from plot import Plot2D
-import aof
-
+import pts
 
 class QCDriver:
     def __init__(self, dimension):
@@ -107,7 +106,7 @@ class GaussianPES():
         e = self.energy(j.v)
         g = self.gradient(j.v)
 
-        return aof.common.Result(j.v, e, g)
+        return pts.common.Result(j.v, e, g)
 
 class PlanePES():
     def energy(self, v):

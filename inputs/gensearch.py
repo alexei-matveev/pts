@@ -8,12 +8,12 @@ import numpy as np
 
 import ase
 
-import aof
-from aof.common import file2str
+import pts
+from pts.common import file2str
 from os.path import exists
-from aof.tools import pickle_path
+from pts.tools import pickle_path
 
-name, params_file, mol_strings, init_state_vec, prev_results_file, overrides, inputdir = aof.setup(sys.argv)
+name, params_file, mol_strings, init_state_vec, prev_results_file, overrides, inputdir = pts.setup(sys.argv)
 
 # TODO: setup circular re-naming to prevent accidental overwrites
 logfile = open(name + '.log', 'w')
@@ -51,12 +51,12 @@ print "(End)"
 exec(overrides)
 
 # set up some objects
-mi = aof.MolInterface(mol_strings, **params)
+mi = pts.MolInterface(mol_strings, **params)
 
 if force_cart_opt:
     # generate initial path using specified coord system but perform interpolation in cartesians
     mi, init_state_vec = mi.to_cartesians(beads_count)
-calc_man = aof.CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=prev_results_file)
+calc_man = pts.CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=prev_results_file)
 
 if init_state_vec == None:
     init_state_vec = mi.reagent_coords
@@ -64,7 +64,7 @@ if init_state_vec == None:
 # setup searcher i.e. String or NEB
 cos_type = cos_type.lower()
 if cos_type == 'string':
-    CoS = aof.searcher.GrowingString(init_state_vec, 
+    CoS = pts.searcher.GrowingString(init_state_vec,
           calc_man, 
           beads_count,
           growing=False,
@@ -74,7 +74,7 @@ if cos_type == 'string':
           head_size=None,
           max_sep_ratio=0.3)
 elif cos_type == 'growingstring':
-    CoS = aof.searcher.GrowingString(init_state_vec, 
+    CoS = pts.searcher.GrowingString(init_state_vec,
           calc_man, 
           beads_count,
           growing=True,
@@ -84,7 +84,7 @@ elif cos_type == 'growingstring':
           head_size=None,
           max_sep_ratio=0.3)
 elif cos_type == 'searchingstring':
-    CoS = aof.searcher.GrowingString(init_state_vec, 
+    CoS = pts.searcher.GrowingString(init_state_vec,
           calc_man, 
           beads_count,
           growing=True,
@@ -96,7 +96,7 @@ elif cos_type == 'searchingstring':
           growth_mode='search')
 
 elif cos_type == 'neb':
-    CoS = aof.searcher.NEB(init_state_vec, 
+    CoS = pts.searcher.NEB(init_state_vec,
           calc_man, 
           spr_const,
           beads_count,
@@ -117,7 +117,7 @@ while True:
         global cb_count_debug
         pickle_path(mi, CoS, "%s.debug%d.path.pickle" % (name, cb_count_debug))
         cb_count_debug += 1
-        return aof.generic_callback(x, mi, CoS, params, tol=tol)
+        return pts.generic_callback(x, mi, CoS, params, tol=tol)
 
     # print out initial path
     cb(CoS.state_vec)
@@ -125,7 +125,7 @@ while True:
     # hack to enable the CoS to print in cartesians, even if opt is done in internals
     CoS.bead2carts = lambda x: mi.build_coord_sys(x).get_cartesians().flatten()
 
-    runopt = lambda CoS_: aof.runopt(opt_type, CoS_, ftol, xtol, etol, maxit, cb, maxstep=maxstep, extra=extra_opt_params)
+    runopt = lambda CoS_: pts.runopt(opt_type, CoS_, ftol, xtol, etol, maxit, cb, maxstep=maxstep, extra=extra_opt_params)
 
     # main optimisation loop
     print runopt(CoS)
@@ -165,7 +165,7 @@ while True:
     print "Max change in any optimisation coordinate", max_change
 
     path_ref = np.array([bead0, bead1])
-    CoS = aof.searcher.NEB(path_ref, 
+    CoS = pts.searcher.NEB(path_ref,
           calc_man, 
           spr_const,
           beads_count_refine,
