@@ -20,12 +20,16 @@ def get_defaults():
     return default_params.copy()
 
 def get_calculator(file_name):
-
-    scope = {}
-    execfile(file_name, scope)
+    from ase.calculators import *
+    from pts.common import file2str
+   #scope = {}
+   #execfile(file_name, scope)
     # print "scope=", scope
-
-    return scope["calculator"]
+    str1 = file2str(file_name) # file file_name has to
+    # contain line calculator = ...
+    exec(str1)
+    return calculator
+    #return scope["calculator"]
 
 def get_mask(strmask):
     mask = eval("%s" % (strmask))
