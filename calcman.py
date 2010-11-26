@@ -52,7 +52,7 @@ class CalcManager():
 
             # dump empty ResultDict to make sure the file is writable
             if to_cache != None:
-                pickle.dump(self.__result_dict, open(to_cache, 'w'))
+                pickle.dump(self.__result_dict, open(to_cache, 'w'), protocol=2)
                 lg.info("Storing ResultDict in " + to_cache)
         except IOError, msg:
             raise CalcManagerException(msg)
@@ -129,7 +129,7 @@ class CalcManager():
                 self.__pending_jobs = [] # added 03/12/2009
 
         if self.__to_cache != None:
-            pickle.dump(self.__result_dict, open(self.__to_cache, 'w'))
+            pickle.dump(self.__result_dict, open(self.__to_cache, 'w'), protocol=2)
 
     def eg_counts(self):
         return self.__result_dict.eg_counts()

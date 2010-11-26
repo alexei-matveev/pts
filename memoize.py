@@ -205,7 +205,7 @@ class FileStore(Store):
 
         # dump the whole dictionary into file, FIXME: better solution?
         with open(self.filename,'w') as f:
-            dump(self._d, f) # pickle.dump
+            dump(self._d, f, protocol=2) # pickle.dump
 
 class Memoize(Func):
     """Memoize the .f and .fprime methods

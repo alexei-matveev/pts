@@ -91,7 +91,7 @@ def main(argv=None):
 
             result = (e, g)
 
-            pickle.dump(result, open(result_file, "w"))
+            pickle.dump(result, open(result_file, "w"), protocol=2)
 
             # just for testing...
             #print pickle.load(open(result_file, "r"))

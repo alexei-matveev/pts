@@ -508,7 +508,7 @@ def pickle_path(mi, CoS, file):
     print "PICKLE",d, e
     cs = mi.build_coord_sys(a[0])
     f = open(file, 'wb')
-    pickle.dump((a,b,c,d,e,cs), f)
+    pickle.dump((a,b,c,d,e,cs), f, protocol=2)
     f.close()
 
 plot_s = \

@@ -376,7 +376,7 @@ class MolInterface:
         coord_sys_obj = self.build_coord_sys(job.v)
         f = open(mol_pickled, "wb")
         packet = coord_sys_obj, function, extra_data
-        pickle.dump(packet, f)
+        pickle.dump(packet, f, protocol=2)
         f.close()
 
         cmd = ["python", "-m", "aof.pickle_runner", mol_pickled]

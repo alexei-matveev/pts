@@ -106,8 +106,8 @@ else:
     raise Exception('Unknown type: %s' % cos_type)
 
 CoS.arc_record = open("archive.pickle", 'w')
-pickle.dump("Version 0.1", CoS.arc_record)
-pickle.dump(mi.build_coord_sys(init_state_vec[0]), CoS.arc_record)
+pickle.dump("Version 0.1", CoS.arc_record, protocol=2)
+pickle.dump(mi.build_coord_sys(init_state_vec[0]), CoS.arc_record, protocol=2)
 
 cb_count_debug = 0
 while True:

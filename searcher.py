@@ -555,7 +555,7 @@ class ReactionPathway(object):
             arc['pathps'] = self.pathpos()[0]
             arc['pathpsold'] = self.pathpos()[1]
 
-            pickle.dump(arc, self.arc_record)
+            pickle.dump(arc, self.arc_record, protocol=2)
             self.arc_record.flush()
 
         return '\n'.join(s)

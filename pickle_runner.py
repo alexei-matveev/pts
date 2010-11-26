@@ -106,7 +106,7 @@ def main(argv=None):
 
             os.chdir(old_dir)
 
-            pickle.dump(result, open(result_file, "w"))
+            pickle.dump(result, open(result_file, "w"), protocol=2)
 
             # just for testing...
             print pickle.load(open(result_file, "r"))

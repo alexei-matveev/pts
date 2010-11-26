@@ -19,7 +19,7 @@ names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy
 def record_event(cos, s):
     print important(s)
     if cos.arc_record:
-        pickle.dump('Event: ' + s, cos.arc_record)
+        pickle.dump('Event: ' + s, cos.arc_record, protocol=2)
 
 def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict()):
     assert name in names
