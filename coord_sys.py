@@ -52,44 +52,45 @@ def vec_to_mat(v):
     """Generates rotation matrix based on vector v, whose length specifies 
     the rotation angle and whose direction specifies an axis about which to
     rotate."""
+    from quat import rotmat
+    return rotmat(v)
+   #v = numpy.array(v)
+   #assert len(v) == 3
+   #phi = numpy.linalg.norm(v)
+   #a = numpy.cos(phi/2)
+   #if phi < 0.02:
+   #    #print "Used Taylor series approximation, phi =", phi
+   #    """
+   #    q2 = sin(phi/2) * v / phi
+   #       = sin(phi/2) / (phi/2) * v/2
+   #       = sin(x)/x + v/2 for x = phi/2
 
-    v = numpy.array(v)
-    assert len(v) == 3
-    phi = numpy.linalg.norm(v)
-    a = numpy.cos(phi/2)
-    if phi < 0.02:
-        #print "Used Taylor series approximation, phi =", phi
-        """
-        q2 = sin(phi/2) * v / phi
-           = sin(phi/2) / (phi/2) * v/2
-           = sin(x)/x + v/2 for x = phi/2
+   #    Using a taylor series for the first term...
 
-        Using a taylor series for the first term...
+   #    (%i1) taylor(sin(x)/x, x, 0, 8);
+   #    >                           2    4      6       8
+   #    >                          x    x      x       x
+   #    > (%o1)/T/             1 - -- + --- - ---- + ------ + . . .
+   #    >                          6    120   5040   362880
 
-        (%i1) taylor(sin(x)/x, x, 0, 8);
-        >                           2    4      6       8
-        >                          x    x      x       x
-        > (%o1)/T/             1 - -- + --- - ---- + ------ + . . .
-        >                          6    120   5040   362880
+   #    Below phi/2 < 0.01, terms greater than x**8 contribute less than
+   #    1e-16 and so are unimportant for double precision arithmetic.
 
-        Below phi/2 < 0.01, terms greater than x**8 contribute less than 
-        1e-16 and so are unimportant for double precision arithmetic.
+   #    """
+   #    x = phi / 2
+   #    taylor_approx = 1 - x**2/6. + x**4/120. - x**6/5040. + x**8/362880.
+   #    q2 = v/2 * taylor_approx
 
-        """
-        x = phi / 2
-        taylor_approx = 1 - x**2/6. + x**4/120. - x**6/5040. + x**8/362880.
-        q2 = v/2 * taylor_approx
+   #else:
+   #    q2 = numpy.sin(phi/2) * v / phi
 
-    else:
-        q2 = numpy.sin(phi/2) * v / phi
+   #b,c,d = q2
 
-    b,c,d = q2
+   #m = numpy.array([[ a*a + b*b - c*c - d*d , 2*b*c + 2*a*d,         2*b*d - 2*a*c  ],
+   #                 [ 2*b*c - 2*a*d         , a*a - b*b + c*c - d*d, 2*c*d + 2*a*b  ],
+   #                 [ 2*b*d + 2*a*c         , 2*c*d - 2*a*b        , a*a - b*b - c*c + d*d  ]])
 
-    m = numpy.array([[ a*a + b*b - c*c - d*d , 2*b*c + 2*a*d,         2*b*d - 2*a*c  ],
-                     [ 2*b*c - 2*a*d         , a*a - b*b + c*c - d*d, 2*c*d + 2*a*b  ],
-                     [ 2*b*d + 2*a*c         , 2*c*d - 2*a*b        , a*a - b*b - c*c + d*d  ]])
-
-    return m
+   #return m
 
 
 class Anchor(object):
