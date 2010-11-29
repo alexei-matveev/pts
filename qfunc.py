@@ -49,7 +49,7 @@ to the minimum):
 __all__ = ["QFunc"]
 
 from func import Func
-from ase import LennardJones
+from ase.calculators.lj import LennardJones
 from os import path, mkdir, chdir, getcwd, system
 try:
     from multiprocessing import current_process
