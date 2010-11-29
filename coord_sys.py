@@ -3,7 +3,9 @@ import re
 import ase
 
 import numpy # FIXME: unify
-from numpy import array, arange, abs, ones
+from numpy import array, arange, abs, ones, zeros
+from numpy import sin, cos, sqrt
+from numpy import arccos as acos
 
 import threading
 import numerical
@@ -224,9 +226,15 @@ class RotAndTrans(Anchor):
     def reposition(self, carts):
         """Based on a quaternion and a translation, transforms a set of 
         cartesion positions x."""
+        return self.transformer(carts, self.coords )
 
-        rot_vec = self.coords[0:3]
-        trans_vec  = self.coords[3:]
+    def transformer(self, carts, vec):
+        """Based on a quaternion and a translation, transforms a set of
+        cartesion positions x."""
+       #rot_vec = self.coords[0:3]
+       #trans_vec  = self.coords[3:]
+        rot_vec = vec[0:3]
+        trans_vec  = vec[3:]
 
         # TODO: need to normalise?
         rot_mat = vec_to_mat(rot_vec)
@@ -270,24 +278,22 @@ class RotAndTransLin(RotAndTrans):
         Sets value of internal quaternion / translation data using transformed
         and non-transformed cartesian coordinates.
 
-        >>> r = RotAndTrans(arange(6)*1.0)
-        >>> orig = array([[0.,0,0],[0,0,1],[0,1,0]])
-        >>> new =  array([[0.,0,0],[0,1,0],[1,0,0]])
+        >>> r = RotAndTransLin(arange(5)*1.0)
+        >>> orig = array([[0.,0,0],[0,0,1]])
+        >>> new =  array([[0.,0,0],[0,1,0]])
         >>> r.set_cartesians(new, orig)
         >>> new2 = r.reposition(orig)
         >>> abs((new2 - new).round(4))
         array([[ 0.,  0.,  0.],
-               [ 0.,  0.,  0.],
                [ 0.,  0.,  0.]])
 
-        >>> r = RotAndTrans(arange(6)*1.0)
-        >>> orig = array([[0.,0,0],[0,0,1],[0,1,0]])
-        >>> new  = array([[0.,0,0],[0,0,1],[0,1,0]])
-        >>> r.set_cartesians(new, orig)
-        >>> new3 = r.reposition(orig)
-        >>> abs((new3 - new).round(4))
+        >>> r2 = RotAndTransLin(arange(5)*1.0)
+        >>> orig2 = array([[0.,0,0],[0,0,1]])
+        >>> new4  = array([[0.,0,0],[0,0,1]])
+        >>> r2.set_cartesians(new4, orig2)
+        >>> new3 = r2.reposition(orig2)
+        >>> abs((new3 - new4).round(4))
         array([[ 0.,  0.,  0.],
-               [ 0.,  0.,  0.],
                [ 0.,  0.,  0.]])
         """
         assert (orig[0] == numpy.zeros(3)).all()
@@ -327,6 +333,20 @@ class RotAndTransLin(RotAndTrans):
         self._coords[0:2] = best
         #return self._coords
 
+    def remove_component(self, v, axis):
+        """
+        make a two variable from a three variable vector
+        """
+        if self.ac == None:
+           laxis = list(axis)
+           self.ac = laxis.index(max(laxis))
+
+        if not (self.axis == axis).all():
+          self.axis = axis
+
+        return remove_third_component(self.ac, v)
+
+
     def complete_vec(self, v, axis):
         """the vector for the rotation matrix, expandation of the two
            compontents still there, as the third can be calculated together
@@ -348,13 +368,17 @@ class RotAndTransLin(RotAndTrans):
     def reposition(self, carts):
         """Based on a quaternion and a translation, transforms a set of
         cartesion positions x."""
+        return self.transformer(carts, self.coords)
 
-        rot_vec1 = self.coords[0:2]
+    def transformer(self, carts, vec):
+        """Based on a quaternion and a translation, transforms a set of
+        cartesion positions x."""
+        rot_vec1 = vec[0:2]
         free_axis = carts[1] - carts[0]
         free_axis = free_axis / numpy.linalg.norm(free_axis)
 
         rot_vec = self.complete_vec(rot_vec1, free_axis)
-        trans_vec  = self.coords[2:]
+        trans_vec  = vec[2:]
 
         # TODO: need to normalise?
         rot_mat = vec_to_mat(rot_vec)
@@ -371,6 +395,19 @@ class RotAndTransLin(RotAndTrans):
         # This is the case, where it was originally designed for: there is
         # an anchor but only two coordinates are given as variables
         return self.ac, self.axis
+
+def remove_third_component(ac, v):
+    """
+    For the linear case the third compontent does not have to be
+    given directly, as it can be recalculated from the other two
+    """
+    w = numpy.zeros((2,))
+    j = 0
+    for i in range(3):
+      if not i==ac:
+        w[j] = v[i]
+        j += 1
+    return w
 
 def vector_completation(ac, v, axis):
     """
@@ -738,12 +775,26 @@ class CoordSys(object):
     def native_str(self):
         pass
 
+    def int2cartprime(self, x):
+        """"
+        returns the matrix o fderivatives dCi/DIj from the ith cartesian coordinate
+        after jth internal coordinate.
+        FIXME: This should be possible without need of numerical differences of the
+        get_transform_matrix algorithm
+        """
+        mat,__ = self.get_transform_matrix(x)
+        return mat
+
+
     def get_transform_matrix(self, x):
         """Returns the matrix of derivatives dCi/dIj where Ci is the ith cartesian coordinate
         and Ij is the jth internal coordinate, and the error."""
 
+        def int2cartf( x):
+            return self.int2cart(x).flatten()
+
         nd = numerical.NumDiff(method='simple')
-        mat, err = nd.numdiff(self.int2cart, x)
+        mat, err = nd.numdiff(int2cartf, x)
         """nd2 = numerical.NumDiff()
         mat2,err2 = nd2.numdiff(self.int2cart, x)
         print "err2",err2.max()
@@ -757,7 +808,7 @@ class CoordSys(object):
         print "m2",m"""
         return mat, err
 
-    def int2cart(self, x):
+    def int2cart2(self, x):
         """Based on a vector x of new internal coordinates, returns a 
         vector of cartesian coordinates. The internal dictionary of coordinates 
         is updated."""
@@ -964,20 +1015,21 @@ class ComplexCoordSys(CoordSys):
     def __init__(self, s):
         """
         >>> s = "xyz1 = 'H 0. 0. 0.'\\nxyz2 = 'H 0. 0. 1.08'\\nccs = ccsspec([XYZ(xyz1), XYZ(xyz2)])"
-        >>> ccs = ComplexCoordSys(s)
-        >>> ccs.get_cartesians()
+        >>> ccs2 = ComplexCoordSys(s)
+        >>> ccs2.get_cartesians()
         array([[ 0.  ,  0.  ,  0.  ],
                [ 0.  ,  0.  ,  1.08]])
         
         >>> exec(s)
-        >>> ccs = ComplexCoordSys(ccs.parts)
-        >>> ccs.get_cartesians()
+        >>> ccs3 = ComplexCoordSys(ccs.parts)
+        There was no 'ccs' object defined in molecule input, or it had no field 'parts'.
+        >>> ccs3.get_cartesians()
         array([[ 0.  ,  0.  ,  0.  ],
                [ 0.  ,  0.  ,  1.08]])
 
         >>> new_carts = [[3,2,1],[4,5,6]]
-        >>> ccs.set_cartesians(new_carts)
-        >>> (new_carts == ccs.get_cartesians()).all()
+        >>> ccs3.set_cartesians(new_carts)
+        >>> (new_carts == ccs3.get_cartesians()).all()
         True
 
         """
@@ -1087,6 +1139,21 @@ class ComplexCoordSys(CoordSys):
             "Convergence not reached when numerically setting internals from \
             Cartesians, errors were: %s" % (self.get_cartesians() - x)
         self._coords = numpy.hstack([p.get_internals() for p in self._parts])
+
+    def int2cart(self, new_internals):
+        """
+        Transforms internal coordinates to Cartesian ones without changing the internal
+        state of this class
+        """
+        i = 0
+        new_xyz = []
+        x = self._demask(new_internals)
+        for p in self._parts:
+            new_xyz.append(p.int2cart(x[i:i + p.dims]))
+            i += p.dims
+        assert i == self.dims + self._exclusions_count
+        return numpy.vstack(new_xyz)
+
  
 class XYZ(CoordSys):
 
@@ -1166,6 +1233,16 @@ class XYZ(CoordSys):
         assert len(tmp) == len(self._coords)
         self._coords = tmp
 
+    def int2cart(self, new_internals):
+        """
+        Transforms internal coordinates to Cartesian ones without changing the internal
+        state of this class
+        This routine is for the case, where the internal coordinates are also Cartesian
+        """
+        all_internals = self._demask(new_internals)
+        return all_internals
+
+
     @staticmethod
     def matches(molstr):
         return XYZ.__pattern.match(molstr) != None
@@ -1212,8 +1289,8 @@ class ZMatrix2(CoordSys):
 
         >>> s = "C\\nH 1 ch1\\nH 1 ch2 2 hch1\\nH 1 ch3 2 hch2 3 hchh1\\nH 1 ch4 2 hch3 3 -hchh2\\n\\nch1    1.09\\nch2    1.09\\nch3    1.09\\nch4    1.09\\nhch1 109.5\\nhch2 109.5\\nhch3 109.5\\nhchh1  120.\\nhchh2  120.\\n"
 
-        >>> z = ZMatrix2(s)
-        >>> z.get_internals().round(3)
+        >>> z = ZMatrix2(s,RotAndTrans(initial=zeros(6)))
+        >>> z.get_internals().round(3)[:9]
         array([ 1.09 ,  1.09 ,  1.09 ,  1.09 ,  1.911,  1.911,  1.911,  2.094,  2.094])
 
         >>> ints = z.get_internals()
@@ -1229,7 +1306,7 @@ class ZMatrix2(CoordSys):
         >>> cs = z.get_cartesians() + 1000
         >>> z.set_cartesians(cs)
         >>> from numpy import abs
-        >>> abs(z.get_internals() - ints).round()
+        >>> abs(z.get_internals() - ints).round()[:9]
         array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
         >>> r = repr(z)
@@ -1359,6 +1436,7 @@ class ZMatrix2(CoordSys):
         # setup object which actually does zmt <-> cartesian conversion
         spec = self.make_spec(self.zmtatoms)
         self._zmt = zmat.ZMat(spec)
+        self.spec = spec
         CoordSys.__init__(self, symbols, 
             self.get_cartesians(), 
             self._coords,
@@ -1426,6 +1504,18 @@ class ZMatrix2(CoordSys):
         if self._anchor != None and anchor:
             xyz_coords = self._anchor.reposition(xyz_coords)
 
+        return xyz_coords
+
+    def int2cart(self, new_internals):
+        """
+        Transforms internal coordinates to Cartesian ones without changing the internal
+        state of this class
+        """
+        all_internals = self._demask(new_internals)
+        xyz_coords =  self._zmt.f(all_internals[:-self._anchor.dims])
+        #xyz_coords =  self._zmt.f(all_internals)
+        if self._anchor != None:
+            xyz_coords = self._anchor.transformer(xyz_coords, all_internals[-self._anchor.dims:])
         return xyz_coords
 
 def fake_xyz_string(ase_atoms, start = None ):
