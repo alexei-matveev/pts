@@ -28,18 +28,18 @@
 
        >>> from os import getenv, system
        >>> def g3(x):
-       ...  #  system("echo $AOF_SCHED_JOB_HOST")
-       ...  #  system("echo $AOF_SCHED_JOB_NPROCS")
-       ...  #  system("echo $AOF_SCHED_JOB_CPUS")
+       ...  #  system("echo $PTS_SCHED_JOB_HOST")
+       ...  #  system("echo $PTS_SCHED_JOB_NPROCS")
+       ...  #  system("echo $PTS_SCHED_JOB_CPUS")
        ...     return g1(x)
 
        >>> class g4(object):
        ...     def __init__(self):
        ...        pass
        ...     def perform(self, x):
-       ...         system("echo $AOF_SCHED_JOB_HOST")
-       ...         system("echo $AOF_SCHED_JOB_NPROCS")
-       ...         system("echo $AOF_SCHED_JOB_CPUS")
+       ...         system("echo $PTS_SCHED_JOB_HOST")
+       ...         system("echo $PTS_SCHED_JOB_NPROCS")
+       ...         system("echo $PTS_SCHED_JOB_CPUS")
        ...         return g1(x)
 
    Arguments for the test functions g1, g2:
@@ -251,9 +251,9 @@ def f_schedwr(f):
           value += "%s" % (processes[-1])
           # the environment variables should contain something
           # like: node number_of_procs number of the procs (on the node)
-          environ['AOF_SCHED_JOB_HOST'] = "%s" % (node)
-          environ['AOF_SCHED_JOB_NPROCS'] = "%s" % (np)
-          environ['AOF_SCHED_JOB_CPUS'] = value
+          environ['PTS_SCHED_JOB_HOST'] = "%s" % (node)
+          environ['PTS_SCHED_JOB_NPROCS'] = "%s" % (np)
+          environ['PTS_SCHED_JOB_CPUS'] = value
           if num == None:
               return f(x)
           else:
@@ -401,13 +401,13 @@ class PMap2():
     """
     The same as Pmap but uses aditionally the
     Strategy class to generate a environment variables
-    called "AOF_SCHED_JOB_*" which stores informations
+    called "PTS_SCHED_JOB_*" which stores informations
     to the scheduling strategy regarding the special job
-    AOF_SCHED_JOB_HOST gives number of host to calculate this
+    PTS_SCHED_JOB_HOST gives number of host to calculate this
            special job on, starts with zero
-    AOF_SCHED_JOB_NPROCS gives number of CPUs this job should
+    PTS_SCHED_JOB_NPROCS gives number of CPUs this job should
            run in parallel on
-    AOF_SCHED_JOB_CPUS gives the number of the CPUs (starting with 0)
+    PTS_SCHED_JOB_CPUS gives the number of the CPUs (starting with 0)
            on the host, which should be used
     """
     def __init__ (self, strat = Strategy(), p_map = pmap):
@@ -445,12 +445,12 @@ pmap3 = PMap3()
 
 from os import system, getenv
 def test(x, num = None):
-  # system("echo $AOF_SCHED_JOB_HOST")
-  # system("echo $AOF_SCHED_JOB_NPROCS")
-  # system("echo $AOF_SCHED_JOB_CPUS")
-    host = getenv("AOF_SCHED_JOB_HOST")
-    nprocs = getenv("AOF_SCHED_JOB_NPROCS")
-    number = getenv("AOF_SCHED_JOB_CPUS")
+  # system("echo $PTS_SCHED_JOB_HOST")
+  # system("echo $PTS_SCHED_JOB_NPROCS")
+  # system("echo $PTS_SCHED_JOB_CPUS")
+    host = getenv("PTS_SCHED_JOB_HOST")
+    nprocs = getenv("PTS_SCHED_JOB_NPROCS")
+    number = getenv("PTS_SCHED_JOB_CPUS")
     print "%s waits" % (num)
     sleep(0.5)
     print "%s Scheduling informatiom: %s %s %s" % (num, host, nprocs, number)
