@@ -79,6 +79,10 @@ Rotmat has also an analytical derivative:
 """
 from numpy import asarray, empty, dot, sqrt, sin, cos, abs, array, eye, diag, zeros
 from numpy import arccos
+from numpy import trace, pi, finfo, cross
+
+#FIXME: have a bit more to decide?
+machine_precision = finfo(float).eps * 2
 
 def uquat(v):
     """Returns unitary quaternion corresponding to rotation vector "v",
@@ -273,6 +277,272 @@ def _qrotmat(q):
 
     return m, dm
 
+def vec_to_coord_mat(threepoints):
+    """
+    generates a coordinate system out of three points defining
+    vector and plane for the first two directions
+    returns the result as an matrix
+
+    >>> vec1 = array([[0.,0,0],[0,0,1],[0,1,0]])
+    >>> abs(dot(planenormal(vec1), vec1[1] - vec1[0])) < 1e-10
+    True
+    >>> abs(dot(planenormal(vec1), vec1[2] - vec1[0])) < 1e-10
+    True
+    >>> abs(dot(planenormal(vec1), planenormal(vec1)) - 1) < 1e-10
+    True
+
+    >>> vec1 = array([[0.,0,0],[1,0,1],[2,1,0]])
+    >>> abs(dot(planenormal(vec1), vec1[1] - vec1[0])) < 1e-10
+    True
+    >>> abs(dot(planenormal(vec1), vec1[2] - vec1[0])) < 1e-10
+    True
+    >>> abs(dot(planenormal(vec1), planenormal(vec1)) - 1) < 1e-10
+    True
+    """
+    coords = zeros((3,3))
+    x1, y1, z1 = vec_to_coord(threepoints)
+    assert abs(dot(x1, x1) -1) < 1e-12
+    assert abs(dot(y1, y1) -1) < 1e-12
+    assert abs(dot(z1, z1) -1) < 1e-12
+
+    coords[0,:] = x1
+    coords[1,:] = y1
+    coords[2,:] = z1
+    return coords
+
+def cart2rot(v1, v2):
+    """
+    v1 and v2 are two three point-objects
+    Here a rotation matrix is build, which rotatats
+    v1 on v2
+    (For the coordinate objects we have:
+    C2 = MAT * C1.T)
+
+    >>> vec1 = array([[0.,0,0],[0,0,1],[0,1,0]])
+    >>> vec2 = array([[0.,0,0],[1,0,0],[0,1,0]])
+    >>> m1 = cart2rot(vec1, vec2)
+    >>> m2 = cart2rot(vec1, vec1)
+    >>> transform = lambda vec3d: dot(m1, vec3d)
+    >>> (abs(vec2 - array(map(transform, vec1)))).all() < 1e-15
+    True
+    >>> (abs(m2 - eye(3))).all() < 1e-15
+    True
+    """
+    c1 = vec_to_coord_mat(v1)
+    c2 = vec_to_coord_mat(v2)
+    mat = dot(c2, c1)
+    return mat
+
+def rot2quat(mat):
+    """
+    transforms a rotation matrix mat in a quaternion
+    there should be two different quaternions belonging
+    to the same matrix, we take the positive one
+
+    >>> mat1 = eye(3)
+    >>> (abs(mat1 - qrotmat(rot2quat(mat1)))).all() < 1e-12
+    True
+
+    >>> psi = pi/2.
+    >>> mat2 = array([[ 1., 0., 0.], [0., cos(psi), -sin(psi)], [ 0., sin(psi), cos(psi)]])
+    >>> (abs(mat2 - qrotmat(rot2quat(mat2)))).all() < 1e-12
+    True
+
+    >>> mat3 = array([[ 1., 0., 0.], [0., -1., 0.], [ 0., 0., -1.]])
+    >>> (abs(mat3 - qrotmat(rot2quat(mat3)))).all() < 1e-12
+    True
+
+    >>> psi = pi - 0.3
+    >>> mat4 = array([[ 1., 0., 0.], [0., cos(psi), -sin(psi)], [ 0., sin(psi), cos(psi)]])
+    >>> (abs(mat4 - qrotmat(rot2quat(mat4)))).all() < 1e-12
+    True
+
+    >>> psi = pi
+    >>> mat5 = array([[ cos(psi), 0., sin(psi)], [0., 1, 0.], [ -sin(psi), 0, cos(psi)]])
+    >>> (abs(mat5 - qrotmat(rot2quat(mat5)))).all() < 1e-12
+    True
+
+    >>> ql = array([0,0,0.,1.])
+    >>> mat6 = qrotmat(ql)
+    >>> (abs(ql - rot2quat(mat6))).all() < 1e-12
+    True
+
+    Code from: Ken Shoemake "Animation rotation with quaternion curves.",
+    Computer Graphics 19(3):245-254, 1985
+    """
+    qu = zeros(4)
+    s = 0.25 * (1 + trace(mat))
+    if s > machine_precision:
+        qu[0] = sqrt(s)
+        qu[1] =  (mat[2,1] - mat[1,2]) / (4 * qu[0])
+        qu[2] =  (mat[0,2] - mat[2,0]) / (4 * qu[0])
+        qu[3] =  (mat[1,0] - mat[0,1]) / (4 * qu[0])
+    else:
+        # (qu[0] = 0)
+        s = -0.5 * (mat[1,1] + mat[2,2])
+        if s > machine_precision:
+            qu[1] = sqrt(s)
+            qu[2] = mat[1,0] / (2 * qu[1])
+            qu[3] = mat[2,0] / (2 * qu[1])
+        else:
+            # (qu[1] = 0)
+            s = 0.5 * (1 - mat[2,2])
+            if s > machine_precision:
+                qu[2] = sqrt(s)
+                qu[3] = mat[2,1] / ( 2 * qu[2])
+            else:
+                # qu[2] = 0
+                qu[3] = 1
+
+    return qu
+
+def cart2quat(v1, v2):
+    """
+    Gives back the quaternion, belonging to the rotation from
+    v1 onto v2, where v1 and v2 are each three points, defining an
+    plane (and the top of the plane)
+
+    >>> vec1 = array([[0.,0,0],[0,0,1],[0,1,0]])
+    >>> vec2 = array([[0.,0,0],[1,0,0],[0,1,0]])
+
+    >>> ql = cart2quat(vec1, vec2)
+    >>> m1 = qrotmat(ql)
+    >>> transform = lambda vec3d: dot(m1, vec3d)
+    >>> (abs(vec2 - array(map(transform, vec1)))).all() < 1e-15
+    True
+    """
+    return rot2quat(cart2rot(v1, v2))
+
+def quat2vec(qa):
+    """
+    Gives back a vector, as specified by the quaternion q,
+    in the representation of length(vec) = rot_angle,
+    V/ |v| is vector to rotate around
+
+    >>> v = [0., 0., pi/2.]
+    >>> (abs(v - quat2vec(uquat(v)))).all() < 1e-12
+    True
+
+    >>> v = [0, 0., 0.]
+    >>> (abs(v - quat2vec(uquat(v)))).all() < 1e-12
+    True
+
+    >>> v = [1., 2, 3]
+    >>> (abs(v - quat2vec(uquat(v)))).all() < 1e-12
+    True
+
+    >>> v = [ 0., 0, pi * 6 + pi/2]
+    >>> abs(v - quat2vec(uquat(v)))[2] / pi - 8.0 < 1e-12
+    True
+    """
+    qaa = asarray(qa)[1:]
+    ang = arccos(qa[0]) * 2
+    if abs(dot(qaa, qaa)) == 0:
+        lqaa = 1
+    else:
+        lqaa = sqrt(dot(qaa, qaa))
+    # give back as vector
+    vall = array([qai/lqaa * ang for qai in qaa])
+    return vall
+
+def cart2vec( vec1, vec2):
+    """
+    given two three point objects vec1 and vec2
+    calculates the vector representing the rotation
+
+    >>> vec1 = array([[0.,0,0],[0,0,1],[0,1,0]])
+    >>> vec2 = array([[0.,0,0],[1,0,0],[0,1,0]])
+
+    >>> v = cart2vec(vec1, vec2)
+    >>> m1 = rotmat(v)
+    >>> transform = lambda vec3d: dot(m1, vec3d)
+    >>> (abs(vec2 - array(map(transform, vec1)))).all() < 1e-15
+    True
+
+    >>> vec3 = array([[0.,0,0],[0,0,1],[0,1,0]])
+    >>> v2 = cart2vec(vec1, vec3)
+    >>> m2 = rotmat(v2)
+    >>> transform = lambda vec3d: dot(m2, vec3d)
+    >>> (abs(vec3 - array(map(transform, vec1)))).all() < 1e-15
+    True
+    """
+    return quat2vec(cart2quat(vec1, vec2))
+
+def cart2veclin(v1, v2):
+    """
+    v1 and v2 are two two point-objects
+    Here a rotation matrix is build, which rotatats
+    v1 on v2
+    (For the coordinate objects we have:
+    C2 = MAT * C1.T)
+
+    >>> vec1 = array([[0.,0,0],[0,0,1]])
+    >>> vec2 = array([[0.,0,0],[1,0,0]])
+
+    >>> v = cart2veclin(vec1, vec2)
+    >>> m1 = rotmat(v)
+    >>> transform = lambda vec3d: dot(m1, vec3d)
+    >>> (abs(vec2 - array(map(transform, vec1)))).all() < 1e-15
+    True
+
+    >>> vec3 = array([[0.,0,0],[1,0,0]])
+    >>> vec4 = array([[0.,0,0],[0,1,0]])
+    >>> vec5 = array([[0.,0,0],[0,0,1]])
+
+    >>> v = cart2veclin(vec3, vec4)
+    >>> m2 = rotmat(v)
+    >>> transform = lambda vec3d: dot(m2, vec3d)
+    >>> (abs(vec4 - array(map(transform, vec3)))).all() < 1e-15
+    True
+    >>> vec5 = array([[0.,0,0],[0,0,1]])
+    >>> (abs(vec5 - array(map(transform, vec5)))).all() < 1e-15
+    True
+
+    >>> v = cart2veclin(vec3, vec3)
+    WARNING: two objects are alike
+    >>> m2 = rotmat(v)
+    >>> transform = lambda vec3d: dot(m2, vec3d)
+    >>> (abs(vec3 - array(map(transform, vec3)))).all() < 1e-15
+    True
+
+    >>> v = cart2veclin(vec4, vec4)
+    WARNING: two objects are alike
+    >>> m2 = rotmat(v)
+    >>> transform = lambda vec3d: dot(m2, vec3d)
+    >>> (abs(vec4 - array(map(transform, vec4)))).all() < 1e-15
+    True
+
+    >>> v = cart2veclin(vec5, vec5)
+    WARNING: two objects are alike
+    >>> m2 = rotmat(v)
+    >>> transform = lambda vec3d: dot(m2, vec3d)
+    >>> (abs(vec5 - array(map(transform, vec5)))).all() < 1e-15
+    True
+    """
+    assert (v1[0] == v2[0]).all()
+
+    vec1 = zeros((3,3))
+    vec2 = zeros((3,3))
+    vec1[0] = v1[0]
+    vec1[1] = v1[1]
+    vec2[0] = v2[0]
+    vec2[1] = v2[1]
+
+    vec1[2] = v2[1]
+
+    if (abs(v1[1] - v2[1]) < machine_precision).all():
+        print "WARNING: two objects are alike"
+        # in this case there should be no rotation at all
+        # thus give back zero vector
+        return array([0., 0,0])
+    else:
+        n2 = planenormal(vec1)
+
+    vec1[2] = -n2 - v1[0]
+    vec2[2] = -n2 - v2[0]
+    return quat2vec(cart2quat(vec1, vec2))
+
+
 def sinc(x):
     """sinc(x) = sin(x)/x
 
@@ -326,6 +596,50 @@ def dsincx(x):
         #                         3   30   840   45360   3991680
 
         return - 1/3. + x**2/30. - x**4/840. + x**6/45360. + x**8/3991680.
+
+def planenormal(threepoints):
+    """
+    gives back normalised plane as defined by the
+    three points stored in numpy array threepoints
+    """
+    v_1 = asarray(threepoints[1] - threepoints[0])
+    v_1 /= sqrt(dot(v_1, v_1))
+    v_2 = asarray(threepoints[2] - threepoints[0])
+    v_2 /= sqrt(dot(v_2, v_2))
+    n = cross(v_1, v_2 - v_1 )
+    n_norm = sqrt(dot(n, n))
+    if n_norm != 0:
+        n /= n_norm
+    return n
+
+def vec_to_coord(threepoints):
+    """
+    generates a three coordinate system from three points,
+    where the first vector is in direction points[1] - points[0]
+    the second vector is in the plane spanned by the three points
+    while the third one is the normal vector to this plane
+
+    >>> v_init = array([[0.,0,0],[0,0,1],[0,1,0]])
+    >>> vec_to_coord(v_init)
+    (array([ 0.,  0.,  1.]), array([ 0.,  1., -0.]), array([-1.,  0.,  0.]))
+    >>> v_init = array([[0.,0,0],[1,0,0],[0,1,0]])
+    >>> vec_to_coord(v_init)
+    (array([ 1.,  0.,  0.]), array([-0.,  1.,  0.]), array([ 0., -0.,  1.]))
+    >>> v_init = array([[0.,0,0],[1,2,0],[0.5,1.2,0]])
+    >>> vec = vec_to_coord(v_init)
+    >>> sqrt(dot(vec[0], vec[0])) - 1 < 10e-10
+    True
+    """
+    x1 = asarray(threepoints[1] - threepoints[0])
+    x1 /= sqrt(dot(x1, x1))
+    z1 = planenormal(threepoints)
+    assert abs(dot(z1, z1) -1) < 1e-12
+    #FIXME: other order than in rest of code?
+    y1 = cross(z1, x1)
+    y1 /= sqrt(dot(y1, y1))
+
+    return x1, y1, z1
+
 
 
 class Quat(object):
@@ -383,6 +697,50 @@ class Quat(object):
 
     def __eq__(self, other):
         return (self.__q == other.__q).all()
+
+def test():
+    """
+    interactive test for the rotation vector,
+    uses the next three arguments to build an initial
+    vector, describing a rotation.
+
+    Using a random vector from the standard input, generates
+    the rotation belonging to the coresponding quaternion for it
+    Then uses a rotated inital vector to generate the quaternion
+    in the new way
+    prints comparisions
+    """
+    from sys import argv
+    v_random = array([0, 0, 0])
+    v_random[0] = float(argv[1])
+    v_random[1] = float(argv[2])
+    v_random[2] = float(argv[3])
+    #v_random = v_random/sqrt(dot(v_random, v_random))
+
+    quat_random = uquat(v_random)
+    mat_random = rotmat(v_random)
+    v_init = array([[0.,0,0],[0,0,1],[0,1,0]])
+    v_init = array([[0.,0,0],[1,0,0],[0,1,0]])
+    v_end = array([[0.,0,0],[0,0,0],[0,0,0]])
+    for i, v in enumerate(v_init):
+        v_end[i] = dot(mat_random, v)
+    vec_calc = cart2vec(v_init, v_end)
+    quat_calc = uquat(vec_calc)
+    print "Quaternions: given, calculated back"
+    print quat_random
+    print quat_calc
+    print "differences are", quat_random - quat_calc
+    print "Vectors: start and end"
+    print v_random
+    print vec_calc
+    print "differences are", v_random - vec_calc
+    print "Angles"
+    print sqrt(dot(v_random, v_random))
+    print sqrt(dot(vec_calc, vec_calc))
+    print "Does rotation work?"
+    m1 = rotmat(vec_calc)
+    transform = lambda vec3d: dot(m1, vec3d)
+    print (abs(v_end - array(map(transform, v_init)))).all() < 1e-15
 
 # "python quat.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
