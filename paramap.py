@@ -9,6 +9,9 @@
        >>> def g1(x):
        ...     return [ 2 * x[0] * x[1] * x[2], x[1]**2, x[2] ]
 
+       >>> def g1_1(x, num):
+       ...     return [ 2 * x[0] * x[1] * x[2], x[1]**2, x[2] ]
+
        >>> from time import sleep
        >>> def g2(x):
        ...     print "g2: entered"
@@ -457,12 +460,14 @@ def test(x, num = None):
 
 if __name__ == "__main__":
     x1 = [[1, 4, 5], [2, 2, 2], [2, 5, 7], [1, 0, 0], [2, 3, 4], [1, 1, 1]]
+    x2 = [[7],[9],[1, 4, 5], [2, 2, 2], [2, 5, 7], [1, 0, 0], [2, 3, 4], [1, 1, 1],[3],[1],[4],[90,9], [1, 4, 5], [2, 2, 2], [2, 5, 7], [1, 0, 0], [2, 3, 4], [1, 1, 1],[3],[1],[4],[90,9]]
     sched = Strategy(topology = [4], pmin = 1, pmax = 2)
-    pmap4 = PMap2(strat = sched, p_map = pool_map)
-    pmap5 = PMap3(strat = sched)
-    print pmap4(test, x1)
-    print pmap5(test, x1)
-    print pmap3(test, x1)
+#   pmap4 = PMap2(strat = sched, p_map = pool_map)
+#   pmap5 = PMap3(strat = sched)
+#   print pmap4(test, x1)
+#   print pmap5(test, x1)
+#   print pmap3(test, x1)
+#   pmap5(test, x2)
     import doctest
     doctest.testmod()
 
