@@ -248,11 +248,6 @@ class RotAndTrans(Anchor):
 
         return res
 
-    def need_for_completation(self):
-        # In this case an Anchor exists, but is already complete,
-        # thus -1 seperates it from the rest
-        return -1, numpy.zeros(3)
-
 class RotAndTransLin(RotAndTrans):
     _dims = 5
 
@@ -270,7 +265,7 @@ class RotAndTransLin(RotAndTrans):
 
         initial = numpy.array(initial)
         self._coords = initial
-        self.kinds = ['anc_q' for i in 1,2] + ['anc_c' for i in 1,2,3]
+        self.kinds = ['anc_ql' for i in 1,2] + ['anc_c' for i in 1,2,3]
         self.ac = None
         self.axis = numpy.zeros(3)
 
@@ -326,7 +321,7 @@ class RotAndTransLin(RotAndTrans):
         # FIXME: add feature to allow a hint for a starting point for the
         # optimisation procedure to find the quaternion. That's what is hard
         # coded below.
-        old_rot = numpy.array([1.68555226, -0.90792125])#self._coords[:3].copy()
+        old_rot = numpy.array([1.68555226, -0.90792125])#self._coords[:2].copy()
         best, err, _, _, _  = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0, maxiter=2000)
         print "HHHHHHHHH rotation mat", best, err
         if err > ftol:
@@ -1620,7 +1615,8 @@ def enforce_short_way(zmti):
     can2 = zmti[i_n2].completion_anchor()
     ancs = []
     anc = []
-    need_three = 0
+    anc_l = []
+    ancs_l = []
 
     for i, k in enumerate(zm.kinds):
        if k == "dih":
@@ -1643,33 +1639,29 @@ def enforce_short_way(zmti):
               # store this quaternion already
               anc.append(ancs)
               ancs = []
-              need_three = 0
            ancs.append(i) # collect for one quaternion
-           need_three += 1
+       elif k == "anc_ql":
+           if ancs_l == []:
+             last_l = i
+           else:
+             last_l = ancs_l[-1]
+           # the quaternion kinds have to follow directly after each other
+           # if there is a gap, the variable belongs to the next one
+           if (i-last_l) > 1:
+              # store this quaternion already
+              anc_l.append(ancs_l)
+              ancs_l = []
+           ancs.append(i) # collect for one quaternion
     if ancs != []: # store the last one
        anc.append(ancs)
-    icm = -1
+    if ancs_l != []: # store the last one
+       anc_l.append(ancs_l)
     # now loop over the quaternions rather than all variables
-    for i, anchor in enumerate(anc):
-       ic1 = (None, zeros(3))
-       b_back = [0, 1, 2]
-       while ic1[0] == None:
-         icm += 1
-         # get information to get complete quaternion, if only two
-         # variables are stored, None means non-internal object, if it
-         # is not none, one is reached, where the anchor gives variables
-         # to the complete system
-         ic1 = can1[icm]
+
+    for anchor in anc:
        v1 = m1[anchor]
        v2 = m2[anchor]
        # v1 and v2 are the quaternion (there are two to compare)
-       # first enlarge them, if the reduced (linear) kind has been given
-       if len(anchor) < 3:
-          assert(ic1[0] > -1)
-          b_back.remove(ic1[0])
-          v1 = vector_completation(ic1[0], v1, ic1[1])
-          v2 = vector_completation(can2[icm][0], v2, can2[icm][1])
-       # from now on they are complete three vector kinds
        lv1 = norm(v1)
        lv2 = norm(v2)
        # norm is value for angle
@@ -1688,11 +1680,83 @@ def enforce_short_way(zmti):
        v2 *= lv2
        v1 *= lv1
        # reduce result if necessary
-       m1[anchor] = v1[b_back]
-       m2[anchor] = v2[b_back]
+       m1[anchor] = v1
+       m2[anchor] = v2
     # return changed values
     zmti[i_n1].set_internals(m1)
     zmti[i_n2].set_internals(m2)
+
+    # Linear Rot and Trans need special handling:
+    icm = -1
+    rat = RotAndTrans()
+    for i, anchor in enumerate(anc_l):
+       ic1 = (None, zeros(3))
+       b_back = [0, 1, 2]
+       while ic1[0] == None:
+         icm += 1
+         # get information to get complete quaternion, if only two
+         # variables are stored, None means non-internal object, if it
+         # is not none, one is reached, where the anchor gives variables
+         # to the complete system
+         ic1 = can1[icm]
+       v1 = m1[anchor]
+       v2 = m2[anchor]
+       # v1 and v2 are the quaternion (there are two to compare)
+       # first enlarge them, if the reduced (linear) kind has been given
+       assert(ic1[0] > -1)
+       assert(ic1[0] == can2[icm][0])
+       assert(ic1[1] == can2[icm][1]).all()
+       b_back.remove(ic1[0])
+       mat1 = vec_to_mat(vector_completation(ic1[0], v1, ic1[1]))
+       mat2 = vec_to_mat(vector_completation(can2[icm][0], v2, can2[icm][1]))
+       rat.set_cartesians(numpy.dot(mat1, ic1[1]))
+       or1 = rat._coords[0:3]
+       rat.set_cartesians(numpy.dot(mat2, ic1[1]), numpy.dot(mat1, ic1[1]))
+       rot = rat._coords[0:3]
+       delta = norm(rot)
+       rot /= delta
+       # normalize the interval between two angles:
+       while delta >  pi: delta -=  2.0 * pi
+       while delta < -pi: delta +=  2.0 * pi
+       rot *= delta
+       v2 = mult_vec_of_quad(or1, rot)
+       # give back changed norm
+       # reduce result if necessary
+       m2[anchor] = v2[b_back]
+    # return changed values
+    zmti[i_n2].set_internals(m2)
+
+def mult_vec_of_quad(v1, v2):
+    """
+    Two rotations performed one after another are packed to one single of them
+    This is done in quaternion space of Quat (the unitary quaternion) where it is
+    a simple multiplication, the result is transformed back in the vector description
+    """
+    from aof.quat import Quat
+    v1_ang = sqrt(numpy.dot(v1, v1))
+    v2_ang = sqrt(numpy.dot(v2, v2))
+    if v1_ang == 0:
+      v1r = v1
+    else:
+      v1r = v1 / v1_ang
+    if v2_ang == 0:
+      v2r = v2
+    else:
+      v2r = v2 / v2_ang
+    qp = Quat([cos(v1_ang/2)] + [vi*sin(v1_ang/2) for vi in v1r])
+    ql = Quat([cos(v2_ang/2)] + [vi*sin(v2_ang/2) for vi in v2r])
+    qa = qp * ql
+    qaa = numpy.asarray(qa)[1:]
+    ang = acos(qa[0]) * 2
+    if abs(numpy.dot(qaa, qaa)) == 0:
+      lqaa = 1
+    else:
+      lqaa = sqrt(numpy.dot(qaa, qaa))
+    # give back as vector
+    vall = numpy.array([qai/lqaa * ang for qai in qaa])
+    return vall
+
+
 
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
