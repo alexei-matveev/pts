@@ -809,6 +809,9 @@ class CoordSys(object):
 
             return y.flatten()
 
+    def transform_contra_to_co(self, vec, place):
+        return contoco(self.int2cartprime, place, vec)
+
     def __pretty_vec(self, x):
         """Returns a pretty string rep of a (3D) vector."""
         return "%f\t%f\t%f" % (x[0], x[1], x[2])
@@ -1279,7 +1282,34 @@ class ZMatrix2(CoordSys):
         >>> z.get_internals().round(3)[:9]
         array([ 1.09 ,  1.09 ,  1.09 ,  1.09 ,  1.911,  1.911,  1.911,  2.094,  2.094])
 
+        >>> from aof.zmat import ZMatrix3, ZMat
+
         >>> ints = z.get_internals()
+
+        >>> carts = z.get_cartesians().flatten()
+        >>> max(abs(carts - z.int2cart(ints).flatten()))
+        0.0
+        >>> ints2 = None
+        >>> ints2 = ints + array([1e-4, 0.01, 0.002, 0.0003, 2e-3, 1e-5, 0.1, 0.002, 0.01, 0.01, 0.2, 1e-6, 0.001, 0.3 , 0.1])
+        >>> z.set_internals(ints2)
+        >>> carts2 = z.get_cartesians().flatten()
+
+        >>> ints3 = (ints + ints2) / 2
+        >>> int_co_3 = contoco( z.int2cartprime, ints3, (ints2 - ints))
+        Average iterations per variable 7.4
+        >>> (numpy.dot(int_co_3, ints3 - ints) - numpy.dot(carts2 - carts, carts2-carts)).round(3)
+        -0.318
+
+        >>> ints4 = (ints + ints3) / 2
+        >>> z.set_internals(ints3)
+        >>> carts3 = z.get_cartesians().flatten()
+        >>> int_co_3_2 = contoco( z.int2cartprime, ints4, (ints3 - ints))
+        Average iterations per variable 7.4
+        >>> (numpy.dot(int_co_3_2, ints3 - ints) - numpy.dot(carts3 - carts, carts3-carts)).round(7)
+        4.07e-05
+
+        >>> z.set_internals(ints)
+
 
         >>> from numpy import round
         >>> print round(z.get_cartesians(), 7)
@@ -1503,6 +1533,22 @@ class ZMatrix2(CoordSys):
         if self._anchor != None:
             xyz_coords = self._anchor.transformer(xyz_coords, all_internals[-self._anchor.dims:])
         return xyz_coords
+
+def contoco(F, pos, vec):
+    """
+    assuming that F is a function to get the derivatives, transforming vectors
+    of kind vec into cartesians, and that all takes place at position pos,
+    this function transforms contra in covariant vectors
+    """
+    B = F(pos)
+    return btb(B, vec)
+
+def btb(B, vec):
+    """
+    Returns the product B^T B vec
+    """
+    return numpy.dot(B, numpy.dot(B.T, vec))
+    #return numpy.dot(B.T, numpy.dot(B, vec))
 
 def fake_xyz_string(ase_atoms, start = None ):
     """
