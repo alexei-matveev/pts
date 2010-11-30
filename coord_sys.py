@@ -191,6 +191,7 @@ class RotAndTrans(Anchor):
                [ 0.,  0.,  0.],
                [ 0.,  0.,  0.]])
         """
+        from aof.quat import cart2vec
         assert (orig[0] == numpy.zeros(3)).all()
 
         Anchor.set_cartesians(self)
@@ -205,7 +206,16 @@ class RotAndTrans(Anchor):
 
         # coords as they would be after rotation but not translation
         rotated = new - self._coords[3:]
+        # calculates directly the rotation quaternion
+        best = cart2vec(orig, rotated)
 
+        # verify that there has been the right result given back
+        # may be omitted after code is supposed to be save
+        m1 = vec_to_mat(best)
+        transform = lambda vec3d: numpy.dot(m1, vec3d)
+        assert (abs(rotated - array(map(transform, orig))) < 1e-15).all()
+
+        # old code version, to use exchange best with best1 in setting self._coords
         def f(i):
             mat = vec_to_mat(i)
             transformed = array([numpy.dot(mat, i) for i in orig])
@@ -217,7 +227,9 @@ class RotAndTrans(Anchor):
         # optimisation procedure to find the quaternion. That's what is hard
         # coded below.
         old_rot = numpy.array([1.68555226, -0.90792125, -1.4817044])#self._coords[:3].copy()
-        best, err, _, _, _  = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0, maxiter=2000)
+        best1, err, _, _, _  = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0, maxiter=2000)
+        #print "HHHHHHHHH rotation mat", best, err
+        #print "HHHHHHHHH rotation mat 2", best1, (best1 - best)/best
         if err > ftol:
             raise CoordSysException("Didn't converge in anchor parameterisation, %.20f > %.20f" %(err, ftol))
         self._coords[0:3] = best
@@ -227,7 +239,7 @@ class RotAndTrans(Anchor):
     def reposition(self, carts):
         """Based on a quaternion and a translation, transforms a set of 
         cartesion positions x."""
-        return self.transformer(carts, self.coords )
+        return self.transformer(carts, self._coords )
 
     def transformer(self, carts, vec):
         """Based on a quaternion and a translation, transforms a set of
@@ -287,11 +299,13 @@ class RotAndTransLin(RotAndTrans):
         >>> orig2 = array([[0.,0,0],[0,0,1]])
         >>> new4  = array([[0.,0,0],[0,0,1]])
         >>> r2.set_cartesians(new4, orig2)
+        WARNING: two objects are alike
         >>> new3 = r2.reposition(orig2)
         >>> abs((new3 - new4).round(4))
         array([[ 0.,  0.,  0.],
                [ 0.,  0.,  0.]])
         """
+        from quat import cart2veclin
         assert (orig[0] == numpy.zeros(3)).all()
 
         Anchor.set_cartesians(self)
@@ -310,6 +324,16 @@ class RotAndTransLin(RotAndTrans):
         free_axis = orig[1] - orig[0]
         free_axis = free_axis / numpy.linalg.norm(free_axis)
 
+        # calculates directly the quaternion in vector description
+        best = cart2veclin(orig, rotated)
+        best = self.remove_component( best, free_axis)
+        j = self.complete_vec(best,free_axis)
+        mat = vec_to_mat(j)
+        transform = array([numpy.dot(mat,o) for o in orig])
+        # test if code is correct
+        assert (abs(transform - rotated) < 1e-12).all()
+
+        # old code
         def f(i):
             j = self.complete_vec(i,free_axis)
             mat = vec_to_mat(j)
@@ -322,8 +346,9 @@ class RotAndTransLin(RotAndTrans):
         # optimisation procedure to find the quaternion. That's what is hard
         # coded below.
         old_rot = numpy.array([1.68555226, -0.90792125])#self._coords[:2].copy()
-        best, err, _, _, _  = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0, maxiter=2000)
-        print "HHHHHHHHH rotation mat", best, err
+        best1, err, _, _, _  = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0, maxiter=2000)
+        #print "HHHHHHHHH rotation mat lin", best, err
+        #print "HHHHHHHHH rotation mat lin", best1, (best - best1) /best
         if err > ftol:
             raise CoordSysException("Didn't converge in anchor parameterisation, %.20f > %.20f" %(err, ftol))
         self._coords[0:2] = best
