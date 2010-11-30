@@ -282,39 +282,6 @@ def _qrotmat(q):
 
     return m, dm
 
-def vec_to_coord_mat(threepoints):
-    """
-    generates a coordinate system out of three points defining
-    vector and plane for the first two directions
-    returns the result as an matrix
-
-    >>> vec1 = array([[0.,0,0],[0,0,1],[0,1,0]])
-    >>> abs(dot(planenormal(vec1), vec1[1] - vec1[0])) < 1e-10
-    True
-    >>> abs(dot(planenormal(vec1), vec1[2] - vec1[0])) < 1e-10
-    True
-    >>> abs(dot(planenormal(vec1), planenormal(vec1)) - 1) < 1e-10
-    True
-
-    >>> vec1 = array([[0.,0,0],[1,0,1],[2,1,0]])
-    >>> abs(dot(planenormal(vec1), vec1[1] - vec1[0])) < 1e-10
-    True
-    >>> abs(dot(planenormal(vec1), vec1[2] - vec1[0])) < 1e-10
-    True
-    >>> abs(dot(planenormal(vec1), planenormal(vec1)) - 1) < 1e-10
-    True
-    """
-    coords = zeros((3,3))
-    x1, y1, z1 = vec_to_coord(threepoints)
-    assert abs(dot(x1, x1) -1) < 1e-12
-    assert abs(dot(y1, y1) -1) < 1e-12
-    assert abs(dot(z1, z1) -1) < 1e-12
-
-    coords[0,:] = x1
-    coords[1,:] = y1
-    coords[2,:] = z1
-    return coords
-
 def cart2rot(v1, v2):
     """
     v1 and v2 are two three point-objects
@@ -323,22 +290,34 @@ def cart2rot(v1, v2):
     (For the coordinate objects we have:
     C2 = MAT * C1.T)
 
-    >>> from numpy import max, abs
+        >>> from numpy import max, abs
 
-    >>> vec1 = array([[0.,0,0],[0,0,1],[0,1,0]])
-    >>> vec2 = array([[0.,0,0],[1,0,0],[0,1,0]])
-    >>> m1 = cart2rot(vec1, vec2)
-    >>> m2 = cart2rot(vec1, vec1)
-    >>> transform = lambda vec3d: dot(m1, vec3d)
-    >>> max(abs(vec2 - array(map(transform, vec1)))) < 1e-15
-    True
-    >>> max(abs(m2 - eye(3))) < 1e-15
-    True
+        >>> vec1 = array([[0., 0., 0.], [0., 0., 1.], [0., 1., 0.]])
+        >>> vec2 = array([[0., 0., 0.], [1., 0., 0.], [0., 1., 0.]])
+
+    See if identity is reproduced:
+
+        >>> m = cart2rot(vec1, vec1)
+        >>> max(abs(m - eye(3))) < 1e-15
+        True
+
+    Rotation matrix that brings vec1 to vec2:
+
+        >>> m = cart2rot(vec1, vec2)
+
+    This way rotation matrix is applied to a vector:
+
+        >>> transform = lambda v: dot(m, v)
+
+        >>> max(abs(vec2 - array(map(transform, vec1)))) < 1e-15
+        True
+
     """
-    c1 = vec_to_coord_mat(v1)
-    c2 = vec_to_coord_mat(v2)
-    mat = dot(c2.T, c1)
-    return mat
+
+    c1 = reper([v1[1] - v1[0], v1[2] - v1[0]])
+    c2 = reper([v2[1] - v2[0], v2[2] - v2[0]])
+
+    return dot(c2.T, c1)
 
 def rot2quat(mat):
     """
@@ -620,36 +599,6 @@ def planenormal(threepoints):
     if n_norm != 0:
         n /= n_norm
     return n
-
-def vec_to_coord(threepoints):
-    """
-    generates a three coordinate system from three points,
-    where the first vector is in direction points[1] - points[0]
-    the second vector is in the plane spanned by the three points
-    while the third one is the normal vector to this plane
-
-    >>> v_init = array([[0.,0,0],[0,0,1],[0,1,0]])
-    >>> vec_to_coord(v_init)
-    (array([ 0.,  0.,  1.]), array([-0.,  1., -0.]), array([ 1., -0., -0.]))
-    >>> v_init = array([[0.,0,0],[1,0,0],[0,1,0]])
-    >>> vec_to_coord(v_init)
-    (array([ 1.,  0.,  0.]), array([-0.,  1.,  0.]), array([-0.,  0., -1.]))
-    >>> v_init = array([[0.,0,0],[1,2,0],[0.5,1.2,0]])
-    >>> vec = vec_to_coord(v_init)
-    >>> sqrt(dot(vec[0], vec[0])) - 1 < 10e-10
-    True
-    """
-    x1 = asarray(threepoints[1] - threepoints[0])
-    x1 /= sqrt(dot(x1, x1))
-    z1 = -planenormal(threepoints)
-    assert abs(dot(z1, z1) -1) < 1e-12
-    #FIXME: other order than in rest of code?
-    y1 = -cross(z1, x1)
-    y1 /= sqrt(dot(y1, y1))
-
-    return x1, y1, z1
-
-
 
 class Quat(object):
     """Minimal quaternions
