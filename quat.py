@@ -401,37 +401,45 @@ def cart2quat(v1, v2):
     """
     return rot2quat(cart2rot(v1, v2))
 
-def quat2vec(qa):
+def quat2vec(q):
     """
     Gives back a vector, as specified by the quaternion q,
     in the representation of length(vec) = rot_angle,
-    V/ |v| is vector to rotate around
+    v / |v| is vector to rotate around
 
     >>> v = [0., 0., pi/2.]
     >>> max(abs(v - quat2vec(uquat(v)))) < 1e-12
     True
 
-    >>> v = [0, 0., 0.]
+    >>> v = [0., 0., 0.]
     >>> max(abs(v - quat2vec(uquat(v)))) < 1e-12
     True
 
-    >>> v = [1., 2, 3]
+    >>> v = [1., 2., 3.]
     >>> max(abs(v - quat2vec(uquat(v)))) < 1e-12
     True
 
-    >>> v = [ 0., 0, pi * 6 + pi/2]
+    >>> v = [ 0., 0., 6. * pi + pi / 2]
     >>> abs(v - quat2vec(uquat(v)))[2] / pi - 8.0 < 1e-12
     True
     """
-    qaa = asarray(qa)[1:]
-    ang = arccos(qa[0]) * 2
-    if abs(dot(qaa, qaa)) == 0:
-        lqaa = 1
-    else:
-        lqaa = sqrt(dot(qaa, qaa))
+
+    q = asarray(q)
+
+    #
+    # Rotation angle:
+    #
+    ang = 2.0 * arccos(q[0])
+
+    #
+    # (Normalized) imaginary part of the quaternion:
+    #
+    v = q[1:]
+    if abs(dot(v, v)) != 0:
+        v /= sqrt(dot(v, v))
+
     # give back as vector
-    vall = array([qai/lqaa * ang for qai in qaa])
-    return vall
+    return ang * v
 
 def cart2vec( vec1, vec2):
     """
