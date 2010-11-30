@@ -413,7 +413,7 @@ def cart2quat(v1, v2):
     >>> ql = cart2quat(vec1, vec2)
     >>> m1 = qrotmat(ql)
     >>> transform = lambda vec3d: dot(m1, vec3d)
-    >>> (abs(vec2 - array(map(transform, vec1)))).all() < 1e-15
+    >>> max(abs(vec2 - array(map(transform, vec1)))) < 1e-15
     True
     """
     return rot2quat(cart2rot(v1, v2))
@@ -425,15 +425,15 @@ def quat2vec(qa):
     V/ |v| is vector to rotate around
 
     >>> v = [0., 0., pi/2.]
-    >>> (abs(v - quat2vec(uquat(v)))).all() < 1e-12
+    >>> max(abs(v - quat2vec(uquat(v)))) < 1e-12
     True
 
     >>> v = [0, 0., 0.]
-    >>> (abs(v - quat2vec(uquat(v)))).all() < 1e-12
+    >>> max(abs(v - quat2vec(uquat(v)))) < 1e-12
     True
 
     >>> v = [1., 2, 3]
-    >>> (abs(v - quat2vec(uquat(v)))).all() < 1e-12
+    >>> max(abs(v - quat2vec(uquat(v)))) < 1e-12
     True
 
     >>> v = [ 0., 0, pi * 6 + pi/2]
