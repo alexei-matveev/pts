@@ -188,7 +188,7 @@ def rotvec(m):
 
     Examples:
 
-        >>> from numpy import pi, round
+        >>> from numpy import pi, round, max
 
         >>> v = array((0.5, -0.3, 1.0))
 
@@ -327,37 +327,35 @@ def rot2quat(mat):
 
     >>> from numpy import max, abs
 
-    >>> mat1 = eye(3)
-    >>> max(abs(mat1 - qrotmat(rot2quat(mat1)))) < 1e-12
+    >>> m = eye(3)
+    >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
     True
 
-    >>> psi = pi/2.
-    >>> mat2 = array([[ 1., 0., 0.], [0., cos(psi), -sin(psi)], [ 0., sin(psi), cos(psi)]])
-    >>> max(abs(mat2 - qrotmat(rot2quat(mat2)))) < 1e-12
+    >>> m = rotmat([pi / 2., 0., 0.])
+    >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
     True
 
-    >>> mat3 = array([[ 1., 0., 0.], [0., -1., 0.], [ 0., 0., -1.]])
-    >>> max(abs(mat3 - qrotmat(rot2quat(mat3)))) < 1e-12
+    >>> m = rotmat([pi, 0., 0.])
+    >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
     True
 
-    >>> psi = pi - 0.3
-    >>> mat4 = array([[ 1., 0., 0.], [0., cos(psi), -sin(psi)], [ 0., sin(psi), cos(psi)]])
-    >>> max(abs(mat4 - qrotmat(rot2quat(mat4)))) < 1e-12
+    >>> m = rotmat([0., pi, 0.])
+    >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
     True
 
-    >>> psi = pi
-    >>> mat5 = array([[ cos(psi), 0., sin(psi)], [0., 1, 0.], [ -sin(psi), 0, cos(psi)]])
-    >>> max(abs(mat5 - qrotmat(rot2quat(mat5)))) < 1e-12
+    >>> m = rotmat([-pi + 0.3, 0., 0.])
+    >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
     True
 
-    >>> ql = array([0,0,0.,1.])
-    >>> mat6 = qrotmat(ql)
-    >>> max(abs(ql - rot2quat(mat6))) < 1e-12
+    >>> q = array([0., 0., 0., 1.])
+    >>> m = qrotmat(q)
+    >>> max(abs(q - rot2quat(m))) < 1e-12
     True
 
     Code from: Ken Shoemake "Animation rotation with quaternion curves.",
     Computer Graphics 19(3):245-254, 1985
     """
+
     qu = zeros(4)
     s = 0.25 * (1 + trace(mat))
     if s > machine_precision:
@@ -390,8 +388,8 @@ def cart2quat(v1, v2):
     v1 onto v2, where v1 and v2 are each three points, defining an
     plane (and the top of the plane)
 
-    >>> vec1 = array([[0.,0,0],[0,0,1],[0,1,0]])
-    >>> vec2 = array([[0.,0,0],[1,0,0],[0,1,0]])
+    >>> vec1 = array([[0., 0., 0.], [0., 0., 1.], [0., 1., 0.]])
+    >>> vec2 = array([[0., 0., 0.], [1., 0., 0.], [0., 1., 0.]])
 
     >>> ql = cart2quat(vec1, vec2)
     >>> m1 = qrotmat(ql)
@@ -399,6 +397,7 @@ def cart2quat(v1, v2):
     >>> max(abs(vec2 - array(map(transform, vec1)))) < 1e-15
     True
     """
+
     return rot2quat(cart2rot(v1, v2))
 
 def quat2vec(q):
@@ -441,7 +440,7 @@ def quat2vec(q):
     # give back as vector
     return ang * v
 
-def cart2vec( vec1, vec2):
+def cart2vec(vec1, vec2):
     """
     given two three point objects vec1 and vec2
     calculates the vector representing the rotation
