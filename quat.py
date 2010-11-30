@@ -318,14 +318,16 @@ def cart2rot(v1, v2):
     (For the coordinate objects we have:
     C2 = MAT * C1.T)
 
+    >>> from numpy import max, abs
+
     >>> vec1 = array([[0.,0,0],[0,0,1],[0,1,0]])
     >>> vec2 = array([[0.,0,0],[1,0,0],[0,1,0]])
     >>> m1 = cart2rot(vec1, vec2)
     >>> m2 = cart2rot(vec1, vec1)
     >>> transform = lambda vec3d: dot(m1, vec3d)
-    >>> (abs(vec2 - array(map(transform, vec1)))).all() < 1e-15
+    >>> max(abs(vec2 - array(map(transform, vec1)))) < 1e-15
     True
-    >>> (abs(m2 - eye(3))).all() < 1e-15
+    >>> max(abs(m2 - eye(3))) < 1e-15
     True
     """
     c1 = vec_to_coord_mat(v1)
@@ -339,32 +341,34 @@ def rot2quat(mat):
     there should be two different quaternions belonging
     to the same matrix, we take the positive one
 
+    >>> from numpy import max, abs
+
     >>> mat1 = eye(3)
-    >>> (abs(mat1 - qrotmat(rot2quat(mat1)))).all() < 1e-12
+    >>> max(abs(mat1 - qrotmat(rot2quat(mat1)))) < 1e-12
     True
 
     >>> psi = pi/2.
     >>> mat2 = array([[ 1., 0., 0.], [0., cos(psi), -sin(psi)], [ 0., sin(psi), cos(psi)]])
-    >>> (abs(mat2 - qrotmat(rot2quat(mat2)))).all() < 1e-12
+    >>> max(abs(mat2 - qrotmat(rot2quat(mat2)))) < 1e-12
     True
 
     >>> mat3 = array([[ 1., 0., 0.], [0., -1., 0.], [ 0., 0., -1.]])
-    >>> (abs(mat3 - qrotmat(rot2quat(mat3)))).all() < 1e-12
+    >>> max(abs(mat3 - qrotmat(rot2quat(mat3)))) < 1e-12
     True
 
     >>> psi = pi - 0.3
     >>> mat4 = array([[ 1., 0., 0.], [0., cos(psi), -sin(psi)], [ 0., sin(psi), cos(psi)]])
-    >>> (abs(mat4 - qrotmat(rot2quat(mat4)))).all() < 1e-12
+    >>> max(abs(mat4 - qrotmat(rot2quat(mat4)))) < 1e-12
     True
 
     >>> psi = pi
     >>> mat5 = array([[ cos(psi), 0., sin(psi)], [0., 1, 0.], [ -sin(psi), 0, cos(psi)]])
-    >>> (abs(mat5 - qrotmat(rot2quat(mat5)))).all() < 1e-12
+    >>> max(abs(mat5 - qrotmat(rot2quat(mat5)))) < 1e-12
     True
 
     >>> ql = array([0,0,0.,1.])
     >>> mat6 = qrotmat(ql)
-    >>> (abs(ql - rot2quat(mat6))).all() < 1e-12
+    >>> max(abs(ql - rot2quat(mat6))) < 1e-12
     True
 
     Code from: Ken Shoemake "Animation rotation with quaternion curves.",
