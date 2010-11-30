@@ -215,23 +215,6 @@ class RotAndTrans(Anchor):
         transform = lambda vec3d: numpy.dot(m1, vec3d)
         assert (abs(rotated - array(map(transform, orig))) < 1e-15).all()
 
-        # old code version, to use exchange best with best1 in setting self._coords
-        def f(i):
-            mat = vec_to_mat(i)
-            transformed = array([numpy.dot(mat, i) for i in orig])
-            v =  (transformed - rotated).flatten()
-            tmp = numpy.sqrt(numpy.dot(v, v))
-            return tmp
-
-        # FIXME: add feature to allow a hint for a starting point for the 
-        # optimisation procedure to find the quaternion. That's what is hard
-        # coded below.
-        old_rot = numpy.array([1.68555226, -0.90792125, -1.4817044])#self._coords[:3].copy()
-        best1, err, _, _, _  = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0, maxiter=2000)
-        #print "HHHHHHHHH rotation mat", best, err
-        #print "HHHHHHHHH rotation mat 2", best1, (best1 - best)/best
-        if err > ftol:
-            raise CoordSysException("Didn't converge in anchor parameterisation, %.20f > %.20f" %(err, ftol))
         self._coords[0:3] = best
         #return self._coords
 
@@ -333,24 +316,6 @@ class RotAndTransLin(RotAndTrans):
         # test if code is correct
         assert (abs(transform - rotated) < 1e-12).all()
 
-        # old code
-        def f(i):
-            j = self.complete_vec(i,free_axis)
-            mat = vec_to_mat(j)
-            transformed = array([numpy.dot(mat, o) for o in orig])
-            v =  (transformed - rotated).flatten()
-            tmp = numpy.dot(v, v)
-            return tmp
-
-        # FIXME: add feature to allow a hint for a starting point for the
-        # optimisation procedure to find the quaternion. That's what is hard
-        # coded below.
-        old_rot = numpy.array([1.68555226, -0.90792125])#self._coords[:2].copy()
-        best1, err, _, _, _  = fmin(f, old_rot, ftol=ftol*0.1, full_output=1, disp=0, maxiter=2000)
-        #print "HHHHHHHHH rotation mat lin", best, err
-        #print "HHHHHHHHH rotation mat lin", best1, (best - best1) /best
-        if err > ftol:
-            raise CoordSysException("Didn't converge in anchor parameterisation, %.20f > %.20f" %(err, ftol))
         self._coords[0:2] = best
         #return self._coords
 
