@@ -80,6 +80,7 @@ Rotmat has also an analytical derivative:
 from numpy import asarray, empty, dot, sqrt, sin, cos, abs, array, eye, diag, zeros
 from numpy import arccos
 from numpy import trace, pi, finfo, cross
+from numpy import max
 
 #FIXME: have a bit more to decide?
 machine_precision = finfo(float).eps * 2
@@ -332,7 +333,7 @@ def cart2rot(v1, v2):
     """
     c1 = vec_to_coord_mat(v1)
     c2 = vec_to_coord_mat(v2)
-    mat = dot(c2, c1)
+    mat = dot(c2.T, c1)
     return mat
 
 def rot2quat(mat):
@@ -460,14 +461,14 @@ def cart2vec( vec1, vec2):
     >>> v = cart2vec(vec1, vec2)
     >>> m1 = rotmat(v)
     >>> transform = lambda vec3d: dot(m1, vec3d)
-    >>> (abs(vec2 - array(map(transform, vec1)))).all() < 1e-15
+    >>> max((abs(vec2 - array(map(transform, vec1))))) < 1e-15
     True
 
     >>> vec3 = array([[0.,0,0],[0,0,1],[0,1,0]])
     >>> v2 = cart2vec(vec1, vec3)
     >>> m2 = rotmat(v2)
     >>> transform = lambda vec3d: dot(m2, vec3d)
-    >>> (abs(vec3 - array(map(transform, vec1)))).all() < 1e-15
+    >>> max(abs(vec3 - array(map(transform, vec1)))) < 1e-15
     True
     """
     return quat2vec(cart2quat(vec1, vec2))
@@ -486,7 +487,7 @@ def cart2veclin(v1, v2):
     >>> v = cart2veclin(vec1, vec2)
     >>> m1 = rotmat(v)
     >>> transform = lambda vec3d: dot(m1, vec3d)
-    >>> (abs(vec2 - array(map(transform, vec1)))).all() < 1e-15
+    >>> max(abs(vec2 - array(map(transform, vec1)))) < 1e-15
     True
 
     >>> vec3 = array([[0.,0,0],[1,0,0]])
@@ -496,31 +497,31 @@ def cart2veclin(v1, v2):
     >>> v = cart2veclin(vec3, vec4)
     >>> m2 = rotmat(v)
     >>> transform = lambda vec3d: dot(m2, vec3d)
-    >>> (abs(vec4 - array(map(transform, vec3)))).all() < 1e-15
+    >>> max(abs(vec4 - array(map(transform, vec3)))) < 1e-15
     True
     >>> vec5 = array([[0.,0,0],[0,0,1]])
-    >>> (abs(vec5 - array(map(transform, vec5)))).all() < 1e-15
+    >>> max(abs(vec5 - array(map(transform, vec5)))) < 1e-15
     True
 
     >>> v = cart2veclin(vec3, vec3)
     WARNING: two objects are alike
     >>> m2 = rotmat(v)
     >>> transform = lambda vec3d: dot(m2, vec3d)
-    >>> (abs(vec3 - array(map(transform, vec3)))).all() < 1e-15
+    >>> max(abs(vec3 - array(map(transform, vec3)))) < 1e-15
     True
 
     >>> v = cart2veclin(vec4, vec4)
     WARNING: two objects are alike
     >>> m2 = rotmat(v)
     >>> transform = lambda vec3d: dot(m2, vec3d)
-    >>> (abs(vec4 - array(map(transform, vec4)))).all() < 1e-15
+    >>> max(abs(vec4 - array(map(transform, vec4)))) < 1e-15
     True
 
     >>> v = cart2veclin(vec5, vec5)
     WARNING: two objects are alike
     >>> m2 = rotmat(v)
     >>> transform = lambda vec3d: dot(m2, vec3d)
-    >>> (abs(vec5 - array(map(transform, vec5)))).all() < 1e-15
+    >>> max(abs(vec5 - array(map(transform, vec5)))) < 1e-15
     True
     """
     assert (v1[0] == v2[0]).all()
@@ -542,8 +543,8 @@ def cart2veclin(v1, v2):
     else:
         n2 = planenormal(vec1)
 
-    vec1[2] = -n2 - v1[0]
-    vec2[2] = -n2 - v2[0]
+    vec1[2] = n2 - v1[0]
+    vec2[2] = n2 - v2[0]
     return quat2vec(cart2quat(vec1, vec2))
 
 
@@ -625,10 +626,10 @@ def vec_to_coord(threepoints):
 
     >>> v_init = array([[0.,0,0],[0,0,1],[0,1,0]])
     >>> vec_to_coord(v_init)
-    (array([ 0.,  0.,  1.]), array([ 0.,  1., -0.]), array([-1.,  0.,  0.]))
+    (array([ 0.,  0.,  1.]), array([-0.,  1., -0.]), array([ 1., -0., -0.]))
     >>> v_init = array([[0.,0,0],[1,0,0],[0,1,0]])
     >>> vec_to_coord(v_init)
-    (array([ 1.,  0.,  0.]), array([-0.,  1.,  0.]), array([ 0., -0.,  1.]))
+    (array([ 1.,  0.,  0.]), array([-0.,  1.,  0.]), array([-0.,  0., -1.]))
     >>> v_init = array([[0.,0,0],[1,2,0],[0.5,1.2,0]])
     >>> vec = vec_to_coord(v_init)
     >>> sqrt(dot(vec[0], vec[0])) - 1 < 10e-10
@@ -636,10 +637,10 @@ def vec_to_coord(threepoints):
     """
     x1 = asarray(threepoints[1] - threepoints[0])
     x1 /= sqrt(dot(x1, x1))
-    z1 = planenormal(threepoints)
+    z1 = -planenormal(threepoints)
     assert abs(dot(z1, z1) -1) < 1e-12
     #FIXME: other order than in rest of code?
-    y1 = cross(z1, x1)
+    y1 = -cross(z1, x1)
     y1 /= sqrt(dot(y1, y1))
 
     return x1, y1, z1
@@ -744,7 +745,7 @@ def test():
     print "Does rotation work?"
     m1 = rotmat(vec_calc)
     transform = lambda vec3d: dot(m1, vec3d)
-    print (abs(v_end - array(map(transform, v_init)))).all() < 1e-15
+    print (abs(v_end - array(map(transform, v_init))) < 1e-15).all()
 
 # "python quat.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
