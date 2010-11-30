@@ -202,9 +202,9 @@ def rotvec(m):
     """
 
     #
-    # cos \phi = ( Tr(m) - 1 ) / 2
+    # Tr(m) = 1 + 2 cos(phi):
     #
-    phi = arccos((m[0, 0] + m[1, 1] + m[2, 2] - 1.0) / 2.0)
+    phi = arccos((trace(m) - 1.0) / 2.0)
 
     #
     # To get axis look at skew-symmetrix matrix (m - m'):
