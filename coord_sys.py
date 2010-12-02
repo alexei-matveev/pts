@@ -1822,6 +1822,65 @@ def mult_vec_of_quad(v1, v2):
     vall = numpy.array([qai/lqaa * ang for qai in qaa])
     return vall
 
+def test_zmat():
+    from aof.zmat import ZMatrix3, ZMat
+    s = "C\nH 1 ch1\nH 1 ch2 2 hch1\nH 1 ch3 2 hch2 3 hchh1\nH 1 ch4 2 hch3 3 -hchh2\n\nch1 1.09\nch2    1.09\nch3    1.09\nch4    1.09\nhch1 109.5\nhch2 109.5\nhch3 109.5\nhchh1  120.\nhchh2  120.\n"
+
+    z = ZMatrix2(s,RotAndTrans(initial=zeros(6)))
+    ints = z.get_internals()
+    carts = z.get_cartesians().flatten()
+    max(abs(carts - z.int2cart(ints).flatten()))
+
+    ints2 = None
+    ints2 = ints + array([1e-4, 0.01, 0.002, 0.0003, 2e-3, 1e-5, 0.1, 0.002, 0.01, 0.01, 0.2, 1e-6, 0.001, 0.3 , 0.1])
+    z.set_internals(ints2)
+    carts2 = z.get_cartesians().flatten()
+    fun = ZMatrix3(z.spec)
+
+    class trans_fun_pr:
+       def __init__(self, fun):
+          self.fun = fun
+
+       def __call__(self, x):
+          return self.fun.fprime(x).T
+
+    ints3 = (ints + ints2) / 2
+    #print "Carts by function ", fun(ints3)
+    #print "Carts by state", z.int2cart(ints3).flatten()
+    #print "Maximum difference in carts", max(abs(fun(ints3) - z.int2cart(ints3).flatten()))
+
+    trans_fpr = trans_fun_pr(fun)
+    int_co = contoco( trans_fpr, ints3, (ints2 - ints))
+
+    (abs(fun(ints3).flatten() - z.int2cart(ints3).flatten())).max()
+    #print "derivatives for rot and trans direct function ", fun.fprime(ints3)[:,-6:]
+    #print "derivatives for rot and trans old function ",z.int2cartprime(ints3).T[:,-6:]
+    derv_num = z.int2cartprime(ints3)
+    print "Maximum difference in derivatives",(abs((fun.fprime(ints3).T - derv_num))).max()
+    ints4 = (ints + ints3) / 2
+    carts3 = z.int2cart(ints3).flatten()
+    int_co_3 = contoco( trans_fpr, ints4, (ints3 - ints))
+
+    int_co_3_2 = contoco( z.int2cartprime, ints4, (ints3 - ints))
+    print "Differences in carts big gap", numpy.dot(carts2 - carts, carts2-carts)
+    print "Differences in carts small gap", numpy.dot(carts3 - carts, carts2-carts)
+    print "compare for derivatives, contra to co"
+    print "direct function, big gap", (numpy.dot(int_co, ints2 - ints) - numpy.dot(carts2 - carts, carts2-carts)).round(7), "is procent", (numpy.dot(int_co, ints2 - ints) - numpy.dot(carts2 - carts, carts2-carts))/ numpy.dot(carts2 - carts, carts2-carts) * 100
+    print "direct function, small gap", (numpy.dot(int_co_3, ints3 - ints) - numpy.dot(carts3 - carts, carts3-carts)).round(7), "is procent", (numpy.dot(int_co_3,ints3-ints) - numpy.dot(carts3 - carts, carts3-carts))/ numpy.dot(carts3-carts,carts3-carts) * 100
+    print "by numerical difference, small gap",  (numpy.dot(int_co_3_2, ints3 - ints) - numpy.dot(carts3 - carts, carts3-carts)).round(7)
+
+    print "maximum difference in ways of getting there", max(abs(int_co_3 - int_co_3_2))
+
+    z.set_internals(ints)
+
+    z = ZMatrix2(s,RotAndTrans(initial=zeros(6)))
+    z.set_var_mask([True] * 12 + [False] * 3)
+    ints = z.get_internals()
+    ints2 = ints + array([1e-4, 0.01, 0.002, 0.0003, 2e-3, 1e-5, 0.1, 0.002, 0.01, 0.01, 0.2, 1e-6])
+    ints3 = (ints + ints2) / 2
+    int_co = contoco( z.int2cartprime, ints3, (ints2 - ints))
+    int_back = cotocon( z.int2cartprime, ints3, int_co)
+    print "Difference transform contra to co and back:", ints2 - ints - int_back
 
 
 # Testing the examples in __doc__strings, execute
@@ -1829,6 +1888,7 @@ def mult_vec_of_quad(v1, v2):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
+    #test_zmat()
 
 # You need to add "set modeline" and eventually "set modelines=5"
 # to your ~/.vimrc for this to take effect.
