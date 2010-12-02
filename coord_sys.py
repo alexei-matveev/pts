@@ -812,6 +812,9 @@ class CoordSys(object):
     def transform_contra_to_co(self, vec, place):
         return contoco(self.int2cartprime, place, vec)
 
+    def transform_co_to_contra(self, vec, place):
+        return cotocon(self.int2cartprime, place, vec)
+
     def __pretty_vec(self, x):
         """Returns a pretty string rep of a (3D) vector."""
         return "%f\t%f\t%f" % (x[0], x[1], x[2])
@@ -1541,6 +1544,16 @@ def contoco(F, pos, vec):
     this function transforms contra in covariant vectors
     """
     B = F(pos)
+    return btb(B, vec)
+
+def cotocon(F, pos, vec):
+    """
+    assuming that F is a function to get the derivatives, transforming vectors
+    of kind vec into cartesians, and that all takes place at position pos,
+    this function transforms co in contravariant vectors
+    """
+    B = numpy.matrix(F(pos))
+    B = numpy.asarray(B.I).T
     return btb(B, vec)
 
 def btb(B, vec):
