@@ -191,7 +191,7 @@ class RotAndTrans(Anchor):
                [ 0.,  0.,  0.],
                [ 0.,  0.,  0.]])
         """
-        from aof.quat import cart2vec
+        from pts.quat import cart2vec
         assert (orig[0] == numpy.zeros(3)).all()
 
         Anchor.set_cartesians(self)
@@ -1285,7 +1285,7 @@ class ZMatrix2(CoordSys):
         >>> z.get_internals().round(3)[:9]
         array([ 1.09 ,  1.09 ,  1.09 ,  1.09 ,  1.911,  1.911,  1.911,  2.094,  2.094])
 
-        >>> from aof.zmat import ZMatrix3, ZMat
+        >>> from pts.zmat import ZMatrix3, ZMat
 
         >>> ints = z.get_internals()
 
@@ -1798,7 +1798,7 @@ def mult_vec_of_quad(v1, v2):
     This is done in quaternion space of Quat (the unitary quaternion) where it is
     a simple multiplication, the result is transformed back in the vector description
     """
-    from aof.quat import Quat
+    from pts.quat import Quat
     v1_ang = sqrt(numpy.dot(v1, v1))
     v2_ang = sqrt(numpy.dot(v2, v2))
     if v1_ang == 0:
@@ -1823,7 +1823,7 @@ def mult_vec_of_quad(v1, v2):
     return vall
 
 def test_zmat():
-    from aof.zmat import ZMatrix3, ZMat
+    from pts.zmat import ZMatrix3, ZMat
     s = "C\nH 1 ch1\nH 1 ch2 2 hch1\nH 1 ch3 2 hch2 3 hchh1\nH 1 ch4 2 hch3 3 -hchh2\n\nch1 1.09\nch2    1.09\nch3    1.09\nch4    1.09\nhch1 109.5\nhch2 109.5\nhch3 109.5\nhchh1  120.\nhchh2  120.\n"
 
     z = ZMatrix2(s,RotAndTrans(initial=zeros(6)))
