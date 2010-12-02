@@ -1292,17 +1292,34 @@ class ZMatrix2(CoordSys):
         >>> carts = z.get_cartesians().flatten()
         >>> max(abs(carts - z.int2cart(ints).flatten()))
         0.0
+
+        A second internal coordinate set, not far from the previous one
         >>> ints2 = None
         >>> ints2 = ints + array([1e-4, 0.01, 0.002, 0.0003, 2e-3, 1e-5, 0.1, 0.002, 0.01, 0.01, 0.2, 1e-6, 0.001, 0.3 , 0.1])
         >>> z.set_internals(ints2)
         >>> carts2 = z.get_cartesians().flatten()
 
+        The midpoint between the two
         >>> ints3 = (ints + ints2) / 2
+
+        The covariant solution to the difference, int * int_co should be near
+        the result from the differences in carts
         >>> int_co_3 = contoco( z.int2cartprime, ints3, (ints2 - ints))
         Average iterations per variable 7.4
+
+        But first check if the co to contra transformer gives back the same
+        contra vector we started with
+        >>> int_co_return = cotocon( z.int2cartprime, ints3, int_co_3)
+        Average iterations per variable 7.4
+        >>> max(abs(int_co_return - ints2 + ints)) < 1e-15
+        True
+
+        Differences between the result in the different coordinate systems,
+        for the difference between the two points
         >>> (numpy.dot(int_co_3, ints3 - ints) - numpy.dot(carts2 - carts, carts2-carts)).round(3)
         -0.318
 
+        Repeat the same with two points nearer than before
         >>> ints4 = (ints + ints3) / 2
         >>> z.set_internals(ints3)
         >>> carts3 = z.get_cartesians().flatten()
