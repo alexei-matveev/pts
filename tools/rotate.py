@@ -49,7 +49,7 @@ import numpy as np
 
 import ase
 
-from pts.coord_sys import vec_to_mat
+from pts.quat import rotmat
 
 # for testing
 big_xyz = array([ 0.0367588 ,  0.00844124,  0.03564942,  1.0701481 ,  0.57181922,
@@ -220,7 +220,7 @@ class Rotate:
         shift = v[:3] # displacement
         imq   = v[3:] # imag_quaternion
 
-        mat = vec_to_mat(imq)
+        mat = rotmat(imq)
 
         g_moved = []
         for g in geom:

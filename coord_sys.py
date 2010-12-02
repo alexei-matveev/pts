@@ -20,6 +20,8 @@ from ase.calculators import SinglePointCalculator
 import common
 import zmat
 
+from quat import rotmat
+
 class ccsspec():
     def __init__(self, parts, carts=None, mask=None):
         self.parts = parts
@@ -47,51 +49,6 @@ zmt = ZMatrix2(H2O, anchor=anchor)
 ccs = ccsspec([xyz, zmt])
 
 """
-
-def vec_to_mat(v):
-    """Generates rotation matrix based on vector v, whose length specifies 
-    the rotation angle and whose direction specifies an axis about which to
-    rotate."""
-    from quat import rotmat
-    return rotmat(v)
-   #v = numpy.array(v)
-   #assert len(v) == 3
-   #phi = numpy.linalg.norm(v)
-   #a = numpy.cos(phi/2)
-   #if phi < 0.02:
-   #    #print "Used Taylor series approximation, phi =", phi
-   #    """
-   #    q2 = sin(phi/2) * v / phi
-   #       = sin(phi/2) / (phi/2) * v/2
-   #       = sin(x)/x + v/2 for x = phi/2
-
-   #    Using a taylor series for the first term...
-
-   #    (%i1) taylor(sin(x)/x, x, 0, 8);
-   #    >                           2    4      6       8
-   #    >                          x    x      x       x
-   #    > (%o1)/T/             1 - -- + --- - ---- + ------ + . . .
-   #    >                          6    120   5040   362880
-
-   #    Below phi/2 < 0.01, terms greater than x**8 contribute less than
-   #    1e-16 and so are unimportant for double precision arithmetic.
-
-   #    """
-   #    x = phi / 2
-   #    taylor_approx = 1 - x**2/6. + x**4/120. - x**6/5040. + x**8/362880.
-   #    q2 = v/2 * taylor_approx
-
-   #else:
-   #    q2 = numpy.sin(phi/2) * v / phi
-
-   #b,c,d = q2
-
-   #m = numpy.array([[ a*a + b*b - c*c - d*d , 2*b*c + 2*a*d,         2*b*d - 2*a*c  ],
-   #                 [ 2*b*c - 2*a*d         , a*a - b*b + c*c - d*d, 2*c*d + 2*a*b  ],
-   #                 [ 2*b*d + 2*a*c         , 2*c*d - 2*a*b        , a*a - b*b - c*c + d*d  ]])
-
-   #return m
-
 
 class Anchor(object):
     """Abstract object to support positioning of a Internal Coordinates object 
@@ -211,7 +168,7 @@ class RotAndTrans(Anchor):
 
         # verify that there has been the right result given back
         # may be omitted after code is supposed to be save
-        m1 = vec_to_mat(best)
+        m1 = rotmat(best)
         transform = lambda vec3d: numpy.dot(m1, vec3d)
         assert (abs(rotated - array(map(transform, orig))) < 1e-15).all()
 
@@ -233,7 +190,7 @@ class RotAndTrans(Anchor):
         trans_vec  = vec[3:]
 
         # TODO: need to normalise?
-        rot_mat = vec_to_mat(rot_vec)
+        rot_mat = rotmat(rot_vec)
 
         transform = lambda vec3d: numpy.dot(rot_mat, vec3d) + trans_vec
         res = numpy.array(map(transform, carts))
@@ -311,7 +268,7 @@ class RotAndTransLin(RotAndTrans):
         best = cart2veclin(orig, rotated)
         best = self.remove_component( best, free_axis)
         j = self.complete_vec(best,free_axis)
-        mat = vec_to_mat(j)
+        mat = rotmat(j)
         transform = array([numpy.dot(mat,o) for o in orig])
         # test if code is correct
         assert (abs(transform - rotated) < 1e-12).all()
@@ -367,7 +324,7 @@ class RotAndTransLin(RotAndTrans):
         trans_vec  = vec[2:]
 
         # TODO: need to normalise?
-        rot_mat = vec_to_mat(rot_vec)
+        rot_mat = rotmat(rot_vec)
 
         transform = lambda vec3d: numpy.dot(rot_mat, vec3d) + trans_vec
         res = numpy.array(map(transform, carts))
@@ -940,7 +897,7 @@ class ComplexCoordSys(CoordSys):
 
     Get it's carts and transform them...
     >>> xyz = ccs.get_cartesians() + 10.
-    >>> mat = vec_to_mat([3,2,1])
+    >>> mat = rotmat([3,2,1])
     >>> xyz = numpy.array([numpy.dot(mat, c) for c in xyz])
 
     Re-generate internals from those carts
@@ -1369,7 +1326,7 @@ class ZMatrix2(CoordSys):
         >>> ints_old = ints.copy()
         >>> z.set_internals(ints)
         >>> cs = z.get_cartesians() + 1000
-        >>> mat = vec_to_mat([3,2,1])
+        >>> mat = rotmat([3,2,1])
         >>> cs = numpy.array([numpy.dot(mat, i) for i in cs])
         >>> z.set_cartesians(cs)
         >>> res = abs(z.get_internals() - ints_old).round(2)
@@ -1773,8 +1730,8 @@ def enforce_short_way(zmti):
        assert(ic1[0] == can2[icm][0])
        assert(ic1[1] == can2[icm][1]).all()
        b_back.remove(ic1[0])
-       mat1 = vec_to_mat(vector_completation(ic1[0], v1, ic1[1]))
-       mat2 = vec_to_mat(vector_completation(can2[icm][0], v2, can2[icm][1]))
+       mat1 = rotmat(vector_completation(ic1[0], v1, ic1[1]))
+       mat2 = rotmat(vector_completation(can2[icm][0], v2, can2[icm][1]))
        rat.set_cartesians(numpy.dot(mat1, ic1[1]))
        or1 = rat._coords[0:3]
        rat.set_cartesians(numpy.dot(mat2, ic1[1]), numpy.dot(mat1, ic1[1]))

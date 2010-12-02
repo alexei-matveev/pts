@@ -84,7 +84,7 @@ from numpy import max
 from numpy import outer, hstack, vstack
 from func import Func
 
-__all__ = ["r3", "reper"]
+__all__ = ["rotmat", "r3", "reper"]
 
 #FIXME: have a bit more to decide?
 machine_precision = finfo(float).eps * 2
