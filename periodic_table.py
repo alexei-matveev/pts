@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Contains atomic data that can be inquired by atomic number:
 

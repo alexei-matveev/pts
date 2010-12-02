@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 We will base the chain of states on LJ Ar4 cluster
 as an exampel here:

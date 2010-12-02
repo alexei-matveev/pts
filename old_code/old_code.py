@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
     def simple_int(self, x0, dx_on_dt, trust_rad, verbose=False):
         

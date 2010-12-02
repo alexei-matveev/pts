@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 We will base reaction coordinate definiiton on Ar4 cluster
 as an example here:

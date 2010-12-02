@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 __all__ = ["gxread", "gxwrite", "is_dummy"]
 

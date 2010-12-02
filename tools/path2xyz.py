@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 This tools takes a path.pickle file
 reads it in and gives a string of

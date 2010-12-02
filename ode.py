@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Runge-Kutta procedures adapted from cosopt/quadratic_string.py
 

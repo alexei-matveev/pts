@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 This script holds the default parameters for the path searching algorithm
 thus NEB and the different string

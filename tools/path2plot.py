@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 This tools takes  path.pickle files
 reads it in and gives a picture back of some preselected internal coordinates

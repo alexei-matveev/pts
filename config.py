@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 DEFAULT_TOPOLOGY = [1]
 DEFAULT_PMIN = 1

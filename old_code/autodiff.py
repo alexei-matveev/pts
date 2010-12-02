@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import math    as M # works only with floats
 import Numeric as O # Old predecessor of NumPy, deprecated, but recommended by Scientific.*

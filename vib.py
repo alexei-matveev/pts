@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
   Module for calculating the frequencies of a system. The main routine is
 

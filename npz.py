@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 Motivation: Tensor (aka Kronecker, aka outer) product works like this
 
