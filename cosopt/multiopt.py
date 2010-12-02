@@ -307,7 +307,7 @@ class MultiOpt(Optimizer, ObjLog):
         self.bead_opts = [MiniBFGS(d, H0=np.eye(d)*alpha, id=i) for i in range(self.bs)]
         self.slog("Optimiser (MultiOpt): initial step scale factors", [m._step_scale for m in self.bead_opts], when='always')
 
-        if not backtracking is None:
+        if backtracking is not None:
             print "WARNING: backtracking does not exist for multiopt optimiser. Keyword ignored."
 
 
