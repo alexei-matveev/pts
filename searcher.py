@@ -73,26 +73,18 @@ def masked_assign(mask, dst, src):
     >>> x = orig.copy()
     >>> y = array([5,4,3,2]).reshape(2,-1)
     >>> x = masked_assign(m, x, y)
-    [[0 1]
-     [2 3]]
-    [[5 4]
-     [3 2]]
-    [True, True]
     >>> (x == y).all()
     True
     >>> m = [False, False]
     >>> x = orig.copy()
     >>> (x != masked_assign(m, x, y)).all()
-    True
+    False
     """
 
     if len(dst) != len(src):
         return src.copy()
 
     dstc = dst.copy()
-    print dstc
-    print src
-    print mask
     assert len(dstc) == len(src), "%d != %d" % (len(dstc), len(src))
     assert mask is None or len(mask) == len(dstc)
 
@@ -1520,15 +1512,6 @@ class GrowingString(ReactionPathway):
     >>> s = GrowingString(path, qc, beads_count=4, growing=False)
     Starting slow function: _get_total_str_len()
     Finishing slow function: _get_total_str_len()
-    [[ 0.   0. ]
-     [ 0.2  0.2]
-     [ 0.7  0.7]
-     [ 1.   1. ]]
-    [[ 0.          0.        ]
-     [ 0.32149034  0.32149034]
-     [ 0.660736    0.660736  ]
-     [ 1.          1.        ]]
-    None
     >>> s.state_vec.round(1)
     array([[ 0. ,  0. ],
            [ 0.3,  0.3],

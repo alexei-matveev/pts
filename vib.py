@@ -126,7 +126,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
       3       no          0.0047            37.51
       4       no          0.0000             0.00
       5       no          0.0000             0.00
-      6       yes         0.0000             0.00
+      6       no          0.0000             0.00
     ----------------------------------------------------
 """
 from numpy import array, asarray, dot, zeros, max, abs, eye, diag, sqrt
