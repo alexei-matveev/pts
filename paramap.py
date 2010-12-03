@@ -37,9 +37,9 @@
        ...     def __init__(self):
        ...        pass
        ...     def perform(self, x):
-       ...         system("echo $PTS_SCHED_JOB_HOST")
-       ...         system("echo $PTS_SCHED_JOB_NPROCS")
-       ...         system("echo $PTS_SCHED_JOB_CPUS")
+       ...         #system("echo $PTS_SCHED_JOB_HOST")
+       ...         #system("echo $PTS_SCHED_JOB_NPROCS")
+       ...         #system("echo $PTS_SCHED_JOB_CPUS")
        ...         return g1(x)
 
    Arguments for the test functions g1, g2:
