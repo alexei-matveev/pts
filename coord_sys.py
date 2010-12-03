@@ -718,17 +718,6 @@ class CoordSys(object):
     def native_str(self):
         pass
 
-    def int2cartprime(self, x):
-        """"
-        returns the matrix o fderivatives dCi/DIj from the ith cartesian coordinate
-        after jth internal coordinate.
-        FIXME: This should be possible without need of numerical differences of the
-        get_transform_matrix algorithm
-        """
-        mat,__ = self.get_transform_matrix(x)
-        return mat
-
-
     def get_transform_matrix(self, x):
         """Returns the matrix of derivatives dCi/dIj where Ci is the ith cartesian coordinate
         and Ij is the jth internal coordinate, and the error."""
@@ -750,27 +739,6 @@ class CoordSys(object):
         print "m",m
         print "m2",m"""
         return mat, err
-
-    def int2cart2(self, x):
-        """Based on a vector x of new internal coordinates, returns a 
-        vector of cartesian coordinates. The internal dictionary of coordinates 
-        is updated."""
-
-        with self._state_lock:
-            old_x = self._mask(self._coords)
-
-            self.set_internals(x)
-            y = self.get_cartesians()
-
-            self.set_internals(old_x)
-
-            return y.flatten()
-
-    def transform_contra_to_co(self, vec, place):
-        return contoco(self.int2cartprime, place, vec)
-
-    def transform_co_to_contra(self, vec, place):
-        return cotocon(self.int2cartprime, place, vec)
 
     def __pretty_vec(self, x):
         """Returns a pretty string rep of a (3D) vector."""
@@ -1505,10 +1473,12 @@ class ZMatrix2(CoordSys):
         state of this class
         """
         all_internals = self._demask(new_internals)
-        xyz_coords =  self._zmt.f(all_internals[:-self._anchor.dims])
+        coords_coords = all_internals[:self._dims]
+        coords_anchors = all_internals[self._dims:]
+        xyz_coords =  self._zmt.f(coords_coords)
         #xyz_coords =  self._zmt.f(all_internals)
         if self._anchor != None:
-            xyz_coords = self._anchor.transformer(xyz_coords, all_internals[-self._anchor.dims:])
+            xyz_coords = self._anchor.transformer(xyz_coords, coords_anchors)
         return xyz_coords
 
 def contoco(F, pos, vec):
