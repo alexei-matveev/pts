@@ -199,6 +199,18 @@ class ReactionPathway(object):
         self.arc_record = None
         self.output_level = output_level
 
+        # there is need for an function to transform contra- to covariant vector
+        # and one to transform co- in contravariant ones
+        # as the informations on how the coordinates are to be interpreted should
+        # be somehow inside the qc_driver (who gets forces and energies which belongs
+        # to the geometries) we inherit this functions from there, the functions are
+        # stored in a metrix object, which may be able to do some more metric
+        # related stuff later on:
+        # thus be aware that metric is a class
+        self.metric = self.qc_driver.metric
+
+
+
     def initialise(self):
         beads_count = self.beads_count
 
@@ -700,10 +712,11 @@ class ReactionPathway(object):
             self.bead_pes_gradients[i] = g.copy()
 
             t = self.tangents[i]
-            perp_force, para_force = project_out(t, -g)
-
-            self.perp_bead_forces[i] = perp_force
+            t_co = self.metric.lower(t, self.state_vec[i])
+            para_force = dot(t, -g)
+            perp_force = -g - para_force * t_co
             self.para_bead_forces[i] = para_force
+            self.perp_bead_forces[i] = perp_force
 
         self.post_obj_func(grad)
 
@@ -717,7 +730,9 @@ class ReactionPathway(object):
 
         for i in range(N):
             t = self.tangents[i]
-            v[i], _ = project_out(t, v[i])
+            t_co = self.metric.lower(t, self.state_vec[i])
+            v[i] = v[i] - dot(t, v[i]) * t_co
+            #v[i], _ = project_out(t, v[i])
 
         return v
        
@@ -2027,15 +2042,16 @@ class GrowingString(ReactionPathway):
 #        self._path_rep.generate_beads_exact()
     #    plot2D(self._path_rep)
 
-def project_out(component_to_remove, vector):
-    """Projects the component of 'vector' that lies along 'component_to_remove'
-    out of 'vector' and returns it."""
-    projection = dot(component_to_remove, vector)
-    removed = projection * component_to_remove
-    output = vector - removed
-    return output, projection
-
-
+#
+# ### This seems to be not used any more 3.12.2010
+#
+#def project_out(component_to_remove, vector):
+#   """Projects the component of 'vector' that lies along 'component_to_remove'
+#   out of 'vector' and returns it."""
+#   projection = dot(component_to_remove, vector)
+#   removed = projection * component_to_remove
+#   output = vector - removed
+#   return output, projection
 
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:

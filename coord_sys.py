@@ -1157,7 +1157,7 @@ class XYZ(CoordSys):
         This routine is for the case, where the internal coordinates are also Cartesian
         """
         all_internals = self._demask(new_internals)
-        return all_internals
+        return deepcopy(all_internals)
 
 
     @staticmethod
@@ -1217,41 +1217,6 @@ class ZMatrix2(CoordSys):
         >>> carts = z.get_cartesians().flatten()
         >>> max(abs(carts - z.int2cart(ints).flatten()))
         0.0
-
-        A second internal coordinate set, not far from the previous one
-        >>> ints2 = None
-        >>> ints2 = ints + array([1e-4, 0.01, 0.002, 0.0003, 2e-3, 1e-5, 0.1, 0.002, 0.01, 0.01, 0.2, 1e-6, 0.001, 0.3 , 0.1])
-        >>> z.set_internals(ints2)
-        >>> carts2 = z.get_cartesians().flatten()
-
-        The midpoint between the two
-        >>> ints3 = (ints + ints2) / 2
-
-        The covariant solution to the difference, int * int_co should be near
-        the result from the differences in carts
-        >>> int_co_3 = contoco( z.int2cartprime, ints3, (ints2 - ints))
-        Average iterations per variable 7.4
-
-        But first check if the co to contra transformer gives back the same
-        contra vector we started with
-        >>> int_co_return = cotocon( z.int2cartprime, ints3, int_co_3)
-        Average iterations per variable 7.4
-        >>> max(abs(int_co_return - ints2 + ints)) < 1e-15
-        True
-
-        Differences between the result in the different coordinate systems,
-        for the difference between the two points
-        >>> (numpy.dot(int_co_3, ints3 - ints) - numpy.dot(carts2 - carts, carts2-carts)).round(3)
-        -0.318
-
-        Repeat the same with two points nearer than before
-        >>> ints4 = (ints + ints3) / 2
-        >>> z.set_internals(ints3)
-        >>> carts3 = z.get_cartesians().flatten()
-        >>> int_co_3_2 = contoco( z.int2cartprime, ints4, (ints3 - ints))
-        Average iterations per variable 7.4
-        >>> (numpy.dot(int_co_3_2, ints3 - ints) - numpy.dot(carts3 - carts, carts3-carts)).round(7)
-        4.07e-05
 
         >>> z.set_internals(ints)
 
@@ -1479,33 +1444,7 @@ class ZMatrix2(CoordSys):
         #xyz_coords =  self._zmt.f(all_internals)
         if self._anchor != None:
             xyz_coords = self._anchor.transformer(xyz_coords, coords_anchors)
-        return xyz_coords
-
-def contoco(F, pos, vec):
-    """
-    assuming that F is a function to get the derivatives, transforming vectors
-    of kind vec into cartesians, and that all takes place at position pos,
-    this function transforms contra in covariant vectors
-    """
-    B = F(pos)
-    return btb(B, vec)
-
-def cotocon(F, pos, vec):
-    """
-    assuming that F is a function to get the derivatives, transforming vectors
-    of kind vec into cartesians, and that all takes place at position pos,
-    this function transforms co in contravariant vectors
-    """
-    B = numpy.matrix(F(pos))
-    B = numpy.asarray(B.I).T
-    return btb(B, vec)
-
-def btb(B, vec):
-    """
-    Returns the product B^T B vec
-    """
-    return numpy.dot(B, numpy.dot(B.T, vec))
-    #return numpy.dot(B.T, numpy.dot(B, vec))
+        return deepcopy(xyz_coords)
 
 def fake_xyz_string(ase_atoms, start = None ):
     """

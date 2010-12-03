@@ -16,6 +16,7 @@ import path
 
 import numpy
 from pts.coord_sys import enforce_short_way
+from pts.metric import Metric
 
 import pts.common as common
 import pts.coord_sys as csys
@@ -278,6 +279,14 @@ class MolInterface:
             self.pre_calc_function = pre_calc_function
 
         self.mol = mols[0]
+
+        #We need an object for changing the metric. Lateron we want to distinguish between
+        # contra- and covariant vectors, therefore we need some way to change them
+        # the function given as argument is used to transform from whatever coordinates
+        # we are dealing with to Cartesian ones, where changing between contra- and covaraint
+        # vectors is straight forward
+        self.metric = Metric(self.mol.int2cart)
+
 
         if cell != None:
             self.mol.set_cell(cell)

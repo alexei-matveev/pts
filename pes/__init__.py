@@ -6,6 +6,7 @@ import numpy as np
 import mueller_brown as mb
 from plot import Plot2D
 import pts
+from copy import deepcopy
 
 class QCDriver:
     def __init__(self, dimension):
@@ -75,6 +76,11 @@ class GaussianPES():
             used in testing to simulate more cpu intensive jobs
         """
         self.fake_delay = fake_delay
+        # we need an metric object, this one should
+        # lower and raise indices without changing anything
+        def identity(x):
+            return deepcopy(x)
+        self.metric = pts.metric.Metric(identity)
 
     def __str__(self):
         return "GaussianPES"
