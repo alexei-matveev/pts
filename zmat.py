@@ -669,24 +669,47 @@ class RT(Func):
         return X, (XV, XW, XT)
 
 class ZMatrix3(Func):
+    """
+    Creates an object for calculating cartesian coordinates and their derivatives
+    to given internal coordinates.
+    Needs a zmatrix object by initalising to know how the internal coordinates are
+    to be used
+
+    the last six coordinates are suppposed to be related to the global orientation of
+    the objects, thus the 6th to 3th last for the rotation, the last three for the
+    translation of the complete connnected cartesian objects
+    """
     def __init__(self, zm, fixed = None):
         self.rt = RT(ZMat(zm, fixed = fixed))
 
     def taylor(self, y):
+        # y = [v, w, t]
+        # w is global orientation (quaternion expressed as vector)
+        # t is global translation
+        # both w and t have three elements
         v = y[:-6]
         w = y[-6:-3]
         t = y[-3:]
 
+        # rt needs zmatrix coordinates, rotation and translation separate
         x, (xv, xw, xt) = self.rt.taylor(v, w, t)
 
         dx = zeros((len(x[:,0]), 3, len(y)))
 
+        # got the derivatives separate for v, w,t
+        # here put them into one object
         dx[:,:,:-6] = xv
         dx[:,:,-6:-3] = xw
         dx[:,:,-3:] = xt
 
+        # give back x as a 1-dimensional array (rt gave
+        # back as x, y,z compontent for each "atom"
+        # change the derivatives accordingly
         x.shape = (-1)
         dx.shape = (-1, len(y))
+        # (-1 means that in this direction the size should be made
+        # fitting to the other specifications (so that the complete
+        # array could be transformed))
 
         return x, dx
 
