@@ -14,13 +14,13 @@ def disp_step(dr, f):
 
     return 'x.f = %.4e, norm(x) = %.4e, max(x) = %.4e' % (dr_f, dr_norm, dr_max)
 
-class MiniBFGS(Func, ObjLog):
+class MiniBFGS(ObjLog):
     """
     1-D Parabola, initial hessian perfect
         >>> bfgs = MiniBFGS(1, np.eye(1) * 2)
         >>> e, g = lambda x: x**2, lambda x: 2*x
         >>> x0 = np.array([1.0])
-        >>> x0 + bfgs(e(x0), g(x0), x0)
+        >>> x0 + bfgs.step(e(x0), g(x0), x0)
         array([ 0.])
 
     2-D parabola, initial hessian perfect
@@ -28,7 +28,7 @@ class MiniBFGS(Func, ObjLog):
         >>> g = lambda x: np.array((2*x[0], 2*x[1]))
         >>> e = lambda x: (x**2).sum()
         >>> x0 = np.array([1.0, -1.0])
-        >>> x0 + bfgs(e(x0), g(x0), x0)
+        >>> x0 + bfgs.step(e(x0), g(x0), x0)
         array([ 0.,  0.])
 
     1-D parabola, initial hessian half what ti should be
@@ -36,8 +36,8 @@ class MiniBFGS(Func, ObjLog):
         >>> f = lambda x: 2*x
         >>> e = lambda x: x**2
         >>> x = np.array([1.0])
-        >>> x = x + bfgs(e(x), f(x), x)
-        >>> x = x + bfgs(e(x), f(x), x)
+        >>> x = x + bfgs.step(e(x), f(x), x)
+        >>> x = x + bfgs.step(e(x), f(x), x)
         >>> bfgs.H
         array([[ 2.]])
         >>> x
@@ -48,8 +48,8 @@ class MiniBFGS(Func, ObjLog):
         >>> f = lambda x: np.array((2*x[0], 2*x[1]))
         >>> e = lambda x: (x**2).sum()
         >>> x = np.array([1.0, -1.0])
-        >>> x = x + bfgs(e(x), f(x), x)
-        >>> x = x + bfgs(e(x), f(x), x)
+        >>> x = x + bfgs.step(e(x), f(x), x)
+        >>> x = x + bfgs.step(e(x), f(x), x)
         >>> bfgs.H
         array([[ 1.5, -0.5],
                [-0.5,  1.5]])
@@ -57,7 +57,7 @@ class MiniBFGS(Func, ObjLog):
    After two steps reaches minimum.
         >>> x
         np.array([ 0.,  0.])
-        >>> x + bfgs(e(x), f(x), x)
+        >>> x + bfgs.step(e(x), f(x), x)
         np.array([ 0.,  0.])
         >>> bfgs.H
         array([[ 1.5, -0.5],
@@ -196,7 +196,7 @@ class MiniBFGS(Func, ObjLog):
 
         self._its += 1
        
-    def f(self, energy, grad, pos, t=None, remove_neg_modes=True):
+    def step(self, energy, grad, pos, t=None, remove_neg_modes=True):
         """Returns a step direction by updating the Hessian (BFGS) calculating a Quas-Newton step."""
 
         self._update(energy, grad, pos)
@@ -331,7 +331,7 @@ class MultiOpt(Optimizer, ObjLog):
         g.shape = (bs, -1)
 
         # get initial direction from per-bead optimisers
-        dr_raw = np.array([self.bead_opts[i](e[i], g[i], r[i], t=ts[i]) for i in range(bs)])
+        dr_raw = np.array([self.bead_opts[i].step(e[i], g[i], r[i], t=ts[i]) for i in range(bs)])
         self.slog("DR_raw", dr_raw.reshape((bs,-1)))
 
 
