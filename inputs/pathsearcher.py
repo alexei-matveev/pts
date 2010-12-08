@@ -596,6 +596,7 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
         # the shortest way has to be selected, if there are several (seen on
         # dihedrals and quaternions)
         enforce_short_way(init_ls)
+        [ccs.set_var_mask(params["mask"]) for ccs in init_ls]
         init_path = asarray([ccs.get_internals() for ccs in init_ls])
         has_initpath = True
 
