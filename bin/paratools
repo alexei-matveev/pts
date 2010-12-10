@@ -11,6 +11,9 @@ where CMD is one of the following:
     frequencies         Compute frequencies by numerical
                         differentiation of forces
 
+    minimize            minimizes the geometry, default is
+                        by BFGS
+
     neb                 Nudged Elastic Band calculation
     string              String optimization, similar to NEB
     growingstring
@@ -27,6 +30,7 @@ Examples:
 Search transition path between A and B using default VASP settings.
 """
 import sys
+from ase.optimize import *  # to recognise the optimizers lateron
 
 def main(argv):
     """Subcommand dispatcher, depending on argv[0] call subcommand
@@ -50,6 +54,10 @@ def main(argv):
 
         # print "pts: call single_point(", argv[1:], ")"
         single_point(argv)
+
+    if cmd == "minimize":
+        valid_cmd = True
+        minimize(argv[1:])
 
     if cmd in ("string", "neb", "growingstring", "searchingstring"):
         valid_cmd = True
@@ -133,6 +141,103 @@ def single_point(argv):
             # print results to stdout
             print f
             print "" # separate blocks by a new line
+
+def minimize(argv):
+    """
+    Usage:
+        minimize --calculator <calculator file> <geometry file 1>
+
+    Gives back the output of the minimizer and the last geometry.
+
+    accepts also the options:
+        --maxit <n>: runs maximal n iterations (default is 100)
+        --fmax  <fm>: is converged if max(f_on_atom) < fmax
+        --optimizer <opt>: uses opt for optimization, opt can be any of the optimizers
+                           specified by ASE, like LBGFS, BFGS, FIRE, GxOptimizer
+                           default is BFGS
+                           take care that GxOptimizer needs additional input files
+        --format <format>: uses format as input and output format for the geometry. This way the name
+                           of the input file can be arbitrary, else ASE tries to identify the format by
+                           the name. In this way the output geometry will be written into the file
+                           output_geometry
+        --atommask <mask> : only atoms set True in mask are optimized. This is done by reseting steps
+                            and adjusting forces, thus not by optimizing only in a subspace.
+                            Note that in most of the other routines masks are used to fix the variables,
+                            while in this context the atoms are fixed (Thus only one flag for each atom
+                            despite 3 in the other case)
+    """
+    from pts.cmdline import get_options, get_calculator, get_mask
+    from ase.io import read, write
+    from ase.constraints import FixAtoms
+
+    if "--help" in argv:
+        print minimize.__doc__
+        sys.exit()
+
+
+    opts, args = get_options(argv, long_options=["calculator=","atomsmask=", "optimizer=", "maxit=", "fmax=", "format="])
+
+    if len(args) != 1:
+        print >> sys.stderr, "There is need of exactly one geometry file"
+        print >> sys.stderr, minimize.__doc__
+        sys.exit(1)
+
+    # options default values, only calculator has to be overwritten
+    mask = None
+    maxit = 100
+    fmax=0.05
+    format = None
+    optimizer = BFGS
+    calculator = None
+
+    for opt, value in opts:
+        if opt == "--calculator":
+            calculator = get_calculator(value)
+        elif opt == "--maxit":
+            maxit = int(value)
+        elif opt == "--fmax":
+            fmax = float(value)
+        elif opt == "--optimizer":
+            optimizer = eval("%s" % (value))
+        elif opt == "--format":
+            format = value
+        elif opt == "--atomsmask":
+            print "The following atoms were fixed"
+            mask = get_mask(value)
+
+    # this option has to be given!!
+    assert calculator != None
+
+    # if a special output is given, use it, else rely on
+    # ASE to find it for itself. In principle format = None
+    # is also the default case of ASE, thus one would be able
+    # to forward it rigthaway. But in case ASE will ever change this
+    # we select here explicitly
+    if format == None:
+        atoms = read(args[0])
+    else:
+        atoms = read(args[0], format = format)
+
+    # so far only the FixAtoms constraint via a mask is an allowed
+    # constraint, be aware that this constraint only works with reseting
+    # the variables after an update step
+    if mask != None:
+       constr = FixAtoms(mask = mask)
+       atoms.set_constraint(constr)
+
+    atoms.set_calculator(calculator)
+
+    # the optimizer, setup and run
+    dyn = optimizer(atoms)
+    dyn.run(fmax = fmax, steps = maxit)
+
+    # for format see as above, here the standard is to
+    # standard output
+    if format == None:
+        atoms.write("-")
+    else:
+        atoms.write("output_geometry", format = format)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
