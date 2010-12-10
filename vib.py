@@ -253,7 +253,7 @@ def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, give_ou
     # for the mode vectors the mass (not included in the direct output_
     # is needed
     if VERBOSE or give_output == 2:
-        output(freqs, modes, mass)
+        output(freqs, modes, mass, mask)
     elif give_output == 1:
         output(freqs)
 
@@ -323,7 +323,7 @@ def cm(w):
 
     return eV(w) * cm1
 
-def output(freqs, eigvectors=None, mass=None):
+def output(freqs, eigvectors=None, mass=None, mask=None):
     # scale eigenvalues to different units:
     modeenerg = eV(freqs)
     modeincm = cm(freqs)
@@ -361,6 +361,15 @@ def output(freqs, eigvectors=None, mass=None):
              write("%3d :    " % (i+1)  )
              ek =  ev *  dot(mass, ev.T)
              ek = asarray(ek)
+             if mask != None:
+                ek2 = zeros(len(mask))
+                j = 0
+                for i, flag in enumerate(mask):
+                    if flag:
+                       ek2[i] = ek[j]
+                       j += 1
+                assert(j == len(ek))
+                ek = ek2
              ek.shape = (-1, 3)
              for ek_1 in ek:
                  eks = sum(ek_1)
