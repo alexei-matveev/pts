@@ -1,15 +1,72 @@
 from func import NumDiff
 from numpy import dot, asarray, matrix, size
+from numpy import sqrt
 from numpy.linalg import solve
+from copy import deepcopy
 
-class Metric:
+class Default:
+    """
+    Includes metrix relevant functions, like for
+    transforming contra- and covariant vectors into
+    each other
+
+    This variant supposes that contra- and covariant vectors
+    are the same
+
+    Use a real function:
+    >>> from quat import r3
+    >>> met = Default(r3)
+    >>> from numpy import pi
+
+    >>> x_r3 = asarray([8., pi/2. - 0.3, 0.2])
+
+    >>> f_con = asarray([0.0002, 0.001, 0.001])
+
+    First transformation
+    >>> f_co = met.lower(f_con, x_r3)
+
+    Verify: this metric changes nothing:
+    >>> max(abs(f_con - f_co)) < 1e-15
+    True
+
+    Verify: this metric changes nothing:
+    >>> max(abs(f_con - met.raises(f_co, x_r3))) < 1e-15
+    True
+    """
+    def __init__(self, fun):
+        """
+        normally needs a function with a fprime function
+        in this special case it is only asked for it because
+        of consistency
+        """
+        pass
+
+    def lower(self, vec, place):
+        return deepcopy(vec)
+
+    def raises(self, vec, place):
+        return deepcopy(vec)
+
+    def norm_up(self, vec, place):
+        vec_con = deepcopy(vec)
+        vec_co = self.lower(vec_con, place)
+        return sqrt(dot(vec_con, vec_co))
+
+    def norm_down(self, vec, place):
+        vec_co = deepcopy(vec)
+        vec_con = self.raises(vec_co, place)
+        return sqrt(dot(vec_con, vec_co))
+
+    def version(self):
+        print "Metric: Working with Metric direct internals (Default)"
+
+class Metric(Default):
     """
     Includes metrix relevant functions, like for
     transforming contra- and covariant vectors into
     each other
 
     >>> from numpy import sin, cos, pi
-    >>> from copy import deepcopy
 
     First test that a lowered raised indice is the same is
     a not transformed one:
@@ -70,6 +127,14 @@ class Metric:
 
     >>> abs(dot(f_con, f_co) - dot(r3(x_r3)-r3(x_r3_e), r3(x_r3)-r3(x_r3_e))) < 1e-6
     True
+
+    Use norm function of metric (attention, they give back the sqrt)
+
+    >>> abs(met.norm_up(f_con, x_r3) - sqrt(dot(r3(x_r3)-r3(x_r3_e), r3(x_r3)-r3(x_r3_e)))) < 1e-6
+    True
+
+    >>> abs(met.norm_down(f_co, x_r3) - sqrt(dot(r3(x_r3)-r3(x_r3_e), r3(x_r3)-r3(x_r3_e)))) < 1e-6
+    True
     """
     def __init__(self, fun):
         """
@@ -95,6 +160,10 @@ class Metric:
 
     def raises(self, vec, place):
         return asarray(cotocon(self.__fprime_as_matrix, place, vec))
+
+    def version(self):
+        print "Metric: Working with Metric Cartesians (Metric)"
+
 
 
 def contoco(F, pos, vec):
