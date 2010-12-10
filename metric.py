@@ -165,6 +165,13 @@ class Metric(Default):
         print "Metric: Working with Metric Cartesians (Metric)"
 
 
+class No_metric():
+    def __init__(self, fun):
+        pass
+
+    def version(self):
+        print "Metric: No metric set! Please initalize a valid metric before using it"
+        print "This metric does not provide any other functionalities"
 """
 The chosen metric, available are:
    * Default, for which contra- and covariant vectors are the same
@@ -183,7 +190,7 @@ but use for example
  co_vec = mt.lower(con_vec)
 """
 global metric
-metric = None
+metric = No_metric
 
 def setup_metric(F):
      """
