@@ -165,6 +165,38 @@ class Metric(Default):
         print "Metric: Working with Metric Cartesians (Metric)"
 
 
+"""
+The chosen metric, available are:
+   * Default, for which contra- and covariant vectors are the same
+   * and Metric, using a Cartesian metric
+
+Use metric.version() to find out which one is set currently.
+Store and initalize the choosen metric in metric
+Here set up the global variable.
+Before use make sure that it is initalized with a fitting
+variable by function setup_metric.
+Do not import metric directly, as it would be the None version
+but use for example
+
+ import pts.metric as mt
+ ...
+ co_vec = mt.lower(con_vec)
+"""
+global metric
+metric = None
+
+def setup_metric(F):
+     """
+     sets and initalises the metric
+     F should be a function, which should when run by
+     itself provide for the internal coordinates y
+     the corresponding Cartesian coordinates x
+     This function has to be called once, afterwards
+     all modules should be able to access the metric.
+     """
+     global metric
+     metric = Default(F)
+     metric.version()
 
 def contoco(F, pos, vec):
      """
