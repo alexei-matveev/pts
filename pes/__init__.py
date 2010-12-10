@@ -86,7 +86,7 @@ class GaussianPES():
         def identity(x):
             return deepcopy(x)
         setup_metric(identity)
-        mt.metric.version()
+        #mt.metric.version()
 
     def __str__(self):
         return "GaussianPES"

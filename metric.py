@@ -203,7 +203,7 @@ def setup_metric(F):
      """
      global metric
      metric = Default(F)
-     metric.version()
+     #metric.version()
 
 def contoco(F, pos, vec):
      """
