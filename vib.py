@@ -465,7 +465,7 @@ def main(argv):
         print >> sys.stderr, main.__doc__
         sys.exit(1)
 
-    atoms = ase.read(args[0])
+    atoms = ase.io.read(args[0])
 
     # default values for the options
     calculator = None

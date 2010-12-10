@@ -116,7 +116,7 @@ def main(argv=None):
             optim.run(steps=10)
             os.chdir(old_dir)
 
-            ase.write(result_file, mol._atoms, format="traj")
+            ase.io.write(result_file, mol._atoms, format="traj")
         else:
             raise PickleRunnerException("Unrecognised mode: " + mode)
 

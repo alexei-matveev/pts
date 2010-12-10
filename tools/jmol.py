@@ -117,7 +117,7 @@ def main():
         print __doc__
         return
 
-    images = [ ase.read(file) for file in argv[:] ]
+    images = [ ase.io.read(file) for file in argv[:] ]
 
     geoms = [ im.get_positions() for im in images ]
 

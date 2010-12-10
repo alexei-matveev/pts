@@ -44,7 +44,7 @@ def main(argv=None):
 
 
         # create atoms object based on molecular geometry in file
-        atoms = ase.read(molecule)
+        atoms = ase.io.read(molecule)
 
         jobname =  os.path.splitext(molecule)[0]
 
@@ -101,7 +101,7 @@ def main(argv=None):
             optim.run()
             os.chdir(old_dir)
 
-            ase.write(result_file, atoms, format="traj")
+            ase.io.write(result_file, atoms, format="traj")
         else:
             raise ASEIsolatorException("Unrecognised mode: " + mode)
 

@@ -135,8 +135,8 @@ def run(order_str, fn1, fn2, ixs):
     order1.sort(), order2.sort()
     assert (order1 == order2).all(), "Atom ordering given has non-matching numbers."
 
-    a1 = ase.read(fn1)
-    a2 = ase.read(fn2)
+    a1 = ase.io.read(fn1)
+    a2 = ase.io.read(fn2)
     assert len(a1) == len(a2), "Molecules specified don't have the same number of atoms."
     n = len(a1)
     assert len(order) == len(a1), "Number of atoms was %d but number of pairs given was %d." % (len(a1), len(order))
@@ -188,8 +188,8 @@ def run(order_str, fn1, fn2, ixs):
     assert abs(old_dist_sum2 - new_dist_sum2) < 1e-6
 
     ase.view([a1,a2])
-    ase.write(fn1 + '.t', a1, format='xyz')
-    ase.write(fn2 + '.t', a2, format='xyz')
+    ase.io.write(fn1 + '.t', a1, format='xyz')
+    ase.io.write(fn2 + '.t', a2, format='xyz')
 
 class Rotate:
     """Class to support alignment of two structures in Cartesian space.

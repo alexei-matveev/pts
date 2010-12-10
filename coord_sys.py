@@ -477,7 +477,7 @@ class CoordSys(object):
         tmp = os.tmpnam()
         old_calc = self._atoms.calc
         self._atoms.calc = None
-        ase.write(tmp, self._atoms, format="traj")
+        ase.io.write(tmp, self._atoms, format="traj")
         f = open(tmp, "rb")
         odict["pickled_atoms"] = f.read()
 #        odict["pickled_calc"] = self._atoms.calc
@@ -516,7 +516,7 @@ class CoordSys(object):
         f = open(tmp, mode="wb")
         f.write(pickled_atoms)
         f.close()
-        self._atoms = ase.read(tmp, format="traj")
+        self._atoms = ase.io.read(tmp, format="traj")
         os.unlink(tmp)
 
         self.set_calculator(calc_tuple)

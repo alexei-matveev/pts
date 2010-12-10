@@ -123,7 +123,7 @@ def single_point(argv):
     calculator = get_calculator(opts[0][1])
 
     for file in args:
-        atoms = ase.read(file)
+        atoms = ase.io.read(file)
         # print atoms.get_positions()
         atoms.set_calculator(calculator)
 

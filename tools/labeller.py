@@ -34,8 +34,8 @@ class Usage(Exception):
         self.msg = msg
 
 def run(args):
-    f1 = ase.read(args[0])
-    f2 = ase.read(args[1])
+    f1 = ase.io.read(args[0])
+    f2 = ase.io.read(args[1])
     i1 = Images([f1])
     i2 = Images([f2])
 
