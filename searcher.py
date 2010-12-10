@@ -21,6 +21,7 @@ from func import CubicFunc, QuadFunc, RhoInterval
 from common import * # TODO: must unify
 import pts.common as common
 import pts
+import pts.metric as mt
 
 from history import History
 
@@ -198,17 +199,6 @@ class ReactionPathway(object):
         # This can be set externally to a file object to allow recording of picled archive data
         self.arc_record = None
         self.output_level = output_level
-
-        # there is need for an function to transform contra- to covariant vector
-        # and one to transform co- in contravariant ones
-        # as the informations on how the coordinates are to be interpreted should
-        # be somehow inside the qc_driver (who gets forces and energies which belongs
-        # to the geometries) we inherit this functions from there, the functions are
-        # stored in a metrix object, which may be able to do some more metric
-        # related stuff later on:
-        # thus be aware that metric is a class
-        self.metric = self.qc_driver.metric
-
 
 
     def initialise(self):
@@ -712,7 +702,7 @@ class ReactionPathway(object):
             self.bead_pes_gradients[i] = g.copy()
 
             t = self.tangents[i]
-            t_co = self.metric.lower(t, self.state_vec[i])
+            t_co = mt.metric.lower(t, self.state_vec[i])
             para_force = dot(t, -g)
             perp_force = -g - para_force * t_co
             self.para_bead_forces[i] = para_force
@@ -730,7 +720,7 @@ class ReactionPathway(object):
 
         for i in range(N):
             t = self.tangents[i]
-            t_co = self.metric.lower(t, self.state_vec[i])
+            t_co = mt.metric.lower(t, self.state_vec[i])
             v[i] = v[i] - dot(t, v[i]) * t_co
             #v[i], _ = project_out(t, v[i])
 

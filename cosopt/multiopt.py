@@ -6,6 +6,7 @@ from ase.optimize.optimize import Optimizer
 
 from pts.func import Func
 from pts.common import ObjLog
+import pts.metric as mt
 
 def disp_step(dr, f):
     dr_f = np.dot(dr.flatten(), f.flatten())
@@ -70,7 +71,7 @@ class MiniBFGS(ObjLog):
 
     """
 
-    def __init__(self, dims, H0=None, init_step_scale=0.5, max_step_scale=0.5, max_H_resets=1e10, id=-1, ctc = None):
+    def __init__(self, dims, H0=None, init_step_scale=0.5, max_step_scale=0.5, max_H_resets=1e10, id=-1):
         """
         max_scale:
             Maximum scale factor to be applied to the Quasi-Newton step. This 
@@ -100,7 +101,6 @@ class MiniBFGS(ObjLog):
         self._H_resets = 0
         self.id = id
         self.method = 'SR1'
-        self.ctc = ctc
 
     def predictE(self, pos):
         dx = pos - self._pos0
@@ -213,7 +213,7 @@ class MiniBFGS(ObjLog):
             # If tangent is available, minimise energy by stepping only along
             # the force. I.e. this is kind of a line search on a quadratic 
             # model of the surface.
-            grad_co = self.ctc(grad, pos)
+            grad_co = mt.metric.raises(grad, pos)
             dir = -(grad_co - np.dot(grad, t)*t)
             dir = np.asarray(dir)
             norm = np.linalg.norm(dir)
@@ -305,10 +305,9 @@ class MultiOpt(Optimizer, ObjLog):
         self.respace = respace
         self.its = 0
         self.maxstep = maxstep
-        cotocon =  self.atoms.metric.raises
 
         # list of per-bead optimisers
-        self.bead_opts = [MiniBFGS(d, H0=np.eye(d)*alpha, id=i, ctc = cotocon) for i in range(self.bs)]
+        self.bead_opts = [MiniBFGS(d, H0=np.eye(d)*alpha, id=i) for i in range(self.bs)]
         self.slog("Optimiser (MultiOpt): initial step scale factors", [m._step_scale for m in self.bead_opts], when='always')
 
         if backtracking is not None:

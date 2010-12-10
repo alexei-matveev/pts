@@ -7,6 +7,8 @@ import mueller_brown as mb
 from plot import Plot2D
 import pts
 from copy import deepcopy
+import pts.metric as mt
+from pts.metric import setup_metric
 
 class QCDriver:
     def __init__(self, dimension):
@@ -74,13 +76,17 @@ class GaussianPES():
         fake_delay:
             float, average number of seconds to wait after running a job, just 
             used in testing to simulate more cpu intensive jobs
+
+        >>> x = GaussianPES()
+        >>> x.energy([0., 1.0])
         """
         self.fake_delay = fake_delay
         # we need an metric object, this one should
         # lower and raise indices without changing anything
         def identity(x):
             return deepcopy(x)
-        self.metric = pts.metric.Metric(identity)
+        setup_metric(identity)
+        mt.metric.version()
 
     def __str__(self):
         return "GaussianPES"

@@ -57,12 +57,6 @@ class CalcManager():
         except IOError, msg:
             raise CalcManagerException(msg)
 
-        # this is a qc_driver wrapper around a qc_driver function, which should manage the
-        # calculations of the raw qc_driver. Thus here we need to inherit informations about
-        # the metric:
-        self.metric = self.qc_driver.metric
-
-
     def __str__(self):
         s = self.__class__.__name__ + ":"
         for j in self.__pending_jobs:

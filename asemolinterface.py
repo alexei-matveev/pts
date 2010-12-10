@@ -16,7 +16,7 @@ import path
 
 import numpy
 from pts.coord_sys import enforce_short_way
-from pts.metric import Metric
+from pts.metric import setup_metric
 
 import pts.common as common
 import pts.coord_sys as csys
@@ -285,8 +285,9 @@ class MolInterface:
         # the function given as argument is used to transform from whatever coordinates
         # we are dealing with to Cartesian ones, where changing between contra- and covaraint
         # vectors is straight forward
-        self.metric = Metric(self.mol.int2cart)
-
+        # Here we setup the metric class in the metric module.
+        # Lateron it can then be used by any module.
+        setup_metric(self.mol.int2cart)
 
         if cell != None:
             self.mol.set_cell(cell)

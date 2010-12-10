@@ -13,6 +13,15 @@ and construct a path connecting them by default with 4-equidistant nodes
 This builds linear, quadratic or spline representation of the path,
 depending on the number of nodes.
 
+    >>> from copy import deepcopy
+    >>> from pts.metric import setup_metric
+
+    >>> def identity(x):
+    ...     return deepcopy(x)
+
+    >>> setup_metric(identity)
+
+
 Now you can evaluate the path function at any point (between 0 and 1),
 the equidistant values 0, 1/3, 2/3 and 1 correspond to
 the four nodes we provided:
@@ -224,6 +233,7 @@ from numpy import asarray
 
 from func import LinFunc, QuadFunc, SplineFunc, Func, RhoInterval
 from func import Integral, Inverse
+import pts.metric as mt
 
 # simplified logger:
 import sys
