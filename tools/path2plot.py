@@ -46,7 +46,10 @@ der are other options which may be set:
     --lognf filename             : new log as before, but reuses the string and num from the last one
                                    only the logfile is changed
     --lognn num                  : new log plot as above, but takes another iteration than the last one
-
+    --symm <midx>                : uses the next coordinate defined (or the next difference defined) and
+                                   returns the derivative to symmetry around midx instead of the value
+                                   if midx is not given, 0 is used, symmetry is calculated by:
+                                   0.5 * (f(midx + x) - f(midx - x))
 """
 
 from pts.path import Path
@@ -186,8 +189,8 @@ def main(argv=None):
                  diff.append(num_i)
                  argv = argv[1:]
              elif option == "symm":
-                 # test if the following two coordinate (or coord. diffs)
-                 # follow the same symmetry
+                 # test if the following coordinate (or coord. diffs)
+                 # follow the same symmetry as the x-coordinate
                  symm.append(num_i)
                  try:
                      m = float(argv[1])
@@ -369,7 +372,7 @@ def makeoption(num_i, diff, symm, symshift):
               for k, m in symshift:
                   if k == i:
                       opt += " %f" % (m)
-              many -= 1
+              opt += optx
           if i in diff:
               opt += " d %i" % (i)
               second = True

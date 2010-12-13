@@ -21,7 +21,7 @@ needed by the special option:
  d   2                  : difference n1 - n2
  s   0                  : gives the difference in the symmetry
                           works on the next two functions given
-                          and uses them to calculate 0.5 (k2(k1)-k2(-k1))
+                          and uses them to calculate 0.5 * (k2(k1)-k2(-k1))
                           when given a (float) number after s the k1 function
                           values are shifted to this number
 
@@ -42,7 +42,7 @@ import numpy as np
 from matplotlib.pyplot import plot, show, legend, rcParams, xlabel, ylabel, xscale, yscale
 from matplotlib.pyplot import gca
 from matplotlib.pyplot import title as set_title
-from pts.path import Path
+from scipy.interpolate import splrep, splev
 
 def read_tab(filename):
     """
@@ -457,14 +457,14 @@ class testsymmetric():
 
     def give(self, table):
          s = np.asarray(self.funs(table) - self.m)
-         t = np.asarray(self.funt(table))
-         path1 = Path(t, s)
-         tout = t.copy()
          end = min( abs(s[0]), abs(s[-1]))
          ii = np.nonzero( abs(s) <= end )[0]
          ii = ii.tolist()
+         t = np.asarray(self.funt(table))
+         tout = t.copy()
+         spl = splrep(s, t)
          for i in ii:
-              tout[i] = 0.5 * (t[i] - path1.f(-s[i]))
+              tout[i] = 0.5 * (t[i] - splev(-s[i], spl))
          for i in range(len(t)):
               if i < ii[0]:
                   tout[i] = tout[ii[0]]
