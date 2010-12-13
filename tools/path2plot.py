@@ -196,7 +196,7 @@ def main(argv=None):
                  except:
                      pass
                  argv = argv[1:]
-             elif option in ["dis", "2", "ang","3", "ang4", "4", "dih", "5", "dp", "6"]:
+             elif option in ["dis", "2", "ang","3", "ang4", "4", "dih", "5", "dp", "6", "dl", "7"]:
                  # this are the possible coordinates, store them
                  value = interestingvalue(option)
                  # partners are the atomnumbers of the partners, which

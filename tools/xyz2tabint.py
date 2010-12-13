@@ -194,6 +194,8 @@ def returnall(allval, positions, deg, loop):
                results.append( dihedral(positions, value.partners, deg))
            elif value.order == 6 :
                results.append( distancetoplane(positions, value.partners))
+           elif value.order == 7 :
+               results.append( distancetoline(positions, value.partners))
       return results
 
 
@@ -279,6 +281,17 @@ def distancetoplane(positions, iconns):
     dis = np.dot(n, positions[f] - positions[a])
     return dis
 
+def distancetoline(positions, iconns):
+    # f is single point, a, b defining line
+    a = iconns[1] - 1
+    b = iconns[2] - 1
+    f = iconns[0] - 1
+    df = positions[f]
+    d1 = positions[b] - positions[a]
+    ddf = df - np.dot(df, d1) * d1
+    dis = np.sqrt(np.dot(ddf, ddf))
+    return dis
+
 def helpfun():
     print "This program reads xyz files and gives as output the value of specific coordinates of interest"
     print "A list of all the coordinates of interest have to be provided"
@@ -335,7 +348,7 @@ class interestingvalue:
         # whatsort shows the code
         # the atomnumber needed to know where to calculate are
         # in partners
-        self.names = [None, None, "dis", "ang", "ang4", "dih", "dp"]
+        self.names = [None, None, "dis", "ang", "ang4", "dih", "dp", "dl"]
         self.orders = {}
         for z, name in enumerate(self.names):
             self.orders[name] = z
@@ -354,6 +367,8 @@ class interestingvalue:
     # shows how many partners wanted to calulate the value
         if self.order == 5 or self.order == 6:
             return 4
+        elif self.order == 7:
+            return 3
         else:
             return self.order
 
@@ -367,6 +382,8 @@ class interestingvalue:
             return "distance"
        elif self.order == 6:
             return "distance to plane"
+       elif self.order == 7:
+            return "distance to line"
        else:
             print "This sort of coordinate does not exist"
             sys.exit()
