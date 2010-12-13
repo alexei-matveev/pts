@@ -2027,22 +2027,6 @@ class GrowingString(ReactionPathway):
         self._path_rep.update_tangents()
 
 
-    # never used? commented out 06/05/2010
-    #def plot(self):
-#        self._path_rep.generate_beads_exact()
-    #    plot2D(self._path_rep)
-
-#
-# ### This seems to be not used any more 3.12.2010
-#
-#def project_out(component_to_remove, vector):
-#   """Projects the component of 'vector' that lies along 'component_to_remove'
-#   out of 'vector' and returns it."""
-#   projection = dot(component_to_remove, vector)
-#   removed = projection * component_to_remove
-#   output = vector - removed
-#   return output, projection
-
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
