@@ -321,7 +321,7 @@ def main(argv=None):
     # now plot
     pl.plot_data(xrange = xran, yrange = yran )
 
-def get_expansion(celldat, expandlist):
+def get_expansion(celldat, expand):
      """
      Expand the atoms by some, which are shifted
      cellvectors in each direction
@@ -338,7 +338,7 @@ def get_expansion(celldat, expandlist):
             cell[num,2] = float(fields[2])
 
      # get the expanded atoms
-     filemove = open(expandlist,"r" )
+     filemove = open(expand,"r" )
      tomove = []
      howmove = []
      # tomove[i] = number of source atom for atom (i + all_in_original_cell)
@@ -369,7 +369,7 @@ def makeoption(num_i, diff, symm, symshift):
               for k, m in symshift:
                   if k == i:
                       opt += " %f" % (m)
-              many -= 2
+              many -= 1
           if i in diff:
               opt += " d %i" % (i)
               second = True
