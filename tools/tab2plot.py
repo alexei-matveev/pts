@@ -43,6 +43,53 @@ from matplotlib.pyplot import plot, show, legend, rcParams, xlabel, ylabel, xsca
 from matplotlib.pyplot import gca
 from matplotlib.pyplot import title as set_title
 from scipy.interpolate import splrep, splev
+from copy import copy
+
+global plot_style
+global plot_color
+global plot_color_mp
+plot_style = "-"
+plot_color = (0,0,0,0)
+plot_color_mp = plot_color
+
+def increase_color(color, style, repeat):
+    """
+    Changes the color (and if the list of them is finished
+    also the style) of the output line
+    """
+    new_color = list(copy(color))
+    new_style = copy(style)
+
+    if new_color == [0,1,1,0]: # this seems to be the last different colr
+        # of the output, if there should be somewhere else more available
+        # change this
+        new_color = [0,0,0,0]
+        # start again, therefore change also the style cyclic
+        if not repeat:
+            new_style = change_style(new_style)
+    else:
+        # increasing the color with bit operations
+        add = 1
+        for i, a in enumerate(new_color):
+            new_color[i] = add ^ a # exclusive or
+            add = add & a # and, for the next color
+
+    return tuple(new_color), new_style
+
+def change_style(style):
+    """
+    Cyclic setting of the four usefull
+    styles for our path
+    """
+    if style == "-":
+        return "--"
+    elif style == "--":
+        return "-."
+    elif style == "-.":
+        return ":"
+    else:
+        return "-"
+
 
 def read_tab(filename):
     """
@@ -123,12 +170,10 @@ def read_tab(filename):
 
     try:
         rest1 = rest[0]
-    except:
-        rest = None
-
-    if rest is not None:
         rest = np.asarray(rest)
         rest = rest.T
+    except:
+        rest = None
 
     return path, pname, beads, bname, rest, rname
 
@@ -222,7 +267,7 @@ class plot_tabs:
 
     def prepare_plot(self, tablep, pname, tableb, bname, tabelr, rname, option):
 
-        def makeplotter(tab, funx ,funcs, name, option = None):
+        def makeplotter(tab, funx ,funcs, name, option = None, repeat = False):
              # A wrapper aoround the plot function, which uses
              # the table tab from which its extract via funx the
              # x values, and then giving name to distinguish between
@@ -230,16 +275,33 @@ class plot_tabs:
              # without name)
              # option may telling that instead of a line, points should
              # be used (for beads)
+
+             # global variable to make colors changes over both lines to plot
+             # and files
+             global plot_style
+             global plot_color
+             global plot_color_mp
+             if repeat: # for having beads in the same color than their lines
+               plot_color = plot_color_mp
+             else:
+               plot_color_mp = plot_color
+
              x = funx(tab)
              for i, fun in enumerate(funcs):
                  y = fun(tab)
                  lab = '%i' % (i+1)
                  if name is not None:
                      lab = name + ' ' + lab
+
+                 # use style for the line or the one given directly
                  if option is None:
-                     plot(x, y, label= lab)
+                    opt = plot_style
                  else:
-                     plot(x, y, option, label= lab)
+                    opt = option
+
+                 plot(x, y, opt, color = plot_color, label= lab)
+                 # now change global variables to make sure that the next plot will be different
+                 plot_color, plot_style = increase_color(plot_color, plot_style, repeat)
 
 
         # one of them should at least be there
@@ -259,10 +321,10 @@ class plot_tabs:
             makeplotter(tablep, xfun, yfuns, pname)
 
         if tableb is not None:
-            makeplotter(tableb, xfun, yfuns, bname, 'o')
+            makeplotter(tableb, xfun, yfuns, bname, 'o', repeat = True)
 
         if tabelr is not None:
-            makeplotter(tabelr, xfun, yfuns, rname, 'o')
+            makeplotter(tabelr, xfun, yfuns, rname, 'o:')
 
     def plot_data(self, xrange = None, yrange = None):
         a = gca()
