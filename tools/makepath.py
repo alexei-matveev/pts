@@ -68,7 +68,7 @@ if sys.argv[1] == '--help':
     print __doc__
     sys.exit()
 
-from ase import read, write
+from ase.io import read, write
 from pts.coord_sys import   ComplexCoordSys
 from pts.coord_sys import vector_completation, ase2xyz, ase2int, ase2ccs, enforce_short_way
 from pts.path import Path
