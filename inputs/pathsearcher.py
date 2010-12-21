@@ -227,7 +227,7 @@ from pts.pathsearcher_defaults.params_default import *
 from pts.pathsearcher_defaults import *
 from ase.calculators import *
 from ase import Atoms
-from ase import read as read_ase
+from ase.io import read as read_ase
 from pts import MolInterface, CalcManager, generic_callback
 from pts.searcher import GrowingString, NEB
 from pts.optwrap import runopt as runopt_aof
@@ -241,7 +241,7 @@ from pts.qfunc import constraints2mask
 # do not delete it, even if it never occures directly in this module!
 from numpy import array, asarray
 from string import count
-from ase import write as write_ase
+from ase.io import write as write_ase
 
 # needed as global variable
 cb_count_debug = 0
