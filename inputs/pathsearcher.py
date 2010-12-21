@@ -231,8 +231,8 @@ from ase import read as read_ase
 from pts import MolInterface, CalcManager, generic_callback
 from pts.searcher import GrowingString, NEB
 from pts.optwrap import runopt as runopt_aof
-from pts.coord_sys import ZMatrix2, XYZ, ComplexCoordSys, CoordSys, enforce_short_way
-from pts.coord_sys import RotAndTransLin, fake_xyz_string, ase2ccs, xyz2ccs
+from pts.coord_sys import XYZ, ComplexCoordSys, enforce_short_way
+from pts.coord_sys import fake_xyz_string, ase2ccs, xyz2ccs
 from pickle import dump
 from pts.tools import pickle_path
 from pts.common import file2str
@@ -242,7 +242,6 @@ from pts.qfunc import constraints2mask
 from numpy import array, asarray
 from string import count
 from ase import write as write_ase
-#from pts.parasearch import generic_callback
 
 # needed as global variable
 cb_count_debug = 0
