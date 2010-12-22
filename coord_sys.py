@@ -20,7 +20,7 @@ from ase.calculators import SinglePointCalculator
 import common
 import zmat
 
-from quat import rotmat
+from quat import rotmat, _rotmat
 
 class ccsspec():
     def __init__(self, parts, carts=None, mask=None):
@@ -200,6 +200,38 @@ class RotAndTrans(Anchor):
 
         return res
 
+    def transform_def(self, m, co_own, carts):
+        """
+        Adds to the transformation_matrix m the entries for the
+        rotation and translation objects, also changes the other
+        m entries according to the formula
+        thus:
+        Dm = R * Dm_old
+        Dm_rot = dR * cart
+        Dm_trans = I_3
+        """
+        sh = numpy.shape(m)
+        a, b = sh
+        tr_mat = numpy.zeros((a + 6, b))
+        rot_vec = co_own[0:3]
+        ct = numpy.asarray(carts)
+        ct = ct.flatten()
+
+        d_trans = numpy.eye(3)
+        rot_mat, d_rot_mat = _rotmat(rot_vec)
+
+        for i in range(b/3):
+            # the modified internal derivatives
+            for j in range(a):
+                tr_mat[j, i*3:(i+1)*3] = numpy.dot(rot_mat, m[j, i*3:(i+1)*3])
+            # rotation
+            for j in range(3):
+                tr_mat[-6+j, i*3:(i+1)*3] = numpy.dot(d_rot_mat[:,:,j], ct[i*3:(i+1)*3])
+            # translation
+            tr_mat[-3:,i*3:(i+1)*3] = d_trans
+
+        return tr_mat
+
 class RotAndTransLin(RotAndTrans):
     _dims = 5
 
@@ -333,6 +365,45 @@ class RotAndTransLin(RotAndTrans):
             res += self._parent.get_centroid()
 
         return res
+
+    def transform_def(self, m, co_own, carts):
+        """
+        Adds to the transformation_matrix m the entries for the
+        rotation and translation objects, also changes the other
+        m entries according to the formula
+        thus:
+        Dm = R * Dm_old
+        Dm_rot = dR * cart
+        Dm_trans = I_3
+        """
+        sh = numpy.shape(m)
+        a, b = sh
+        tr_mat = numpy.zeros((a + 5, b))
+
+        free_axis = carts[1] - carts[0]
+        free_axis = free_axis / numpy.linalg.norm(free_axis)
+
+        rot_vec = self.complete_vec(co_own[0:2], free_axis)
+        ct = numpy.asarray(carts)
+        ct = ct.flatten()
+
+        d_trans = numpy.eye(3)
+        rot_mat, d_rot_mat = _rotmat(rot_vec)
+
+        for i in range(b/3):
+            k = 0
+            # the modified internal derivatives
+            for j in range(a):
+                tr_mat[j, i*3:(i+1)*3] = numpy.dot(rot_mat, m[j, i*3:(i+1)*3])
+            # rotation
+            for j in range(2):
+                if k==self.ac: k += 1
+                tr_mat[-5+j, i*3:(i+1)*3] = numpy.dot(d_rot_mat[:,:,k], ct[i*3:(i+1)*3])
+                k += 1
+            # translation
+            tr_mat[-3:,i*3:(i+1)*3] = d_trans
+
+        return tr_mat
 
     def need_for_completation(self):
         # This is the case, where it was originally designed for: there is
@@ -727,17 +798,8 @@ class CoordSys(object):
 
         nd = numerical.NumDiff(method='simple')
         mat, err = nd.numdiff(int2cartf, x)
-        """nd2 = numerical.NumDiff()
-        mat2,err2 = nd2.numdiff(self.int2cart, x)
-        print "err2",err2.max()
-        m = abs(mat - mat2).max()
-        import func
-        alexei_nd = func.NumDiff(f=self.int2cart)
-        mat3 = alexei_nd.fprime(x)
-        m2 = abs(mat - mat3).max()
-        print "x",x
-        print "m",m
-        print "m2",m"""
+        print "WARNING: old get_transform_matrix routine with numerical differences"
+        print "Normally there should be an analytical substitute working"
         return mat, err
 
     def __pretty_vec(self, x):
@@ -1071,6 +1133,42 @@ class ComplexCoordSys(CoordSys):
         assert i == self.dims + self._exclusions_count
         return numpy.vstack(new_xyz)
 
+    def get_transform_matrix(self, x):
+        """returns the matrix of derivatives dci/dij where ci is the ith cartesian coordinate
+        and ij is the jth internal coordinate, and the error.
+        here taking the submatrices of the parts and building up a complete transformation
+        matrix. here the parts do not interact with each other
+        """
+        i = 0
+        j = 0
+        carts = self.int2cart(x).flatten()
+        m = numpy.zeros((self._dims,len(carts)))
+        x = self._demask(x)
+        err_all = numpy.array([0.0])
+
+
+        for p in self._parts:
+            p_mat, error = p.get_transform_matrix(x[i:i + p.dims])
+            sh = p_mat.shape
+            a, b = sh
+            assert a == p.dims
+            m[i:i+p.dims,j:j+b] = p_mat
+            err_all += error
+            i += p.dims
+            j += len(new_xyz)
+
+        assert i == self.dims + self._exclusions_count
+        assert j == len(carts)
+
+        if self._var_mask != None:
+            m_red = []
+            for m_i, b in zip(m, self._var_mask):
+                if b:
+                   m_red.append(m_i)
+            m = numpy.asarray(m_red)
+
+        return m, err_all
+
  
 class XYZ(CoordSys):
 
@@ -1124,6 +1222,10 @@ class XYZ(CoordSys):
     def wants_anchor(self):
         return False
     def get_transform_matrix(self, x):
+        """returns the matrix of derivatives dci/dij where ci is the ith cartesian coordinate
+        and ij is the jth internal coordinate, and the error.
+        In the Cartesian case one has only to consider that several coordinates may be fixed
+        """
         m = numpy.eye(self._dims)
 
         j = []
@@ -1266,6 +1368,23 @@ class ZMatrix2(CoordSys):
         >>> res[:-6]
         array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
         >>> (res[-6:] != ints_old[-6:]).all()
+        True
+
+        Test transformation matrix:
+
+        >>> m, err = z.get_transform_matrix(ints)
+
+        Numerical differences for comparision:
+        >>> from pts.func import NumDiff
+        >>> def f1(x):
+        ...    return z.int2cart(x).flatten()
+
+        >>> fun = NumDiff(f1)
+        >>> m_nd = fun.fprime(ints)
+
+        ATTENTION: NumDiff creates the matrix the other way round, than it is done
+        in coordsys
+        >>> (abs(m - m_nd.T)).max() < 1.0e-8
         True
 
         >>> r = repr(z)
@@ -1421,6 +1540,19 @@ class ZMatrix2(CoordSys):
 
         self.set_internals(numpy.hstack([internals_zmt, self._anchor.get()]))
 
+    def int2cart(self, new_internals, anchor = True):
+        """
+        Transforms internal coordinates to Cartesian ones without changing the internal
+        state of this class
+        """
+        all_internals = self._demask(new_internals)
+        coords_coords = all_internals[:self._dims]
+        coords_anchors = all_internals[self._dims:]
+        xyz_coords =  self._zmt.f(coords_coords)
+        if self._anchor != None and anchor:
+            xyz_coords = self._anchor.transformer(xyz_coords, coords_anchors)
+        return deepcopy(xyz_coords)
+
     def get_cartesians(self, anchor=True):
         """Generates cartesian coordinates from z-matrix and the current set of 
         internal coordinates."""
@@ -1432,19 +1564,35 @@ class ZMatrix2(CoordSys):
 
         return xyz_coords
 
-    def int2cart(self, new_internals):
+
+    def get_transform_matrix(self, x, anchor = True):
+        """Returns the matrix of derivatives dCi/dIj where Ci is the ith cartesian coordinate
+        and Ij is the jth internal coordinate, and the error.
+        Uses analytically calculated derivatives of ZMat function, considers then
+        anchor modifications and omits fixed coordinates
         """
-        Transforms internal coordinates to Cartesian ones without changing the internal
-        state of this class
-        """
-        all_internals = self._demask(new_internals)
-        coords_coords = all_internals[:self._dims]
-        coords_anchors = all_internals[self._dims:]
-        xyz_coords =  self._zmt.f(coords_coords)
-        #xyz_coords =  self._zmt.f(all_internals)
-        if self._anchor != None:
-            xyz_coords = self._anchor.transformer(xyz_coords, coords_anchors)
-        return deepcopy(xyz_coords)
+        all_x = self._demask(x)
+        co_x = all_x[:self._dims]
+        co_a = all_x[self._dims:]
+        carts_raw = self._zmt.f(co_x)
+
+        m = self._zmt.fprime(co_x)
+        m.shape = (-1, self._dims)
+        #print m
+        m = m.T
+
+        if self._anchor != None and anchor:
+            m = self._anchor.transform_def(m, co_a, carts_raw)
+
+        if self._var_mask != None:
+            m_red = []
+            for m_i, b in zip(m, self._var_mask):
+                if b:
+                   m_red.append(m_i)
+            m = numpy.asarray(m_red)
+
+        return m, numpy.array([0.0])
+
 
 def fake_xyz_string(ase_atoms, start = None ):
     """
