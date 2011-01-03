@@ -70,6 +70,38 @@ def read_in_path(filename):
 
     return posonstring, coord, at_object
 
+def path_geos(x, y, cs, num):
+    """
+    generates  num geometries along path
+    defined by x and y,
+    The geometries are given back as string
+    there is also a second string given back with
+    the corresponding x values
+    """
+    path1 = Path(y, x)
+
+    # to decide how long x is, namely what
+    # coordinate does the end x have
+    # if there is no x at all, the path has
+    # distributed the beads equally from 0 to 1
+    # thus in this case the end of x is 1
+    if x is None:
+        endx = 1.0
+    else:
+        endx = float(x[-1])
+
+    path = []
+    xvals = []
+    for i in range(num):
+         # this is one of the frames,
+         # the internal coordinates are converted
+         # to Cartesian by the cs fake-Atoms object
+         coord = path1((endx / (num -1) * i))
+         path.append(cs.int2cart(coord))
+         xvals.append((endx / (num -1) * i))
+
+    return path, xvals
+
 def print_xyz(x, y, cs, num):
     """
     prints num xyz -frames (jmol format)
