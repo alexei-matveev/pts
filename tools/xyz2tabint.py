@@ -214,7 +214,7 @@ def radii (positions, iconns):
     a = iconns[0] - 1
     b = iconns[1] - 1
     diff = positions[a]-positions[b]
-    rad = math.sqrt(np.vdot(diff,diff))
+    rad = np.sqrt(np.vdot(diff,diff))
     return rad
 
 def angle (positions, iconns, deg):
