@@ -1488,19 +1488,31 @@ def get_bead_positions_grad(Es, gradients, tangents, ps):
 #        assert False # for the time being...
 
     i_max = Es.argmax()
-    p_max = ps[i_max]
-    dEdx = gradients[i_max]
 
-    dxdp = tangents[i_max]
-
-    dEdp = numpy.dot(dEdx, dxdp)
-
-    if dEdp < 0:
-        new_p = (ps[i_max-1] + ps[i_max]) / 2.0
-        new_i = i_max
-    else:
+    if i_max == 0 or i_max == len(Es)-1:
+        print "WARNING: bead with highest energy is first bead"
         new_p = (ps[i_max] + ps[i_max+1]) / 2.0
         new_i = i_max+1
+
+    elif i_max == len(Es) -1:
+        print "WARNING: bead with highest energy is last bead"
+        new_p = (ps[i_max] + ps[i_max-1]) / 2.0
+        new_i = i_max
+
+    else:
+        p_max = ps[i_max]
+        dEdx = gradients[i_max]
+
+        dxdp = tangents[i_max]
+
+        dEdp = numpy.dot(dEdx, dxdp)
+
+        if dEdp < 0:
+            new_p = (ps[i_max-1] + ps[i_max]) / 2.0
+            new_i = i_max
+        else:
+            new_p = (ps[i_max] + ps[i_max+1]) / 2.0
+            new_i = i_max+1
 
     psa = ps.tolist()
     new_ps = psa[:new_i] + [new_p] + psa[new_i:]
