@@ -431,7 +431,56 @@ def symmetry_of_picture(geom):
      symr = interprete_sym(esr, ar4_edges)
      return [syma, syme, symr]
 
+def how_exact_picture_c2v(geom, diag):
+    global ar4_sides
 
+    exactness = []
+    for j,i in enumerate(diag):
+        if j == 0:
+           ni = diag[1]
+        else:
+           ni = diag[0]
+        e_sides = []
+        for side in ar4_sides:
+           if i in side and not ni in side:
+              e_sides.append(side)
+        assert len(e_sides) == 2
+        len_1 = radii(geom, e_sides[0])
+        len_2 = radii(geom, e_sides[1])
+        exactness.append(abs(len_1 - len_2))
+
+    max_exact = exactness[0]
+    par1 = copy(diag)
+    par1.sort()
+    par2 = []
+    for i in range(4):
+        if not i+1 in diag:
+           par2.append(i+1)
+    pars = [par1, par2]
+    for side in ar4_sides:
+        if not side in pars:
+           for side2 in ar4_sides:
+               if not side2 in pars:
+                   len_1 = radii(geom, side)
+                   len_2 = radii(geom, side2)
+                   if abs(len_1 - len_2) > max_exact:
+                       max_exact = abs(len_1 - len_2)
+
+    exactness.append(max_exact)
+    return exactness
+
+def how_exact_picture_td(geom):
+    global ar4_sides
+
+    max_exact = 0.0
+    for side in ar4_sides:
+           for side2 in ar4_sides:
+                len_1 = radii(geom, side)
+                len_2 = radii(geom, side2)
+                if abs(len_1 - len_2) > max_exact:
+                    max_exact = abs(len_1 - len_2)
+
+    return max_exact
 
 
 def main():
@@ -447,6 +496,7 @@ def main():
      tol = 0
      pr = False
      pl_all = False
+     pl_exact = False
      with_ase = False
 
      args = argv[1:]
@@ -460,6 +510,9 @@ def main():
         elif args[0] == "--all":
            args = args[1:]
            pl_all = True
+        elif args[0] == "--exact":
+           args = args[1:]
+           pl_exact = True
         elif args[0] == "--diag":
            par1 = [int(args[1]), int(args[2])]
            par2 = []
@@ -467,6 +520,7 @@ def main():
                if not i+1 in par1:
                   par2.append(i+1)
            ar4_diag_new = (par1, par2)
+           ar4_diag = ar4_diag_new
            set_sides(ar4_diag_new)
            args = args[3:]
         elif args[0]== "--onlybeads":
@@ -495,15 +549,25 @@ def main():
              path_s.append(p_s)
 
      bead_syms = []
-     for bgeo in geomsbeads:
-         sym1 = [symmetry_of_picture(geo1) for geo1 in bgeo]
-         bead_syms.append(sym1)
+     if pl_exact:
+         for bgeo in geomsbeads:
+             sym1 = [how_exact_picture_c2v(geo1,ar4_diag[0]) for geo1 in bgeo]
+             bead_syms.append(sym1)
+     else:
+         for bgeo in geomsbeads:
+             sym1 = [symmetry_of_picture(geo1) for geo1 in bgeo]
+             bead_syms.append(sym1)
 
      if not onlybeads:
          path_syms = []
-         for pgeo in geomspath:
-              sym1 = [symmetry_of_picture(geo1) for geo1 in pgeo]
-              path_syms.append(sym1)
+         if pl_exact:
+             for pgeo in geomspath:
+                  sym1 = [how_exact_picture_c2v(geo1,ar4_diag[0]) for geo1 in pgeo]
+                  path_syms.append(sym1)
+         else:
+             for pgeo in geomspath:
+                  sym1 = [symmetry_of_picture(geo1) for geo1 in pgeo]
+                  path_syms.append(sym1)
 
      if pr:
         print bead_s
