@@ -4,6 +4,10 @@ from numpy import sqrt
 from numpy.linalg import solve
 from copy import deepcopy
 
+
+__all__ = ["setup_metric", "metric"]
+
+
 class Default:
     """
     Includes metrix relevant functions, like for
