@@ -721,7 +721,7 @@ class ReactionPathway(object):
         for i in range(N):
             t = self.tangents[i]
             t_co = mt.metric.lower(t, self.state_vec[i])
-            v[i] = v[i] - dot(t, v[i]) * t_co
+            v[i] = v[i] - dot(t_co, v[i]) * t
             #v[i], _ = project_out(t, v[i])
 
         return v
