@@ -225,7 +225,7 @@ def setup_metric(F = None):
      """
      global metric
      metric = Default(F)
-     print metric
+     #print metric
 
 def contoco(F, pos, vec):
      """
