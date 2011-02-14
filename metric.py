@@ -70,40 +70,64 @@ class Metric(Default):
     transforming contra- and covariant vectors into
     each other
 
-    >>> from numpy import pi
+        >>> from numpy import pi
 
-    Use a real function:
-    >>> from quat import r3
-    >>> met = Metric(r3)
+    Use spherical coordiantes for testing:
 
-    >>> x = array([8., pi/2. - 0.3, 0.2])
+        >>> from quat import r3
+        >>> met = Metric(r3)
 
-    >>> dx_con = array([0.0002, 0.001, 0.001])
+    Arbitrary point in space:
 
-    >>> x2 = x + dx_con
+        >>> Y = array([8., pi/2. - 0.3, 0.2])
 
-    First transformation
-    >>> dx_co = met.lower(dx_con, x)
+    Contravariant coordiantes of a vector:
 
-    Verify: back transformation == start
-    >>> max(abs(dx_con - met.raises(dx_co, x))) < 1e-15
-    True
+        >>> dY = array([0.0002, 0.001, 0.001])
 
-    >>> abs(dot(dx_con, dx_co) - dot(r3(x)-r3(x2), r3(x)-r3(x2))) < 1e-6
-    True
+        >>> Y1 = Y + dY
+
+    Covariant coordinates of the vector:
+
+        >>> dy = met.lower(dY, Y)
+
+    Verify that back transformation gives the original vector:
+
+        >>> max(abs(dY - met.raises(dy, Y))) < 1e-15
+        True
+
+    Square norm of the vector:
+
+        >>> dy2 = dot(dY, dy)
+
+    Cartesian vector and its square:
+
+        >>> dx = r3(Y1) - r3(Y)
+        >>> dx2 = dot(dx, dx)
+
+    Both should be similar, but not identical:
+
+        >>> abs(dy2 - dx2) < 1e-6
+        True
 
     Use norm function of metric (attention, they give back the sqrt)
 
-    >>> abs(met.norm_up(dx_con, x) - sqrt(dot(r3(x)-r3(x2), r3(x)-r3(x2)))) < 1e-6
-    True
+        >>> abs(met.norm_up(dY, Y) - sqrt(dy2)) < 1e-15
+        True
 
-    >>> abs(met.norm_down(dx_co, x) - sqrt(dot(r3(x)-r3(x2), r3(x)-r3(x2)))) < 1e-6
-    True
+        >>> abs(met.norm_down(dy, Y) - sqrt(dy2)) < 1e-15
+        True
+
+    FIXME: offering two ways of computing norms here and returning
+    a square root may be a bad decision. Do not consider "norm_up"
+    and "norm_down" a part of the Metric interface!
     """
     def __init__(self, fun):
         """
         needs a function with a fprime function
         """
+
+        # FIXME: what if analytical derivatives are available?
         self.fun = NumDiff(fun)
 
     def _fprime_as_matrix(self, x):
