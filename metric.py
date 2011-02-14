@@ -449,7 +449,9 @@ def brtbrm1(coords):
     Getting (B_R.T, B_R)^-1 from the coords.
     """
 
-    # Br = B_R.T * B_R
+    # Br = B_R.T * B_R, calculated directly
+    # without building B_R (again), as the structure is
+    #analytically known
     Br = zeros((3,3))
     for c in coords:
         for i in range(3):
@@ -460,6 +462,8 @@ def brtbrm1(coords):
             Br[i,i] += dot(c, c)
 
     # numerically do Br_inv = Br^-1
+    # be aware, that Br is a symmetric matric, which
+    # is required for the following code to work
     a = Br[1,1]* Br[2,2] - Br[2,1] * Br[2,1]
     b = Br[2,1]* Br[2,0] - Br[2,2] * Br[1,0]
     c = Br[1,0]* Br[2,1] - Br[2,0] * Br[1,1]
