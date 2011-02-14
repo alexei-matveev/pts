@@ -330,82 +330,120 @@ def cotocon_red(F, f, pos, vec):
 
 def B_globals(carts):
     """
-    Calculates the matrices B_T and B_R as needed for removing the global positions
-    B_T is just the derivatives for the translation and is thus fixed, note that
-    the matrix (B_T.T B_T)^-1 is just N * eye(3,3)
-    The matrix B_R is build with the geometrical center as rotation center, thus
-    rotation and translation do not interact with each other. The inverse of
-    (B_R.T, B_R) is also already calculated numerically.
-    returns B_T, (B_T.T B_T)^-1, B_R, (B_R.T, B_R)^-1
+    Calculates the matrices BT and BR holding translation and rotation modes
+    as needed for removing the trivial componets of a (displacement) vector.
 
-    >>> from numpy import sin, cos, pi
-    >>> d = 1.2
-    >>> carts = array([[  0.,   0.,   0.],
-    ...                [   d, d/2.,   0.],
-    ...                [d/2.,    d,   0.],
-    ...                [   d,    d,   0.]])
+    BT is just the derivatives for the translation and is thus indpendent of
+    geometry. The inverse of the matrix BT^T * BT is just eye(3) / N.
 
-    >>> BT, BT2i, BR, BR2i = B_globals(carts)
-    >>> (abs(dot(BT.T, BT) - eye(3)*size(carts,0))).max() < 1e-10
-    True
-    >>> (abs(dot(BR2i, dot(BR.T, BR)) - eye(3))).max() < 1e-10
-    True
-    >>> (abs(dot(BT2i, dot(BT.T, BT)) - eye(3))).max() < 1e-10
-    True
-    >>> abs(dot(BT.T, BR)).max() < 1e-10
-    True
+    The matrix BR is build with the geometrical center as rotation center, thus
+    rotation and translation modes are orthogonal by construction.
+    The inverse of BR^T * BR is calculated numerically.
 
-    >>> def fun2(x):
-    ...     return array([[0., 0., 0.],
-    ...                   [x[0], 0., 0.],
-    ...                   [-x[0], 0., 0.],
-    ...                   [x[1] * sin(x[2]), x[1] * cos(x[2]), 0.],
-    ...                   [-x[1] * sin(x[2]), -x[1] * cos(x[2]), 0.],
-    ...                   [x[1] * sin(x[2]) + x[3] * sin(x[4]) * cos(x[5]) ,
-    ...                    x[1] * cos(x[2]) + x[3] * cos(x[4]) * cos(x[5]) ,
-    ...                     - x[3] * sin(x[5])],
-    ...                    [- x[1] * sin(x[2]) - x[3] * sin(x[4]) * cos(x[5]) ,
-    ...                     - x[1] * cos(x[2]) - x[3] * cos(x[4]) * cos(x[5]) ,
-    ...                      x[3] * sin(x[5])]]
-    ...                     )
+    Returns a 4-tuple (BT, gT, BR, gR) with 3x3 matrices
 
-    >>> fun = NumDiff(fun2)
-    >>> y = asarray([d, d/2., 0.1, -d, 0.4, 0.4])
-    >>> t = asarray([0.,0.,0.])
-    >>> rot = asarray([0.,0.,0.])
-    >>> x = fun2(y)
-    >>> from pts.zmat import RT
-    >>> r = RT(fun)
-    >>> B1, BR1, BT1 =  r.fprime(y, rot, t)
-    >>> BT, BT2i, BR, BR2i = B_globals(x)
-    >>> (abs(BT.flatten() - BT1.flatten())).max() < 1e-12
-    True
-    >>> (abs(BR.flatten() - BR1.flatten())).max() < 1e-10
-    True
-    >>> (abs(dot(BR2i, dot(BR.T, BR)) - eye(3))).max() < 1e-10
-    True
-    >>> (abs(dot(BT2i, dot(BT.T, BT)) - eye(3))).max() < 1e-10
-    True
-    >>> abs(dot(BT.T, BR)).max() < 1e-10
-    True
-    >>> y = asarray([-d + 0.1, d*0.8, 0.03, d*0.8, 1.0, 0.8])
-    >>> t = asarray([0.,0.,0.])
-    >>> rot = asarray([0.,0.,0.])
-    >>> x = fun2(y)
-    >>> from pts.zmat import RT
-    >>> r = RT(fun)
-    >>> B1, BR1, BT1 =  r.fprime(y, rot, t)
-    >>> BT, BT2i, BR, BR2i = B_globals(x)
-    >>> (abs(BT.flatten() - BT1.flatten())).max() < 1e-12
-    True
-    >>> (abs(BR.flatten() - BR1.flatten())).max() < 1e-10
-    True
-    >>> (abs(dot(BR2i, dot(BR.T, BR)) - eye(3))).max() < 1e-10
-    True
-    >>> (abs(dot(BT2i, dot(BT.T, BT)) - eye(3))).max() < 1e-10
-    True
-    >>> abs(dot(BT.T, BR)).max() < 1e-10
-    True
+                T      -1
+        gT = (BT  * BT)
+
+    and
+                T      -1
+        gR = (BR  * BR)
+
+    Translations and rotations modes as returned by this function
+    are mutually orthogonal:
+
+               T
+        0 = (BT  * BR)
+
+
+    Trial geometry (tetrahedron):
+
+        >>> w = 2.0
+        >>> X = array([[ w,  w,  w],
+        ...            [-w, -w,  w],
+        ...            [ w, -w, -w],
+        ...            [-w,  w, -w]])
+
+        >>> BT, gT, BR, gR = B_globals(X)
+
+    The 2-contravariant tensor
+
+             -1
+        g = G
+
+    is an inverse of the 2-covariant Gram matrix
+
+             T
+        G = B  * B
+
+    for two kinds of trivial vectors, translations and rotatins.
+    Verify that for rotations ...
+
+        >>> GR = dot(BR.T, BR)
+
+        >>> max(abs(dot(gR, GR) - eye(3))) < 1e-16
+        True
+
+        >>> max(abs(dot(GR, gR) - eye(3))) < 1e-16
+        True
+
+    and translations ...
+
+        >>> GT = dot(BT.T, BT)
+
+        >>> max(abs(dot(gT, GT) - eye(3))) < 1e-16
+        True
+
+        >>> max(abs(dot(GT, gT) - eye(3))) < 1e-16
+        True
+
+    Check that translation and rotation modes are mutually orthogonal:
+
+        >>> max(abs(dot(BT.T, BR))) < 1e-16
+        True
+
+    Only in this case is it meaningfull to separate the two subspaces.
+
+    Below is a somewhat obscure way to verify that translations are translations
+    and rotations are rotations.
+
+        >>> from zmat import RT
+
+    Constructor of an RT object expect a differentiable function,
+    prepare a function that always returns the same tetrahedral geometry:
+
+        >>> def f(y):
+        ...     return X
+
+    This one also provides derivatives:
+
+        >>> f = NumDiff(f)
+
+    This one depends on rotational and translational parameters in addition:
+
+        >>> f = RT(f)
+
+    Values for rotational and translational parameters:
+
+        >>> O = array([0., 0., 0.])
+
+    The first argument of f(y, rot, trans) is ignored, so is the corresponding
+    derivative:
+
+        >>> _, BR1, BT1 =  f.fprime(O, O, O)
+
+    For this particular example derivatives with respect to
+    rotational and translational parameters coincide:
+
+        >>> max(abs(BT.flatten() - BT1.flatten())) < 1e-16
+        True
+
+        >>> max(abs(BR.flatten() - BR1.flatten())) < 1e-16
+        True
+
+    Note that with a different choice of, say, geometrical
+    center of X offset from origin one cannot expect this
+    agreement anymore.
     """
 
     #
