@@ -485,12 +485,14 @@ def B_globals(carts):
     BR.shape = (N*3, 3)
 
     #              T
-    # Inverse of BT  *  BT, that is of pairwise dot products of the mode vectors:
+    # Inverse of BT  *  BT, that is of pairwise dot products
+    # of the mode vectors (Gram matrix):
     #
     gammaT = eye(3) / N
 
     #              T
-    # Inverse of BR  *  BR, that is of pairwise dot products of the mode vectors:
+    # Inverse of BR  *  BR, that is of pairwise dot products
+    # of the mode vectors (Gram matrix):
     #
     gammaR = inv3(inertia(carts))
 
@@ -511,10 +513,10 @@ def center(rs):
 
 def inertia(rs):
     """Compute 3x3 inertia tensor
-             __
-             \    2
-        I  = /_  r  * delta  -  r * r
-         ij   r            ij    i   j
+               __
+               \    2
+        I   =  /_  r  * delta  -  r * r
+         ij     r            ij    i   j
 
     assuming UNIT masses.
 
