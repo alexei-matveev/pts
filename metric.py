@@ -1,5 +1,5 @@
 from func import NumDiff
-from numpy import dot, asarray, matrix, size
+from numpy import dot, array, asarray, matrix, size, shape
 from numpy import sqrt
 from numpy import zeros, eye
 from numpy.linalg import solve
@@ -11,30 +11,33 @@ __all__ = ["setup_metric", "metric"]
 
 class Default:
     """
-    Includes metrix relevant functions, like for
+    Implements metric relevant functions, like for
     transforming contra- and covariant vectors into
     each other
 
     This variant supposes that contra- and covariant vectors
-    are the same
+    are the same, coordinate transformation if provided
+    is ignored:
 
-    >>> met = Default(None)
-    >>> from numpy import pi
+        >>> met = Default(None)
 
-    >>> x = None
+    Contravariant coordinates of a vector:
 
-    >>> dx_con = asarray([0.0002, 0.001, 0.001])
+        >>> dX = array([0.0002, 0.001, 0.001])
 
-    First transformation
-    >>> dx_co = met.lower(dx_con, x)
+    Get covariant coordinates, position of vectors is ignored:
 
-    Verify: this metric changes nothing:
-    >>> max(abs(dx_con - dx_co)) < 1e-15
-    True
+        >>> dx = met.lower(dX, None)
 
-    Verify: this metric changes nothing:
-    >>> max(abs(dx_con - met.raises(dx_co, x))) < 1e-15
-    True
+    Verify that self.lower changes nothing:
+
+        >>> all(dX == dx)
+        True
+
+    Verify self.raises for consistency:
+
+        >>> all(dX == met.raises(dx, None))
+        True
     """
     def __init__(self, fun = None):
         """
@@ -73,9 +76,9 @@ class Metric(Default):
     >>> from quat import r3
     >>> met = Metric(r3)
 
-    >>> x = asarray([8., pi/2. - 0.3, 0.2])
+    >>> x = array([8., pi/2. - 0.3, 0.2])
 
-    >>> dx_con = asarray([0.0002, 0.001, 0.001])
+    >>> dx_con = array([0.0002, 0.001, 0.001])
 
     >>> x2 = x + dx_con
 
@@ -142,10 +145,10 @@ class Metric_reduced(Metric):
     >>> met = Metric_reduced(r3)
 
     Be careful that the angles are not too large
-    >>> x = asarray([1.0, 2.0, 0.5, 1.0 , 0.6 , 0.1])
+    >>> x = array([1.0, 2.0, 0.5, 1.0 , 0.6 , 0.1])
 
     Vector to transform
-    >>> f_co = asarray([1.0, 2.0, 0.5, 1.0 , 0.6 , 0.1])
+    >>> f_co = array([1.0, 2.0, 0.5, 1.0 , 0.6 , 0.1])
 
     >>> from ase import Atoms
     >>> from ase.calculators.lj import LennardJones
@@ -311,10 +314,10 @@ def B_globals(carts):
 
     >>> from numpy import sin, cos, pi
     >>> d = 1.2
-    >>> carts = asarray([[0., 0., 0.],
-    ...                  [d, d/2., 0.],
-    ...                  [d/2, d, 0.],
-    ...                  [d, d, 0.]])
+    >>> carts = array([[  0.,   0.,   0.],
+    ...                [   d, d/2.,   0.],
+    ...                [d/2.,    d,   0.],
+    ...                [   d,    d,   0.]])
 
     >>> BT, BT2i, BR, BR2i = B_globals(carts)
     >>> (abs(dot(BT.T, BT) - eye(3)*size(carts,0))).max() < 1e-10
@@ -327,13 +330,13 @@ def B_globals(carts):
     True
 
     >>> def fun2(x):
-    ...     return asarray([[0., 0., 0.],
-    ...                    [x[0], 0., 0.],
-    ...                    [-x[0], 0., 0.],
-    ...                    [x[1] * sin(x[2]), x[1] * cos(x[2]), 0.],
-    ...                    [-x[1] * sin(x[2]), -x[1] * cos(x[2]), 0.],
-    ...                    [x[1] * sin(x[2]) + x[3] * sin(x[4]) * cos(x[5]) ,
-    ...                     x[1] * cos(x[2]) + x[3] * cos(x[4]) * cos(x[5]) ,
+    ...     return array([[0., 0., 0.],
+    ...                   [x[0], 0., 0.],
+    ...                   [-x[0], 0., 0.],
+    ...                   [x[1] * sin(x[2]), x[1] * cos(x[2]), 0.],
+    ...                   [-x[1] * sin(x[2]), -x[1] * cos(x[2]), 0.],
+    ...                   [x[1] * sin(x[2]) + x[3] * sin(x[4]) * cos(x[5]) ,
+    ...                    x[1] * cos(x[2]) + x[3] * cos(x[4]) * cos(x[5]) ,
     ...                     - x[3] * sin(x[5])],
     ...                    [- x[1] * sin(x[2]) - x[3] * sin(x[4]) * cos(x[5]) ,
     ...                     - x[1] * cos(x[2]) - x[3] * cos(x[4]) * cos(x[5]) ,
