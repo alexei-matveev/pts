@@ -230,11 +230,94 @@ class Metric_reduced(Metric):
     >>> max(t_c2v_prime(f_con)[1]) < 1e-9
     True
     """
-    def lower(self, vec, place):
-        return asarray(contoco_red(self._fprime_as_matrix, self.fun, place, vec))
+    def lower(self, dY, Y):
+        """
+        Assuming that F is a function to get the derivatives, transforming vectors
+        of kind vec into cartesians, while f is the function itself
+        and that all takes place at position pos,
+        this function transforms contra in covariant vectors with removing the
+        parts for global coordinates in the covariant vector space.
+        The transformation between the two is done with the expression:
+        vec_i = B.T(I - BT (BT.T Bt)^-1 BT.T - BR (BR.T BR)^-1 BR.T) B vec^i
+        B(pos) is the transformation just in internals, BT and BR are the matrices
+        for translation and rotation (special choice with no interlap)
 
-    def raises(self, vec, place):
-        return asarray(cotocon_red(self._fprime_as_matrix, self.fun, place, vec))
+        FIXME: description outdated.
+
+        Compute covariant coordinates dy corresponding to contravariant dY by
+
+                  T                  T            T
+            dy = B  * ( I - B * g * B  - B * g * B ) * B * dY
+                             t   t   t    r   r   r
+
+        with
+                   T       -1
+            g = ( B  *  B )
+             t     t     t
+        and
+                   T       -1
+            g = ( B  *  B )
+             r     r     r
+
+        with B, B, B evaluated at Y.
+                 r  t
+        """
+
+        # positions needed for the global rotation matrix:
+        X = self.fun(Y)
+
+        # get the matrices for the global parameter (without interlap):
+        BT, gT , BR, gR = B_globals(X)
+
+        B = self._fprime_as_matrix(Y)
+
+        # this is a cartesian vector corresponding to dY:
+        dX = dot(B, dY)
+
+        # these are components of dX that are translations and rotations,
+        # respectively:
+        dXT = dot(BT, dot(gT, dot(BT.T, dX)))
+        dXR = dot(BR, dot(gR, dot(BR.T, dX)))
+
+        return dot(B.T, dX - dXT - dXR)
+
+    def raises(self, dy, Y):
+        """
+        Assuming that F is a function to get the derivatives, transforming vectors
+        of kind vec into cartesians, while f is the function itself
+        and that all takes place at position pos,
+        this function transforms co in contravariant vectors with removing the
+        parts for global coordinates in the covariant vector space.
+        The transformation between the two is done with the expression:
+        vec_i = B.T(I - BT (BT.T Bt)^-1 BT.T - BR (BR.T BR)^-1 BR.T) B vec^i
+        B(pos) is the transformation just in internals, BT and BR are the matrices
+        for translation and rotation (special choice with no interlap)
+
+        FIXME: description outdated.
+        """
+
+        # positions needed for the global rotation matrix:
+        X = self.fun(Y)
+
+        # get the matrices for the global parameter (without interlap):
+        BT, gT , BR, gR = B_globals(X)
+
+        B = self._fprime_as_matrix(Y)
+
+        #
+        # See description of self.lower() that defines a linear relation
+        #
+        #       g * dY = dy
+        #
+        # relating contra- and covariant coordinates, dY and dy,
+        # for detailed definition of matrix g.
+        #
+        T = dot(BT, dot(gT, dot(BT.T, B)))
+        R = dot(BR, dot(gR, dot(BR.T, B)))
+
+        g = dot(B.T, B - T - R)
+
+        return solve(g, dy)
 
     def __str__(self):
         return "Metric: Working with Metric Cartesians with remove of global translation and rotation"
@@ -280,53 +363,6 @@ def setup_metric(F = None):
      global metric
      metric = Default(F)
      #print metric
-
-def contoco_red(F, f, pos, vec):
-    """
-    Assuming that F is a function to get the derivatives, transforming vectors
-    of kind vec into cartesians, while f is the function itself
-    and that all takes place at position pos,
-    this function transforms contra in covariant vectors with removing the
-    parts for global coordinates in the covariant vector space.
-    The transformation between the two is done with the expression:
-    vec_i = B.T(I - BT (BT.T Bt)^-1 BT.T - BR (BR.T BR)^-1 BR.T) B vec^i
-    B(pos) is the transformation just in internals, BT and BR are the matrices
-    for translation and rotation (special choice with no interlap)
-    """
-    B = F(pos)
-    # positions needed for the global rotation matrix
-    p_cart = f(pos)
-    # get the matrices for the global parameter (without interlap)
-    BT, BT2_inv , BR, BR2_inv = B_globals(p_cart)
-    # dy_i = B.T(I - BT (BT.T Bt)^-1 BT.T - BR (BR.T BR)^-1 BR.T) B dy^i
-    M = dot(B, vec)
-    M_T = dot(BT, dot(BT2_inv, dot(BT.T, M)))
-    M_R = dot(BR, dot(BR2_inv, dot(BR.T, M)))
-    return dot(B.T, M - M_T - M_R)
-
-
-def cotocon_red(F, f, pos, vec):
-    """
-    Assuming that F is a function to get the derivatives, transforming vectors
-    of kind vec into cartesians, while f is the function itself
-    and that all takes place at position pos,
-    this function transforms co in contravariant vectors with removing the
-    parts for global coordinates in the covariant vector space.
-    The transformation between the two is done with the expression:
-    vec_i = B.T(I - BT (BT.T Bt)^-1 BT.T - BR (BR.T BR)^-1 BR.T) B vec^i
-    B(pos) is the transformation just in internals, BT and BR are the matrices
-    for translation and rotation (special choice with no interlap)
-    """
-    B = F(pos)
-    # positions needed for the global rotation matrix
-    p_cart = f(pos)
-    # get the matrices for the global parameter (without interlap)
-    BT, BT2_inv, BR, BR2_inv = B_globals(p_cart)
-    # dy_i = B.T(I -  BT(BT.T BT)^-1 BT.T - BR (BR.T BR)^-1 BR.T) B dy^i
-    M_T = dot(BT, dot(BT2_inv, dot(BT.T, B)))
-    M_R = dot(BR, dot(BR2_inv, dot(BR.T, B)))
-    M = dot(B.T, B - M_T - M_R)
-    return solve(M, vec)
 
 def B_globals(carts):
     """
