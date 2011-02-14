@@ -1297,8 +1297,6 @@ class PathRepresentation(object):
         of beads along a reaction path, according to the established path 
         (line, parabola or spline) and the parameterisation density."""
 
-        assert len(self.__fs) > 1
-
         assert not self._funcs_stale
 
         # Find total string length and incremental distances x along the string 
