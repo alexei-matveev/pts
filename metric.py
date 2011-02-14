@@ -2,6 +2,7 @@ from func import NumDiff
 from numpy import dot, array, asarray, matrix, size, shape
 from numpy import sqrt
 from numpy import zeros, eye
+from numpy import max, abs
 from numpy.linalg import solve
 from copy import deepcopy
 
@@ -439,46 +440,80 @@ def B_globals(carts):
 
 
     # Now do (B_R.T, B_R)^-1:
-    Br_inv = brtbrm1(pcri)
+    Br_inv = inv3(inertia(pcri))
 
     return B_T, Bt_inv, B_R, Br_inv
 
 
-def brtbrm1(coords):
-    """
-    Getting (B_R.T, B_R)^-1 from the coords.
+def inertia(rs):
+    """Compute 3x3 inertia tensor
+             __
+             \    2
+        I  = /_  r  * delta  -  r * r
+         ij   r            ij    i   j
+
+    assuming UNIT masses.
+
+        >>> w = 2.0
+        >>> rs = array([[ w,  w,  w],
+        ...             [-w, -w,  w],
+        ...             [ w, -w, -w],
+        ...             [-w,  w, -w]])
+
+        >>> inertia(rs)
+        array([[ 32.,   0.,   0.],
+               [  0.,  32.,   0.],
+               [  0.,   0.,  32.]])
     """
 
-    # Br = B_R.T * B_R, calculated directly
-    # without building B_R (again), as the structure is
-    #analytically known
-    Br = zeros((3,3))
-    for c in coords:
+    I = zeros((3,3))
+    for r in rs:
         for i in range(3):
-            # only the upper half is needed, symmetry:
-            for j in range(i+1):
-                Br[i,j] -= c[i] * c[j]
+            for j in range(3):
+                I[i, j] -= r[i] * r[j]
 
-            Br[i,i] += dot(c, c)
+            I[i, i] += dot(r, r)
 
-    # numerically do Br_inv = Br^-1
-    # be aware, that Br is a symmetric matric, which
-    # is required for the following code to work
-    a = Br[1,1]* Br[2,2] - Br[2,1] * Br[2,1]
-    b = Br[2,1]* Br[2,0] - Br[2,2] * Br[1,0]
-    c = Br[1,0]* Br[2,1] - Br[2,0] * Br[1,1]
+    return I
 
-    d = b
-    e = Br[0,0]* Br[2,2] - Br[2,0] * Br[2,0]
-    f = Br[1,0]* Br[2,0] - Br[0,0] * Br[2,1]
+def inv3(m):
+    """Compute inverse of a 3x3 matrix by Cramers method.
 
-    g = c
-    h = f
-    k = Br[0,0]* Br[1,1] - Br[1,0] * Br[1,0]
+    Use rotation matrix for testing:
 
-    z = Br[0,0] * a + Br[1,0] * b + Br[2,0] * c
-    Br_inv = asarray([[a,d,g], [b, e, h], [c, f, k]])/z
-    return Br_inv
+        >>> from quat import rotmat
+        >>> m = rotmat(array([0.5, 1.5, 2.]))
+
+    Inverse:
+
+        >>> m1 = inv3(m)
+        >>> max(abs(dot(m1, m) - eye(3))) < 1e-16
+        True
+        >>> max(abs(dot(m, m1) - eye(3))) < 1e-16
+        True
+    """
+
+#   # FIXME: this code is broken. It may work though
+#   #        for symmetric m!
+#   a = m[1, 1]* m[2, 2] - m[2, 1] * m[2, 1]
+#   b = m[2, 1]* m[2, 0] - m[2, 2] * m[1, 0]
+#   c = m[1, 0]* m[2, 1] - m[2, 0] * m[1, 1]
+
+#   d = b
+#   e = m[0, 0]* m[2, 2] - m[2, 0] * m[2, 0]
+#   f = m[1, 0]* m[2, 0] - m[0, 0] * m[2, 1]
+
+#   g = c
+#   h = f
+#   k = m[0, 0]* m[1, 1] - m[1, 0] * m[1, 0]
+
+#   z = m[0, 0] * a + m[1, 0] * b + m[2, 0] * c
+
+#   minv = array([[a, d, g], [b, e, h], [c, f, k]]) / z
+
+    # FIXME: why asarray() is necessary here? The caller
+    #        seems not to accept a matrix() as result:
+    return asarray(matrix(m).I)
 
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
