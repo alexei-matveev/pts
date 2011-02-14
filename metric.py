@@ -137,11 +137,14 @@ class Metric(Default):
         Thus transform the result to a matrix as if the
         function used for fprime would give back a flattened result.
         """
-        a = asarray(self.fun.fprime(x))
-        lenx = size(x)
-        # convert shape of a, so that second dimension is length of vector x
-        a.shape = (-1, lenx)
-        return a
+
+        # FIXME: ensure that "fprime" is always returned as an array instead:
+        fprime = asarray(self.fun.fprime(x))
+
+        # convert shape of fprime, so that second dimension is length of vector x
+        fprime.shape = (-1, size(x))
+
+        return fprime
 
     def lower(self, vec, place):
         return asarray(contoco(self._fprime_as_matrix, place, vec))
