@@ -214,11 +214,8 @@ class PathTools:
         if leftbd == rightbd:
             leftbd -= 1
             rightbd += 1
-        self.cs = cs_forcart.copy()
-        self.cs.set_internals(self.state[leftbd])
-        leftcoord = self.cs.get_cartesians()
-        self.cs.set_internals(self.state[rightbd])
-        rightcoord = self.cs.get_cartesians()
+        leftcoord = cs_forcart.int2cart(self.state[leftbd])
+        rightcoord = cs_forcart.int2cart(self.state[leftbd])
 
         modedirect = rightcoord - leftcoord
         normer = np.sqrt(sum(sum(modedirect * modedirect)))
@@ -227,13 +224,13 @@ class PathTools:
         modeint = self.state[rightbd] - self.state[leftbd]
         normer = np.sqrt(sum(modeint * modeint))
         modeint /= normer
-        transfer, error = self.cs.get_transform_matrix(self.xs(s0))
+        transfer = cs_forcart.get_transform_matrix(self.xs(s0))
         modefromint = np.dot( np.asarray(modeint), transfer)
 
         modeint = self.state[-1] - self.state[0]
         normer = np.sqrt(sum(modeint * modeint))
         modeint /= normer
-        transfer, error = self.cs.get_transform_matrix(self.xs(s0))
+        transfer = cs_forcart.get_transform_matrix(self.xs(s0))
         modeallpath = np.dot( np.asarray(modeint), transfer)
 
         modeint = self.xs.fprime(s0)

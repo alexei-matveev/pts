@@ -127,7 +127,8 @@ def print_xyz(x, y, cs, num):
     else:
         endx = float(x[-1])
 
-    numats = cs.atoms_count
+    symbs = cs._atoms.get_chemical_symbols()
+    numats = len(symbs)
 
     for i in range(num):
          # this is one of the frames,
@@ -137,7 +138,9 @@ def print_xyz(x, y, cs, num):
          print "This is the %i'th frame" % (i+1)
          coord = path1((endx / (num -1) * i))
          cs.set_internals(coord)
-         print cs.xyz_str()
+         carts = cs.get_cartesians()
+         for sy, pos in zip(symbs, carts):
+             print '%-2s %22.15f %22.15f %22.15f' % (sy, pos[0], pos[1], pos[2])
 
 def print_beads(ys, cs):
     """
@@ -150,12 +153,15 @@ def print_beads(ys, cs):
     exactly the beads which are used to create
     the frames
     """
-    numats = cs.atoms_count
+    symbs = cs._atoms.get_chemical_symbols()
+    numats = len(symbs)
     for i,y in enumerate(ys):
          print numats
          print "This is the %i'th bead" % (i+1)
          cs.set_internals(y)
-         print cs.xyz_str()
+         carts = cs.get_cartesians()
+         for sy, pos in zip(symbs, carts):
+             print '%-2s %22.15f %22.15f %22.15f' % (sy, pos[0], pos[1], pos[2])
 
 
 def main(argv=None):
