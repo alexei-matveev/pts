@@ -1,7 +1,7 @@
 from func import NumDiff
 from numpy import dot, array, asarray, matrix, size, shape
 from numpy import sqrt
-from numpy import zeros, eye
+from numpy import zeros, empty, eye
 from numpy import max, abs
 from numpy.linalg import solve
 from copy import deepcopy
@@ -407,43 +407,69 @@ def B_globals(carts):
     >>> abs(dot(BT.T, BR)).max() < 1e-10
     True
     """
-    pcri = deepcopy(carts)
-    # important for case with one electron where carts may be just a vector
-    pcri.shape = (-1, 3)
 
-    # centr should become the geometrical center
-    centr = asarray([0., 0.,0.])
-    N = size(pcri, 0)
-    for c in carts:
-       centr += c
-    centr /= N
-    # cartesian coordinates with geoemtrical center as origion
-    pcri -= centr
+    #
+    # FIXME: this code necessarily assumes that "carts" is an array
+    #        of cartesian coordinates. Otherwise "translations" and
+    #        "rotation" modes as used implicitly below have no meaning.
+    #        Why cannot we assume that we are always passed an (N, 3)
+    #        array?
+    #
+    carts = carts.view().reshape(-1, 3)
 
-    # for each of N atoms a 3x3 matrix:
-    B_T = zeros((N*3, 3))
-    B_R = zeros((N*3, 3))
+    # cartesian coordinates with geometrical center as origin:
+    carts = carts - center(carts)
+
+    # number of atoms:
+    N = len(carts)
+
+    # Matrices to hold translation and rotation modes, BT and BR.
+    # For each of N atoms a 3x3 matrix, or rather for each of 3 modes
+    # an Nx3 matrix [both will be reshaped to (N*3, 3) later]:
+    BT = empty((N, 3, 3))
+    BR = empty((N, 3, 3))
 
     # set the matrices
-    for i, pcr in enumerate(pcri):
-        x, y, z = pcr
-        # B_T is fixed, here B_T is also "normed" already
-        B_T[i*3:(i+1)*3,:] = eye(3)
+    for i in range(N):
+        x, y, z = carts[i]
 
-        # B_R is used for zero rotation around the center
-        B_R[i*3:(i+1)*3,:] = asarray([[ 0,  z, -y],
-                                      [-z,  0,  x],
-                                      [ y, -x,  0]])
+        # BT modes for translations, note normalization:
+        BT[i, :, :] = eye(3)
 
-    # (B_T.T, B_T)^-1:
-    Bt_inv = eye(3) / N
+        # BR modes as rotations around the center:
+        BR[i, :, :] = array([[ 0,  z, -y],
+                             [-z,  0,  x],
+                             [ y, -x,  0]])
+
+    # FIXME: we handle cartesian coordinates as linear arrays
+    #        in order to use numpy.dot(,) later:
+    BT.shape = (N*3, 3)
+    BR.shape = (N*3, 3)
+
+    #              T
+    # Inverse of BT  *  BT, that is of pairwise dot products of the mode vectors:
+    #
+    gammaT = eye(3) / N
+
+    #              T
+    # Inverse of BR  *  BR, that is of pairwise dot products of the mode vectors:
+    #
+    gammaR = inv3(inertia(carts))
+
+    return BT, gammaT, BR, gammaR
 
 
-    # Now do (B_R.T, B_R)^-1:
-    Br_inv = inv3(inertia(pcri))
+def center(rs):
+    """Compute mass center
+    assuming UNIT masses.
+    """
 
-    return B_T, Bt_inv, B_R, Br_inv
+    x = zeros((3))
 
+    for r in rs:
+        x += r
+
+    return x / len(rs)
 
 def inertia(rs):
     """Compute 3x3 inertia tensor
