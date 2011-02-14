@@ -147,10 +147,33 @@ class Metric(Default):
         return fprime
 
     def lower(self, vec, place):
-        return asarray(contoco(self._fprime_as_matrix, place, vec))
+         """
+         Assuming that F is a function to get the derivatives, transforming vectors
+         of kind vec into cartesians, and that all takes place at position pos,
+         this function transforms contra in covariant vectors.
+
+         FIXME: description outdated.
+         """
+
+         B = self._fprime_as_matrix(place)
+
+         return dot(B.T, dot(B, vec))
 
     def raises(self, vec, place):
-        return asarray(cotocon(self._fprime_as_matrix, place, vec))
+         """
+         Assuming that F is a function to get the derivatives, transforming vectors
+         of kind vec into cartesians, and that all takes place at position pos,
+         this function transforms co in contravariant vectors.
+
+         FIXME: description outdated.
+         """
+
+         B = self._fprime_as_matrix(place)
+
+         M = dot(B.T, B)
+
+         return solve(M, vec)
+
 
     def __str__(self):
         return "Metric: Working with Metric Cartesians (Metric)"
@@ -256,31 +279,6 @@ def setup_metric(F = None):
      global metric
      metric = Default(F)
      #print metric
-
-def contoco(F, pos, vec):
-     """
-     Assuming that F is a function to get the derivatives, transforming vectors
-     of kind vec into cartesians, and that all takes place at position pos,
-     this function transforms contra in covariant vectors.
-     """
-     B = F(pos)
-     return btb(B, vec)
-
-def cotocon(F, pos, vec):
-     """
-     Assuming that F is a function to get the derivatives, transforming vectors
-     of kind vec into cartesians, and that all takes place at position pos,
-     this function transforms co in contravariant vectors.
-     """
-     B = F(pos)
-     M = dot(B.T, B)
-     return solve(M, vec)
-
-def btb(B, vec):
-     """
-     Returns the product B^T B vec
-     """
-     return dot(B.T, dot(B, vec))
 
 def contoco_red(F, f, pos, vec):
     """
