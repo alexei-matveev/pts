@@ -86,8 +86,6 @@ class Metric(Default):
 
         >>> dY = array([0.0002, 0.001, 0.001])
 
-        >>> Y1 = Y + dY
-
     Covariant coordinates of the vector:
 
         >>> dy = met.lower(dY, Y)
@@ -103,7 +101,7 @@ class Metric(Default):
 
     Cartesian vector and its square:
 
-        >>> dx = r3(Y1) - r3(Y)
+        >>> dx = r3(Y + dY) - r3(Y)
         >>> dx2 = dot(dx, dx)
 
     Both should be similar, but not identical:
