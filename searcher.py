@@ -1594,7 +1594,7 @@ class GrowingString(ReactionPathway):
      [ 0.          0.        ]]
     array([ 0.   ,  0.   ,  0.018, -0.018,  0.214, -0.214,  0.   ,  0.   ])
     >>> s.lengths_disparate()
-    True
+    False
 
     >>> s.eg_calls
     3
