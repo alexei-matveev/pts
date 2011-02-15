@@ -526,8 +526,8 @@ def B_globals(carts):
                              [-z,  0,  x],
                              [ y, -x,  0]])
 
-    # FIXME: we handle cartesian coordinates as linear arrays
-    #        in order to use numpy.dot(,) later:
+    # NOTE: we handle cartesian coordinates as linear arrays
+    #       in order to use numpy.dot(,) later:
     BT.shape = (N*3, 3)
     BR.shape = (N*3, 3)
 
@@ -540,6 +540,8 @@ def B_globals(carts):
     #              T
     # Inverse of BR  *  BR, that is of pairwise dot products
     # of the mode vectors (Gram matrix):
+    #
+    # FIXME: inertia tensor for linear systems is singular!
     #
     gammaR = inv3(inertia(carts))
 
