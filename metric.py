@@ -701,7 +701,7 @@ def adj3(m):
     return w
 
 # Testing the examples in __doc__strings, execute
-# "python gxmatrix.py", eventualy with "-v" option appended:
+# "python metric.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
      import doctest
      doctest.testmod()
