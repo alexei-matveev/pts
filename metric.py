@@ -184,51 +184,94 @@ class Metric_reduced(Metric):
     Includes metrix relevant functions, like for
     transforming contra- and covariant vectors into
     each other
+
     This one uses Cartesian metric but with ensuring that there are no
     global rotation and translation. Therefore it is only designed for
     use of some kind of internal coordinates, which do not already include
     them.
 
-    >>> from numpy import pi
+    Potential energy surface of Ar4, energy gradients will be used
+    as a trial covariant vector:
 
-    Use a real function:
-    >>> from quat import r3
-    >>> met = Metric_reduced(r3)
+        >>> from ase import Atoms
+        >>> from qfunc import QFunc
 
-    Be careful that the angles are not too large
-    >>> x = array([1.0, 2.0, 0.5, 1.0 , 0.6 , 0.1])
+        >>> E = QFunc(Atoms("Ar4"))
 
-    Vector to transform
-    >>> f_co = array([1.0, 2.0, 0.5, 1.0 , 0.6 , 0.1])
+    Tetrahedral geometry, inflated by 5%:
 
-    >>> from ase import Atoms
-    >>> from ase.calculators.lj import LennardJones
-    >>> from pts.zmat import ZMat
-    >>> ar4 = Atoms("Ar4")
+        >>> w = 0.39685026 * 1.05
+        >>> X = array([[ w,  w,  w],
+        ...            [-w, -w,  w],
+        ...            [ w, -w, -w],
+        ...            [-w,  w, -w]])
 
-    >>> ar4.set_calculator(LennardJones())
+    Imagine we use a steepest descent procedure, where step
+    is proportional to the gradient. In cartesian coordinates
+    this may look like this:
 
-    >>> td_s = 1.12246195815
-    >>> td_w = 60.0 / 180. * pi
-    >>> td_d = 70.5287791696 / 180. * pi
+        >>> lam = 0.01
+        >>> dX = - lam * E.fprime(X)
 
-    >>> func = ZMat([(), (0,), (0, 1), (1, 2, 0)])
-    >>> met = Metric_reduced(func)
-    >>> x = [td_s, td_s, td_w, td_s, td_w, td_d]
-    >>> carts = func(x)
-    >>> ar4.set_positions(carts)
-    >>> f_cart = ar4.get_forces().flatten()
-    >>> B = func.fprime(x)
-    >>> B.shape = (-1, len(x))
-    >>> f_co = dot(B.T, f_cart)
-    >>> f_con = met.raises(f_co, x)
-    >>> (abs(f_co - met.lower(f_con,x))).max() < 1e-12
-    True
-    >>> from pts.constr_symar4 import t_c2v, t_c2v_prime
-    >>> max(t_c2v(x)) < 1e-15
-    True
-    >>> max(t_c2v_prime(f_con)[1]) < 1e-9
-    True
+    Coordinate transformation:
+
+        >>> from zmat import ZMat
+
+        >>> Z = ZMat([(), (0,), (0, 1), (1, 2, 0)])
+
+    Internal coordiantes corresponding to the (inflated)
+    geometry:
+
+        >>> Y = Z.pinv(X)
+
+    Note what effect would a certesian step dX have on internal
+    coordinates:
+
+        >>> dY = Z.pinv(X + dX) - Z.pinv(X)
+
+        >>> from numpy import round
+
+        >>> round(dY, 3)
+        array([-0.077, -0.077,  0.   , -0.077,  0.   ,  0.   ])
+
+    Only the bond lengths would shrink by the same amount thus preserving the
+    symmetry. Now try this with internal coordinates ...
+
+    Potential energy surface as a function of internal coordinates:
+
+        >>> from func import compose
+
+        >>> E1 = compose(E, Z)
+
+    What if we made the step proportional to the gradient in
+    internal coordiantes?
+
+        >>> dY = - lam * E1.fprime(Y)
+        >>> round(dY, 3)
+        array([-0.039, -0.039, -0.026, -0.039, -0.026, -0.016])
+
+    This would also change the angles and break the symmetry.
+    The reduced metric helps in this case if you remember to
+    never confuse co- and contravariant coordinates
+    (FIXME: use analytic derivatives, provided by Z.fprime!):
+
+        >>> g = Metric_reduced(Z)
+
+    These are the covariant coordiantes of a steepest descent step:
+
+        >>> dy = - lam * E1.fprime(Y)
+
+    And these are the contravariant ones:
+
+        >>> dY = g.raises(dy, Y)
+
+        >>> round(dY, 3)
+        array([-0.077, -0.077,  0.   , -0.077, -0.   , -0.   ])
+
+    Consistency check:
+
+        >>> max(abs(dy - g.lower(dY, Y))) < 1e-16
+        True
     """
     def lower(self, dY, Y):
         """
