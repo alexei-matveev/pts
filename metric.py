@@ -635,41 +635,70 @@ def inertia(rs):
 def inv3(m):
     """Compute inverse of a 3x3 matrix by Cramers method.
 
-    Use rotation matrix for testing:
+    Use scaled rotation matrix for testing:
 
         >>> from quat import rotmat
-        >>> m = rotmat(array([0.5, 1.5, 2.]))
+        >>> m = rotmat(array([0.5, 1.5, 2.])) * 10.0
 
     Inverse:
 
         >>> m1 = inv3(m)
-        >>> max(abs(dot(m1, m) - eye(3))) < 1e-16
+        >>> max(abs(dot(m1, m) - eye(3))) < 5e-16
         True
-        >>> max(abs(dot(m, m1) - eye(3))) < 1e-16
+        >>> max(abs(dot(m, m1) - eye(3))) < 5e-16
         True
     """
 
-#   # FIXME: this code is broken. It may work though
-#   #        for symmetric m!
-#   a = m[1, 1] * m[2, 2] - m[2, 1] * m[2, 1]
-#   b = m[2, 1] * m[2, 0] - m[2, 2] * m[1, 0]
-#   c = m[1, 0] * m[2, 1] - m[2, 0] * m[1, 1]
+    # adjugate matrix:
+    w = adj3(m)
 
-#   d = b
-#   e = m[0, 0] * m[2, 2] - m[2, 0] * m[2, 0]
-#   f = m[1, 0] * m[2, 0] - m[0, 0] * m[2, 1]
+    # determinant:
+    D = m[0, 0] * w[0, 0] + m[0, 1] * w[1, 0] + m[0, 2] * w[2, 0]
 
-#   g = c
-#   h = f
-#   k = m[0, 0] * m[1, 1] - m[1, 0] * m[1, 0]
-
-#   z = m[0, 0] * a + m[1, 0] * b + m[2, 0] * c
-
-#   minv = array([[a, d, g], [b, e, h], [c, f, k]]) / z
+    return w / D
 
     # FIXME: why asarray() is necessary here? The caller
     #        seems not to accept a matrix() as result:
-    return asarray(matrix(m).I)
+    # return asarray(matrix(m).I)
+
+def adj3(m):
+    """Returns adjugate of 3x3 m, http://en.wikipedia.org/wiki/Adjugate_matrix
+
+    Example from Wikipedia:
+
+        >>> m = array([[ -3,  2, -5 ],
+        ...            [ -1,  0, -2 ],
+        ...            [  3, -4,  1 ]])
+
+        >>> adj3(m)
+        array([[ -8.,  18.,  -4.],
+               [ -5.,  12.,  -1.],
+               [  4.,  -6.,   2.]])
+
+    Adjugate of m with permuted rows,
+    to test the case with m[1, 1] /= 0:
+
+        >>> adj3(m[[1, 2, 0]])
+        array([[ 18.,  -4.,  -8.],
+               [ 12.,  -1.,  -5.],
+               [ -6.,   2.,   4.]])
+    """
+
+    w = empty((3, 3))
+
+    w[0, 0] = m[1, 1] * m[2, 2] - m[2, 1] * m[1, 2]
+    w[0, 1] = m[0, 2] * m[2, 1] - m[0, 1] * m[2, 2]
+    w[0, 2] = m[0, 1] * m[1, 2] - m[1, 1] * m[0, 2]
+
+    w[1, 0] = m[2, 0] * m[1, 2] - m[1, 0] * m[2, 2]
+    w[1, 1] = m[0, 0] * m[2, 2] - m[2, 0] * m[0, 2]
+    w[1, 2] = m[1, 0] * m[0, 2] - m[0, 0] * m[1, 2]
+
+    w[2, 0] = m[1, 0] * m[2, 1] - m[2, 0] * m[1, 1]
+    w[2, 1] = m[2, 0] * m[0, 1] - m[0, 0] * m[2, 1]
+    w[2, 2] = m[0, 0] * m[1, 1] - m[1, 0] * m[0, 1]
+
+    return w
 
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
