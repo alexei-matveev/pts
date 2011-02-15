@@ -145,7 +145,7 @@
 
 __all__ = ["pmap"]
 
-from threading import Thread, activeCount
+from threading import Thread
 from Queue import Queue as TQueue
 from os import environ
 from sched import Strategy, SchedQueue, SchedQueueEmpty
