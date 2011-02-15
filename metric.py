@@ -309,13 +309,24 @@ class Metric_reduced(Metric):
         #
         #       g * dY = dy
         #
-        # relating contra- and covariant coordinates, dY and dy,
+        # between contra- and covariant coordinates, dY and dy,
         # for detailed definition of matrix g.
         #
-        T = dot(BT, dot(gT, dot(BT.T, B)))
-        R = dot(BR, dot(gR, dot(BR.T, B)))
+        # FIXME: isnt modified metric singular? Why do we assume
+        #        the linear equation has a solution? At least
+        #        the modified cartesian metric is singular.
+        #
 
-        g = dot(B.T, B - T - R)
+        # unmodified metric, NY x NY, where NY = dim(Y):
+        g = dot(B.T, B)
+
+        # projections of "internal" modes onto translations and rotations,
+        # both NY x 3:
+        T = dot(B.T, BT)
+        R = dot(B.T, BR)
+
+        # modified metric:
+        g = g - dot(T, dot(gT, T.T)) - dot(R, dot(gR, R.T))
 
         return solve(g, dy)
 
