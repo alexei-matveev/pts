@@ -4,13 +4,13 @@ from pts.inputs.pathsearcher import pathsearcher
 from ase.atoms import Atoms
 from ase.calculators.lj import LennardJones
 from pts.zmat import ZMat
-from pts.test.testfuns import diagsandhight, test_ar4_2
+from pts.test.testfuns import diagsandhight
 from numpy import sqrt, pi, asarray
 from pts.cfunc import justcarts, with_globals, masked
 from pts.constr_symar4 import t_c2v, t_c2v_prime
 import pts.metric as mt
 from pts.metric import Metric, Metric_reduced
-from pts.coord_sys2 import CoordSys2
+from pts.coord_sys import CoordSys
 from sys import argv
 
 """
@@ -197,7 +197,7 @@ init_path = [min1, middle, min2]
 if test_what == "contraforce":
     # Coordinate system for easy getting the forces (in internal
     # coordinates)
-    cs = CoordSys2(ar4, func, min1, True)
+    cs = CoordSys(ar4, func, min1, True)
     m1 = Metric(func)
     m2 = Metric_reduced(func)
 
