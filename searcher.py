@@ -678,8 +678,6 @@ class ReactionPathway(object):
 
             self.qc_driver.proc_requests()
 
-        self.update_bead_separations()
-        self.update_tangents()
 
         # FIXME: see how they are indexed below:
         assert len(self.bead_pes_energies) == self.beads_count
@@ -693,6 +691,24 @@ class ReactionPathway(object):
 
             self.bead_pes_gradients[i] = g.copy()
             self.bead_pes_energies[i] = e
+
+        #
+        # NOTE: update_tangents() is not implemented by this class!
+        #       Consult particular subclass.
+        #
+        #       Also note that at least in NEB the definition
+        #       of the tangent may depend on the relative bead energies.
+        #       Therefore update tangents only after self.bead_pes_energies
+        #       was updated first. Not sure about bead separations though.
+        #
+        self.update_bead_separations()
+        self.update_tangents()
+
+        # project gradients in para/perp components:
+        for i in range(self.beads_count):
+
+            # previously computed gradient:
+            g = self.bead_pes_gradients[i]
 
             # contravariant tangent coordiantes:
             T = self.tangents[i]
@@ -927,6 +943,9 @@ class NEB(ReactionPathway):
             self._state_vec = pr.state_vec.copy()
 
     def update_tangents(self):
+        """
+        WARNING: uses self.bead_pes_energies to determine tangents
+        """
         # terminal beads
         self.tangents[0]  = self.state_vec[1] - self.state_vec[0]#zeros(self.dimension)
         self.tangents[-1] = self.state_vec[-1] - self.state_vec[-2]#zeros(self.dimension)
