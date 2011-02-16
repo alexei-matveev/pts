@@ -9,7 +9,7 @@ from numpy import sqrt, pi, asarray
 from pts.cfunc import justcarts, with_globals, masked
 from pts.constr_symar4 import t_c2v, t_c2v_prime
 import pts.metric as mt
-from pts.metric import cotocon, cotocon_red
+from pts.metric import Metric, Metric_reduced
 from pts.coord_sys2 import CoordSys2
 from sys import argv
 
@@ -198,14 +198,8 @@ if test_what == "contraforce":
     # Coordinate system for easy getting the forces (in internal
     # coordinates)
     cs = CoordSys2(ar4, func, min1, True)
-
-    # There is still some disunity on which way the derivatives should
-    # be presented, they are used as given by the functions in metric
-    # module but are transposed in Coordinate system, thus here we need
-    # to transform them back
-    def help_fun(x):
-        mat = cs.get_transform_matrix(x)
-        return mat.T
+    m1 = Metric(func)
+    m2 = Metric_reduced(func)
 
     for geo in init_path:
         # Check the symmetry:
@@ -229,8 +223,8 @@ if test_what == "contraforce":
 
         # Two ways of getting contravariant forces: one with Cartesian
         # metric the second one with additional removal of global positions
-        f_co = cotocon(help_fun, geo, f)
-        f_co_red = cotocon_red(help_fun, func, geo, f)
+        f_co = m1.raises( geo, f)
+        f_co_red = m2.raises(geo, f)
         # Here the constraints may be fulfilled (at least in one case)
         print "contravariant forces:", f_co
         print "are symmetric: ", t_c2v_prime(f_co)[1]
