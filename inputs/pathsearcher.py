@@ -15,7 +15,7 @@ from pts.pathsearcher_defaults import *
 from pts.asemolinterface import MolInterface
 from pts.calcman import CalcManager
 from pts.parasearch import generic_callback
-from pts.searcher import GrowingString, NEB
+from pts.searcher import GrowingString, NEB, ts_estims
 from pts.optwrap import runopt as runopt_aof
 from pts.tools import pickle_path
 from pts.common import file2str
@@ -181,7 +181,7 @@ def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart
         print cs.get_cartesians()
 
     # get best estimate(s) of TS from band/string
-    tss = CoS.ts_estims(alsomodes = False, converter = mi.build_coord_sys(CoS.get_state_vec()[0]))
+    tss = ts_estims(CoS.state_vec, CoS.bead_pes_energies, CoS.bead_pes_gradients, alsomodes = False, converter = mi.build_coord_sys(CoS.get_state_vec()[0]))
 
     # write out path to a file
     if params_dict["output_level"] > 0:

@@ -740,7 +740,9 @@ class ReactionPathway(object):
         state = self.state_vec.copy()
         perp_forces = self.perp_bead_forces.copy()
         para_forces = self.para_bead_forces.copy()
-        ts_estim = self.ts_estims()[-1]
+
+        # FIXME: wrong place? 
+        ts_estim = ts_estims(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)[-1]
 
         a = [es, state, perp_forces, para_forces, ts_estim]
 
@@ -759,37 +761,37 @@ class ReactionPathway(object):
 
         self.bead_pes_energies = array(bead_pes_energies)
 
-    def ts_estims(self, alsomodes = False, converter = None):
-        """TODO: Maybe this whole function should be made external."""
+def ts_estims(beads, energies, gradients, alsomodes = False, converter = None):
+    """TODO: Maybe this whole function should be made external."""
 
-        self.pt = pts.tools.PathTools(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)
+    pt = pts.tools.PathTools(beads, energies, gradients)
 
-        estims = self.pt.ts_splcub()
-        f = open("tsplot.dat", "w")
-        f.write(self.pt.plot_str)
-        f.close()
+    estims = pt.ts_splcub()
+    f = open("tsplot.dat", "w")
+    f.write(pt.plot_str)
+    f.close()
 
-        tsisspl = True
-        if len(estims) < 1:
-            lg.warn("No transition state found, using highest bead.")
-            estims = self.pt.ts_highest()
-            tsisspl = False
-        estims.sort()
-        if alsomodes:
-            cx = converter
-            bestmode = []
-            for est in estims:
-                energies, coords, s0, s1, s_ts,  l, r = est
-                cx.set_internals(coords)
-                modes =  self.pt.modeandcurvature(s_ts, l, r, cx)
-                for mo in modes:
-                    mo_name, value = mo
-                    if tsisspl and mo_name=="frompath":
-                        bestmode.append(value)
-                    if not tsisspl and mo_name=="directinternal":
-                        bestmode.append(value)
-            return estims, bestmode
-        return estims
+    tsisspl = True
+    if len(estims) < 1:
+        lg.warn("No transition state found, using highest bead.")
+        estims = pt.ts_highest()
+        tsisspl = False
+    estims.sort()
+    if alsomodes:
+        cx = converter
+        bestmode = []
+        for est in estims:
+            energies, coords, s0, s1, s_ts,  l, r = est
+            cx.set_internals(coords)
+            modes =  pt.modeandcurvature(s_ts, l, r, cx)
+            for mo in modes:
+                mo_name, value = mo
+                if tsisspl and mo_name=="frompath":
+                    bestmode.append(value)
+                if not tsisspl and mo_name=="directinternal":
+                    bestmode.append(value)
+        return estims, bestmode
+    return estims
 
 class NEB(ReactionPathway):
     """Implements a Nudged Elastic Band (NEB) transition state searcher.
