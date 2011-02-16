@@ -168,7 +168,6 @@ def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart
     # main optimisation loop
     print runopt(CoS)
 
-    cs = mi.build_coord_sys(CoS.get_state_vec()[0])
     print "Optimized path:"
     print "in internals"
     for i, state in enumerate(CoS.get_state_vec()):
