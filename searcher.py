@@ -790,29 +790,6 @@ class ReactionPathway(object):
                         bestmode.append(value)
             return estims, bestmode
         return estims
-       
-        
-def specialReduceXX(list, ks = [], f1 = lambda a,b: a-b, f2 = lambda a: a**2):
-    """For a list of x_0, x_1, ... , x_(N-1)) and a list of scalars k_0, k_1, ..., 
-    returns a list of length N-1 where each element of the output array is 
-    f2(f1(k_i * x_i, k_i+1 * x_i+1)) ."""
-
-    assert type(list) == ndarray
-    assert len(list) >= 2
-    assert len(ks) == 0 or len(ks) == len(list)
-    
-    # Fill with trivial value that won't change the result of computations
-    if len(ks) == 0:
-        ks = array(ones(len(list)))
-
-    def specialReduce_(head, head1, tail, f1, f2, k, k1, ktail):
-        reduction = f2 (f1 (k*head, k1*head1))
-        if len(tail) == 0:
-            return [reduction]
-        else:
-            return [reduction] + specialReduce_(head1, tail[0], tail[1:], f1, f2, k1, ktail[0], ktail[1:])
-
-    return array(specialReduce_(list[0], list[1], list[2:], f1, f2, ks[0], ks[1], ks[2:]))
 
 class NEB(ReactionPathway):
     """Implements a Nudged Elastic Band (NEB) transition state searcher.
