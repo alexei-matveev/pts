@@ -453,47 +453,6 @@ class MolInterface:
 
         return common.Result(job.v, e, grads_opt)
 
-
-
-    def run_ase_old(self, job):
-        from ase import Atom, Atoms
-
-        print "run_ase running"
-        (_, cart_coords) = self.coords2xyz(job.v)
-        raw_list = [Atom(a, c) for (a,c) in zip(self.atoms, cart_coords)]
-        print "raw_list",raw_list
-
-        # import job specific settings
-        # these set up mycell, mypbc and mycalc
-        exec open("asejobsettings.py").read()
-
-        atoms = Atoms(raw_list)
-        atoms.set_cell(mycell)
-        atoms.set_pbc(mypbc)
-
-        #atoms.set_calculator(emt.EMT())
-        atoms.set_calculator(mycalc)
-        print "atoms", atoms
-
-        # record current dir and change to a new one to isolate calculation
-        isolation_dir = "iso_vasp" + str(self.__get_job_counter())
-        old_dir = os.getcwd()
-        if not os.path.exists(isolation_dir):
-            os.mkdir(isolation_dir)
-        os.chdir(isolation_dir)
-
-        # run job using ASE calculator
-        e = atoms.get_potential_energy()
-        g = atoms.get_forces().flatten()
-        
-        os.chdir(old_dir)
-        print "g",g
-        grads_opt = self.__transform(g, job.v, "dummy")
-
-        return common.Result(job.v, e, grads_opt)
-
-
-
     def run_external(self, job):
         """Runs an external program to generate gradient and energy."""
         coords = job.v
