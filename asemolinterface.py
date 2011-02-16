@@ -145,48 +145,67 @@ class MolInterface:
 
         """mol_strings: list of strings, each of which describes a molecule, 
         format can be z-matrix or xyz format, but formats must be consistent.
-        
+
+        >>> atoms = None
+        >>> from pts.zmat import ZMat
+        >>> fun = ZMat([(), (0,), (1,0), (2, 1, 0)])
+        >>> zmt1 = [1., 1.2, 109. * common.DEG_TO_RAD,  1,
+        ...   109. * common.DEG_TO_RAD, 60. * common.DEG_TO_RAD]
+        >>> zmt2 = [1., 1.2, 109. * common.DEG_TO_RAD,  1,
+        ...   109. * common.DEG_TO_RAD, -60. * common.DEG_TO_RAD]
+        >>> zmt3 = zmt1
+        >>> zmt4 = [1., 1.2, -109. * common.DEG_TO_RAD,  1,
+        ...   109. * common.DEG_TO_RAD, -121. * common.DEG_TO_RAD]
+
+        FIXME: This description is outdated:
         Note: zmt3 has negated variable, and is technically a different zmatrix to 
         zmt1; this should raise an error at some point.
         (test not yet implemented however)
-        >>> mi = MolInterface([zmt1, zmt3])
+
+        >>> mi = MolInterface(atoms, fun, [zmt1, zmt3])
+
+        FIXME: outdated
         TODO: need to add an extra test so that this fails.
 
-        >>> mi = MolInterface([zmt1, zmt2])
+        >>> mi = MolInterface(atoms, fun, [zmt1, zmt2])
         
-        >>> mi = MolInterface([zmt1, zmt4])
+        >>> mi = MolInterface(atoms, fun, [zmt1, zmt4])
+
+        There is no more checking if for a special coordinate transformation the
+        dihedral angles are below 180 (as there is no way to know if there are
+        dihedral angles at all)
         >>> rc = mi.reagent_coords
         >>> dih1, dih2 = rc[0][-1], rc[1][-1]
         >>> numpy.abs(dih1 - dih2) * common.RAD_TO_DEG < 180
-        True
-
-        >>> many = [zmt_template % dih for dih in range(-360,360,20)]
-        >>> from random import choice
-        >>> randoms = [[choice(many), choice(many)] for i in range(20)]
-        >>> mis = [MolInterface(l) for l in randoms]
-        >>> dih_pairs = [(m.reagent_coords[0][-1], m.reagent_coords[1][-1]) for m in mis]
-        >>> diffs = [numpy.abs(a-b) for a,b in dih_pairs]
-        >>> max(diffs) < 180
-        True
+        False
 
         >>> def too_bigs(m):
         ...     r = m.reagent_coords
-        ...     dih_ixs = [i for i in range(len(r[0])) if m.mol.kinds[i] == 'dih']
-        ...     l = [numpy.abs(r[0][i] - r[1][i]) for i in dih_ixs]
+        ...     l = [numpy.abs(r[0][-1] - r[1][-1])]
         ...     return [i for i in l if i * common.RAD_TO_DEG >= 180]
 
-        >>> mi = MolInterface([ccs1, ccs2])
+        >>> from cfunc import set, justcarts
+        >>> from numpy import array
+        >>> fun2 = set([justcarts(), fun], [3,6])
+        >>> ccs1 =  array([0. ,0., 0., 1., 1.2, 109. * common.DEG_TO_RAD,  1,
+        ...            109. * common.DEG_TO_RAD, 60. * common.DEG_TO_RAD])
+        >>> ccs2 =  array([0. ,0., 0., 1., 1.2, 109. * common.DEG_TO_RAD,  1,
+        ...            109. * common.DEG_TO_RAD, -60. * common.DEG_TO_RAD])
+        >>> mi = MolInterface(atoms, fun2, [ccs1, ccs2])
         >>> too_bigs(mi)
         []
 
-        >>> mi = MolInterface([ccs1, ccs3])
-        Traceback (most recent call last):
-           ...
-        MolInterfaceException: Input molecules do not have consistent atoms.
+        # MolInterface does not know anything about the used function, thus all
+        # kind of checking for consistency is disabled and has to be done outside
+        # this module
+       #>>> mi = MolInterface([ccs1, ccs3])
+       #Traceback (most recent call last):
+       #   ...
+       #MolInterfaceException: Input molecules do not have consistent atoms.
 
-        >>> mi = MolInterface([ccs3, ccs4])
-        >>> too_bigs(mi)
-        []
+       #>>> mi = MolInterface([ccs3, ccs4])
+       #>>> too_bigs(mi)
+       #[]
 
         """
 

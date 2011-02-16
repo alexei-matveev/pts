@@ -26,7 +26,9 @@ src =	\
 	rc.py \
 	paramap.py \
 	vib.py \
+        asemolinterface.py\
 	metric.py \
+	cfunc.py \
 
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.doctest)
