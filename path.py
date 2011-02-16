@@ -209,13 +209,13 @@ Construct a rho() made of peicewise constant functions...
     >>> path = ((-100., 100.), (0,0), (0,10), (100., 100.))
     >>> p = PathRepresentation(path, 6, rho)
     >>> pts = p.generate_beads(update=True)
-    >>> p.write_gplfile('gp1.txt')
+    >>> write_gplfile(p, 'gp1.txt')
     >>> p = PathRepresentation(pts, 6, rho, xs=[0, 0.1, 0.2, 0.25, 0.9, 1])
-    >>> p.write_gplfile('gp2.txt')
+    >>> write_gplfile(p, 'gp2.txt')
     >>> p = PathRepresentation(pts, 6, rho)
-    >>> p.write_gplfile('gp3.txt')
+    >>> write_gplfile(p, 'gp3.txt')
     >>> p = PathRepresentation(pts, 6, rho, xs=[0, 0.08, 0.2, 0.25, 0.9, 1])
-    >>> p.write_gplfile('gp4.txt')
+    >>> write_gplfile(p, 'gp4.txt')
 
 
 
@@ -334,25 +334,6 @@ class Path(Func):
         return fprimes
 
 #   self.__call__() equivalent to self.f() is inherited form Func()
-
-    def write_gplfile(self, fn):
-        f = open(fn, 'w')
-        ss = arange(0., 1., 1e-3)
-
-#       if False:
-#           fs = array([self.f(s) for s in ss])
-#           plt.plot(fs[:,0], fs[:,1], '-')
-
-        for s in ss:
-            f.write('\t'.join(['%f' % num for num in self.f(s)]))
-            f.write('\n')
-        f.write('\n\n')
-
-        for i in self.nodes:
-            f.write('\t'.join(['%f' % num for num in i]))
-            f.write('\n')
-        f.close()
-           
 
     def get_nodes(self):
         # in the original shape:
@@ -695,7 +676,25 @@ class PathRepresentation(Path):
         #  desired fractional positions along the string
         return [ self.arg(s) for s in arcs ]
             
-# python path_representation.py [-v]:
+def write_gplfile(path, file):
+    f = open(file, 'w')
+    ss = arange(0., 1., 1e-3)
+
+#   if False:
+#       fs = array([self.f(s) for s in ss])
+#       plt.plot(fs[:,0], fs[:,1], '-')
+
+    for s in ss:
+        f.write('\t'.join(['%f' % num for num in path(s)]))
+        f.write('\n')
+    f.write('\n\n')
+
+    for i in path.nodes:
+        f.write('\t'.join(['%f' % num for num in i]))
+        f.write('\n')
+    f.close()
+
+# python path.py [-v]:
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
