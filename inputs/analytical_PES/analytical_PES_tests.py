@@ -4,6 +4,8 @@ import pts
 import ase
 from numpy import array
 from numpy.linalg import norm
+import pts.metric as mt
+from pts.cfunc import pass_through
 
 def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0.1, maxit=50, real_ts=None, plot='every'):
     """Tests non-growing String and NEB on an analytical potential using a 
@@ -46,6 +48,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
     else:
         print "Unrecognised model", model
 
+    mt.setup_metric(pass_through)
     init_state = CoS.get_state_as_array()
 
     # Wrapper callback function
@@ -73,7 +76,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
     xtol = 0.0
     etol = 0.000001
     run_opt = lambda: pts.runopt(alg, CoS, tol, xtol, etol, maxit, callback, maxstep=0.05, extra={'alpha':0.5})
-    print run_opt(pts)
+    print run_opt()
     """while CoS.must_regenerate or growing and CoS.grow_string():
         CoS.update_path()
         print "Optimisation RESTARTED"
