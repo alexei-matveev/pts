@@ -27,7 +27,7 @@ from pts.common import file2str
 # needed as global variable
 cb_count_debug = 0
 
-def pathsearcher(tbead_left, init_path, old_results = None, paramfile = None, funcart = [],fprime_exist = False, **parameter):
+def pathsearcher(tbead_left, init_path, old_results = None, paramfile = None, funcart = [], **parameter):
     """
     ...
     It is possible to use the pathsearcher() function in a python script. It
@@ -41,11 +41,10 @@ def pathsearcher(tbead_left, init_path, old_results = None, paramfile = None, fu
       (Cartesian) geometry. Be aware that it needs to have an calculator attached to it, which will
       do the actual transformation. Another possibility is to give a file in which calculator is specified
       separately as parameter.
+
       * init_path is an array containting for each bead of the starting path the internal coordinates.
-      * funcart is a function to transform internal to Cartesian coordinates. It may be a simle function,
-      but if it provides the structure of pts.func function, meaning a taylor and a fprime function it
-      may be told so to the program by setting fprime_exist to True. Else a NumDiff function will be build
-      with funcart as normal function.
+
+      * funcart is a Func to transform internal to Cartesian coordinates. 
 
       * the other parameters give the possibility to overwrite some of the default behaviour of the module,
       They are provided as kwargs in here. For a list of them see pathsearcher_defaults/params_default.py
@@ -76,7 +75,7 @@ def pathsearcher(tbead_left, init_path, old_results = None, paramfile = None, fu
     # prepare the coordinate objects, eventually replace parameter by the ones given in the
     # atoms minima objects and extend the zmatrix, mi is a MolInterface object, which is the
     # wrapper around the atoms object in ASE
-    mi, params = prepare_mol_objects(tbead_left, params_dict, funcart, init_path, fprime_exist)
+    mi, params = prepare_mol_objects(tbead_left, params_dict, funcart, init_path)
 
 
     tell_params(params_dict,  old_results)
@@ -253,7 +252,7 @@ def reset_params_d(params_dict, **new_parameter):
             exit()
     return params_dict
 
-def prepare_mol_objects(tbead_left, params_dict, funcart, init_path, fprime_exist):
+def prepare_mol_objects(tbead_left, params_dict, funcart, init_path):
     """
     There are several valid possibilities of how the geometry/atoms input could be
     specified, here they should all lead to an valid MolInterface function
@@ -267,7 +266,7 @@ def prepare_mol_objects(tbead_left, params_dict, funcart, init_path, fprime_exis
     params["name"] = params_dict["output_path"] + "/" + params_dict["name"]
 
     # the MI:
-    mi = MolInterface(tbead_left, funcart, init_path, fprime_exist = fprime_exist, **params)
+    mi = MolInterface(tbead_left, funcart, init_path, **params)
 
     return  mi, params
 

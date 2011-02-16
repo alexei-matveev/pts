@@ -16,7 +16,7 @@ class CoordSys(object):
     There is also a atoms object stored in order to calculate energies and forces.
     The current internal coordinates are stored also in internal state.
     """
-    def __init__(self, atoms, f, init_coords, fprime_exist = False):
+    def __init__(self, atoms, f, init_coords):
         """
         CoordSys initalization, storing all needed things
 
@@ -26,17 +26,21 @@ class CoordSys(object):
                Func structure with analitical fprime routine.
         init_coords : first internal coordinates for the state
 
-        fprime_exist: as default the fprime will be generated with NumDiff functionalities
-                      by setting this variable to True the fprime routine of f will be used
-                      instead, in this case it is assumed that f is a function of type Func
         transform_back: it may be wanted to have also a routine which does Cartesian to
                         internal calculation. Only request it, if you have set it
         """
         self._atoms = atoms
-        if fprime_exist:
-            self._fun = f
-        else:
-            self._fun = NumDiff(f)
+
+        # FIXME: always provide a Func to this constructor, this
+        # is a tempoarary workaround relying on numerical
+        # differentiation:
+        try:
+            _ = f.fprime
+        except AttributeError:
+            f = NumDiff(f)
+
+        self._fun = f
+
         self.set_internals(init_coords)
 
     def int2cart(self, y):

@@ -141,9 +141,7 @@ class MolInterface:
     providing also functionality to run a energy/gradient calculation of a
     particular vector under a separate python interpreter instance."""
 
-    def __init__(self, atoms, fun,
-            mol_strings, fprime_exist = False,
-            **kwargs):
+    def __init__(self, atoms, fun, mol_strings, **kwargs):
 
         """mol_strings: list of strings, each of which describes a molecule, 
         format can be z-matrix or xyz format, but formats must be consistent.
@@ -194,7 +192,7 @@ class MolInterface:
 
         assert len(mol_strings) > 1
 
-        mols = [CoordSys(atoms, fun, s, fprime_exist = fprime_exist) for s in mol_strings]
+        mols = [CoordSys(atoms, fun, s) for s in mol_strings]
 
         # Make sure that when interpolating between the dihedral angles
         #  that this is done using the shortest possible arc length
