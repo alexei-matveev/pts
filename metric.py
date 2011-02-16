@@ -539,7 +539,10 @@ def B_globals(carts):
     #        of cartesian coordinates. Otherwise "translations" and
     #        "rotation" modes as used implicitly below have no meaning.
     #        Why cannot we assume that we are always passed an (N, 3)
-    #        array?
+    #        array? In fact the code below "assumes" that N > 2
+    #        otherwise removal of 6 degrees of freedom is not well
+    #        defined. Think of a singular inertia tensor for single
+    #        atom or a diatomic molecule.
     #
     carts = carts.view().reshape(-1, 3)
 
