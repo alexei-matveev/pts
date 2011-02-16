@@ -292,14 +292,6 @@ class MultiOpt(Optimizer, ObjLog):
 
         self.slog("Optimiser (MultiOpt): parameters: alpha =", alpha, when='always')
 
-#
-# FIXME: this does not seem to be used anywhere, see the output of
-#        fgrep .best *.py */*.py */*/*.py:
-#
-#       class Dummy():
-#           e = 1e100 # internet wasn't working, couldn't get to docs
-#       self.best = Dummy()
-
         self.bs = atoms.beads_count
         d = atoms.dimension
         self.respace = respace
