@@ -214,6 +214,24 @@ This is not much different from the previous result, 0.30661623.
 
     >>> -e(0.30661623), -e1(0.30661623)
     (-12.676228284381487, -12.632359891279457)
+
+Test if MuellerBrown atoms fake is working:
+    >>> mb = mb_atoms()
+    >>> def only_energy(x):
+    ...     mb.set_positions(x)
+    ...     return mb.get_potential_energy()
+
+    >>> def only_forces(x):
+    ...     mb.set_positions(x)
+    ...     return mb.get_forces()
+
+    >>> def only_grads(x):
+    ...     y = only_forces(x)
+    ...     return -y
+
+    >>> b, _, _ = minimize(only_energy, [0,0], only_grads)
+    >>> b
+    array([ 0.62349942,  0.02803776])
 """
 __all__ = ["energy", "gradient"] # "MuellerBrown"]
 
@@ -388,6 +406,32 @@ def show_chain(p=None, style="ro-", save=None, clear=False):
         show()
     else:
         savefig(save)
+
+
+class mb_atoms():
+   """
+   Mueller Brown pseudo atom object
+
+   ATTENTION: self.calc is also something
+   which is used by the code, therefore do not rename
+   it.
+   """
+   def __init__(self):
+       self.calc = MuellerBrown()
+       self.x = array([0., 0.])
+
+   def set_positions(self, x):
+       self.x = x
+
+   def get_positions(self):
+       return self.x
+
+   def get_forces(self):
+       forces =  - self.calc.fprime(self.x)
+       return forces
+
+   def get_potential_energy(self):
+       return self.calc(self.x)
 
 # python mueller_brown.py [-v]:
 if __name__ == "__main__":
