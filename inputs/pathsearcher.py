@@ -12,7 +12,9 @@ from re import findall
 from os import path, mkdir
 from pts.pathsearcher_defaults.params_default import *
 from pts.pathsearcher_defaults import *
-from pts import MolInterface, CalcManager, generic_callback
+from pts.asemolinterface import MolInterface
+from pts.calcman import CalcManager
+from pts.parasearch import generic_callback
 from pts.searcher import GrowingString, NEB
 from pts.optwrap import runopt as runopt_aof
 from pts.tools import pickle_path
@@ -31,7 +33,7 @@ def pathsearcher(tbead_left, init_path, old_results = None, paramfile = None, fu
     It is possible to use the pathsearcher() function in a python script. It
     looks like:
 
-      from ??? import pathsearcher
+      from pts.inputs import pathsearcher
 
       pathsearcher(tbead_left,init_path, funcart, **kwargs)
 
