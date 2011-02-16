@@ -191,7 +191,6 @@ def pathsearcher(tbead_left, init_path, old_results = None, paramfile = None, fu
         e, v, s0, s1,_ ,bead0_i, bead1_i = ts
         cs = mi.build_coord_sys(v)
         print "Energy = %.4f eV, between beads %d and %d." % (e, bead0_i, bead1_i)
-        cs = mi.build_coord_sys(state)
         print "Positions", cs.get_internals()
         print "Cartesians", cs.get_cartesians()
 
