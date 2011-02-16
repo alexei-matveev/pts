@@ -691,15 +691,21 @@ class ReactionPathway(object):
 
             self.qc_driver.proc_requests()
 
-        self.update_bead_pes_energies()
         self.update_bead_separations()
         self.update_tangents()
+
+        # FIXME: see how they are indexed below:
+        assert len(self.bead_pes_energies) == self.beads_count
+        assert len(self.bead_pes_gradients) == self.beads_count
 
         # get PES forces / project out stuff
         for i in range(self.beads_count):
 
             g = self.qc_driver.gradient(self.state_vec[i])
+            e = self.qc_driver.energy(self.state_vec[i])
+
             self.bead_pes_gradients[i] = g.copy()
+            self.bead_pes_energies[i] = e
 
             t = self.tangents[i]
             t_co = mt.metric.lower(t, self.state_vec[i])
@@ -748,19 +754,6 @@ class ReactionPathway(object):
 
         self.history.rec(a)
         
-    def update_bead_pes_energies(self):
-        """
-        Updates internal vector with the energy of each bead (based on energy 
-        calculations which must already have been scheduled and run, if in 
-        parallel mode).
-        """
-        bead_pes_energies = []
-        for bead_vec in self.state_vec:
-            e = self.qc_driver.energy(bead_vec)
-            bead_pes_energies.append(e)
-
-        self.bead_pes_energies = array(bead_pes_energies)
-
 def ts_estims(beads, energies, gradients, alsomodes = False, converter = None):
     """TODO: Maybe this whole function should be made external."""
 
