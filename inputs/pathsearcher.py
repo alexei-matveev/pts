@@ -12,21 +12,15 @@ from re import findall
 from os import path, mkdir
 from pts.pathsearcher_defaults.params_default import *
 from pts.pathsearcher_defaults import *
-from ase.calculators import *
-from ase import Atoms
-from ase.io import read as read_ase
 from pts import MolInterface, CalcManager, generic_callback
 from pts.searcher import GrowingString, NEB
 from pts.optwrap import runopt as runopt_aof
-from pickle import dump
 from pts.tools import pickle_path
 from pts.common import file2str
-from pts.qfunc import constraints2mask
 # be careful: array is needed, when the init_path is an array
 # do not delete it, even if it never occures directly in this module!
-from numpy import array, asarray
-from string import count
-from ase.io import write as write_ase
+# FIXME: really?
+# DONT: from numpy import array
 
 # needed as global variable
 cb_count_debug = 0
@@ -320,6 +314,10 @@ def expand_zmat(zmts):
     return zmts_new, num_vars
 
 def pd_calc(params):
+
+    # See eval below, that may be one of the ASE calculators:
+    from ase.calculators import *
+
     calc = params["calculator"]
     if calc in default_calcs:
         params["calculator"] = eval("%s" % (calc))
