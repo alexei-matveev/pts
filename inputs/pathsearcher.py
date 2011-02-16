@@ -168,19 +168,20 @@ def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart
     # main optimisation loop
     print runopt(CoS)
 
+    # this is the result of optimization:
+    beads = CoS.get_state_vec()
+
     print "Optimized path:"
     print "in internals"
-    for i, state in enumerate(CoS.get_state_vec()):
-        cs = mi.build_coord_sys(state)
-        print cs.get_internals()
+    for bead in beads:
+        print bead
 
     print "in Cartesians"
-    for i, state in enumerate(CoS.get_state_vec()):
-        cs = mi.build_coord_sys(state)
-        print cs.get_cartesians()
+    for bead in beads:
+        print funcart(bead)
 
     # get best estimate(s) of TS from band/string
-    tss = ts_estims(CoS.state_vec, CoS.bead_pes_energies, CoS.bead_pes_gradients, alsomodes = False, converter = mi.build_coord_sys(CoS.get_state_vec()[0]))
+    tss = ts_estims(beads, CoS.bead_pes_energies, CoS.bead_pes_gradients, alsomodes = False, converter = mi.build_coord_sys(CoS.get_state_vec()[0]))
 
     # write out path to a file
     if params_dict["output_level"] > 0:
