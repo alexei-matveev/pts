@@ -707,10 +707,16 @@ class ReactionPathway(object):
             self.bead_pes_gradients[i] = g.copy()
             self.bead_pes_energies[i] = e
 
-            t = self.tangents[i]
-            t_co = mt.metric.lower(t, self.state_vec[i])
-            para_force = dot(t, -g)
-            perp_force = -g - para_force * t_co
+            # contravariant tangent coordiantes:
+            T = self.tangents[i]
+
+            # covariant tangent coordiantes:
+            t = mt.metric.lower(T, self.state_vec[i])
+
+            # components of force parallel and orthogonal to the tangent:
+            para_force = - dot(T, g)
+            perp_force = - g - para_force * t
+
             self.para_bead_forces[i] = para_force
             self.perp_bead_forces[i] = perp_force
 
