@@ -2,223 +2,10 @@
 """
 This tool is the interface to the string and NEB methods.
 
-Usage:
-
-  pathsearcher.py --calculator CALC GEOM1 GEOM2
-
-For either string or NEB methods one needs to specify at least two geometries
-and the calculator.
-
 GEOMETRY
 
-Geometries can be provided as files, which can be interpreted by ASE. This
-includes xyz-, POSCAR, and gx-files. File format is in part determied from the
-file name or extension, e.g. POSCAR and gx-files by the presence of "POSCAR" or
-"gx" substrings.
+Geometries have to be given in internal coordinates (the ones the function accepts)
 
-The file may also be in a format directly usable by AOF, thus for example a
-zmatrix with all the values set correctly. Also an mixed coordinate system as
-specified as ccsspec object in a small script, selecting by hand, which part is
-in internal and which one is in cartesian, whith the possibility of giving the
-inital values for the internal part also in cartesians for the corresponding
-objects.  In this way the choose of the variable name is free
-
-Another method of getting an internal (or mixed coordinate system) is by giving
-the geometries in cartesians (or as ase-files) and specifying only the zmatrix
-once.  It will then be set by writing --zmatrix zmat_file It will then be read
-in from there and used to generate zmatrix or mixed coordinate object if
-variables should appear more than once, they should not be named var and then
-something on the other hand, if a mixed coordinate system is wanted, the
-internal variables should all be named var? with ? a number between 1 and
-number of internal variables. This way the function can recognise by its own,
-that there are fewer variables than needed and fill up with cartesian ones.  In
-the zmatrix the values have to be listed, at least if they are not all named
-var?, but they do not need to have a value given. If it is done this way, these
-starting values would be replaced anyhow.
-
-ZMATRIX
-
-A zmatrix may look something like:
-
-""
-C
-H 1 var1
-H 1 var2 2 var3
-H 1 var4 2 var5 3 var6
-H 1 var7 2 var8 4 var9
-
-var1 = 1.0
-var2 = 1.0
-var3 = 1.0
-var4 = 1.0
-var5 = 1.0
-var6 = 1.0
-var7 = 1.0
-var8 = 1.0
-var9 = 1.0
-""
-
-The angles are in degree; if only arbitrary values are set (for beeing
-overwriten by the cartesian input make sure that no distance is set to 0, which
-would lead to a crash)
-
-SETTING VARIABLES
-
-There are some other parameters specified, which decide on how the program will
-run. There is a list of default parameters
-
-  pathsearcher.py --defaults
-
-shows all of them They can be changed in two different ways: by including in
-the parameters in the calculation above:
-
-  --paramfile filename
-
-all the variables could be set in the file filename or by giving directly
-
-  --parameter_to_change new_value
-
-this only works for parameters which take a string, a float or a integer
-(always a single number, or a name), ch tells if they could changed by giving
-the parameter values directly in the parameter list, so for example
-
-  --name NewName
-  
-would set the name to NewName in the parameters If the same variable is set in
-both the paramfile and directly, the directly set value is taken
-
-There exists:
-Parameter    ch     short description directly
- "cos_type"  yes    what calculation is really wanted, like neb, string,
-                    growingstring or searchingstring
- "opt_type"  yes    what kind of optimizer is used for changing the geometries
-                    of the string, as default the new multiopt is used for the
-                    string methods, while neb is reset to ase_lbgfs
- "pmax"      yes    maximal number of CPUs per bead, with our workarounds normaly
-                    only indirect used
- "pmin"      yes    minimal number of CPUs per bead, with our workarounds normaly
-                    only indirect used
- "cpu_architecture" no  descriebes the computer architecture, which should be used,
-                    with our workaround only indirect used, pmax, pmin and
-                    cpu_architecture should be adapted to each other
- "name"      yes    the name of the calculation, appears as basis of the names
-                    for all the output, needn't be set, as a default it takes
-                    the cos_type as name
- "calculator" no    the quantum chemstry program to use, like Vasp or ParaGauss
- "placement"  no    executable function for placing processes on beads, only
-                    used for advanced calculations
- "cell"       no    the cell in which the molecule is situated
- "pbc"        no    which cell directions have periodic boundary conditions
- "mask"       no    which of the given geometry variables are supposed to be
-                    changed (True) and which should stay fix during the
-                    calculation (False), should be a string containing for each
-                    of the variables the given value. The default does not set
-                    this variable and then all of them
-                    are optimized
- "beads_count" yes  how many beads (with the two minima) are there at maximum
-                    (growingstring and searchingstring start with less)
- "ftol"       yes   the force convergence criteria, calculation stops if
-                    RMS(force) < ftol
- "xtol"       yes   the step convergence criteria, only used if force has at
-                    least ftol * 10
- "etol"       yes   energy convergence criteria, not really used
- "maxit"      yes   if the convergence criteria are still not met at maxit
-                    iterations, the calculation is stopped anyhow
- "maxstep"    yes   the maximum step a path can take
- "spring"  yes   the spring constant, only needed for neb
- "pre_calc_function"  no function for precalculations, for gaussian ect.
- "output_level" yes the amount of output is decided here
-                       0  minimal output, not recommended
-                          only logfile, geometries of the beads for the last
-                          iteration (named Bead?) and the output needed for
-                          the calculation to run
-                       1  recommended output level (default) additional the
-                          ResultDict.pickle (usable for rerunning or extending the
-                          calculation without having to repeat the quantum
-                          chemical calculations) and a path.pickle of the last
-                          path, may be used as input for some other tools,
-                          stores the "whole" path at it is in a special foramt
-                       2  additional a path.pickle for every path, good if
-                          development of path is
-                          wanted to be seen (with the additional tools)
-                       3  some more output in every iteration, for debugging ect.
-
- "output_path"   yes   place where most of the output is stored, thus the
-                       working directory is not filled up too much
- "output_geo_format" yes ASE format, to write the outputgeometries of the
-                       last iteration to is xyz as default, but can be changed
-                       for example to gx or vasp (POSCAR)
-
-Additional informations can be taken from the minima ASE inputs. The ase atoms
-objects may contain more informations than only the chemical symbols and the
-geometries of the wanted object. For example if reading in POSCARs there are
-additional informations as about the cell (pbc would be also set automatically
-to true in all directions). This informations can also be read in by this tool,
-if they are available, they are only used, if these variables still contain the
-default parameters.  Additionally ase can hold some constraints, which may be
-taken from a POSCAR or set directly. Some of them can be also used to generate
-a mask. This is only done if cartesian coordinates are used.
-
-CALCULATOR
-
-The calculator can be given in ASE format. It can be set in the paramfile or in
-an own file via
-
-  --calculator calc_file
-
-Additionally one can use some of the default specified calculators by for
-example:
-
-  --calculator default_vasp
-
-The way to set up those calculators is given best on the ASE homepage at:
-
-  https://wiki.fysik.dtu.dk/ase/ase/calculators/calculators.html#module-calculators
-
-Reuse RESULTS FROM PREVIOUS CALCULATIONS
-
-It is possible to store the results of the quantum chemical calculations (which
-are the computational most expensive part of the calculation) in a
-ResultDict.pickle file. It is done by default for an output level with at least
-1. If a calculation with the same system should be done, or the system should
-be repeated, this results can be reused (the QC- program mustn't be changed, as
-well as the geometries of the two minima). To reuse this results say in the
-parameters:
-
-  --old_results filename
-
-filename should be directed on the file (with location) where the Results are
-stored
-
-INITIAL PATH
-
-There are different ways of setting an initial path. One of the additonal files
-generated with output level 3 is a state_vector, which can be given directly as
-input for --init_path state_vec This would than in the next calculation let it
-start with the path discriebed by this. If such a state_vec is not available
-one can also provide the inital path by giving geometries as for the two minima
-(all in the same format, please). In this case the call of the method would be
-something like
-
-  pathsearcher.py --parmeter some_params minima1 bead2 bead3 bead4  minima2
-
-or for example:
-
-  pathsearcher.py --parmeter some_params POSCAR? POSCAR??
-
-The number of inital points and beads need not be the same.
-
-EXAMPLES
-
-A minimal one:
-
-  pathsearcher.py --calculator default_lj left.xyz right.xyz
-
-Having several POSCAR's for the inital path (from POSCAR0 to POSCAR11). A
-parameterfile (called params.py) should hold some parameters, so especially the
-calculator) but ftol is anyway 0.07
-
-  pathsearcher.py --paramfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
 """
 from sys import argv, exit
 from re import findall
@@ -231,8 +18,6 @@ from ase.io import read as read_ase
 from pts import MolInterface, CalcManager, generic_callback
 from pts.searcher import GrowingString, NEB
 from pts.optwrap import runopt as runopt_aof
-from pts.coord_sys import XYZ, ComplexCoordSys, enforce_short_way
-from pts.coord_sys import fake_xyz_string, ase2ccs, xyz2ccs
 from pickle import dump
 from pts.tools import pickle_path
 from pts.common import file2str
@@ -246,28 +31,29 @@ from ase.io import write as write_ase
 # needed as global variable
 cb_count_debug = 0
 
-def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, paramfile = None, zmatrix = [], **parameter):
+def pathsearcher(tbead_left, init_path, old_results = None, paramfile = None, funcart = [],fprime_exist = False, **parameter):
     """
     ...
-    It is also possible to use the pathsearcher() function in a python script. It
+    It is possible to use the pathsearcher() function in a python script. It
     looks like:
 
       from ??? import pathsearcher
 
-      pathsearcher(left, right, **kwargs) ??? calculator ???
+      pathsearcher(tbead_left,init_path, funcart, **kwargs)
 
-    left and right are the (??names of the files with geometries of??) terminal
-    beads (thus the two minima).  Do not provide a filename anywhere else, than
-    for the old_results, all others (geoemtries, paramfiles) should be given as
-    string or ASE atoms object. The parameter file (and others like init_path,
-    zmatrix) can be read in by file2str out of, for example:
+      * tbead_left is an ASE atoms object used to calculate the forces and energies of a given
+      (Cartesian) geometry. Be aware that it needs to have an calculator attached to it, which will
+      do the actual transformation. Another possibility is to give a file in which calculator is specified
+      separately as parameter.
+      * init_path is an array containting for each bead of the starting path the internal coordinates.
+      * funcart is a function to transform internal to Cartesian coordinates. It may be a simle function,
+      but if it provides the structure of pts.func function, meaning a taylor and a fprime function it
+      may be told so to the program by setting fprime_exist to True. Else a NumDiff function will be build
+      with funcart as normal function.
 
-      from pts.common import file2str
-
-    In the parameter's all parameters given above can be reset, not only those
-    specified with ch=yes.  The init_path can still be given by a serie of ASE
-    objects, in this case, make a list of them, not forgetting the two minima and
-    give them as init_path
+      * the other parameters give the possibility to overwrite some of the default behaviour of the module,
+      They are provided as kwargs in here. For a list of them see pathsearcher_defaults/params_default.py
+      They can be also specified in an input file given as paramfile.
     """
     # set up parameters (fill them in a dictionary)
     params_dict = set_defaults()
@@ -281,7 +67,7 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
     name = params_dict["name"]
 
     if type(params_dict["calculator"]) == str:
-         params_dict = set_calculator(params_dict)
+       tbead_left.set_calculator( pd_calc(params_dict))
 
     if params_dict["cos_type"].lower() == "neb":
         if params_dict["opt_type"] == "multiopt":
@@ -294,10 +80,10 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
     # prepare the coordinate objects, eventually replace parameter by the ones given in the
     # atoms minima objects and extend the zmatrix, mi is a MolInterface object, which is the
     # wrapper around the atoms object in ASE
-    mi, params, init_path, has_initpath, params_dict, zmatrix = prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix)
+    mi, params = prepare_mol_objects(tbead_left, params_dict, funcart, init_path, fprime_exist)
 
 
-    tell_params(params_dict, has_initpath, zmatrix, old_results)
+    tell_params(params_dict,  old_results)
 
     if not path.exists(params_dict["output_path"]):
         mkdir(params_dict["output_path"])
@@ -388,14 +174,19 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
     print runopt(CoS)
 
     cs = mi.build_coord_sys(CoS.get_state_vec()[0])
-    ase_cs = Atoms(cs.get_chemical_symbols())
+    print "Optimized path:"
+    print "in internals"
     for i, state in enumerate(CoS.get_state_vec()):
         cs = mi.build_coord_sys(state)
-        ase_cs.set_positions(cs.get_cartesians())
-        write_ase("BEAD_%0.2i" % (i), ase_cs, format = params_dict["output_geo_format"])
+        print cs.get_internals()
+
+    print "in Cartesians"
+    for i, state in enumerate(CoS.get_state_vec()):
+        cs = mi.build_coord_sys(state)
+        print cs.get_cartesians()
 
     # get best estimate(s) of TS from band/string
-    tss, modes = CoS.ts_estims(alsomodes = True, converter = mi.build_coord_sys(CoS.get_state_vec()[0]))
+    tss = CoS.ts_estims(alsomodes = False, converter = mi.build_coord_sys(CoS.get_state_vec()[0]))
 
     # write out path to a file
     if params_dict["output_level"] > 0:
@@ -407,18 +198,8 @@ def pathsearcher(tbead_left, tbead_right, init_path = None, old_results = None, 
         cs = mi.build_coord_sys(v)
         print "Energy = %.4f eV, between beads %d and %d." % (e, bead0_i, bead1_i)
         cs = mi.build_coord_sys(state)
-        ase_cs.set_positions(cs.get_cartesians())
-        for num, line in zip(ase_cs.get_chemical_symbols(), ase_cs.get_positions()):
-            print "%s   %12.8f  %12.8f  %12.8f" % (num, line[0], line[1], line[2])
-        write_ase("TSESTIMATE_%i" % (i), ase_cs, format = params_dict["output_geo_format"])
-        print "proposed vector for the lowest mode"
-        f_mod = open("MODEVEC_%i" %(i),"w")
-        for line in modes[i]:
-            f_mod.write("   %12.8f  %12.8f  %12.8f\n" % (line[0], line[1], line[2]))
-            print "   %12.8f  %12.8f  %12.8f" % (line[0], line[1], line[2])
-
-
-    #CoS.arc_record.close()
+        print "Positions", cs.get_internals()
+        print "Cartesians", cs.get_cartesians()
 
 def set_defaults():
     """
@@ -477,7 +258,7 @@ def reset_params_d(params_dict, **new_parameter):
             exit()
     return params_dict
 
-def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix):
+def prepare_mol_objects(tbead_left, params_dict, funcart, init_path, fprime_exist):
     """
     There are several valid possibilities of how the geometry/atoms input could be
     specified, here they should all lead to an valid MolInterface function
@@ -485,121 +266,15 @@ def prepare_mol_objects(tbead_left, tbead_right, init_path, params_dict, zmatrix
     # for extracting the parameter needed for the MI
     params = {}
 
-    # zmatrix may be only contain the connection but not values for the variables (if
-    # they should be specified later), the ccsspec's can only handle the full zmatrix
-    if not zmatrix == []:
-        num_int_raw = 0
-        num_int_raw_s = []
-        for i, zmati in enumerate(zmatrix):
-          zmatrix[i], num_int_s = expand_zmat(zmati)
-          num_int_raw += num_int_s + 6
-          if num_int_s == 1:
-            num_int_raw -= 1
-          num_int_raw_s.append(num_int_s)
-
-    mols = [tbead_left, tbead_right]
-    has_initpath = False
-    # some more code to add an initial path (from different ways)
-    if type(init_path) is str:
-        init_path = eval(init_path)
-        init_path = asarray(init_path)
-        has_initpath = True
-    elif init_path!=None:
-        mols = [int_s for int_s in init_path]
-        mols[0] = tbead_left
-        mols[-1] = tbead_right
-
-    # the original input for the atoms objects are strings; they contain a xyz file or
-    # a zmatrix/ mixed coordinate object
-    if type(tbead_left) is str:
-        assert type(tbead_right) is str
-        if zmatrix == []:
-            # they can be directly used
-            mol_strings = mols
-        elif XYZ.matches(tbead_left):
-            # a bit advanced: wants zmatrix object but has only xyz geometries (as string)
-            # now create the coordinate system objects
-            mol_strings = [xyz2ccs(mol, zmatrix,num_int_raw_s, num_int_raw) for mol in mols]
-    else:
-        # ASE atoms may contain a lot more informations than just atom numbers and geometries:
-        if (params_dict['cell'] == default_params['cell']):
-             print "Change cell for atoms: using cell given by atoms object:"
-             params_dict['cell'] = tbead_left.get_cell()
-             assert (tbead_left.get_cell() == tbead_right.get_cell()).all()
-             print params_dict['cell']
-
-        if params_dict['calculator'] == None:
-             print "Change calculator for atoms: using calculator given by atoms object:"
-             calc_l = tbead_left.get_calculator()
-             calc_r = tbead_right.get_calculator()
-             if calc_l == None:
-                 params_dict['calculator'] = calc_r
-             elif calc_r == None:
-                 params_dict['calculator'] = calc_l
-             else:
-                 params_dict['calculator'] = calc_r
-                 assert calc_r == calc_l
-             print params_dict['calculator']
-
-        if params_dict['pbc'] == False:
-             print "Change pbc for atoms: using pbc given by atoms object:"
-             params_dict['pbc'] = tbead_left.get_pbc()
-             assert (tbead_left.get_pbc() == tbead_right.get_pbc()).all()
-             print params_dict['pbc']
-
-        if params_dict['mask'] == None and zmatrix == None:
-             print "Change the mask for atoms: using constraints set in atoms object:"
-             mask0 = constraints2mask(tbead_left)
-             mask1 = constraints2mask(tbead_right)
-             assert mask0 == mask1
-             params_dict['mask'] = mask0
-             print mask0
-
-        if zmatrix == []:
-           # wanted in Cartesian
-           # the minimas are given as real atoms objects (or aof asemol'ones?)
-           # we fake here the xyz-string as wanted by the MI
-           tbl_str = fake_xyz_string(tbead_left)
-           tbr_str = fake_xyz_string(tbead_right)
-           mol_strings = [fake_xyz_string(mol) for mol in mols]
-        else:
-           ccsl = ase2ccs(tbead_left, zmatrix,num_int_raw_s, num_int_raw)
-           ccsr = ase2ccs(tbead_right, zmatrix,num_int_raw_s, num_int_raw)
-           mol_strings = [ase2ccs(mol, zmatrix,num_int_raw_s, num_int_raw) for mol in mols]
-
     # extract parameters from the dictionary
-    for x in ["output_level","output_path", "calculator", "placement", "cell", "pbc", "mask", "pre_calc_function"]:
+    for x in ["output_level","output_path"]:
         params[x] = params_dict[x]
     params["name"] = params_dict["output_path"] + "/" + params_dict["name"]
 
-    reactants = [mol_strings[0], mol_strings[-1]]
     # the MI:
-    mi = MolInterface(reactants, **params)
+    mi = MolInterface(tbead_left, funcart, init_path, fprime_exist = fprime_exist, **params)
 
-    # some more code to add an initial path (from different ways)
-    if not has_initpath:
-      if init_path == None:
-        init_path = mi.reagent_coords
-      else:
-        if ComplexCoordSys.matches(mol_strings[0]):
-            init_ls = [ComplexCoordSys(mol) for mol in mol_strings]
-        elif XYZ.matches(mol_strings[0]):
-            css = XYZ(mol_strings[0])
-            init_ls = [XYZ(mol) for mol in mol_strings]
-        else:
-            print "ERROR: This should not be possible"
-            print "the resulting string should either be a cartesian"
-            print " or an mixed coordinate system"
-            exit()
-
-        # the shortest way has to be selected, if there are several (seen on
-        # dihedrals and quaternions)
-        enforce_short_way(init_ls)
-        [ccs.set_var_mask(params["mask"]) for ccs in init_ls]
-        init_path = asarray([ccs.get_internals() for ccs in init_ls])
-        has_initpath = True
-
-    return  mi, params, init_path, has_initpath, params_dict, zmatrix
+    return  mi, params
 
 def expand_zmat(zmts):
     """
@@ -644,15 +319,14 @@ def expand_zmat(zmts):
         #print zmts_new
     return zmts_new, num_vars
 
-def set_calculator(params):
+def pd_calc(params):
     calc = params["calculator"]
     if calc in default_calcs:
         params["calculator"] = eval("%s" % (calc))
     else:
         str1 = file2str(calc)
         exec(str1)
-        params["calculator"] = calculator
-    return params
+    return calculator
 
 def tell_default_params():
     """
@@ -662,7 +336,7 @@ def tell_default_params():
     for param, value in default_params.iteritems():
          print "    %s = %s" % (str(param), str(value))
 
-def tell_params(params, has_initpath, zmatrix, old_results):
+def tell_params(params, old_results):
     """
     Show the actual params
     """
@@ -670,135 +344,12 @@ def tell_params(params, has_initpath, zmatrix, old_results):
     for param, value in params.iteritems():
          print "    %s = %s" % (str(param), str(value))
 
-    if has_initpath:
-         print "An initial path has been provided"
-
-    if zmatrix != []:
-         print "A zmatrix has been handed to the system intedependent from the geometries"
-         print "The geoemtries and the zmatrix have been merged"
-         print "The zmatrix gave the following structure:"
-         for zmati in zmatrix:
-           print zmati
-
     if old_results != None:
          print "Results from previous calculations are read in from %s", old_results
 
-
-def interpret_sysargs(rest):
-    """
-    Gets the arguments out of the sys arguemnts if pathsearcher
-    is called interactively
-    """
-    # This values have to be there in any case
-    old_results = None
-    paramfile = None
-    zmatrix = []
-    init_path = None
-
-    if "--help" in rest:
-        print __doc__
-        exit()
-
-    if "--defaults" in rest:
-        tell_default_params()
-        exit()
-
-    # store the geoemtry/atoms files
-    geos = []
-    # additional direct given paramters in here:
-    add_param = {}
-
-    # Now loop over the arguments
-    for i in range(len(rest)):
-        if rest == []:
-            # As we usual read in two at once, we may run out of
-            # arguements before the loop is over
-            break
-        elif rest[0].startswith("--"):
-            # this are the options given as
-            # --option argument
-            o = rest[0][2:]
-            a = rest[1]
-            # filter out the special ones
-            if o == "paramfile":
-                # file containing parameters
-                paramfile = file2str(a)
-            elif o in ( "--init_path"):
-                # inital path as state vector
-                init_path = file2str(a)
-            elif o in ("--old_results"):
-                # file to take results from previous calculations from
-                old_results = a
-            elif o in ("--zmatrix"):
-                # zmatrix if given separate to the geometries
-                zmatrix.append(file2str(a))
-            else:
-                # suppose that the rest are setting parameters
-                # compare the default_params
-                if o in are_floats:
-                    add_param[o] = float(a)
-                elif o in are_ints:
-                    add_param[o] = int(a)
-                else:
-                    add_param[o] = a
-
-            rest = rest[2:]
-        else:
-            # all other things are supposed to be geometries
-            geos.append(rest[0])
-            rest = rest[1:]
-
-    lgeo = len(geos)
-    # we need two files for the two terminal beads
-    # there may be additional ones for the initial path (if
-    # it has not given already directly)
-    if lgeo < 2:
-        print "ERROR: There is the need of at least two files, specifing the geometries"
-        print __doc__
-        exit()
-    elif lgeo > 2:
-        if not init_path == None:
-            print "ERROR: two differnt ways found to specify the inital path"
-            print "Which one should I take?"
-            print "Please give only one init path"
-            print __doc__
-            exit()
-
-        init_path = transformgeo(geos)
-
-    # the two terminal beads
-    tb = transformgeo([geos[0], geos[-1]])
-    tbead_left = tb[0]
-    tbead_right = tb[-1]
-
-    return tbead_left, tbead_right, init_path, old_results, paramfile, zmatrix, add_param
-
-def transformgeo(str1):
-    """
-    Geometry input can be a string (for zmatrix ect.)
-    or an in ase readable format input file
-    if both is possible ASE wins
-    """
-    try:
-        res = read_ase(str1[0])
-        asef = True
-    except ValueError:
-        res = file2str(str1[0])
-        asef = False
-
-    if asef:
-       res = [read_ase(st1) for st1 in str1]
-    else:
-       res = [file2str(st1) for st1 in str1]
-    return res
-
-def main(argv):
-    "To be used as main(sys.argv[1:])"
-    #tell_default_params()
-    tbead_left, tbead_right, init_path, old_results, paramfile, zmatrix, params = interpret_sysargs(argv)
-    pathsearcher(tbead_left, tbead_right, init_path = init_path, paramfile = paramfile, zmatrix = zmatrix, old_results = old_results, **params)
-
 if __name__ == "__main__":
-    main(argv[1:])
+     print __doc__
+     tell_default_params()
+     exit()
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax

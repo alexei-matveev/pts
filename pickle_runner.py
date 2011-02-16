@@ -50,17 +50,14 @@ def main(argv=None):
 
         print "About to unpickle"
         # create atoms object based on pickled inputs
-        mol, f, data = pickle.load(mol_pickled)
+        mol, data = pickle.load(mol_pickled)
+        f = None
 
         print "mol", str(mol)
 
-        if not isinstance(mol, coord_sys.CoordSys):
-            raise PickleRunnerException("De-pickled molecule was not an instance of pts.coord_sys.CoordSys: " + str(type(mol)))
 
-        calc = mol.get_calculator()
-        print calc
-        if not mol.get_calculator():
-            raise PickleRunnerException("Molecule object had no calculator.")
+        #if not mol._atoms.get_calculator():
+        #    raise PickleRunnerException("Molecule object had no calculator.")
 
         jobname =  mol_filename.split(".")[0]
 
@@ -98,7 +95,7 @@ def main(argv=None):
             print "type(mol._atoms.calc)", type(mol._atoms.calc)
             if 'jobname' in mol._atoms.calc.__dict__:
                 mol._atoms.calc.jobname = isolation_dir
-            g = -mol.get_forces(flat=True)
+            g = - mol.get_forces().flatten()
             assert len(g.shape) == 1
             e = mol.get_potential_energy()
 

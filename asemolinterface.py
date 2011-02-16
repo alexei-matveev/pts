@@ -15,11 +15,10 @@ import pickle
 import path
 
 import numpy
-from pts.coord_sys import enforce_short_way
 from pts.metric import setup_metric
 
 import pts.common as common
-import pts.coord_sys as csys
+from pts.coord_sys import CoordSys
 
 lg = logging.getLogger('pts.asemolinterface') #common.PROGNAME)
 
@@ -142,8 +141,8 @@ class MolInterface:
     providing also functionality to run a energy/gradient calculation of a
     particular vector under a separate python interpreter instance."""
 
-    def __init__(self, 
-            mol_strings, 
+    def __init__(self, atoms, fun,
+            mol_strings, fprime_exist = False,
             **kwargs):
 
         """mol_strings: list of strings, each of which describes a molecule, 
@@ -195,15 +194,7 @@ class MolInterface:
 
         assert len(mol_strings) > 1
 
-        first = mol_strings[0]
-        if csys.ComplexCoordSys.matches(first):
-            mols = [csys.ComplexCoordSys(s) for s in mol_strings]
-        elif csys.ZMatrix2.matches(first):
-            mols = [csys.ZMatrix2(s) for s in mol_strings]
-        elif csys.XYZ.matches(first):
-            mols = [csys.XYZ(s) for s in mol_strings]
-        else:
-            raise MolInterfaceException("Unrecognised geometry string:\n" + first)
+        mols = [CoordSys(atoms, fun, s, fprime_exist = fprime_exist) for s in mol_strings]
 
         # Make sure that when interpolating between the dihedral angles
         #  that this is done using the shortest possible arc length
@@ -215,15 +206,10 @@ class MolInterface:
         # coordinates ot the mols if needed. Changes in the geometries for generating
         # a new path are allowed to overstep this.
 
-        enforce_short_way(mols)
 
         self._kwargs = kwargs
         calculator = kwargs.get('calculator', None)
         pre_calc_function = kwargs.get('pre_calc_function', None)
-        mask       = kwargs.get('mask', None)
-        placement  = kwargs.get('placement', None)
-        pbc        = kwargs.get('pbc', None)
-        cell       = kwargs.get('cell', None)
         name       = kwargs.get('name', None)
         self.output_path = kwargs.get('output_path', None)
 
@@ -232,51 +218,11 @@ class MolInterface:
         self.job_counter_lock = thread.allocate_lock()
         self.build_coord_sys_lock = threading.RLock()
 
-        # lists of various properties for input reagents
-        atoms_lists    = [m.get_chemical_symbols() for m in mols]
-        coord_vec_lens = [len(m.get_internals()) for m in mols]
-
-        all_var_names = [m.var_names for m in mols]
-        all_kinds = [m.kinds for m in mols]
-
-        if not common.all_equal(atoms_lists):
-            raise MolInterfaceException("Input molecules do not have consistent atoms.")
-
-        elif not common.all_equal(coord_vec_lens):
-            raise MolInterfaceException("Input molecules did not have a consistent number of variables.")
-
-        if not common.all_equal(all_var_names):
-            raise MolInterfaceException("Input molecules did not have the same variable names.")
-        
-        if not common.all_equal(all_kinds):
-            raise MolInterfaceException("Input molecules did not have the same variable types.")
-
-        self.var_names = all_var_names[0]
-
-        [m.set_var_mask(mask) for m in mols]
-
-        self.reagent_coords = [m.get_internals() for m in mols]
-
-        N = len(m.get_internals())
-
 
         # setup function that generates
         self.place_str = None
-        if placement != None:
-            f = placement
-            assert callable(f), "Function to generate placement command was not callable."
 
-            # perform test to make sure command is in path
-            command = f(None)
-            assert common.exec_in_path(command), "Generated placement command was not in path."
-            self.place_str = f
-
-
-        self.calc_tuple = self.pre_calc_function = None
-        if calculator != None:
-            #a,b,c = calculator
-            self.calc_tuple = calculator
-            self.pre_calc_function = pre_calc_function
+        self.reagent_coords = [m.get_internals() for m in mols]
 
         self.mol = mols[0]
 
@@ -289,40 +235,9 @@ class MolInterface:
         # Lateron it can then be used by any module.
         setup_metric(self.mol.int2cart)
 
-        if cell != None:
-            self.mol.set_cell(cell)
-        if pbc != None:
-            self.mol.set_pbc(pbc)
-
-
-    def to_cartesians(self, beads_count):
-        """Returns a MolInterface object and a (linear) path, both in cartesians, but 
-        generated using the specified coordinate system.
-        
-        >>> g1 = "C 1.0 1.0 1.0\\nH 0.0 0.0 0.0\\n"
-        >>> g2 = "C 3.0 3.0 3.0\\nH 0.0 0.0 0.0\\n"
-
-        >>> mi = MolInterface([g1, g2])
-        >>> mi.to_cartesians(4)
-
-        """
-
-        pr = path.PathRepresentation(self.reagent_coords, beads_count, lambda x: 1)
-        f = self.build_coord_sys
-        mol_path = [f(v) for v in pr.generate_beads()]
-        cart_path = numpy.array([m.get_cartesians().flatten() for m in mol_path])
-
-        xyz_reagents = [mol_path[0].xyz_str(), mol_path[-1].xyz_str()]
-
-        new_mi = MolInterface(xyz_reagents, **self._kwargs)
-
-        return new_mi, cart_path
-
-
     def __str__(self):
         mystr = "format = " + self.mol.__class__.__name__
-        mystr += "\natoms = " + str(self.mol.get_chemical_symbols())
-        mystr += "\nvar_names = " + str(self.var_names)
+        mystr += "\natoms = " + str(self.mol._atoms.get_chemical_symbols())
         mystr += "\nreactant coords = " + str(self.reagent_coords[0])
         mystr += "\nproduct coords = " + str(self.reagent_coords[1])
         return mystr
@@ -343,16 +258,15 @@ class MolInterface:
         and returns it."""
 
         with self.build_coord_sys_lock:
-            m = self.mol.copy()
+            m = deepcopy(self.mol)
+            m._atoms = deepcopy(self.mol._atoms)
             m.set_internals(v)
-            tuple = deepcopy(self.calc_tuple)
 
            #if calc_kwargs:
            #    assert type(tuple[2]) == dict
            #    assert type(calc_kwargs) == dict
            #    tuple[2].update(calc_kwargs)
 
-            m.set_calculator(tuple)
             return m
 
     def run(self, item):
@@ -380,12 +294,11 @@ class MolInterface:
         # compile package of extra data
         extra_data = dict()
         extra_data['item'] = item
-        function = self.pre_calc_function
 
         # write input file as pickled object
         coord_sys_obj = self.build_coord_sys(job.v)
         f = open(mol_pickled, "wb")
-        packet = coord_sys_obj, function, extra_data
+        packet = coord_sys_obj, extra_data
         pickle.dump(packet, f, protocol=2)
         f.close()
 
