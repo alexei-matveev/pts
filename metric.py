@@ -375,14 +375,6 @@ class Metric_reduced(Metric):
         return "Metric: Working with Metric Cartesians with remove of global translation and rotation"
 
 
-class No_metric():
-    def __init__(self, fun = None):
-        pass
-
-    def __str__(self):
-        s =  "Metric: No metric set! Please initalize a valid metric before using it."
-        s = s + '\n' + "This metric does not provide any other functionalities"
-        return s
 """
 The chosen metric, available are:
    * Default, for which contra- and covariant vectors are the same
@@ -401,7 +393,7 @@ but use for example
  co_vec = mt.lower(con_vec)
 """
 global metric
-metric = No_metric()
+metric = Default()
 
 def setup_metric(F = None):
      """
