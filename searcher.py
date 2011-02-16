@@ -222,15 +222,6 @@ class ReactionPathway(object):
         self.prev_energies = None
         self._step = zeros(shape)
 
-    def update_mask(self, perp_max=0.3):
-        assert False, "not using this"
-        #self.bead_update_mask = [False, False, False, True, True, False, False, False]
-        #return
-        top3 = self.bead_pes_energies.argsort()[-3:]
-        max_f = abs(self.perp_bead_forces[i]).max()
-        self.bead_update_mask[i] = max_f > perp_max or i in top3
-        lg.info("Update mask set to %s" % str(self.bead_update_mask))
-
     def lengths_disparate(self):
         return False
 
@@ -657,10 +648,6 @@ class ReactionPathway(object):
     def obj_func(self, new_state_vec=None, grad=False):
         # diffinbeads is only needed for growing string, for everything else it
         # can be set to zero
-
-        # update mask of beads to freeze i.e. not move or recalc energy/grad for
-        #if self.freeze_beads:
-        #    self.update_mask()
 
         # NOTE: this automatically skips if new_state_vec == None
         self.state_vec = new_state_vec
