@@ -393,10 +393,6 @@ class Path(Func):
 
     nodes = property(get_nodes, set_nodes)
 
-    @property
-    def dimension(self):
-        return self.__dimension
-
     def __regen_path_func(self):
         """Rebuild a new path function and the derivative of the path based on 
         the contents of state_vec.
