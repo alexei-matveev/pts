@@ -439,8 +439,9 @@ class Path(Func):
     def tangent(self, x):
         """Returns the (normalized) tangent to the path at point x <- [0,1]."""
 
-        # to avoid things like array([[1],[2]]) flatten:
-        t = self.fprime(x).flatten()
+        # NOT ANYMORE: to avoid things like array([[1],[2]]) flatten:
+        # Rather keep the shapes of p(x) and p.tangent(x) consistent:
+        t = self.fprime(x) #.flatten()
         t = t / linalg.norm(t)
         return t
 
