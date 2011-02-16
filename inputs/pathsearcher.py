@@ -190,10 +190,9 @@ def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart
     print "Dumping located transition states"
     for i, ts in enumerate(tss):
         e, v, s0, s1,_ ,bead0_i, bead1_i = ts
-        cs = mi.build_coord_sys(v)
         print "Energy = %.4f eV, between beads %d and %d." % (e, bead0_i, bead1_i)
-        print "Positions", cs.get_internals()
-        print "Cartesians", cs.get_cartesians()
+        print "Positions", v
+        print "Cartesians", funcart(v)
 
 def set_defaults():
     """
