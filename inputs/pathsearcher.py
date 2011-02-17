@@ -27,7 +27,7 @@ from pts.common import file2str
 # needed as global variable
 cb_count_debug = 0
 
-def pathsearcher(atoms, init_path, funcart=[], *args, **kwargs):
+def pathsearcher(atoms, init_path, funcart, **kwargs):
     """Script-verison of find_path(), interprets and prints results to tty.
 
     It is possible to use the pathsearcher() function in a python script. It
@@ -50,60 +50,42 @@ def pathsearcher(atoms, init_path, funcart=[], *args, **kwargs):
       * the other parameters give the possibility to overwrite some of the default behaviour of the module,
       They are provided as kwargs in here. For a list of them see pathsearcher_defaults/params_default.py
       They can be also specified in an input file given as paramfile.
-
-    FIXME: why function doing convertion to cartesian defaults to []?
     """
 
+    # there is a lot of parameters affecting the calculation,
+    # collect them in a dictionary, adding to those provided:
+    kwargs = mkparams(kwargs)
+
     # this will operate with PES in internals in the near future:
-    geometries, energies, gradients = find_path(atoms, init_path, funcart, *args, **kwargs)
+    geometries, energies, gradients = find_path(atoms, init_path, funcart, **kwargs)
 
     # print user-friendly output, including cartesian geometries:
     output(geometries, energies, gradients, funcart)
 
     return geometries, energies, gradients
 
-def find_path(atoms, init_path, funcart = [], old_results = None, paramfile = None, **parameter):
+def find_path(atoms, init_path, funcart, **params_dict):
     """This one does the real work ...
 
     """
-    # set up parameters (fill them in a dictionary)
-    params_dict = set_defaults()
-    if not paramfile == None:
-        params_dict = reset_params_f(params_dict, paramfile)
-    params_dict = reset_params_d(params_dict, **parameter)
 
-    # naming for output files
-    if params_dict["name"] == None:
-        params_dict["name"] = str(params_dict["cos_type"])
-    name = params_dict["name"]
+    # print parameters to STDOUT:
+    tell_params(params_dict)
 
-    # This is an alternative way of specifing calculator, default is
-    # to keep atoms.get_calculator(): FIXME: this part belongs into
-    # section of reading/parsing parameters (maybe reset_params_f?):
-    if type(params_dict["calculator"]) == str:
-        params_dict["calculator"] = eval_calc(params_dict["calculator"])
-
+    # calculator from kwargs, if valid, has precedence over
+    # the associated (or not) with the atoms:
+    if params_dict["calculator"] is not None:
         atoms.set_calculator(params_dict["calculator"])
-
-    if params_dict["cos_type"].lower() == "neb":
-        if params_dict["opt_type"] == "multiopt":
-            print "The optimizer %s is not designed for working with the method neb", params_dict["opt_type"]
-            params_dict["opt_type"] = "ase_lbfgs"
-            print "Thus it is replaced by the the optimizer", params_dict["opt_type"]
-            print "This optimizer is supposed to be the default for neb calculations"
-
 
     # prepare the coordinate objects, eventually replace parameter by the ones given in the
     # atoms minima objects and extend the zmatrix, mi is a MolInterface object, which is the
     # wrapper around the atoms object in ASE
     mi, params = prepare_mol_objects(atoms, params_dict, funcart, init_path)
 
-
-    # print parameters to STDOUT:
-    tell_params(params_dict,  old_results)
-
     if not path.exists(params_dict["output_path"]):
         mkdir(params_dict["output_path"])
+
+    name = params_dict["name"]
 
     # some output files:
     logfile = open(name + '.log', 'w')
@@ -113,7 +95,7 @@ def find_path(atoms, init_path, funcart = [], old_results = None, paramfile = No
 
     # Calculator
     procs_tuple = (params_dict["cpu_architecture"], params_dict["pmax"], params_dict["pmin"])
-    calc_man = CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=old_results)
+    calc_man = CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=params_dict["old_results"])
 
     # decide which method is actually to be used
     cos_type = params_dict["cos_type"].lower()
@@ -223,11 +205,55 @@ def output(beads, energies, gradients, cartesian):
         print "Positions", v
         print "Cartesians", cartesian(v)
 
+def mkparams(parameter):
+    """Returns a dictionary with parameters of the search procedure
+    """
+
+#   print "mkparams: parameter=\n", parameter
+
+    # set up parameters (fill them in a dictionary)
+    params_dict = set_defaults()
+
+#   print "mkparams: defaults=\n", params_dict
+
+    if "paramfile" in parameter:
+        params_dict = reset_params_f(params_dict, parameter["paramfile"])
+
+#   print "mkparams: from text=\n", params_dict
+
+    params_dict = reset_params_d(params_dict, parameter)
+
+#   print "mkparams: from dict=\n", params_dict
+
+    # naming for output files
+    if params_dict["name"] == None:
+        params_dict["name"] = str(params_dict["cos_type"])
+
+    # This is an alternative way of specifing calculator, default is
+    # to keep atoms.get_calculator(): FIXME: this part belongs into
+    # section of reading/parsing parameters (maybe reset_params_f?):
+    if type(params_dict["calculator"]) == str:
+        params_dict["calculator"] = eval_calc(params_dict["calculator"])
+
+    if params_dict["cos_type"].lower() == "neb":
+        if params_dict["opt_type"] == "multiopt":
+            print "The optimizer %s is not designed for working with the method neb", params_dict["opt_type"]
+            params_dict["opt_type"] = "ase_lbfgs"
+            print "Thus it is replaced by the the optimizer", params_dict["opt_type"]
+            print "This optimizer is supposed to be the default for neb calculations"
+
+    return params_dict
+
 def set_defaults():
     """
     Initalize the parameter dictionary with the default parameters
     """
     params_dict = default_params.copy()
+
+    # FIXME: is this a universal parameter?
+    # Maybe move it to "default_params"?
+    params_dict["old_results"] = None
+
     return params_dict
 
 def reset_params_f(params_dict, lines):
@@ -264,7 +290,7 @@ def reset_params_f(params_dict, lines):
 
     return params_dict
 
-def reset_params_d(params_dict, **new_parameter):
+def reset_params_d(params_dict, new_parameter):
     """
     Overwrite parameters by ones given directly (as a dictionary)
     in the parameters, here we check also if there are some unknown ones,
@@ -289,8 +315,10 @@ def prepare_mol_objects(atoms, params_dict, funcart, init_path):
     params = {}
 
     # extract parameters from the dictionary
-    for x in ["output_level","output_path"]:
-        params[x] = params_dict[x]
+    for x in ["output_level", "output_path"]:
+        if x in params_dict:
+            params[x] = params_dict[x]
+
     params["name"] = params_dict["output_path"] + "/" + params_dict["name"]
 
     # the MI:
@@ -363,16 +391,13 @@ def tell_default_params():
     for param, value in default_params.iteritems():
          print "    %s = %s" % (str(param), str(value))
 
-def tell_params(params, old_results):
+def tell_params(params):
     """
     Show the actual params
     """
     print "The specified parameters for this path searching calculation are:"
     for param, value in params.iteritems():
          print "    %s = %s" % (str(param), str(value))
-
-    if old_results != None:
-         print "Results from previous calculations are read in from %s", old_results
 
 if __name__ == "__main__":
      print __doc__
