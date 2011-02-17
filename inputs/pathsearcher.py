@@ -27,9 +27,9 @@ from pts.common import file2str
 # needed as global variable
 cb_count_debug = 0
 
-def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart = [], **parameter):
-    """
-    ...
+def pathsearcher(atoms, init_path, funcart=[], *args, **kwargs):
+    """Script-verison of find_path(), interprets and prints results to tty.
+
     It is possible to use the pathsearcher() function in a python script. It
     looks like:
 
@@ -50,6 +50,21 @@ def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart
       * the other parameters give the possibility to overwrite some of the default behaviour of the module,
       They are provided as kwargs in here. For a list of them see pathsearcher_defaults/params_default.py
       They can be also specified in an input file given as paramfile.
+
+    FIXME: why function doing convertion to cartesian defaults to []?
+    """
+
+    # this will operate with PES in internals in the near future:
+    geometries, energies, gradients = find_path(atoms, init_path, funcart, *args, **kwargs)
+
+    # print user-friendly output, including cartesian geometries:
+    output(geometries, energies, gradients, funcart)
+
+    return geometries, energies, gradients
+
+def find_path(atoms, init_path, funcart = [], old_results = None, paramfile = None, **parameter):
+    """This one does the real work ...
+
     """
     # set up parameters (fill them in a dictionary)
     params_dict = set_defaults()
@@ -173,10 +188,20 @@ def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart
     runopt = lambda CoS_: runopt_aof(params_dict["opt_type"], CoS_, params_dict["ftol"], params_dict["xtol"], params_dict["etol"], params_dict["maxit"], cb, maxstep=params_dict["maxstep"], extra=extra_opt_params)
 
     # main optimisation loop
-    print runopt(CoS)
+    result = runopt(CoS)
+    print result # what is it?
 
-    # this is the result of optimization:
-    beads = CoS.get_state_vec()
+    # write out path to a file
+    if params_dict["output_level"] > 0:
+        pickle_path(mi, CoS, "%s.path.pickle" % name)
+
+    # Return (hopefully) converged discreete path representation:
+    return CoS.get_state_vec(), CoS.bead_pes_energies, CoS.bead_pes_gradients
+
+def output(beads, energies, gradients, cartesian):
+    """Print user-friendly output.
+    Also estimates locations of transition states from bead geometries.
+    """
 
     print "Optimized path:"
     print "in internals"
@@ -185,21 +210,18 @@ def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart
 
     print "in Cartesians"
     for bead in beads:
-        print funcart(bead)
+        print cartesian(bead)
 
     # get best estimate(s) of TS from band/string
-    tss = ts_estims(beads, CoS.bead_pes_energies, CoS.bead_pes_gradients, alsomodes = False, converter = mi.build_coord_sys(CoS.get_state_vec()[0]))
+    tss = ts_estims(beads, energies, gradients, alsomodes=False, converter=cartesian)
 
-    # write out path to a file
-    if params_dict["output_level"] > 0:
-        pickle_path(mi, CoS, "%s.path.pickle" % name)
     # print cartesian coordinates of all transition states that were found
     print "Dumping located transition states"
     for i, ts in enumerate(tss):
         e, v, s0, s1,_ ,bead0_i, bead1_i = ts
         print "Energy = %.4f eV, between beads %d and %d." % (e, bead0_i, bead1_i)
         print "Positions", v
-        print "Cartesians", funcart(v)
+        print "Cartesians", cartesian(v)
 
 def set_defaults():
     """
