@@ -39,8 +39,9 @@ def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart
 
       * atoms is an ASE atoms object used to calculate the forces and energies of a given
       (Cartesian) geometry. Be aware that it needs to have an calculator attached to it, which will
-      do the actual transformation. Another possibility is to give a file in which calculator is specified
-      separately as parameter.
+      do the actual transformation.
+      Another possibility is to give a file in which calculator is specified separately as parameter.
+      (FIXME: this another possibility is vaguely specified)
 
       * init_path is an array containting for each bead of the starting path the internal coordinates.
 
@@ -61,8 +62,13 @@ def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart
         params_dict["name"] = str(params_dict["cos_type"])
     name = params_dict["name"]
 
+    # This is an alternative way of specifing calculator, default is
+    # to keep atoms.get_calculator(): FIXME: this part belongs into
+    # section of reading/parsing parameters (maybe reset_params_f?):
     if type(params_dict["calculator"]) == str:
-       atoms.set_calculator( pd_calc(params_dict))
+        params_dict["calculator"] = eval_calc(params_dict["calculator"])
+
+        atoms.set_calculator(params_dict["calculator"])
 
     if params_dict["cos_type"].lower() == "neb":
         if params_dict["opt_type"] == "multiopt":
@@ -78,6 +84,7 @@ def pathsearcher(atoms, init_path, old_results = None, paramfile = None, funcart
     mi, params = prepare_mol_objects(atoms, params_dict, funcart, init_path)
 
 
+    # print parameters to STDOUT:
     tell_params(params_dict,  old_results)
 
     if not path.exists(params_dict["output_path"]):
@@ -312,17 +319,18 @@ def expand_zmat(zmts):
         #print zmts_new
     return zmts_new, num_vars
 
-def pd_calc(params):
+def eval_calc(calc):
 
     # See eval below, that may be one of the ASE calculators:
     from ase.calculators import *
 
-    calc = params["calculator"]
     if calc in default_calcs:
-        params["calculator"] = eval("%s" % (calc))
+        calculator = eval("%s" % (calc))
     else:
         str1 = file2str(calc)
         exec(str1)
+
+    # eval/exec are supposed to set a variable named "calculator":
     return calculator
 
 def tell_default_params():
