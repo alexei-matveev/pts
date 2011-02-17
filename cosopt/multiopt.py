@@ -58,17 +58,20 @@ class MiniBFGS(ObjLog):
                [-0.5,  1.5]])
 
    After two steps reaches minimum.
-        >>> x
-        np.array([ 0.,  0.])
-        >>> x + bfgs.step(e(x), f(x), x)
-        np.array([ 0.,  0.])
+        >>> x.round(4)
+        array([-0.,  0.])
+        >>> xn = x + bfgs.step(e(x), f(x), x)
+        Bead -1: skipping SR1 update, denominator too small
+        >>> xn.round(4)
+        array([-0.,  0.])
         >>> bfgs.H
         array([[ 1.5, -0.5],
                [-0.5,  1.5]])
 
-    Dummy trust radius at present:
-        >>> round(10* bfgs.trust_rad)
-        1.0
+   FIXME: Doesn't exist:
+   #Dummy trust radius at present:
+   #    >>> round(10* bfgs.trust_rad)
+   #    1.0
 
 
     """
@@ -139,8 +142,8 @@ class MiniBFGS(ObjLog):
             scale = err_per_step / (np.abs(1 - self._rho) + 0.001)
             scale = min(scale, self._max_step_scale)
 
-        self.slog("Bead %d: Energy change: Actual / Predicted %f" % (self.id, self._rho), when='always')
-        self.slog("Bead %d: Step scale:                       %f" % (self.id, scale), when='always')
+        self.slog("Bead %d: Energy change: Actual / Predicted %f" % (self.id, self._rho), when='later')
+        self.slog("Bead %d: Step scale:                       %f" % (self.id, scale), when='later')
 
         return scale
 
@@ -173,10 +176,8 @@ class MiniBFGS(ObjLog):
                     df = grad - self._grad0
                     dg = np.dot(self.H, dr)
 
-                    print "dr", dr
                     if self.method == 'SR1':
                         c = df - np.dot(self.H, dr)
-                        print "c",c
 
                         # guard against division by very small denominator
                         if np.linalg.norm(c) * np.linalg.norm(c) > 1e-8:
@@ -186,15 +187,13 @@ class MiniBFGS(ObjLog):
                     elif self.method == 'BFGS':
                         a = np.dot(dr, df)
                         b = np.dot(dr, dg)
-                        print "a", a
-                        print "b", b
                         self.H += np.outer(df, df) / a - np.outer(dg, dg) / b
                     else:
                         assert False, 'Should never happen'
                     self.slog("Bead %d: Hessian (BFGS) updated to" % self.id)
                     self.slog(self.H)
 
-            self.slog('DB: Hessian min/max abs vals: %.2f %.2f' % (abs(self.H).min(), abs(self.H).max()), when='always')
+            self.slog('DB: Hessian min/max abs vals: %.2f %.2f' % (abs(self.H).min(), abs(self.H).max()), when='later')
 
         self._its += 1
 
@@ -235,7 +234,7 @@ class MiniBFGS(ObjLog):
 
 def calc_step(dir, H, grad, energy):
     """
-    >>> np.round(100*calc_step((-1.,), (2.,), (2.,), 1.))
+    >>> np.round(100*calc_step((-1.), (2.), (2.), 1.))
     100.0
 
     >>> np.round(100*calc_step((-1,1), ((2,0),(0,2)), (2.,2), 1.))
