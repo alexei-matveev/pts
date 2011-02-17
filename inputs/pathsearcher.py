@@ -64,71 +64,71 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
 
     return geometries, energies, gradients
 
-def find_path(atoms, init_path, funcart, **params_dict):
+def find_path(atoms, init_path, funcart, **kwargs):
     """This one does the real work ...
 
     """
 
     # print parameters to STDOUT:
-    tell_params(params_dict)
+    tell_params(kwargs)
 
     # calculator from kwargs, if valid, has precedence over
     # the associated (or not) with the atoms:
-    if params_dict["calculator"] is not None:
-        atoms.set_calculator(params_dict["calculator"])
+    if kwargs["calculator"] is not None:
+        atoms.set_calculator(kwargs["calculator"])
 
     # prepare the coordinate objects, eventually replace parameter by the ones given in the
     # atoms minima objects and extend the zmatrix, mi is a MolInterface object, which is the
     # wrapper around the atoms object in ASE
-    mi, params = prepare_mol_objects(atoms, params_dict, funcart, init_path)
+    mi, params = prepare_mol_objects(atoms, kwargs, funcart, init_path)
 
-    if not path.exists(params_dict["output_path"]):
-        mkdir(params_dict["output_path"])
+    if not path.exists(kwargs["output_path"]):
+        mkdir(kwargs["output_path"])
 
-    name = params_dict["name"]
+    name = kwargs["name"]
 
     # some output files:
     logfile = open(name + '.log', 'w')
     disk_result_cache = None
-    if params_dict["output_level"] > 0:
+    if kwargs["output_level"] > 0:
         disk_result_cache = '%s.ResultDict.pickle' % name
 
     # Calculator
-    procs_tuple = (params_dict["cpu_architecture"], params_dict["pmax"], params_dict["pmin"])
-    calc_man = CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=params_dict["old_results"])
+    procs_tuple = (kwargs["cpu_architecture"], kwargs["pmax"], kwargs["pmin"])
+    calc_man = CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=kwargs["old_results"])
 
     # decide which method is actually to be used
-    cos_type = params_dict["cos_type"].lower()
+    cos_type = kwargs["cos_type"].lower()
     if cos_type == 'string':
          CoS = GrowingString(init_path,
                calc_man,
-               params_dict["beads_count"],
+               kwargs["beads_count"],
                growing=False,
                parallel=True,
                reporting=logfile,
                freeze_beads=False,
                head_size=None,
-               output_level = params_dict["output_level"],
+               output_level = kwargs["output_level"],
                max_sep_ratio=0.3)
     elif cos_type == 'growingstring':
          CoS = GrowingString(init_path,
                calc_man,
-               params_dict["beads_count"],
+               kwargs["beads_count"],
                growing=True,
                parallel=True,
                reporting=logfile,
                freeze_beads=False,
                head_size=None,
-               output_level = params_dict["output_level"],
+               output_level = kwargs["output_level"],
                max_sep_ratio=0.3)
     elif cos_type == 'searchingstring':
          CoS = GrowingString(init_path,
                calc_man,
-               params_dict["beads_count"],
+               kwargs["beads_count"],
                growing=True,
                parallel=True,
                reporting=logfile,
-               output_level = params_dict["output_level"],
+               output_level = kwargs["output_level"],
                max_sep_ratio=0.3,
                freeze_beads=True,
                head_size=None, # has no meaning for searching string
@@ -136,10 +136,10 @@ def find_path(atoms, init_path, funcart, **params_dict):
     elif cos_type == 'neb':
          CoS = NEB(init_path,
                calc_man,
-               params_dict["spring"],
-               params_dict["beads_count"],
+               kwargs["spring"],
+               kwargs["beads_count"],
                parallel=True,
-               output_level = params_dict["output_level"],
+               output_level = kwargs["output_level"],
                reporting=logfile)
     else:
          raise Exception('Unknown type: %s' % cos_type)
@@ -154,8 +154,8 @@ def find_path(atoms, init_path, funcart, **params_dict):
     # callback function
     def cb(x, tol=0.01):
          global cb_count_debug
-         if params_dict["output_level"] > 1:
-             pickle_path(mi, CoS, "%s/%s.debug%d.path.pickle" % (params_dict["output_path"],name, cb_count_debug))
+         if kwargs["output_level"] > 1:
+             pickle_path(mi, CoS, "%s/%s.debug%d.path.pickle" % (kwargs["output_path"],name, cb_count_debug))
          cb_count_debug += 1
          return generic_callback(x, mi, CoS, params, tol=tol)
 
@@ -167,14 +167,14 @@ def find_path(atoms, init_path, funcart, **params_dict):
 
     extra_opt_params = dict()
 
-    runopt = lambda CoS_: runopt_aof(params_dict["opt_type"], CoS_, params_dict["ftol"], params_dict["xtol"], params_dict["etol"], params_dict["maxit"], cb, maxstep=params_dict["maxstep"], extra=extra_opt_params)
+    runopt = lambda CoS_: runopt_aof(kwargs["opt_type"], CoS_, kwargs["ftol"], kwargs["xtol"], kwargs["etol"], kwargs["maxit"], cb, maxstep=kwargs["maxstep"], extra=extra_opt_params)
 
     # main optimisation loop
     result = runopt(CoS)
     print result # what is it?
 
     # write out path to a file
-    if params_dict["output_level"] > 0:
+    if kwargs["output_level"] > 0:
         pickle_path(mi, CoS, "%s.path.pickle" % name)
 
     # Return (hopefully) converged discreete path representation:
