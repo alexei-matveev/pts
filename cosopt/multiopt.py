@@ -76,11 +76,11 @@ class MiniBFGS(ObjLog):
     def __init__(self, dims, H0=None, init_step_scale=0.5, max_step_scale=0.5, max_H_resets=1e10, id=-1):
         """
         max_scale:
-            Maximum scale factor to be applied to the Quasi-Newton step. This 
-            is quite conservative because, even if the Hessian is very 
-            accurate in one aprticular direction, in might be inaccurate in 
-            other directions and so a very accurately predicted energy step 
-            in one direction should not be taken as an indication that large 
+            Maximum scale factor to be applied to the Quasi-Newton step. This
+            is quite conservative because, even if the Hessian is very
+            accurate in one aprticular direction, in might be inaccurate in
+            other directions and so a very accurately predicted energy step
+            in one direction should not be taken as an indication that large
             steps are now possible.
         """
 
@@ -111,7 +111,7 @@ class MiniBFGS(ObjLog):
 
     def calc_step_scale(self, energy, pos, err_per_step=0.1):
         """Calculates a factor by which to scale the step size.
-        
+
         err_per_step:
             Allowed error per step (sort of).
 
@@ -127,9 +127,9 @@ class MiniBFGS(ObjLog):
             print "self.H", self.H
             print "self._grad0", self._grad0
 
-        
+
         # Assumes that the error in the 2nd order Taylor series energy varies
-        # linearly with the step length and adjusts the step length to achieve 
+        # linearly with the step length and adjusts the step length to achieve
         # the desired fractional error |err_per_step|. FIXME: bad?
         step_len = np.linalg.norm(pos - self._pos0)
         if self._rho < 0:
@@ -138,7 +138,7 @@ class MiniBFGS(ObjLog):
         else:
             scale = err_per_step / (np.abs(1 - self._rho) + 0.001)
             scale = min(scale, self._max_step_scale)
-        
+
         self.slog("Bead %d: Energy change: Actual / Predicted %f" % (self.id, self._rho), when='always')
         self.slog("Bead %d: Step scale:                       %f" % (self.id, scale), when='always')
 
@@ -197,7 +197,7 @@ class MiniBFGS(ObjLog):
             self.slog('DB: Hessian min/max abs vals: %.2f %.2f' % (abs(self.H).min(), abs(self.H).max()), when='always')
 
         self._its += 1
-       
+
     def step(self, energy, grad, pos, t=None, remove_neg_modes=True):
         """Returns a step direction by updating the Hessian (BFGS) calculating a Quas-Newton step."""
 
@@ -213,7 +213,7 @@ class MiniBFGS(ObjLog):
                 step = -np.dot(Hinv, grad)
         else:
             # If tangent is available, minimise energy by stepping only along
-            # the force. I.e. this is kind of a line search on a quadratic 
+            # the force. I.e. this is kind of a line search on a quadratic
             # model of the surface.
             grad_co = mt.metric.raises(grad, pos)
             dir = -(grad_co - np.dot(grad, t)*t)
@@ -353,10 +353,10 @@ class MultiOpt( ObjLog):
 
     def step(self, dummy):
         """Take a single step
-        
+
         Use the given forces, update the history and calculate the next step --
         then take it"""
-        
+
         step_str = ""
         bs = self.bs
 
@@ -382,8 +382,8 @@ class MultiOpt( ObjLog):
         dr = self.scale_step(dr, step_scales)
 
         self.slog("DB: Lengths of steps of each bead:", ['%.5f' % np.linalg.norm(dr_bead) for dr_bead in dr], when='always')
- 
-        self.atoms.state_vec = (r + dr) 
+
+        self.atoms.state_vec = (r + dr)
 
         if self.respace:
             self.slog("Respacing Respacing Respacing Respacing Respacing ")
@@ -399,7 +399,7 @@ class MultiOpt( ObjLog):
 
     def scale_step(self, dr, step_scales):
         """Determine step to take according to the given trust radius
-        
+
         Normalize all steps as the largest step. This way
         we still move along the eigendirection.
         """
@@ -409,7 +409,7 @@ class MultiOpt( ObjLog):
             longest = np.abs(dr[i]).max()
             if longest > self.maxstep:
                 dr[i] *= (self.maxstep / longest)
-        
+
         return dr
 
 # ASE optimizer function, inherited before
