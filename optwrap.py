@@ -76,7 +76,7 @@ def runopt_inner(name, CoS, ftol, maxit, callback, extra, maxstep=0.2):
         opt = pts.cosopt.MultiOpt(CoS, maxstep=maxstep, **extra)
         opt.string = CoS.string
         opt.attach(lambda: callback(None), interval=1)
-        opt.run(fmax=ftol)
+        opt.run()
         x_opt = CoS.state_vec
         return None      
     elif name[0:4] == 'ase_':

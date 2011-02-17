@@ -397,30 +397,20 @@ class MultiOpt( ObjLog):
             function = function.write
         self.observers.append((function, interval, args, kwargs))
 
-    def run(self, fmax=0.05, steps=100000000):
+    def run(self, steps=100000000):
         """Run structure optimization algorithm.
 
-        This method will return when the forces on all individual
-        atoms are less than *fmax* or when the number of steps exceeds
+        This method will return  when the number of steps exceeds
         *steps*."""
 
-        self.fmax = fmax
         step = 0
         while step < steps:
             f = self.atoms.get_forces()
             self.log(f)
             self.call_observers()
-            if self.converged(f):
-                return
             self.step(f)
             self.nsteps += 1
             step += 1
-
-    def converged(self, forces=None):
-        """Did the optimization converge?"""
-        if forces is None:
-            forces = self.atoms.get_forces()
-        return (forces**2).sum(axis=1).max() < self.fmax**2
 
     def call_observers(self):
         for function, interval, args, kwargs in self.observers:
