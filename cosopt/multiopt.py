@@ -264,18 +264,12 @@ class MultiOpt( ObjLog):
 
     """
     string = False
-    def __init__(self, atoms, restart=None, logfile='-', trajectory=None,
+    def __init__(self, atoms, logfile='-',
                  maxstep=0.05, alpha = 70., respace=True, backtracking=None): # alpha was 70, memory was 100
         """
         THIS DESCRIPTION IS A BIT OUT OF DATE.
 
         Parameters:
-
-        restart: string
-            Pickle file used to store vectors for updating the inverse of Hessian
-            matrix. If set, file with such a name will be searched and information
-            stored will be used, if the file exists.
-            Filename for restart file.  Default value is *None*.
 
         maxstep: float
             How far is a single atom allowed to move. This is useful for DFT
@@ -290,17 +284,12 @@ class MultiOpt( ObjLog):
         logfile: file object or str
             If *logfile* is a string, a file with that name will be opened.
             Use '-' for stdout.
-        trajectory: Trajectory object or str
-            Attach trajectory object.  If *trajectory* is a string a
-            PickleTrajectory will be constructed.  Use *None* for no
-            trajectory.
         [[atoms: Atoms object
             The Atoms object to relax.]]
         """
         #Optimizer.__init__(self, atoms, restart, logfile, trajectory)
         #FIXME: special MPI-enabled Python interpreters needed? ASE uses them?
         from ase.parallel import rank, barrier
-        from ase.io.trajectory import PickleTrajectory
 
         ### Opt Code
         self.atoms = atoms
@@ -316,20 +305,6 @@ class MultiOpt( ObjLog):
 
         self.observers = []
         self.nsteps = 0
-
-        if trajectory is not None:
-            if isinstance(trajectory, str):
-                trajectory = PickleTrajectory(trajectory, 'w', atoms)
-            self.attach(trajectory)
-
-        self.restart = restart
-
-        if restart is None or not isfile(restart):
-            # self.initialize()
-            pass
-        else:
-            self.read()
-            barrier()
         ###
 
         ObjLog.__init__(self, 'MultiOpt')
@@ -461,13 +436,6 @@ class MultiOpt( ObjLog):
             self.logfile.write('%s: %3d  %02d:%02d:%02d %15.6f %12.4f\n' %
                                (name, self.nsteps, T[3], T[4], T[5], e, fmax))
             self.logfile.flush()
-
-    def dump(self, data):
-        if rank == 0 and self.restart is not None:
-            pickle.dump(data, open(self.restart, 'wb'), protocol=2)
-
-    def load(self):
-        return pickle.load(open(self.restart))
 
     def get_number_of_steps(self):
         return self.nsteps
