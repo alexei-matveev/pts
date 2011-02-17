@@ -67,7 +67,9 @@ class QFunc(Func):
         # we are going to repeatedly set_positions() for this instance,
         # So we make a copy to avoid effects visible outside:
         self.atoms = atoms.copy()
-        self.calc = calc
+
+        # FIXME: should we assume atoms were already associated
+        #        with a calculator instead of using LJ as default?
         self.atoms.set_calculator(calc)
 
         # list of moving atoms whose coordinates are considered as variables:
