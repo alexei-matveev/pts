@@ -7,6 +7,8 @@ from ase.optimize.optimize import Optimizer
 from pts.func import Func
 from pts.common import ObjLog
 import pts.metric as mt
+from numpy import sqrt
+from time import localtime
 
 def disp_step(dr, f):
     dr_f = np.dot(dr.flatten(), f.flatten())
@@ -258,7 +260,7 @@ def calc_step(dir, H, grad, energy):
 
     return dist
 
-class MultiOpt(Optimizer, ObjLog):
+class MultiOpt( ObjLog):
     """ Description
 
     """
@@ -274,6 +276,7 @@ class MultiOpt(Optimizer, ObjLog):
             Pickle file used to store vectors for updating the inverse of Hessian
             matrix. If set, file with such a name will be searched and information
             stored will be used, if the file exists.
+            Filename for restart file.  Default value is *None*.
 
         maxstep: float
             How far is a single atom allowed to move. This is useful for DFT
@@ -285,9 +288,51 @@ class MultiOpt(Optimizer, ObjLog):
             conservative value of 70.0 is the default, but number of needed
             steps to converge might be less if a lower value is used. However,
             a lower value also means risk of instability.
-            
+        logfile: file object or str
+            If *logfile* is a string, a file with that name will be opened.
+            Use '-' for stdout.
+        trajectory: Trajectory object or str
+            Attach trajectory object.  If *trajectory* is a string a
+            PickleTrajectory will be constructed.  Use *None* for no
+            trajectory.
+        [[atoms: Atoms object
+            The Atoms object to relax.]]
         """
-        Optimizer.__init__(self, atoms, restart, logfile, trajectory)
+        #Optimizer.__init__(self, atoms, restart, logfile, trajectory)
+        #FIXME: special MPI-enabled Python interpreters needed? ASE uses them?
+        from ase.parallel import rank, barrier
+        from ase.io.trajectory import PickleTrajectory
+
+        ### Opt Code
+        self.atoms = atoms
+
+        if rank != 0:
+            logfile = None
+        elif isinstance(logfile, str):
+            if logfile == '-':
+                logfile = sys.stdout
+            else:
+                logfile = open(logfile, 'a')
+        self.logfile = logfile
+
+        self.observers = []
+        self.nsteps = 0
+
+        if trajectory is not None:
+            if isinstance(trajectory, str):
+                trajectory = PickleTrajectory(trajectory, 'w', atoms)
+            self.attach(trajectory)
+
+        self.restart = restart
+
+        if restart is None or not isfile(restart):
+            # self.initialize()
+            pass
+        else:
+            self.read()
+            barrier()
+        ###
+
         ObjLog.__init__(self, 'MultiOpt')
 
         self.slog("Optimiser (MultiOpt): parameters: alpha =", alpha, when='always')
@@ -367,10 +412,71 @@ class MultiOpt(Optimizer, ObjLog):
         
         return dr
 
-# python path_representation.py [-v]:                              
-if __name__ == "__main__":                                         
-    import doctest                                                 
-    doctest.testmod()                                              
-                                                                   
+# ASE optimizer function, inherited before
+    def attach(self, function, interval=1, *args, **kwargs):
+        """Attach callback function.
+
+        At every *interval* steps, call *function* with arguments
+        *args* and keyword arguments *kwargs*."""
+
+        if not hasattr(function, '__call__'):
+            function = function.write
+        self.observers.append((function, interval, args, kwargs))
+
+    def run(self, fmax=0.05, steps=100000000):
+        """Run structure optimization algorithm.
+
+        This method will return when the forces on all individual
+        atoms are less than *fmax* or when the number of steps exceeds
+        *steps*."""
+
+        self.fmax = fmax
+        step = 0
+        while step < steps:
+            f = self.atoms.get_forces()
+            self.log(f)
+            self.call_observers()
+            if self.converged(f):
+                return
+            self.step(f)
+            self.nsteps += 1
+            step += 1
+
+    def converged(self, forces=None):
+        """Did the optimization converge?"""
+        if forces is None:
+            forces = self.atoms.get_forces()
+        return (forces**2).sum(axis=1).max() < self.fmax**2
+
+    def call_observers(self):
+        for function, interval, args, kwargs in self.observers:
+            if self.nsteps % interval == 0:
+                function(*args, **kwargs)
+
+    def log(self, forces):
+        fmax = sqrt((forces**2).sum(axis=1).max())
+        e = self.atoms.get_potential_energy()
+        T = localtime()
+        if self.logfile is not None:
+            name = self.__class__.__name__
+            self.logfile.write('%s: %3d  %02d:%02d:%02d %15.6f %12.4f\n' %
+                               (name, self.nsteps, T[3], T[4], T[5], e, fmax))
+            self.logfile.flush()
+
+    def dump(self, data):
+        if rank == 0 and self.restart is not None:
+            pickle.dump(data, open(self.restart, 'wb'), protocol=2)
+
+    def load(self):
+        return pickle.load(open(self.restart))
+
+    def get_number_of_steps(self):
+        return self.nsteps
+
+# python path_representation.py [-v]:
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
 
