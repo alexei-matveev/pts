@@ -224,7 +224,7 @@ class MiniBFGS(ObjLog):
                 step = np.zeros(self._dims)
             else:
                 dir = dir / norm
-                step = dir * calc_step(dir, self.H, grad, energy)
+                step = dir * calc_step(dir, self.H, grad)
                 self.slog("Recomended non-scaled step dist:", step, when='always')
 
         self._pos0 = pos
@@ -232,15 +232,15 @@ class MiniBFGS(ObjLog):
         self._E0 = energy
         return step
 
-def calc_step(dir, H, grad, energy):
+def calc_step(dir, H, grad):
     """
-    >>> np.round(100*calc_step((-1.), (2.), (2.), 1.))
+    >>> np.round(100*calc_step((-1.), (2.), (2.)))
     100.0
 
-    >>> np.round(100*calc_step((-1,1), ((2,0),(0,2)), (2.,2), 1.))
+    >>> np.round(100*calc_step((-1,1), ((2,0),(0,2)), (2.,2)))
     0.0
 
-    >>> np.round(100*calc_step((-1,-1), ((2,0),(0,2)), (2.,2), 1.))
+    >>> np.round(100*calc_step((-1,-1), ((2,0),(0,2)), (2.,2)))
     141.0
 
 
