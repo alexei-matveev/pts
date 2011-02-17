@@ -265,7 +265,7 @@ class MultiOpt( ObjLog):
     """
     string = False
     def __init__(self, atoms, logfile='-',
-                 maxstep=0.05, alpha = 70., respace=True, backtracking=None): # alpha was 70, memory was 100
+                 maxstep=0.05, alpha = 70., respace=True): # alpha was 70, memory was 100
         """
         THIS DESCRIPTION IS A BIT OUT OF DATE.
 
@@ -320,9 +320,6 @@ class MultiOpt( ObjLog):
         # list of per-bead optimisers
         self.bead_opts = [MiniBFGS(d, H0=np.eye(d)*alpha, id=i) for i in range(self.bs)]
         self.slog("Optimiser (MultiOpt): initial step scale factors", [m._step_scale for m in self.bead_opts], when='always')
-
-        if backtracking is not None:
-            print "WARNING: backtracking does not exist for multiopt optimiser. Keyword ignored."
 
 
     def step(self, dummy):
