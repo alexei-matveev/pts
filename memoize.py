@@ -80,10 +80,152 @@ Delete the object and recreate from file:
 
 from __future__ import with_statement
 from numpy import asarray
+from copy import copy
 from func import Func
 import os  # only os.path.exisist
 import sys # only stderr
 from pickle import dump, load
+
+def memoize(f, cache=None):
+    """Returns a memoized function f.
+
+    Example:
+
+        >>> def f(x):
+        ...     print "f(", x, ")"
+        ...     return [x**2]
+
+        >>> f = memoize(f)
+
+    First evaluation:
+
+        >>> f(3)
+        f( 3 )
+        [9]
+
+    Second evaluation:
+
+        >>> f(3)
+        [9]
+
+    Destructive update:
+
+        >>> y = f(3)
+        >>> y[0] = -1
+
+    See if the dictionary is intact:
+
+        >>> f(3)
+        [9]
+    """
+
+    # for each call to memoize, create a new cache
+    # (unless provided by caller):
+    if cache is None:
+        # Python dict() cannot be indexed by mutable keys,
+        # use custom dictionary, see below:
+        cache = Store()
+
+    def _f(x):
+        if x not in cache:
+            cache[x] = f(x)
+        return copy(cache[x])
+
+    return _f
+
+def elemental_memoize(f, cache=None):
+    """Returns a memoized elemental function f.
+
+    Example:
+
+        >>> def f(x):
+        ...     print "f(", x, ")"
+        ...     return x**2
+
+    Make if elemental:
+
+        >>> from func import elemental
+
+        >>> f = elemental(f)
+        >>> f([2, 3, 4])
+        f( 2 )
+        f( 3 )
+        f( 4 )
+        [4, 9, 16]
+
+    Memoize an elemental function:
+
+        >>> f = elemental_memoize(f)
+
+    First evaluation:
+
+        >>> f([2, 3, 4])
+        f( 2 )
+        f( 3 )
+        f( 4 )
+        [4, 9, 16]
+
+    Second evaluation:
+
+        >>> f([2, 3, 4])
+        [4, 9, 16]
+
+    Third evaluation, with one of the input entries changed:
+
+        >>> f([2, 5, 4])
+        f( 5 )
+        [4, 25, 16]
+
+    The last example illustrates the difference between
+
+        memoize(elemental(f))
+
+    (not quite what you wanted) and
+
+        elemental(memoize(f))
+
+    which is what you really wanted. However the behaviour
+    of the latter may differ from
+
+        elemental_memoize(f)
+
+    in case elemental(g) is implemented in a "distributed" fashion
+    and actuall calls to g = memoize(f) that cache the results
+    happen on a remote host or in a separate interpreter without
+    cache updates propagating back.
+    """
+
+    # for each call to memoize, create a new cache
+    # (unless provided by caller):
+    if cache is None:
+        # Python dict() cannot be indexed by mutable keys,
+        # use custom dictionary, see below:
+        cache = Store()
+
+    def _f(xs):
+
+        # collect those to be computed:
+        xs1 = []
+        for x in xs:
+            if x not in cache:
+                xs1.append(x)
+
+        # compute missing results:
+        ys1 = f(xs1)
+
+        # store new results:
+        for x, y in zip(xs1, ys1):
+            cache[x] = y
+
+        # return copies from the dictionary:
+        ys = []
+        for x in xs:
+            ys.append(copy(cache[x]))
+
+        # FIXME: should we return an array?
+        return ys
+
+    return _f
 
 def tup(a):
     """Convert iterables to hashable tuples.
