@@ -54,7 +54,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
 
     # there is a lot of parameters affecting the calculation,
     # collect them in a dictionary, adding to those provided:
-    kwargs = mkparams(kwargs)
+    kwargs = mkparams(**kwargs)
 
     # this will operate with PES in internals in the near future:
     geometries, energies, gradients = find_path(atoms, init_path, funcart, **kwargs)
@@ -205,7 +205,7 @@ def output(beads, energies, gradients, cartesian):
         print "Positions", v
         print "Cartesians", cartesian(v)
 
-def mkparams(parameter):
+def mkparams(paramfile = None, **parameter):
     """Returns a dictionary with parameters of the search procedure
     """
 
@@ -216,8 +216,8 @@ def mkparams(parameter):
 
 #   print "mkparams: defaults=\n", params_dict
 
-    if "paramfile" in parameter:
-        params_dict = reset_params_f(params_dict, parameter["paramfile"])
+    if paramfile is not None:
+        params_dict = reset_params_f(params_dict, paramfile)
 
 #   print "mkparams: from text=\n", params_dict
 
