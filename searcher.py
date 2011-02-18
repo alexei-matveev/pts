@@ -1431,7 +1431,7 @@ def get_bead_positions_grad(Es, gradients, tangents, ps):
 
     i_max = Es.argmax()
 
-    if i_max == 0 or i_max == len(Es)-1:
+    if i_max == 0:
         print "WARNING: bead with highest energy is first bead"
         new_p = (ps[i_max] + ps[i_max+1]) / 2.0
         new_i = i_max+1
