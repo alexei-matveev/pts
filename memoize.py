@@ -97,9 +97,11 @@ def tup(a):
         >>> tup([[1., 2.], [3., 4.]])
         ((1.0, 2.0), (3.0, 4.0))
 
-        >>> a = asarray([[1., 2.], [3., 4.]])
+        >>> from numpy import array, all
+
+        >>> a = array([[1., 2.], [3., 4.]])
         >>> b = tup(a)
-        >>> (a == asarray(b)).all()
+        >>> all(a == array(b))
         True
     """
     try:
