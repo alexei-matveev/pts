@@ -128,8 +128,12 @@ class Store(object):
         >>> d[[1., 2.]]
         30.0
     """
-    def __init__(self, d={}):
-        # empty dictionary:
+    def __init__(self, d=None):
+
+        # initalize a new dictionary every time
+        # (unless provided by caller):
+        if d is None:
+            d = {}
         self._d = d
 
     def __getitem__(self, key):
