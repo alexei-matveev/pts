@@ -16,7 +16,7 @@ import pickle
 from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot, eye, outer, inf, isnan, isfinite, size, vstack, atleast_1d
 
 from path import Path
-from func import CubicFunc, QuadFunc, RhoInterval
+from func import LinFunc, QuadFunc, SplineFunc, RhoInterval
 
 from common import * # TODO: must unify
 import pts.common as common
@@ -996,45 +996,6 @@ class NEB(ReactionPathway):
         spring_energies = 0.5 * numpy.sum (spring_energies)
         lg.info("Spring energies %s" % spring_energies)
         return self.bead_pes_energies.sum()# + spring_energies
-
-class Func():
-    def f():
-        pass
-    def fprime():
-        pass
-
-class LinFunc():
-    def __init__(self, xs, ys):
-        self.fs = scipy.interpolate.interp1d(xs, ys)
-        self.grad = (ys[1] - ys[0]) / (xs[1] - xs[0])
-
-    def f(self, x):
-        return self.fs(x) #[0]
-
-    def fprime(self, x):
-        return self.grad
-
-"""
-class QuadFunc(Func):
-    def __init__(self, coefficients):
-        self.coefficients = coefficients
-
-    def f(self, x):
-        return dot(array((x**2, x, 1)), self.coefficients)
-
-    def fprime(self, x):
-        return 2 * self.coefficients[0] * x + self.coefficients[1]
-"""
-
-class SplineFunc(Func):
-    def __init__(self, xs, ys):
-        self.spline_data = interpolate.splrep(xs, ys, s=0, k=3)
-
-    def f(self, x):
-        return interpolate.splev(x, self.spline_data, der=0)
-
-    def fprime(self, x):
-        return interpolate.splev(x, self.spline_data, der=1)
 
 class PathRepresentation(object):
     """Supports operations on a path represented by a line, parabola, or a 
