@@ -81,6 +81,7 @@ def test(A, B):
 
     x = [A, B]
     n = 3
+    n_max = 30
     while True:
         p = Path(x)
         s = linspace(0., 1., n)
@@ -102,9 +103,14 @@ def test(A, B):
         print "x=", x
         show_chain(x)
 
-        if n < 30:
+        if n < n_max:
             # double the number of beads:
             n = 2 * n + 1
+        else:
+            print "========================================================="
+            print "Conveged for the maximal tested number of beads: ", n_max
+            print "========================================================="
+            break
 
 from numpy import savetxt, loadtxt
 
