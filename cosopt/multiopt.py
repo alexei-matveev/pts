@@ -401,9 +401,6 @@ class MultiOpt(ObjLog):
             if self.nsteps % interval == 0:
                 function(*args, **kwargs)
 
-    def get_number_of_steps(self):
-        return self.nsteps
-
 # python path_representation.py [-v]:
 if __name__ == "__main__":
     import doctest
