@@ -301,7 +301,6 @@ class MultiOpt(ObjLog):
         self.bs = atoms.beads_count
         d = atoms.dimension
         self.respace = respace
-        self.its = 0
         self.maxstep = maxstep
 
         # list of per-bead optimisers
@@ -352,8 +351,6 @@ class MultiOpt(ObjLog):
         dr_total = self.atoms.state_vec - r
 
         #dr_total.shape = (bs, -1)
-
-        self.its += 1
 
     def scale_step(self, dr, step_scales):
         """Determine step to take according to the given trust radius
