@@ -264,8 +264,7 @@ class MultiOpt(ObjLog):
 
     """
     string = False
-    def __init__(self, atoms, logfile='-',
-                 maxstep=0.05, alpha = 70., respace=True): # alpha was 70, memory was 100
+    def __init__(self, atoms, maxstep=0.05, alpha = 70., respace=True, **kwargs): # alpha was 70, memory was 100
         """
         THIS DESCRIPTION IS A BIT OUT OF DATE.
 
@@ -290,19 +289,12 @@ class MultiOpt(ObjLog):
 
         ### Opt Code
         self.atoms = atoms
-
-        if isinstance(logfile, str):
-          if logfile == '-':
-              logfile = sys.stdout
-          else:
-              logfile = open(logfile, 'a')
-        self.logfile = logfile
-
         self.observers = []
         self.nsteps = 0
         ###
 
-        ObjLog.__init__(self, 'MultiOpt')
+        # this will also interprete kwargs['logfile'], if defined:
+        ObjLog.__init__(self, 'MultiOpt', **kwargs)
 
         self.slog("Optimiser (MultiOpt): parameters: alpha =", alpha, when='always')
 

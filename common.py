@@ -432,12 +432,19 @@ def cumm_sum(list, start_at_zero=False):
 
 class ObjLog:
     """Inheritable object supporting logging functionality."""
-    def __init__(self, name, default='later'):
+    def __init__(self, name, default='later', logfile='-', **kwargs):
         self._name = name
         self._modes = ('always', 'later', 'now', 'never')
         assert default in self._modes, "Legal values are: %s" % self._modes
         self._default = default
         self._logs = ''
+
+        if isinstance(logfile, str):
+          if logfile == '-':
+              logfile = sys.stdout
+          else:
+              logfile = open(logfile, 'a')
+        self.logfile = logfile
 
     def slog(self, *args, **kwargs):
         when = kwargs.get('when', self._default)
@@ -445,9 +452,9 @@ class ObjLog:
         s = ' '.join([str(i) for i in args])
         if when == 'always':
             self._logs += s + '\n'
-            print s
+            self.logfile.write(s + '\n')
         elif when == 'now':
-            print s
+            self.logfile.write(s + '\n')
         elif when == 'later':
             self._logs += ' '.join([str(i) for i in args]) + '\n'
         elif when == 'never':
