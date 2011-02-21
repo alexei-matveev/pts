@@ -57,12 +57,12 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     kwargs = mkparams(**kwargs)
 
     # this will operate with PES in internals in the near future:
-    geometries, energies, gradients = find_path(atoms, init_path, funcart, **kwargs)
+    convergence, geometries, energies, gradients = find_path(atoms, init_path, funcart, **kwargs)
 
     # print user-friendly output, including cartesian geometries:
     output(geometries, energies, gradients, funcart)
 
-    return geometries, energies, gradients
+    return convergence, geometries, energies, gradients
 
 def find_path(atoms, init_path, funcart, **kwargs):
     """This one does the real work ...
@@ -178,7 +178,8 @@ def find_path(atoms, init_path, funcart, **kwargs):
         pickle_path(mi, CoS, "%s.path.pickle" % name)
 
     # Return (hopefully) converged discreete path representation:
-    return CoS.get_state_vec(), CoS.bead_pes_energies, CoS.bead_pes_gradients
+    #  return:  if converged,  internal coordinates, energies, gradients of last iteration
+    return result, CoS.get_state_vec(), CoS.bead_pes_energies, CoS.bead_pes_gradients
 
 def output(beads, energies, gradients, cartesian):
     """Print user-friendly output.

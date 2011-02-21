@@ -32,6 +32,7 @@ def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict
         return y
 
     while True:
+        is_converged = False
         try:
             # tol and maxit are scaled so that they are never reached.
             # Convergence is tested via the callback function.
@@ -48,6 +49,9 @@ def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict
 
         except Converged:
             s = "Optimisation Converged"
+            # if only sustring is converged this variable is reset after enlarged string
+            # is restarted
+            is_converged = True
             record_event(CoS, s)
 
         if CoS.grow_string():
@@ -59,6 +63,8 @@ def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict
             continue
         else:
             break
+
+    return is_converged
 
 def runopt_inner(name, CoS, ftol, maxit, callback, extra, maxstep=0.2):
 
