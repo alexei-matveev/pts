@@ -259,7 +259,7 @@ def calc_step(dir, H, grad):
 
     return dist
 
-class MultiOpt( ObjLog):
+class MultiOpt(ObjLog):
     """ Description
 
     """
@@ -287,20 +287,15 @@ class MultiOpt( ObjLog):
         [[atoms: Atoms object
             The Atoms object to relax.]]
         """
-        #Optimizer.__init__(self, atoms, restart, logfile, trajectory)
-        #FIXME: special MPI-enabled Python interpreters needed? ASE uses them?
-        from ase.parallel import rank, barrier
 
         ### Opt Code
         self.atoms = atoms
 
-        if rank != 0:
-            logfile = None
-        elif isinstance(logfile, str):
-            if logfile == '-':
-                logfile = sys.stdout
-            else:
-                logfile = open(logfile, 'a')
+        if isinstance(logfile, str):
+          if logfile == '-':
+              logfile = sys.stdout
+          else:
+              logfile = open(logfile, 'a')
         self.logfile = logfile
 
         self.observers = []
@@ -403,7 +398,7 @@ class MultiOpt( ObjLog):
         step = 0
         while step < steps:
             f = self.atoms.get_forces()
-            self.log(f)
+            self.slog(f) # ObjLog method
             self.call_observers()
             self.step(f)
             self.nsteps += 1
@@ -413,16 +408,6 @@ class MultiOpt( ObjLog):
         for function, interval, args, kwargs in self.observers:
             if self.nsteps % interval == 0:
                 function(*args, **kwargs)
-
-    def log(self, forces):
-        fmax = sqrt((forces**2).sum(axis=1).max())
-        e = self.atoms.get_potential_energy()
-        T = localtime()
-        if self.logfile is not None:
-            name = self.__class__.__name__
-            self.logfile.write('%s: %3d  %02d:%02d:%02d %15.6f %12.4f\n' %
-                               (name, self.nsteps, T[3], T[4], T[5], e, fmax))
-            self.logfile.flush()
 
     def get_number_of_steps(self):
         return self.nsteps
