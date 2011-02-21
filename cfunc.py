@@ -37,7 +37,7 @@ which is a Func.
     Consider that NumDiff has size (n,3,m), while we get normally something of
     size (n*3, m) back.
     >>> f_nd = NumDiff(f_wg)
-    >>> max(abs(f_wg.fprime(y_wg).flatten() - f_nd.fprime(y_wg).flatten())) < 1e-12
+    >>> max(abs(f_wg.fprime(y_wg) - f_nd.fprime(y_wg))) < 1e-12
     True
 
     Test adding several functions:
@@ -46,7 +46,7 @@ which is a Func.
     Gives the same result than a complete function for all three of them:
     >>> max(abs(f_set(x) - fun2(x))) < 1e-12
     True
-    >>> max(abs(f_set.fprime(x).flatten() - fun2.fprime(x).flatten())) < 1e-12
+    >>> max(abs(f_set.fprime(x) - fun2.fprime(x))) < 1e-12
     True
 
     Test fixture of coordinates:
@@ -63,7 +63,7 @@ which is a Func.
 
     Ensure that the derivatives are correct:
     >>> f_nd = NumDiff(f_m)
-    >>> max(abs(f_m.fprime(y_red).flatten() - f_nd.fprime(y_red).flatten())) < 1e-12
+    >>> max(abs(f_m.fprime(y_red) - f_nd.fprime(y_red))) < 1e-12
     True
 
     Now have some values repeated:
@@ -80,7 +80,7 @@ which is a Func.
 
     Ensure that the derivatives are correct:
     >>> f_nd = NumDiff(f_we)
-    >>> max(abs(f_we.fprime(y_r2).flatten() - f_nd.fprime(y_r2).flatten())) < 1e-12
+    >>> max(abs(f_we.fprime(y_r2) - f_nd.fprime(y_r2))) < 1e-12
     True
 
     Both bond-lengt are the same and the angle is fixed:
@@ -96,7 +96,7 @@ which is a Func.
 
     Ensure that the derivatives are correct:
     >>> f_nd = NumDiff(f_we)
-    >>> max(abs(f_we.fprime(y_r2).flatten() - f_nd.fprime(y_r2).flatten())) < 1e-12
+    >>> max(abs(f_we.fprime(y_r2) - f_nd.fprime(y_r2))) < 1e-12
     True
 """
 from copy import deepcopy
@@ -175,7 +175,7 @@ class with_globals(Func):
         # back as x, y,z compontent for each "atom"
         # change the derivatives accordingly
         x.shape = (-1, 3) # (number of atoms, 3)
-        dx.shape = (-1, len(y)) # ( number of atoms * 3, number internal coordinates)
+        dx.shape = (-1, 3, len(y)) # ( number of atoms, 3, number internal coordinates)
         # (-1 means that in this direction the size should be made
         # fitting to the other specifications (so that the complete
         # array could be transformed))
@@ -228,6 +228,7 @@ class set(Func):
              mat[i:i + a, j : j + b] = m1
              i += a
              j += dim
+        mat.shape = (-1, 3, iter) # number atoms, 3, number internal coordinates
 
         return res, mat
 
@@ -269,8 +270,11 @@ class masked(Func):
         mat = [dres[i] for i in range(len(self._mask)) if self._mask[i]]
         mat = asarray(mat)
 
-        # transposte mat back
-        return res, mat.T
+        # transpose mat back
+        mat = mat.T
+        mat.shape = (-1, 3, len(x)) # number atoms, 3, number internal coordinates
+
+        return res, mat
 
 class with_equals(Func):
     """
@@ -317,8 +321,12 @@ class with_equals(Func):
              elif mp > 0:
                  mat[mp-1] += d1
 
-        # do not forget to transpose matrix back
-        return res, mat.T
+        # transpose mat back
+        mat = mat.T
+        mat.shape = (-1, 3, len(x)) # number atoms, 3, number internal coordinates
+
+        return res, mat
+
 # python cfunc.py [-v]:
 if __name__ == "__main__":
      import doctest
