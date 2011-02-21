@@ -6,7 +6,7 @@ from ase.calculators.lj import LennardJones
 from pts.zmat import ZMat
 from pts.test.testfuns import diagsandhight
 from numpy import sqrt, pi, asarray
-from pts.cfunc import justcarts, with_globals, masked
+from pts.cfunc import Justcarts, With_globals, Masked
 from pts.constr_symar4 import t_c2v, t_c2v_prime
 import pts.metric as mt
 from pts.metric import Metric, Metric_reduced
@@ -99,7 +99,7 @@ elif testfun == "zmate":
     position at start.
     """
     func1 = ZMat([(), (0,), (0, 1), (1, 2, 0)])
-    func = with_globals(func1)
+    func = With_globals(func1)
 
     min1 = [var1, var1, var3, var1, var3, var4, 0. ,0. ,0. ,0. ,0. ,0. ]
     min2 = [var1, var1, var3, var1, var3, 2* pi -var4, 0. ,0. ,0. ,0. ,0. ,0. ]
@@ -126,7 +126,7 @@ elif testfun == "carts":
     See case "diaghigh". The optimization and else is done in Cartesian
     coordinates.
     """
-    func = justcarts()
+    func = Justcarts()
 
     # generate starting geometries with the help of function diagsandhight
     func_h = diagsandhight()
@@ -140,7 +140,7 @@ elif testfun == "cartsred":
     coordinates are fixed (y,z) direction for first two atoms and (x) for the
     last two.
     """
-    func2 = justcarts()
+    func2 = Justcarts()
 
     # starting geometries with fixed symmetries
     func_h = diagsandhight()
@@ -150,7 +150,7 @@ elif testfun == "cartsred":
 
     # see diagsandhight function to see that this fixing is correct
     mask = [True] + [False]*2 + [True] + [False] * 3 + [True] * 2 + [False] + [True] * 2
-    func = masked(func2, mask, min1)
+    func = Masked(func2, mask, min1)
     # the geometries have also to be reduced
     min1 = reduce(min1, mask)
     min2 = reduce(min2, mask)
@@ -161,7 +161,7 @@ elif testfun == "ztoc":
     The starting geometries are provided by the Zmatrix function, see case "zmat".
     The optimization and else is done in Cartesian coordinates.
     """
-    func = justcarts()
+    func = Justcarts()
 
     func_h = ZMat([(), (0,), (0, 1), (1, 2, 0)])
     min1 = func_h([var1, var1, var3, var1, var3, var4]).flatten()
@@ -174,7 +174,7 @@ elif testfun == "ztoc_red":
     coordinates are fixed: position of first atom, y, z coordinate of second
     and y coordinate of third one == global rotation and translation is fixed.
     """
-    func2 = justcarts()
+    func2 = Justcarts()
 
     # starting geometries with fixed symmetries
     func_h = ZMat([(), (0,), (0, 1), (1, 2, 0)])
@@ -183,7 +183,7 @@ elif testfun == "ztoc_red":
     middle = func_h([var1, var1, var3, var1, var3, var8]).flatten()
     # Mask fixes the "global parameter"
     mask = [False]*3 + [True] + [False] * 2 + [True] + [False] + [True] * 4
-    func = masked(func2, mask, min1)
+    func = Masked(func2, mask, min1)
     # also reduce the starting values
     min1 = reduce(min1, mask)
     min2 = reduce(min2, mask)

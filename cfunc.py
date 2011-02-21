@@ -14,7 +14,7 @@ which is a Func.
     >>> fun1 = ZMat(rep)
 
     A second example:
-    >>> fun2 = justcarts()
+    >>> fun2 = Justcarts()
 
     Vector for H2O
     >>> y = asarray([0.96, 0.96, 104.5 * pi / 180.0])
@@ -24,7 +24,7 @@ which is a Func.
 
     Test addition of global paramter:
 
-    >>> f_wg = with_globals(fun1)
+    >>> f_wg = With_globals(fun1)
 
     >>> y_wg = zeros(9)
     >>> y_wg[:3] = y
@@ -41,7 +41,7 @@ which is a Func.
     True
 
     Test adding several functions:
-    >>> f_set = set([fun2, fun2, fun2], [3,3,3])
+    >>> f_set = Mergefuncs([fun2, fun2, fun2], [3,3,3])
 
     Gives the same result than a complete function for all three of them:
     >>> max(abs(f_set(x) - fun2(x))) < 1e-12
@@ -52,7 +52,7 @@ which is a Func.
     Test fixture of coordinates:
     Fix the Angle:
     >>> mask = [True, True, False]
-    >>> f_m = masked(fun1, mask, y)
+    >>> f_m = Masked(fun1, mask, y)
 
     Now only two variables are needed as internal coordinates:
     >>> y_red = asarray([0.96, 0.96])
@@ -69,7 +69,7 @@ which is a Func.
     Now have some values repeated:
     Both bond-length are the same:
     >>> mask = [1, 1, 2]
-    >>> f_we = with_equals(fun1, mask)
+    >>> f_we = With_equals(fun1, mask)
 
     >>> y_r2 =  asarray([0.96, 104.5 * pi / 180.0])
 
@@ -85,7 +85,7 @@ which is a Func.
 
     Both bond-lengt are the same and the angle is fixed:
     >>> mask = [1, 1, 0]
-    >>> f_we = with_equals(fun1, mask, y)
+    >>> f_we = With_equals(fun1, mask, y)
 
     >>> y_r2 =  asarray([0.96])
 
@@ -105,7 +105,7 @@ from numpy import eye, zeros, hstack, asarray
 from pts.func import Func
 from pts.zmat import RT
 
-class pass_through(Func):
+class Pass_through(Func):
      """
      No real function, only needed stored here for pickling reasons.
 
@@ -118,7 +118,7 @@ class pass_through(Func):
 
 
 
-class justcarts(Func):
+class Justcarts(Func):
     """
     Takes Cartesian coordinates and returns Cartesian coordinates.
     It considers only that the internal coordinates are an array, while
@@ -135,7 +135,7 @@ class justcarts(Func):
         return res, dres
 
 
-class with_globals(Func):
+class With_globals(Func):
     """
     Adds to function fun_raw some global parameter for:
       rotation (as vector description of quaternion)
@@ -183,7 +183,7 @@ class with_globals(Func):
         return x, dx
 
 
-class set(Func):
+class Mergefuncs(Func):
     """
     Makes of a set of functions (in list funs_raw) a combined
     functions.
@@ -232,7 +232,7 @@ class set(Func):
 
         return res, mat
 
-class masked(Func):
+class Masked(Func):
     """
     The initial function fun_raw has also some variables, which have
     to be fixed. They are put as False in the mask. One has to give
@@ -276,7 +276,7 @@ class masked(Func):
 
         return res, mat
 
-class with_equals(Func):
+class With_equals(Func):
     """
     Is a wrapper function around fun_raw which considers that there are
     several variables with the same value (as given by mask), which have to

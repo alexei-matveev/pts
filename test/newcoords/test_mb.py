@@ -5,7 +5,7 @@ from pts.zmat import ZMat
 from numpy import array, eye
 from sys import argv
 from pts.mueller_brown import mb_atoms
-from pts.cfunc import pass_through
+from pts.cfunc import Pass_through
 """
 Small test example with MuellerBrown Potential.
 
@@ -21,7 +21,7 @@ the path can be examined.
 bn = int(argv[1])
 
 # Function and faked atoms object
-func = pass_through()
+func = Pass_through()
 mb = mb_atoms()
 
 # The tree minima

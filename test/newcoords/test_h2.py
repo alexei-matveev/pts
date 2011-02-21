@@ -16,7 +16,7 @@ from ase.calculators.lj import LennardJones
 from pts.zmat import ZMat
 from pts.test.testfuns import diagsandhight
 from numpy import sqrt, asarray
-from pts.cfunc import justcarts, with_globals, set, masked, with_equals
+from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
 
 paths = []
 energies = []
@@ -40,17 +40,17 @@ for choice in nums:
     # Here the different ways of using the different functions are given
     if choice == 0:
         """
-        justcarts is used for only rearranging the input variables.
+        Justcarts is used for only rearranging the input variables.
         From our functions we expect ouput of the three Cartesian coordinates
         for each atom in an array of the kind (N, 3)
 
         For further use in our pathsearcher we need the function itself
         and the two minima
 
-        justcarts expects its input vector to be a one-dimensional array, as
+        Justcarts expects its input vector to be a one-dimensional array, as
         does pathsearcher.
         """
-        func = justcarts()
+        func = Justcarts()
 
         min1 = asarray([0., 0., 0.,0., 0., d])
         min2 = asarray([0., 0., 0.,0., 0., d*100.])
@@ -58,13 +58,13 @@ for choice in nums:
     elif choice == 1:
         """
         It is intended for real internal coordinates: but works with every function:
-        with_globals adds paramter for global rotation and translation.
+        With_globals adds paramter for global rotation and translation.
         Notice that here the start geometries have 6 parameter more each.
         The first three of them describe an quaternion (or the vector v of unit quaternion
         e^iv. The rotation by this is obtained to every atom alone.
         The other three describe the global translation.
         """
-        func = with_globals(justcarts())
+        func = With_globals(Justcarts())
 
         min1 = asarray([0., 0., 0.,0., 0., d, 0., 0., 0., 0.,0., 0.])
         min2 = asarray([0., 0., 0.,0., 0., d*100., 0., 0., 0., 0.,0., 0.])
@@ -73,27 +73,27 @@ for choice in nums:
         """
         There is the possibility of having several functions merged to one, when
         each of them works on only a subset of the given parameter. This is done by
-        function set.
+        function Mergefuncs.
 
-        In this example each of the two atoms gets its own justcarts functions.
+        In this example each of the two atoms gets its own Justcarts functions.
         Note that the functions mustn't overlap.
         """
-        funcs = [justcarts(), justcarts()]
+        funcs = [Justcarts(), Justcarts()]
         dims = [3, 3]
-        func = set(funcs, dims)
+        func = Mergefuncs(funcs, dims)
 
         min1 = asarray([0., 0., 0.,0., 0., d])
         min2 = asarray([0., 0., 0.,0., 0., d*100.])
 
     elif choice == 3:
         """
-        Function masked can be used to fix some parameters.
+        Function Masked can be used to fix some parameters.
         One has to provide a logical mask, with False for fixed
         coordinates and True for the ones which should be optimized.
         The function to generate the Cartesian coordinates (in our
-        example justcarts) will still get all the coordinates than before,
+        example Justcarts) will still get all the coordinates than before,
         but the interface to the outside wold will only contain the unfixed
-        paramters. Function masked will deal with the extended requirements
+        paramters. Function Masked will deal with the extended requirements
         of the function func_raw.
 
         In this example only the z-coordinate of the last atom is
@@ -106,7 +106,7 @@ for choice in nums:
         """
         mask = [False] * 5 + [True]
         all = asarray([0., 0., 0.,0., 0., 0.])
-        func = masked(justcarts(), mask, all)
+        func = Masked(Justcarts(), mask, all)
 
         min1 = asarray([d])
         min2 = asarray([d*100.])
@@ -114,7 +114,7 @@ for choice in nums:
     elif choice == 4:
         """
         If for example for symmetry reasons some coordinates are always the same (or always the
-        negative of each other) this can be told to the function with_equals, which then
+        negative of each other) this can be told to the function With_equals, which then
         can enlarge the array of internal coordinates before handing it over to the inner function
         which does not know that some of its parameter are just the same.
         There is furthe the possibility of keeping some other paramters fixed.
@@ -125,7 +125,7 @@ for choice in nums:
         python array numbering the first element of the array is described by 1. 0 stands for a fixed
         coordinate.
 
-        In this example the inner function is just our example function justcarts expecting 6 coordinates
+        In this example the inner function is just our example function Justcarts expecting 6 coordinates
         (three per atom). The mask says that the first element of the array should be used for the first
         and (its negative) for the third coordinate, while the second element is used for 4 and 5 of extended
         coordinates. The last element is used for the last of the extended coordinates, while the second of the
@@ -135,47 +135,47 @@ for choice in nums:
         """
         mask = [1, 0, -1, 2, 2, 3]
         start = asarray([0., 0., 0., 0., 0., 0.])
-        func = with_equals(justcarts(), mask, start)
+        func = With_equals(Justcarts(), mask, start)
 
         min1 = asarray([0., 1.,d])
         min2 = asarray([0., 1., d*100.])
 
     elif choice == 5:
         """
-        Functions of cfunc can be stacked: here first a set of two justcarts functions, one
+        Functions of cfunc can be stacked: here first a Mergefuncs of two Justcarts functions, one
         for each atom is build, then with equals the positions of atom one and the two zero
         positions of atom two are set equal. The function used for pathsearcher than puts
         an additional mask over the two first variables, keeping them fixed with 0.
 
         The internal geometries thus do only contain a single entry.
         """
-        funcs = [justcarts(), justcarts()]
+        funcs = [Justcarts(), Justcarts()]
         dims = [3, 3]
-        func2 = set(funcs, dims)
+        func2 = Mergefuncs(funcs, dims)
 
         mask1 = [1, 1, 1, 2, 2, 3]
         start = asarray([0., 0., 0., 0., 0., 0.])
-        func1 = with_equals(func2, mask1, start)
+        func1 = With_equals(func2, mask1, start)
 
         mask = [False] * 2 + [True]
         all = asarray([0., 0., 0.])
-        func = masked(func1, mask, all)
+        func = Masked(func1, mask, all)
 
         min1 = asarray([d])
         min2 = asarray([d*100.])
 
     elif choice == 6:
         """
-        Stacked cfunc's 2: first two justcarts functions are defined for each atom,
-        then with_equals is used for fixing the first five coordinates.
+        Stacked cfunc's 2: first two Justcarts functions are defined for each atom,
+        then With_equals is used for fixing the first five coordinates.
         """
-        funcs = [justcarts(), justcarts()]
+        funcs = [Justcarts(), Justcarts()]
         dims = [3, 3]
-        func2 = set(funcs, dims)
+        func2 = Mergefuncs(funcs, dims)
 
         mask1 = [0, 0, 0, 0, 0, 1]
         start = asarray([0., 0., 0., 0., 0., 0.])
-        func = with_equals(func2, mask1, start)
+        func = With_equals(func2, mask1, start)
 
         min1 = asarray([d])
         min2 = asarray([d*100.])
