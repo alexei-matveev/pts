@@ -1036,10 +1036,6 @@ class SplineFunc(Func):
     def fprime(self, x):
         return interpolate.splev(x, self.spline_data, der=1)
 
-def dup2val(dup):
-    (x,y) = dup
-    return x
-
 class PathRepresentation(object):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
