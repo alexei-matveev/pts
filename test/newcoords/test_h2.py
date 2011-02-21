@@ -21,6 +21,7 @@ from pts.cfunc import justcarts, with_globals, set, masked, with_equals
 paths = []
 energies = []
 gradients = []
+converged = []
 
 nums = range(7)
 # choice = 0 should be the easiest case, best for understanding only
@@ -186,17 +187,22 @@ for choice in nums:
     # This is the function call of pathsearcher, here besides the function needed in any case
     # some of the default parameter are overwritten, so the convergence criteria and the maximal iteration number
     # are reset and the new searchingstring method is used to calculate the path
-    pt, en, fn = pathsearcher(h2, init_path, funcart = func, ftol = 0.1, maxit = 4, beads_count = 5, cos_type = "searchingstring")
+    c, pt, en, fn = pathsearcher(h2, init_path, funcart = func, ftol = 0.1, maxit = 4, beads_count = 5, cos_type = "searchingstring")
     paths.append(pt)
     energies.append(en)
     gradients.append(fn)
+    converged.append(c)
 
 print "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 print "RESULTS:"
 print "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
-for i, pt, en, fn in zip(nums, paths, energies, gradients):
-    print "For choice ", i
+for i, c, pt, en, fn in zip(nums, converged, paths, energies, gradients):
+    if c:
+        print "We got convergence for the test case", i
+    else:
+        print "There was no convergence for test case", i
+
     print "path=", pt
     print "energy=", en
     print "forces=", fn
