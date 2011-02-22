@@ -134,7 +134,6 @@ class MiniBFGS(ObjLog):
         # Assumes that the error in the 2nd order Taylor series energy varies
         # linearly with the step length and adjusts the step length to achieve
         # the desired fractional error |err_per_step|. FIXME: bad?
-        step_len = np.linalg.norm(pos - self._pos0)
         if self._rho < 0:
             # curvature is wrong, choose small factor to scale Quasi-Newton step by
             scale = 0.1
