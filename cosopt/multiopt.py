@@ -196,35 +196,28 @@ class MiniBFGS(ObjLog):
 
         self._its += 1
 
-    def step(self, energy, grad, pos, t=None, remove_neg_modes=True):
+    def step(self, energy, grad, pos, t, remove_neg_modes=True):
         """Returns a step direction by updating the Hessian (BFGS) calculating a Quas-Newton step."""
 
         self._update(energy, grad, pos)
 
 
-        if t is None:
-            if remove_neg_modes:
-                evals, evecs = np.linalg.eigh(self.H)
-                step = - np.dot(evecs, np.dot(grad, evecs) / np.fabs(evals))
-            else:
-                Hinv = np.linalg.inv(self.H)
-                step = -np.dot(Hinv, grad)
-        else:
-            # If tangent is available, minimise energy by stepping only along
-            # the force. I.e. this is kind of a line search on a quadratic
-            # model of the surface.
-            grad_co = mt.metric.raises(grad, pos)
-            dir = -(grad_co - np.dot(grad, t)*t)
-            dir = np.asarray(dir)
-            norm = np.linalg.norm(dir)
+        # If tangent is available, minimise energy by stepping only along
+        # the force. I.e. this is kind of a line search on a quadratic
+        # model of the surface.
+        grad_co = mt.metric.raises(grad, pos)
+        t_co = mt.metric.lower(t, pos)
+        dir = -(grad_co - np.dot(grad, t)*t /np.dot(t_co, t))
+        dir = np.asarray(dir)
+        norm = np.linalg.norm(dir)
 
-            # guards against divide by zero
-            if norm < 1e-8:
-                step = np.zeros(self._dims)
-            else:
-                dir = dir / norm
-                step = dir * calc_step(dir, self.H, grad)
-                self.slog("Recomended non-scaled step dist:", step, when='always')
+        # guards against divide by zero
+        if norm < 1e-8:
+            step = np.zeros(self._dims)
+        else:
+            dir = dir / norm
+            step = dir * calc_step(dir, self.H, grad)
+            self.slog("Recomended non-scaled step dist:", step, when='always')
 
         self._pos0 = pos
         self._grad0 = grad
@@ -327,8 +320,9 @@ class MultiOpt(ObjLog):
         self.slog("DR_raw", dr_raw.reshape((bs,-1)))
 
 
-        # project out parallel part of step
-        dr = self.atoms.exp_project(dr_raw) # - np.dot(dr, t) * t
+        # project out parallel part of step, not needed as direction already correct
+        dr = dr_raw
+        #dr = self.atoms.exp_project(dr_raw) # - np.dot(dr, t) * t
         self.slog("DR", dr.reshape((bs,-1)))
         self.slog("G", g.reshape((bs,-1)))
         self.slog("G_proj", self.atoms.exp_project(g))
