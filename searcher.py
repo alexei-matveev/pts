@@ -717,7 +717,7 @@ class ReactionPathway(object):
             t = mt.metric.lower(T, self.state_vec[i])
 
             # components of force parallel and orthogonal to the tangent:
-            para_force = - dot(T, g)
+            para_force = - dot(T, g) / dot(T, t)
             perp_force = - g - para_force * t
 
             self.para_bead_forces[i] = para_force
@@ -734,9 +734,11 @@ class ReactionPathway(object):
         v.shape = (N,-1)
 
         for i in range(N):
+            # be carful: other order than in obj_func, as we expect
+            # v to be with indice up
             t = self.tangents[i]
             t_co = mt.metric.lower(t, self.state_vec[i])
-            v[i] = v[i] - dot(t_co, v[i]) * t
+            v[i] = v[i] - dot(t_co, v[i]) * t / dot(t_co, t)
             #v[i], _ = project_out(t, v[i])
 
         return v
@@ -942,7 +944,8 @@ class NEB(ReactionPathway):
                 self.tangents[i] = ( (self.state_vec[i] - self.state_vec[i-1]) + (self.state_vec[i+1] - self.state_vec[i]) ) / 2
 
         for i in range(self.beads_count):
-            self.tangents[i] /= linalg.norm(self.tangents[i], 2)
+            #self.tangents[i] /= linalg.norm(self.tangents[i], 2)
+            self.tangents[i] /= mt.metric.norm_up(self.tangents[i], self.state_vec[i])
 
 #        print "self.tangents", self.tangents
 
@@ -1293,7 +1296,8 @@ class PathRepresentation(object):
             path_tangent.append(f.fprime(x))
 
         t = array(path_tangent).flatten()
-        t = t / linalg.norm(t)
+        #t = t / linalg.norm(t)
+        t = t / mt.metric.norm_up(t, f(x))
         return t
 
     def set_rho(self, new_rho, normalise=True):
