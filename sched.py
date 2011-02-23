@@ -1012,7 +1012,7 @@ class ParaSched(object):
                 # encounters an exception it should empty the queue rethrow, 
                 # and maybe kill all running QC jobs.
                 l = ["Worker", str(my_id), ": Exception thrown when", 
-                     "calling self.__qc_driver.run(item):", str(type(inst)),
+                     "calling QC driver:", str(type(inst)),
                      ":", str(inst.args)]
                 msg = ' '.join(l)
                 
