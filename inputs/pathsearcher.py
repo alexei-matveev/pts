@@ -162,9 +162,6 @@ def find_path(atoms, init_path, funcart, **kwargs):
     # print out initial path
     cb(CoS.state_vec)
 
-    # hack to enable the CoS to print in cartesians, even if opt is done in internals
-    CoS.bead2carts = lambda x: mi.build_coord_sys(x).get_cartesians().flatten()
-
     extra_opt_params = dict()
 
     runopt = lambda CoS_: runopt_aof(kwargs["opt_type"], CoS_, kwargs["ftol"], kwargs["xtol"], kwargs["etol"], kwargs["maxit"], cb, maxstep=kwargs["maxstep"], extra=extra_opt_params)

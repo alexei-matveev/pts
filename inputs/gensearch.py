@@ -122,9 +122,6 @@ while True:
     # print out initial path
     cb(CoS.state_vec)
 
-    # hack to enable the CoS to print in cartesians, even if opt is done in internals
-    CoS.bead2carts = lambda x: mi.build_coord_sys(x).get_cartesians().flatten()
-
     runopt = lambda CoS_: pts.runopt(opt_type, CoS_, ftol, xtol, etol, maxit, cb, maxstep=maxstep, extra=extra_opt_params)
 
     # main optimisation loop

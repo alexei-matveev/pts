@@ -478,26 +478,6 @@ class ReactionPathway(object):
             arc['bead_es'] = bead_es
             arc['bead_gs'] = bead_gs
 
-        # Write out the cartesian coordinates of two transition state
-        # estimates: highest bead and from spline estimation.
-        if hasattr(self, 'bead2carts'):
-
-            # History.func(n) returns list of last n values of func
-            # as a tuple. For ts_estim values are a tuple: (energy, vector)
-            n = 1
-            which = 0
-            ts_estim_energy, estim, _, _, _, _, _ = self.history.ts_estim(n)[which]
-            ts_estim = self.bead2carts(estim)
-            bead_carts = [self.bead2carts(v) for v in self.state_vec]
-            bead_carts = zip(e_beads, bead_carts)
-
-            delnl = lambda a: ''.join(repr(a).split('\n'))
-            a2s = lambda a: '[' + ', '.join(['%.3f'%f for f in a]) + ']'
-            if self.output_level > 2:
-                arc["ts_estim_carts"] = ts_estim_energy, delnl(ts_estim)
-                arc["bead_carts"] = delnl(bead_carts)
-
-
         f = '%10.3e'
         s = [ "\n----------------------------------------------------------",
              "Chain of States Summary for %d gradient/energy calculations" % eg_calls,
