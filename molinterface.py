@@ -207,11 +207,6 @@ class MolInterface:
                     raise ParseError("ase_settings_file parameter not specified in input file.")
 
                 self.ase_settings_file = params["ase_settings_file"]
-
-
-            elif params["qc_program"] == "analytical_GaussianPES":
-                self.run = self.run_internal
-                self.analytical_pes = common.GaussianPES()
             else:
                 raise Exception("Use of " + params["qc_program"] + " not implemented")
 
@@ -479,16 +474,6 @@ class MolInterface:
         self.logfile2eg_lock.release()
 
         return common.Result(coords, e, g)
-
-    def run_internal(self, job):
-        """Used to return results from analytical potentials."""
-
-        coords = job.v
-        e1 = self.analytical_pes.energy(coords)
-
-        g1 = self.analytical_pes.gradient(coords)
-        r = common.Result(coords, e1, gradient=g1)
-        return r
 
     def gen_placement_command_dplace(self, p_low, p_high):
         """Generates a placement command (including arguments) for placement on
