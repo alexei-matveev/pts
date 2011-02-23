@@ -1472,8 +1472,6 @@ class GrowingString(ReactionPathway):
         rho = lambda x: 1, growing=True, parallel=False, head_size=None, output_level = 3,
         max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False):
 
-        self.__qc_driver = pes
-
         self.__final_beads_count = beads_count
 
         self.growing = growing
