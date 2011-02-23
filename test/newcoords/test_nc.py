@@ -10,7 +10,9 @@ from pts.cfunc import Justcarts, With_globals, Masked
 from pts.constr_symar4 import t_c2v, t_c2v_prime
 import pts.metric as mt
 from pts.metric import Metric, Metric_reduced
-from pts.coord_sys import CoordSys
+# MUSTDIE: from pts.coord_sys import CoordSys
+from pts.qfunc import QFunc
+from pts.func import compose
 from sys import argv
 
 """
@@ -54,7 +56,11 @@ testfun = argv[1]
 
 # The ASE atoms object for calculating the forces
 ar4 = Atoms("Ar4")
+
 ar4.set_calculator(LennardJones())
+
+# PES in cartesian coordiantes:
+pes = QFunc(ar4, ar4.get_calculator())
 
 # some variables for the starting values
 # length
@@ -189,15 +195,16 @@ elif testfun == "ztoc_red":
     min2 = reduce(min2, mask)
     middle = reduce(middle, mask)
 
+# PES in internal coordinates:
+pes = compose(pes, func)
+
 # init path contains the two minima and a middle bead to enforce the
 # starting path going in the right direction (else it would be just
 # linear interpolation, what is not correct in this regard)
 init_path = [min1, middle, min2]
 
 if test_what == "contraforce":
-    # Coordinate system for easy getting the forces (in internal
-    # coordinates)
-    cs = CoordSys(ar4, func, min1, True)
+    # Metric consistent with coordinate transformation:
     m1 = Metric(func)
     m2 = Metric_reduced(func)
 
@@ -211,8 +218,8 @@ if test_what == "contraforce":
         print t_c2v(geo)
 
         # get the forces belonging to this geometry
-        cs.set_internals(geo)
-        f = cs.get_forces()
+        f = - pes.fprime(geo)
+
         print "Forces", f
         # test for displacements, if they would fulfill the requirements
         # for keeping the symmetry, this should not hold for the
