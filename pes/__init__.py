@@ -2,50 +2,32 @@ import time
 import random
 import numpy as np
 import mueller_brown as mb
-import pts
+from pts.func import Func
 
-class QCDriver:
-    def __init__(self, dimension):
-        self.dimension = dimension
-        self.__g_calls = 0
-        self.__e_calls = 0
-
-    def get_calls(self):
-        return (self.__e_calls, self.__g_calls)
-
-    def gradient(self):
-        self.__g_calls += 1
-        pass
-
-    def energy(self):
-        self.__e_calls += 1
-        pass
-
-class MuellerBrown():
+class MuellerBrown(Func):
     """
     >>> mb = MuellerBrown()
 
-    >>> mb.gradient([1.,2.])
+    >>> mb.fprime([1.,2.])
     array([ 5608.10419613,  4287.36943935])
 
-    >>> mb.energy([1.,2.])
+    >>> mb.f([1.,2.])
     1649.1505581288852
     """
-    def energy(self, v):
+    def f(self, v):
         return mb.energy(v) * 0.001
 
-    def gradient(self, v):
+    def fprime(self, v):
         return mb.gradient(v) * 0.001
 
-class QuarticPES(QCDriver):
+class QuarticPES(Func):
     def __init__(self):
-        QCDriver.__init__(self,2)
+        pass
 
-    def gradient(self, a):
-        QCDriver.gradient(self)
+    def fprime(self, a):
 
-        if len(a) != self.dimension:
-            raise QCDriverException("Wrong dimension")
+        if len(a) != 2:
+            raise Exception("Wrong dimension")
 
         x = a[0]
         y = a[1]
@@ -53,10 +35,9 @@ class QuarticPES(QCDriver):
         dzdy = 2*2*x**2*y - 8*x**2 - 2*80*x*y + 2*1616*y + 4*y**3 - 3*8*y**2
         return np.array([dzdy, dzdx])
 
-    def energy(self, a):
-        QCDriver.energy(self)
+    def f(self, a):
 
-        if len(a) != self.dimension:
+        if len(a) != 2:
             raise Exception("Wrong dimension")
 
         x = a[0]
@@ -64,7 +45,7 @@ class QuarticPES(QCDriver):
         z = (x**2 + y**2) * ((x - 40)**2 + (y - 4) ** 2)
         return (z)
 
-class GaussianPES():
+class GaussianPES(Func):
     def __init__(self, fake_delay=None):
         """
         fake_delay:
@@ -79,7 +60,7 @@ class GaussianPES():
     def __str__(self):
         return "GaussianPES"
 
-    def energy(self, v):
+    def f(self, v):
 
         x = v[0]
         y = v[1]
@@ -89,7 +70,7 @@ class GaussianPES():
 
         return (-np.exp(-(x**2 + y**2)) - np.exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*np.exp(-((1.5*x-1)**2 + (y-2)**2)))
 
-    def gradient(self, v):
+    def fprime(self, v):
 
         x = v[0]
         y = v[1]
@@ -101,20 +82,13 @@ class GaussianPES():
         g = np.array((dfdx,dfdy))
         return g
 
-    def run(self, i):
-        j = i.job
-        e = self.energy(j.v)
-        g = self.gradient(j.v)
-
-        return pts.common.Result(j.v, e, g)
-
-class PlanePES():
-    def energy(self, v):
+class PlanePES(Func):
+    def f(self, v):
         x = v[0]
         y = v[1]
         return x - y
 
-    def gradient(self, v):
+    def fprime(self, v):
         x = v[0]
         y = v[1]
         dfdx = 1
@@ -122,13 +96,13 @@ class PlanePES():
         g = np.array((dfdx,dfdy))
         return g
 
-class PlanePES2():
-    def energy(self, v):
+class PlanePES2(Func):
+    def f(self, v):
         x = v[0]
         y = v[1]
         return x + y
 
-    def gradient(self, v):
+    def fprime(self, v):
         x = v[0]
         y = v[1]
         dfdx = 1
@@ -137,19 +111,17 @@ class PlanePES2():
         return g
 
 
-class GaussianPES2(QCDriver):
+class GaussianPES2(Func):
     def __init__(self):
-        QCDriver.__init__(self,2)
+        pass
 
-    def energy(self, v):
-        QCDriver.energy(self)
+    def f(self, v):
 
         x = v[0]
         y = v[1]
         return (-exp(-(x**2 + 0.2*y**2)) - exp(-((x-3)**2 + (y-3)**2)) + 0.01*(x**2+y**2) - 0.5*exp(-((x-1.5)**2 + (y-2.5)**2)))
 
-    def gradient(self, v):
-        QCDriver.gradient(self)
+    def fprime(self, v):
 
         x = v[0]
         y = v[1]
@@ -158,10 +130,9 @@ class GaussianPES2(QCDriver):
 
         return np.array((dfdx,dfdy))
 
-class FourWellPot(QCDriver):
+class FourWellPot(Func):
     """From "Dey, Janicki, and Ayers, J. Chem. Phys., Vol. 121, No. 14, 8 October 2004" """
     def __init__(self):
-        QCDriver.__init__(self,2)
 
         self.v0 = 4.0
         self.a0 = 0.6
@@ -176,8 +147,7 @@ class FourWellPot(QCDriver):
         self.params_list = zip(ais, sxs, sys, alphas, betas)
 
 
-    def energy(self, v):
-        QCDriver.energy(self)
+    def f(self, v):
 
         x, y = v[0], v[1]
 
@@ -190,8 +160,7 @@ class FourWellPot(QCDriver):
 
         return e
         
-    def gradient(self, v):
-        QCDriver.gradient(self)
+    def fprime(self, v):
 
         x, y = v[0], v[1]
 
@@ -210,8 +179,6 @@ class FourWellPot(QCDriver):
             - sum (map (f_welldy, self.params_list))
 
         return (dedx, dedy)
-
-
 
 if __name__ == "__main__":
     import doctest
