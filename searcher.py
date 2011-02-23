@@ -148,7 +148,7 @@ class ReactionPathway(object):
     def __init__(self, 
             reagents, 
             beads_count, 
-            qc_driver, 
+            pes,
             parallel, 
             reporting=None, 
             convergence_beads=3, 
@@ -169,7 +169,7 @@ class ReactionPathway(object):
         """
 
         self.parallel = parallel
-        self.qc_driver = qc_driver
+        self.pes = pes
         self.beads_count = beads_count
         self.prev_beads_count = beads_count
 
@@ -471,8 +471,8 @@ class ReactionPathway(object):
                    'ixhigh': self.bead_pes_energies.argmax()}# ,
                    #'bead_positions': self.bead_positions}
 
-            if hasattr(self.qc_driver, 'eg_counts'):
-                bead_es, bead_gs = self.qc_driver.eg_counts()
+            if hasattr(self.pes, 'eg_counts'):
+                bead_es, bead_gs = self.pes.eg_counts()
             else:
                 bead_es = bead_gs = (self.beads_count - 2) * eg_calls + 2
             arc['bead_es'] = bead_es
@@ -674,9 +674,9 @@ class ReactionPathway(object):
 
             for i in range(self.beads_count):
                 # if request of gradients are given, give also the number of the bead
-                self.qc_driver.request_gradient(self.state_vec[i], self.get_final_bead_ix(i))
+                self.pes.request_gradient(self.state_vec[i], self.get_final_bead_ix(i))
 
-            self.qc_driver.proc_requests()
+            self.pes.proc_requests()
 
 
         # FIXME: see how they are indexed below:
@@ -686,8 +686,8 @@ class ReactionPathway(object):
         # get PES forces / project out stuff
         for i in range(self.beads_count):
 
-            g = self.qc_driver.gradient(self.state_vec[i])
-            e = self.qc_driver.energy(self.state_vec[i])
+            g = self.pes.gradient(self.state_vec[i])
+            e = self.pes.energy(self.state_vec[i])
 
             self.bead_pes_gradients[i] = g.copy()
             self.bead_pes_energies[i] = e
@@ -881,10 +881,10 @@ class NEB(ReactionPathway):
     """
 
     growing = False
-    def __init__(self, reagents, qc_driver, base_spr_const, beads_count=10, 
+    def __init__(self, reagents, pes, base_spr_const, beads_count=10,
         parallel=False, reporting=None, output_level = 3):
 
-        ReactionPathway.__init__(self, reagents, beads_count, qc_driver, 
+        ReactionPathway.__init__(self, reagents, beads_count, pes,
             parallel=parallel, reporting=reporting, output_level = output_level)
 
         self.base_spr_const = base_spr_const
@@ -1468,11 +1468,11 @@ class GrowingString(ReactionPathway):
 
     string = True
 
-    def __init__(self, reagents, qc_driver, beads_count = 10, 
+    def __init__(self, reagents, pes, beads_count = 10,
         rho = lambda x: 1, growing=True, parallel=False, head_size=None, output_level = 3,
         max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False):
 
-        self.__qc_driver = qc_driver
+        self.__qc_driver = pes
 
         self.__final_beads_count = beads_count
 
@@ -1484,7 +1484,7 @@ class GrowingString(ReactionPathway):
 
         # create PathRepresentation object
         self._path_rep = PathRepresentation(reagents, initial_beads_count, rho)
-        ReactionPathway.__init__(self, reagents, initial_beads_count, qc_driver, parallel, reporting=reporting, output_level = output_level)
+        ReactionPathway.__init__(self, reagents, initial_beads_count, pes, parallel, reporting=reporting, output_level = output_level)
 
         # final bead spacing density function for grown string
         # make sure it is normalised
