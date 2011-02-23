@@ -108,7 +108,7 @@ def test(A, B):
             n = 2 * n + 1
         else:
             print "========================================================="
-            print "Conveged for the maximal tested number of beads: ", n_max
+            print "Conveged for the maximal tested number of beads: ", n
             print "========================================================="
             break
 
