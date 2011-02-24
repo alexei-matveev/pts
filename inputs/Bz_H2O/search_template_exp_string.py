@@ -71,7 +71,7 @@ CoS = pts.searcher.GrowingString(mi.reagent_coords,
           head_size=None)
 
 # callback function
-mycb = lambda x: pts.generic_callback(x, mi, CoS, params)
+mycb = lambda x: pts.generic_callback(x, mi, CoS, **params)
 
 
 # main optimisation loop

@@ -34,7 +34,7 @@ CoS = pts.searcher.NEB(mi.reagent_coords,
 
 # callback function
 def cb(x, tol=0.01):
-    return pts.generic_callback(x, mi, CoS, params, tol=tol)
+    return pts.generic_callback(x, mi, CoS, tol=tol, **params)
 
 runopt = lambda: pts.runopt(opt_type, CoS, tol, maxit, cb, maxstep=0.2)
 

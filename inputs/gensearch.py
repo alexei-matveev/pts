@@ -117,7 +117,7 @@ while True:
         global cb_count_debug
         pickle_path(mi, CoS, "%s.debug%d.path.pickle" % (name, cb_count_debug))
         cb_count_debug += 1
-        return pts.generic_callback(x, mi, CoS, params, tol=tol)
+        return pts.generic_callback(x, mi, CoS, tol=tol, **params)
 
     # print out initial path
     cb(CoS.state_vec)

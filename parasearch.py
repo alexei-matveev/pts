@@ -241,7 +241,10 @@ def setup_and_run(mol_strings, params):
         assert False, "Should never happen, program should check earlier that the opt is specified correctly."
 
 # callback function
-def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
+def generic_callback(x, molinterface, CoS, tol=0.01, correct_ts=None
+                                    , name="generic-callback"
+                                    , output_level=0
+                                    , **kwargs):
     print common.line()
     print "***Callback***"
     print CoS
@@ -249,16 +252,16 @@ def generic_callback(x, molinterface, CoS, params, tol=0.01, correct_ts=None):
 
     N = "-iter_" + str(CoS.eg_calls)
 
-    name = params['name'] + N
-    if params["output_level"] > 2:
+    name = name + N
+    if output_level > 2:
         dump_beads(molinterface, CoS, name + "-CoS")
     l = CoS.history.ts_estim(len(CoS.history))
 
-    if l != [] and params["output_level"] > 2:
+    if l != [] and output_level > 2:
         energies, history, _,  _, _, _, _ = zip(*l)
         mol_list_to_traj(molinterface, history, energies, name + "-evol")
 
-    if params["output_level"] > 2:
+    if output_level > 2:
         common.str2file(CoS.state_vec, name + "-state_vec" + common.LOGFILE_EXT)
 
     if correct_ts != None:
@@ -296,7 +299,7 @@ def string_calc(molinterface, calc_man, reagent_coords, params):
     dump_beads(molinterface, string, params)
     #dump_steps(string)
 
-    mycb = lambda x: generic_callback(x, molinterface, string, params)
+    mycb = lambda x: generic_callback(x, molinterface, string, **params)
 
     # opt params
     maxit = params['maxit']
@@ -379,7 +382,7 @@ def neb_calc(molinterface, calc_man, params):
     dump_steps(neb)
 
     # callback function
-    mycb = lambda x: generic_callback(x, molinterface, neb, params)
+    mycb = lambda x: generic_callback(x, molinterface, neb, **params)
 
     # opt params
     maxit = params['maxit']

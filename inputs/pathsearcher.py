@@ -157,7 +157,7 @@ def find_path(atoms, init_path, funcart, **kwargs):
          if kwargs["output_level"] > 1:
              pickle_path(mi, CoS, "%s/%s.debug%d.path.pickle" % (kwargs["output_path"],name, cb_count_debug))
          cb_count_debug += 1
-         return generic_callback(x, mi, CoS, params, tol=tol)
+         return generic_callback(x, mi, CoS, tol=tol, **params)
 
     # print out initial path
     cb(CoS.state_vec)
