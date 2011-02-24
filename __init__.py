@@ -3,7 +3,6 @@ import common
 import test
 import sched
 #import zmatrix
-import coord_sys
 import qcdrivers
 import pes
 import path
@@ -14,8 +13,6 @@ import cosopt
 
 # bring through top level functions / classes for users' scripts
 from parasearch import neb_calc, string_calc, read_files, generic_callback, dump_steps
-from calcman import CalcManager
-from asemolinterface import MolInterface
 
 class MustRegenerate(Exception):
     """Used to force the optimiser to exit if bead spacing has become uneven."""
