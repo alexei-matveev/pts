@@ -184,9 +184,7 @@ def find_path(pes, init_path
     #
     # Main optimisation loop:
     #
-    result = runopt(opt_type, CoS, callback=cb, **kwargs)
-
-    print result # what is it?
+    converged = runopt(opt_type, CoS, callback=cb, **kwargs)
 
 #   # write out path to a file
 #   if output_level > 0:
@@ -194,7 +192,7 @@ def find_path(pes, init_path
 
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration
-    return result, CoS.get_state_vec(), CoS.bead_pes_energies, CoS.bead_pes_gradients
+    return converged, CoS.get_state_vec(), CoS.bead_pes_energies, CoS.bead_pes_gradients
 
 def output(beads, energies, gradients, cartesian):
     """Print user-friendly output.
