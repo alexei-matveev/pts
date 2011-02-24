@@ -471,10 +471,7 @@ class ReactionPathway(object):
                    'ixhigh': self.bead_pes_energies.argmax()}# ,
                    #'bead_positions': self.bead_positions}
 
-            if hasattr(self.pes, 'eg_counts'):
-                bead_es, bead_gs = self.pes.eg_counts()
-            else:
-                bead_es = bead_gs = (self.beads_count - 2) * eg_calls + 2
+            bead_es = bead_gs = (self.beads_count - 2) * eg_calls + 2
             arc['bead_es'] = bead_es
             arc['bead_gs'] = bead_gs
 
