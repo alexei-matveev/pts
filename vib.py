@@ -80,10 +80,13 @@ Ar4 Cluster as first simple atomic/molecule test system with
   Frequencies in cm-1, note that some are truly imaginary:
 
     >>> from numpy import round
-    >>> print round(cm(freqs), 2)
-    [ 1248.65 +0.j     882.95 +0.j     882.95 +0.j     882.95 +0.j
-       623.92 +0.j     623.92 +0.j       0.00 +0.j       0.00 +0.j
-         0.00 +0.j       0.00+17.58j     0.00+17.58j     0.00+17.58j]
+
+    Do not quarrel about line breaks, just compare the results
+    >>> r_freqs = array([ 1248.65 +0.j ,    882.95 +0.j ,    882.95 +0.j ,    882.95 +0.j,
+    ...   623.92 +0.j,     623.92 +0.j,       0.00 +0.j ,      0.00 +0.j,
+    ...     0.00 +0.j,       0.00+17.58j,     0.00+17.58j,   0.00+17.58j])
+    >>> max(abs(cm(freqs) - r_freqs)) < 1e-2
+    True
 
     >>> from ase.constraints import FixAtoms
 
@@ -94,9 +97,11 @@ Ar4 Cluster as first simple atomic/molecule test system with
     FWRAPPER: The following mask has been obtained from the constraints of the atoms
     [True, True, True, False, False, False, False, False, False, True, True, True]
 
-    >>> print round(cm(freqs), 2)
-    [ 1041.10 +0.j     764.64 +0.j     529.25 +0.j     441.39 +0.j
-       441.00 +0.j       0.00+14.35j]
+    >>> r_freqs = array([ 1041.10 +0.j,     764.64 +0.j ,    529.25 +0.j ,    441.39 +0.j,
+    ...   441.00 +0.j,       0.00+14.35j])
+    >>> max(abs(cm(freqs) - r_freqs)) < 1e-2
+    True
+
 
   second test System: N-N with EMT calculator
 
@@ -107,17 +112,20 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> n2.set_calculator( EMT())
     >>> freqs, modes = vibmodes(n2, workhere=True)
 
-    >>> print round(cm(freqs), 2)
-    [ 2048.94  +0.j       0.00  +0.j       0.00  +0.j       0.00  +0.j
-         0.00+321.63j     0.00+321.63j]
+    >>> r_freqs = array([ 2048.94  +0.j,     0.00  +0.j,     0.00  +0.j,      0.00  +0.j,
+    ...     0.00+321.63j,     0.00+321.63j])
+    >>> max(abs(cm(freqs) - r_freqs)) < 1e-2
+    True
 
     >>> n2.set_positions([[  0.0, 0.0, 0.000],
     ...                   [  0.0, 0.0, 1.130]])
 
     >>> freqs, modes = vibmodes(n2, workhere=True)
-    >>> print round(cm(freqs), 2)
-    [ 1874.96+0.j    37.51+0.j    37.51+0.j     0.00+0.j     0.00+0.j
-         0.00+0.j]
+    >>> r_freqs = array([ 1874.96+0.j,    37.51+0.j,    37.51+0.j,     0.00+0.j,     0.00+0.j,
+    ...     0.00+0.j])
+    >>> max(abs(cm(freqs) - r_freqs)) < 1e-2
+    True
+
 
   For pretty-printing the frequencies use:
 
