@@ -115,7 +115,7 @@ def find_path(pes, init_path
     # keywords, though:
     #
     if method == 'string':
-         CoS = GrowingString(init_path,
+        CoS = GrowingString(init_path,
                pes,
                beads_count,
                growing=False,
@@ -126,7 +126,7 @@ def find_path(pes, init_path
                output_level=output_level,
                max_sep_ratio=0.3)
     elif method == 'growingstring':
-         CoS = GrowingString(init_path,
+        CoS = GrowingString(init_path,
                pes,
                beads_count,
                growing=True,
@@ -137,7 +137,7 @@ def find_path(pes, init_path
                output_level=output_level,
                max_sep_ratio=0.3)
     elif method == 'searchingstring':
-         CoS = GrowingString(init_path,
+        CoS = GrowingString(init_path,
                pes,
                beads_count,
                growing=True,
@@ -149,7 +149,7 @@ def find_path(pes, init_path
                head_size=None, # has no meaning for searching string
                growth_mode='search')
     elif method == 'neb':
-         CoS = NEB(init_path,
+        CoS = NEB(init_path,
                pes,
                spring,
                beads_count,
