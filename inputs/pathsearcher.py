@@ -105,6 +105,13 @@ def find_path(atoms, init_path, funcart
 
     # decide which method is actually to be used
     cos_type = cos_type.lower()
+
+    #
+    # NOTE: most of the parameters to optimizers might be passed
+    # via **kwargs. This may require changes in the interface of
+    # the CoS constructors to accept trailing **kwargs for unrecognized
+    # keywords, though:
+    #
     if cos_type == 'string':
          CoS = GrowingString(init_path,
                calc_man,
