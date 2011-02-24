@@ -179,7 +179,7 @@ def find_path(pes, init_path
                     , **kwargs)
 
     # print out initial path
-    cb(CoS.state_vec)
+    cb(init_path)
 
     #
     # Main optimisation loop:
