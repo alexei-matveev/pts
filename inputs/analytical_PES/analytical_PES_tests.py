@@ -75,7 +75,7 @@ def test_StaticModel(model, qc, reagents, N=8, k=None, alg='scipy_lbfgsb', tol=0
 
     xtol = 0.0
     etol = 0.000001
-    run_opt = lambda: pts.runopt(alg, CoS, tol, xtol, etol, maxit, callback, maxstep=0.05, extra={'alpha':0.5})
+    run_opt = lambda: pts.runopt(alg, CoS, tol, xtol, etol, maxit, maxstep=0.05, callback=callback, alpha=0.5)
     print run_opt()
     """while CoS.must_regenerate or growing and CoS.grow_string():
         CoS.update_path()

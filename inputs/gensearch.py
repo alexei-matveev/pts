@@ -122,7 +122,7 @@ while True:
     # print out initial path
     cb(CoS.state_vec)
 
-    runopt = lambda CoS_: pts.runopt(opt_type, CoS_, ftol, xtol, etol, maxit, cb, maxstep=maxstep, extra=extra_opt_params)
+    runopt = lambda CoS_: pts.runopt(opt_type, CoS_, ftol, xtol, etol, maxit, maxstep=maxstep, callback=cb, **extra_opt_params)
 
     # main optimisation loop
     print runopt(CoS)

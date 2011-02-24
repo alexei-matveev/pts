@@ -21,13 +21,20 @@ def record_event(cos, s):
     if cos.arc_record:
         pickle.dump('Event: ' + s, cos.arc_record, protocol=2)
 
-def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict()):
+def runopt(name, CoS, ftol=0.1, xtol=0.03, etol=0.03, maxit=35, maxstep=0.2
+                            , callback=None
+                            , clean_after_grow=False
+                            , **kwargs):
     assert name in names
 
-    clean_after_grow = extra.pop('clean_after_grow', False)
     CoS.maxit = maxit
+
+    # FIXME: we need an interface design for callbacks:
     def cb(x):
-        y = callback(x)
+        if callback is not None:
+            y = callback(x)
+        else:
+            y = None
         CoS.test_convergence(etol, ftol, xtol)
         return y
 
@@ -37,7 +44,7 @@ def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict
             # tol and maxit are scaled so that they are never reached.
             # Convergence is tested via the callback function.
             # Exceeding maxit is tested during an energy/gradient call.
-            runopt_inner(name, CoS, ftol*0.01, maxit*100, cb, extra, maxstep=maxstep)
+            runopt_inner(name, CoS, ftol*0.01, maxit*100, cb, maxstep=maxstep, **kwargs)
         except MustRegenerate:
             CoS.update_path()
             record_event(CoS, "Optimisation RESTARTED (respaced)")
@@ -66,7 +73,7 @@ def runopt(name, CoS, ftol, xtol, etol, maxit, callback, maxstep=0.2, extra=dict
 
     return is_converged
 
-def runopt_inner(name, CoS, ftol, maxit, callback, extra, maxstep=0.2):
+def runopt_inner(name, CoS, ftol, maxit, callback, maxstep=0.2, **kwargs):
 
     if name == 'scipy_lbfgsb':
         opt, energy, dict = fmin_l_bfgs_b(CoS.obj_func,
@@ -79,7 +86,7 @@ def runopt_inner(name, CoS, ftol, maxit, callback, extra, maxstep=0.2):
         return dict
 
     elif name == 'multiopt':
-        opt = pts.cosopt.MultiOpt(CoS, maxstep=maxstep, **extra)
+        opt = pts.cosopt.MultiOpt(CoS, maxstep=maxstep, **kwargs)
         opt.string = CoS.string
         opt.attach(lambda: callback(None), interval=1)
         opt.run()
@@ -88,9 +95,9 @@ def runopt_inner(name, CoS, ftol, maxit, callback, extra, maxstep=0.2):
     elif name[0:4] == 'ase_':
 
         if name == 'ase_lbfgs':
-            opt = ase.LBFGS(CoS, maxstep=maxstep, **extra)
+            opt = ase.LBFGS(CoS, maxstep=maxstep, **kwargs)
         elif name == 'ase_bfgs':
-            opt = ase.BFGS(CoS, maxstep=maxstep, **extra)
+            opt = ase.BFGS(CoS, maxstep=maxstep, **kwargs)
 
         elif name == 'ase_lbfgs_line':
             opt = ase.LineSearchLBFGS(CoS, maxstep=maxstep)

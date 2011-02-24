@@ -16,7 +16,7 @@ from pts.asemolinterface import MolInterface
 from pts.calcman import CalcManager
 from pts.parasearch import generic_callback
 from pts.searcher import GrowingString, NEB, ts_estims
-from pts.optwrap import runopt as runopt_aof
+from pts.optwrap import runopt
 from pts.tools import pickle_path
 from pts.common import file2str
 # be careful: array is needed, when the init_path is an array
@@ -64,7 +64,15 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
 
     return convergence, geometries, energies, gradients
 
-def find_path(atoms, init_path, funcart, **kwargs):
+def find_path(atoms, init_path, funcart
+                            , beads_count = 7       # 7 beads, thus 5 moving points on path
+                            , name = "find-path"    # for output
+                            , cos_type = "string"   # what way, e.g. NEB, string, growingstring, searchingstring
+                            , opt_type = "multiopt" # the optimizer
+                            , spring = 5.0          # only for NEB: spring constant
+                            , output_level = 2
+                            , output_path = "."
+                            , **kwargs):
     """This one does the real work ...
 
     """
@@ -80,17 +88,15 @@ def find_path(atoms, init_path, funcart, **kwargs):
     # prepare the coordinate objects, eventually replace parameter by the ones given in the
     # atoms minima objects and extend the zmatrix, mi is a MolInterface object, which is the
     # wrapper around the atoms object in ASE
-    mi, params = prepare_mol_objects(atoms, kwargs, funcart, init_path)
+    mi = MolInterface(atoms, funcart, init_path, **kwargs)
 
-    if not path.exists(kwargs["output_path"]):
-        mkdir(kwargs["output_path"])
-
-    name = kwargs["name"]
+    if not path.exists(output_path):
+        mkdir(output_path)
 
     # some output files:
     logfile = open(name + '.log', 'w')
     disk_result_cache = None
-    if kwargs["output_level"] > 0:
+    if output_level > 0:
         disk_result_cache = '%s.ResultDict.pickle' % name
 
     # Calculator
@@ -98,37 +104,37 @@ def find_path(atoms, init_path, funcart, **kwargs):
     calc_man = CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=kwargs["old_results"])
 
     # decide which method is actually to be used
-    cos_type = kwargs["cos_type"].lower()
+    cos_type = cos_type.lower()
     if cos_type == 'string':
          CoS = GrowingString(init_path,
                calc_man,
-               kwargs["beads_count"],
+               beads_count,
                growing=False,
                parallel=True,
                reporting=logfile,
                freeze_beads=False,
                head_size=None,
-               output_level = kwargs["output_level"],
+               output_level=output_level,
                max_sep_ratio=0.3)
     elif cos_type == 'growingstring':
          CoS = GrowingString(init_path,
                calc_man,
-               kwargs["beads_count"],
+               beads_count,
                growing=True,
                parallel=True,
                reporting=logfile,
                freeze_beads=False,
                head_size=None,
-               output_level = kwargs["output_level"],
+               output_level=output_level,
                max_sep_ratio=0.3)
     elif cos_type == 'searchingstring':
          CoS = GrowingString(init_path,
                calc_man,
-               kwargs["beads_count"],
+               beads_count,
                growing=True,
                parallel=True,
                reporting=logfile,
-               output_level = kwargs["output_level"],
+               output_level=output_level,
                max_sep_ratio=0.3,
                freeze_beads=True,
                head_size=None, # has no meaning for searching string
@@ -136,10 +142,10 @@ def find_path(atoms, init_path, funcart, **kwargs):
     elif cos_type == 'neb':
          CoS = NEB(init_path,
                calc_man,
-               kwargs["spring"],
-               kwargs["beads_count"],
+               spring,
+               beads_count,
                parallel=True,
-               output_level = kwargs["output_level"],
+               output_level=output_level,
                reporting=logfile)
     else:
          raise Exception('Unknown type: %s' % cos_type)
@@ -154,24 +160,27 @@ def find_path(atoms, init_path, funcart, **kwargs):
     # callback function
     def cb(x, tol=0.01):
          global cb_count_debug
-         if kwargs["output_level"] > 1:
-             pickle_path(mi, CoS, "%s/%s.debug%d.path.pickle" % (kwargs["output_path"],name, cb_count_debug))
+         if output_level > 1:
+             pickle_path(mi, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
          cb_count_debug += 1
-         return generic_callback(x, mi, CoS, tol=tol, **params)
+         return generic_callback(x, mi, CoS, tol=tol
+                    , name = output_path + "/" + name
+                    , output_level=output_level
+                    , output_path=output_path
+                    , **kwargs)
 
     # print out initial path
     cb(CoS.state_vec)
 
-    extra_opt_params = dict()
+    #
+    # Main optimisation loop:
+    #
+    result = runopt(opt_type, CoS, callback=cb, **kwargs)
 
-    runopt = lambda CoS_: runopt_aof(kwargs["opt_type"], CoS_, kwargs["ftol"], kwargs["xtol"], kwargs["etol"], kwargs["maxit"], cb, maxstep=kwargs["maxstep"], extra=extra_opt_params)
-
-    # main optimisation loop
-    result = runopt(CoS)
     print result # what is it?
 
     # write out path to a file
-    if kwargs["output_level"] > 0:
+    if output_level > 0:
         pickle_path(mi, CoS, "%s.path.pickle" % name)
 
     # Return (hopefully) converged discreete path representation:
@@ -303,26 +312,6 @@ def reset_params_d(params_dict, new_parameter):
             print "Please check if it is written correctly"
             exit()
     return params_dict
-
-def prepare_mol_objects(atoms, params_dict, funcart, init_path):
-    """
-    There are several valid possibilities of how the geometry/atoms input could be
-    specified, here they should all lead to an valid MolInterface function
-    """
-    # for extracting the parameter needed for the MI
-    params = {}
-
-    # extract parameters from the dictionary
-    for x in ["output_level", "output_path"]:
-        if x in params_dict:
-            params[x] = params_dict[x]
-
-    params["name"] = params_dict["output_path"] + "/" + params_dict["name"]
-
-    # the MI:
-    mi = MolInterface(atoms, funcart, init_path, **params)
-
-    return  mi, params
 
 def expand_zmat(zmts):
     """
