@@ -84,7 +84,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     return convergence, geometries, energies, gradients
 
 def find_path(pes, init_path
-                            , beads_count = 7       # 7 beads, thus 5 moving points on path
+                            , beads_count = None    # default to len(init_path)
                             , name = "find-path"    # for output
                             , method = "string"     # what way, e.g. NEB, string, growingstring, searchingstring
                             , opt_type = "multiopt" # the optimizer
@@ -95,6 +95,9 @@ def find_path(pes, init_path
     """This one does the real work ...
 
     """
+
+    if beads_count is None:
+        beads_count = len(init_path)
 
     if not path.exists(output_path):
         mkdir(output_path)
