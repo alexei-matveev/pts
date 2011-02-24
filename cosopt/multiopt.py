@@ -19,54 +19,55 @@ def disp_step(dr, f):
 
 class MiniBFGS(ObjLog):
     """
-    1-D Parabola, initial hessian perfect
-        >>> bfgs = MiniBFGS(1, np.eye(1) * 2)
-        >>> e, g = lambda x: x**2, lambda x: 2*x
-        >>> x0 = np.array([1.0])
-        >>> x0 + bfgs.step(e(x0), g(x0), x0)
-        array([ 0.])
+   # We do not this version of MiniBFGS any more
+   #1-D Parabola, initial hessian perfect
+   #    >>> bfgs = MiniBFGS(1, np.eye(1) * 2)
+   #    >>> e, g = lambda x: x**2, lambda x: 2*x
+   #    >>> x0 = np.array([1.0])
+   #    >>> x0 + bfgs.step(e(x0), g(x0), x0)
+   #    array([ 0.])
 
-    2-D parabola, initial hessian perfect
-        >>> bfgs = MiniBFGS(2, np.eye(2) * 2)
-        >>> g = lambda x: np.array((2*x[0], 2*x[1]))
-        >>> e = lambda x: (x**2).sum()
-        >>> x0 = np.array([1.0, -1.0])
-        >>> x0 + bfgs.step(e(x0), g(x0), x0)
-        array([ 0.,  0.])
+   #2-D parabola, initial hessian perfect
+   #    >>> bfgs = MiniBFGS(2, np.eye(2) * 2)
+   #    >>> g = lambda x: np.array((2*x[0], 2*x[1]))
+   #    >>> e = lambda x: (x**2).sum()
+   #    >>> x0 = np.array([1.0, -1.0])
+   #    >>> x0 + bfgs.step(e(x0), g(x0), x0)
+   #    array([ 0.,  0.])
 
-    1-D parabola, initial hessian half what ti should be
-        >>> bfgs = MiniBFGS(1, np.eye(1))
-        >>> f = lambda x: 2*x
-        >>> e = lambda x: x**2
-        >>> x = np.array([1.0])
-        >>> x = x + bfgs.step(e(x), f(x), x)
-        >>> x = x + bfgs.step(e(x), f(x), x)
-        >>> bfgs.H
-        array([[ 2.]])
-        >>> x
-        array([ 0.])
+   #1-D parabola, initial hessian half what ti should be
+   #    >>> bfgs = MiniBFGS(1, np.eye(1))
+   #    >>> f = lambda x: 2*x
+   #    >>> e = lambda x: x**2
+   #    >>> x = np.array([1.0])
+   #    >>> x = x + bfgs.step(e(x), f(x), x)
+   #    >>> x = x + bfgs.step(e(x), f(x), x)
+   #    >>> bfgs.H
+   #    array([[ 2.]])
+   #    >>> x
+   #    array([ 0.])
 
-    2-D parabola, initial hessian half what it should be
-        >>> bfgs = MiniBFGS(2, np.eye(2))
-        >>> f = lambda x: np.array((2*x[0], 2*x[1]))
-        >>> e = lambda x: (x**2).sum()
-        >>> x = np.array([1.0, -1.0])
-        >>> x = x + bfgs.step(e(x), f(x), x)
-        >>> x = x + bfgs.step(e(x), f(x), x)
-        >>> bfgs.H
-        array([[ 1.5, -0.5],
-               [-0.5,  1.5]])
+   #2-D parabola, initial hessian half what it should be
+   #    >>> bfgs = MiniBFGS(2, np.eye(2))
+   #    >>> f = lambda x: np.array((2*x[0], 2*x[1]))
+   #    >>> e = lambda x: (x**2).sum()
+   #    >>> x = np.array([1.0, -1.0])
+   #    >>> x = x + bfgs.step(e(x), f(x), x)
+   #    >>> x = x + bfgs.step(e(x), f(x), x)
+   #    >>> bfgs.H
+   #    array([[ 1.5, -0.5],
+   #           [-0.5,  1.5]])
 
-   After two steps reaches minimum.
-        >>> x.round(4)
-        array([-0.,  0.])
-        >>> xn = x + bfgs.step(e(x), f(x), x)
-        Bead -1: skipping SR1 update, denominator too small
-        >>> xn.round(4)
-        array([-0.,  0.])
-        >>> bfgs.H
-        array([[ 1.5, -0.5],
-               [-0.5,  1.5]])
+   #fter two steps reaches minimum.
+   #    >>> x.round(4)
+   #    array([-0.,  0.])
+   #    >>> xn = x + bfgs.step(e(x), f(x), x)
+   #    Bead -1: skipping SR1 update, denominator too small
+   #    >>> xn.round(4)
+   #    array([-0.,  0.])
+   #    >>> bfgs.H
+   #    array([[ 1.5, -0.5],
+   #           [-0.5,  1.5]])
 
    FIXME: Doesn't exist:
    #Dummy trust radius at present:
