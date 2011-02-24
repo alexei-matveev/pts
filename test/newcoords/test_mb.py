@@ -3,7 +3,7 @@
 from pts.inputs.pathsearcher import find_path
 from numpy import array
 from sys import argv
-from pts.mueller_brown import MB
+from pts.mueller_brown import MB, CHAIN_OF_STATES
 """
 Small test example with MuellerBrown Potential.
 
@@ -19,9 +19,9 @@ the path can be examined.
 bn = int(argv[1])
 
 # The tree minima
-min1 = array([-0.55822362,  1.44172583])
-min2 = array([-0.05001084,  0.46669421])
-min3 = array([ 0.62349942,  0.02803776])
+min1 = CHAIN_OF_STATES[0] # array([-0.55822362,  1.44172583])
+min2 = CHAIN_OF_STATES[2] # array([-0.05001084,  0.46669421])
+min3 = CHAIN_OF_STATES[4] # array([ 0.62349942,  0.02803776])
 
 # starting path
 init_path = [min1, min2, min3]
