@@ -12,8 +12,9 @@ from re import findall
 from os import path, mkdir
 from pts.pathsearcher_defaults.params_default import *
 from pts.pathsearcher_defaults import *
-from pts.asemolinterface import MolInterface
-from pts.calcman import CalcManager
+from pts.qfunc import QFunc
+from pts.func import compose
+from pts.memoize import Memoize
 from pts.parasearch import generic_callback
 from pts.searcher import GrowingString, NEB, ts_estims
 from pts.optwrap import runopt
@@ -56,15 +57,33 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     # collect them in a dictionary, adding to those provided:
     kwargs = mkparams(**kwargs)
 
-    # this will operate with PES in internals in the near future:
-    convergence, geometries, energies, gradients = find_path(atoms, init_path, funcart, **kwargs)
+    # print parameters to STDOUT:
+    tell_params(kwargs)
+
+    # calculator from kwargs, if valid, has precedence over
+    # the associated (or not) with the atoms:
+    if kwargs["calculator"] is not None:
+        atoms.set_calculator(kwargs["calculator"])
+
+    # calculator is not used below:
+    del kwargs["calculator"]
+
+    # PES to be used for energy, forces. FIXME: maybe adapt QFunc not to
+    # default to LJ, but rather keep atoms as is?
+    pes = compose(QFunc(atoms, atoms.get_calculator()), funcart)
+
+    # Memoize the Func in case evaluations are expensive:
+    pes = Memoize(pes)
+
+    # this operates with PES in internals:
+    convergence, geometries, energies, gradients = find_path(pes, init_path, **kwargs)
 
     # print user-friendly output, including cartesian geometries:
     output(geometries, energies, gradients, funcart)
 
     return convergence, geometries, energies, gradients
 
-def find_path(atoms, init_path, funcart
+def find_path(pes, init_path
                             , beads_count = 7       # 7 beads, thus 5 moving points on path
                             , name = "find-path"    # for output
                             , cos_type = "string"   # what way, e.g. NEB, string, growingstring, searchingstring
@@ -77,19 +96,6 @@ def find_path(atoms, init_path, funcart
 
     """
 
-    # print parameters to STDOUT:
-    tell_params(kwargs)
-
-    # calculator from kwargs, if valid, has precedence over
-    # the associated (or not) with the atoms:
-    if kwargs["calculator"] is not None:
-        atoms.set_calculator(kwargs["calculator"])
-
-    # prepare the coordinate objects, eventually replace parameter by the ones given in the
-    # atoms minima objects and extend the zmatrix, mi is a MolInterface object, which is the
-    # wrapper around the atoms object in ASE
-    mi = MolInterface(atoms, funcart, init_path, **kwargs)
-
     if not path.exists(output_path):
         mkdir(output_path)
 
@@ -98,10 +104,6 @@ def find_path(atoms, init_path, funcart
     disk_result_cache = None
     if output_level > 0:
         disk_result_cache = '%s.ResultDict.pickle' % name
-
-    # Calculator
-    procs_tuple = (kwargs["cpu_architecture"], kwargs["pmax"], kwargs["pmin"])
-    calc_man = CalcManager(mi, procs_tuple, to_cache=disk_result_cache, from_cache=kwargs["old_results"])
 
     # decide which method is actually to be used
     cos_type = cos_type.lower()
@@ -114,7 +116,7 @@ def find_path(atoms, init_path, funcart
     #
     if cos_type == 'string':
          CoS = GrowingString(init_path,
-               calc_man,
+               pes,
                beads_count,
                growing=False,
                parallel=True,
@@ -125,7 +127,7 @@ def find_path(atoms, init_path, funcart
                max_sep_ratio=0.3)
     elif cos_type == 'growingstring':
          CoS = GrowingString(init_path,
-               calc_man,
+               pes,
                beads_count,
                growing=True,
                parallel=True,
@@ -136,7 +138,7 @@ def find_path(atoms, init_path, funcart
                max_sep_ratio=0.3)
     elif cos_type == 'searchingstring':
          CoS = GrowingString(init_path,
-               calc_man,
+               pes,
                beads_count,
                growing=True,
                parallel=True,
@@ -148,7 +150,7 @@ def find_path(atoms, init_path, funcart
                growth_mode='search')
     elif cos_type == 'neb':
          CoS = NEB(init_path,
-               calc_man,
+               pes,
                spring,
                beads_count,
                parallel=True,
@@ -167,10 +169,10 @@ def find_path(atoms, init_path, funcart
     # callback function
     def cb(x, tol=0.01):
          global cb_count_debug
-         if output_level > 1:
-             pickle_path(mi, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
+         # if output_level > 1:
+         #     pickle_path(mi, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
          cb_count_debug += 1
-         return generic_callback(x, mi, CoS, tol=tol
+         return generic_callback(x, None, CoS, tol=tol
                     , name = output_path + "/" + name
                     , output_level=output_level
                     , output_path=output_path
@@ -186,9 +188,9 @@ def find_path(atoms, init_path, funcart
 
     print result # what is it?
 
-    # write out path to a file
-    if output_level > 0:
-        pickle_path(mi, CoS, "%s.path.pickle" % name)
+#   # write out path to a file
+#   if output_level > 0:
+#       pickle_path(mi, CoS, "%s.path.pickle" % name)
 
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration

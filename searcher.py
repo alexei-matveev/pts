@@ -646,28 +646,16 @@ class ReactionPathway(object):
         else:
             self.bead_eg_calls += self.beads_count - 2
 
-         # request and process parallel QC jobs
-        if self.parallel:
-
-            for i in range(self.beads_count):
-                # if request of gradients are given, give also the number of the bead
-                self.pes.request_gradient(self.state_vec[i], self.get_final_bead_ix(i))
-
-            self.pes.proc_requests()
-
-
-        # FIXME: see how they are indexed below:
+        # Note how these arrays are indexed below:
         assert len(self.bead_pes_energies) == self.beads_count
         assert len(self.bead_pes_gradients) == self.beads_count
 
-        # get PES forces / project out stuff
-        for i in range(self.beads_count):
+        # get PES energy/gradients, FIXME: do this by PMAP!
+        es, gs = zip(*map(self.pes.taylor, self.state_vec))
 
-            g = self.pes.gradient(self.state_vec[i])
-            e = self.pes.energy(self.state_vec[i])
-
-            self.bead_pes_gradients[i] = g.copy()
-            self.bead_pes_energies[i] = e
+        # FIXME: does it need to be a a destructive update?
+        self.bead_pes_energies[:] = es
+        self.bead_pes_gradients[:] = gs
 
         #
         # NOTE: update_tangents() is not implemented by this class!
