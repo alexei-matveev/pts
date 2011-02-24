@@ -158,9 +158,6 @@ def find_path(pes, init_path
                reporting=logfile)
     else:
          raise Exception('Unknown type: %s' % method)
-    #CoS.arc_record = open("archive.pickle", 'w')
-    #dump("Version 0.1", CoS.arc_record)
-    #dump(mi.build_coord_sys(init_path[0]), CoS.arc_record)
 
     # has also set global, as the callback function wants this
     # but here it is explictly reset to 0
