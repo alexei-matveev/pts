@@ -8,6 +8,7 @@ import time
 import logging
 
 import numpy
+from numpy import finfo
 
 import pts
 
@@ -164,7 +165,7 @@ def fname():
     import sys
     return sys._getframe(1).f_code.co_name
 
-SAMENESS_THRESH_VECTORS = 1e-6
+SAMENESS_THRESH_VECTORS = float(finfo(float).eps)
 SAMENESS_THRESH_ENERGIES = 1e-10
 def is_same_v(v1, v2):
     return numpy.linalg.norm(v1 - v2, ord=numpy.inf) < SAMENESS_THRESH_VECTORS
