@@ -4,9 +4,7 @@
 #
 
 src =	\
-	calcman.py \
 	common.py \
-	coord_sys.py \
 	sched.py \
 	searcher.py \
 	ridders.py \
@@ -26,7 +24,6 @@ src =	\
 	rc.py \
 	paramap.py \
 	vib.py \
-        asemolinterface.py\
 	metric.py \
 	cfunc.py \
 
