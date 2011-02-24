@@ -146,8 +146,8 @@ elif num_atoms * 3 > elem_num or len(zmts) > 1:
     # internal coordinates are in a ZMatrix2 object
     # Two for the minima, they can be set already
     for m in mi:
-      zmti.append(ase2ccs(m, zmts, el_nums, elem_num))
-    zmtinter =  ase2ccs(mi[0], zmts, el_nums, elem_num)
+      zmti.append(ComplexCoordSys(ase2ccs(m, zmts, el_nums, elem_num)))
+    zmtinter =  ComplexCoordSys(ase2ccs(mi[0], zmts, el_nums, elem_num))
 else:
     # internal coordinates are in a ZMatrix2 object
     # Two for the minima, they can be set already
