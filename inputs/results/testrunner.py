@@ -104,21 +104,21 @@ def gen_params_func(*args):
             overrides.append("opt_type = 'multiopt'")
             have_method = True
             if a == 's':
-                overrides.append("cos_type = 'string'")
+                overrides.append("method = 'string'")
             elif a == 'ss':
-                overrides.append("cos_type = 'searchingstring'")
+                overrides.append("method = 'searchingstring'")
             elif a == 'gs':
-                overrides.append("cos_type = 'growingstring'")
+                overrides.append("method = 'growingstring'")
 
         elif a == 's_lbfgs':
-            overrides.append("cos_type = 'string'")
+            overrides.append("method = 'string'")
             overrides.append("opt_type = 'ase_lbfgs'")
             overrides.append("extra_opt_params = {'backtracking': 3, 'alpha': 200}")
             have_method = True
 
         elif a == 'neb':
             overrides.append("opt_type = 'ase_lbfgs'")
-            overrides.append("cos_type = 'neb'")
+            overrides.append("method = 'neb'")
             overrides.append("extra_opt_params = {'backtracking': 3, 'alpha': 200}")
             have_method = True
         elif '=' in a:

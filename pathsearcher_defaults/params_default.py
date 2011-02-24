@@ -11,7 +11,7 @@ from ase.calculators import Vasp, LennardJones
 import pts.config as config
 
 default_params = {
-    "cos_type" : "string",     # what way, e.g. NEB, string, growingstring, searchingstring
+    "method" : "string",     # what way, e.g. NEB, string, growingstring, searchingstring
     "opt_type" : "multiopt",  # the optimizer
     "pmax" : config.DEFAULT_PMAX,
     "pmin" : config.DEFAULT_PMIN,

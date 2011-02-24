@@ -2,7 +2,7 @@
 opt_type = 'ase_lbfgs'
 
 # Chain of State method to use
-cos_type = 'neb'
+method = 'neb'
 
 # mask of variables to freeze
 # True => optimised

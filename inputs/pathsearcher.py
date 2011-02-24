@@ -86,7 +86,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
 def find_path(pes, init_path
                             , beads_count = 7       # 7 beads, thus 5 moving points on path
                             , name = "find-path"    # for output
-                            , cos_type = "string"   # what way, e.g. NEB, string, growingstring, searchingstring
+                            , method = "string"     # what way, e.g. NEB, string, growingstring, searchingstring
                             , opt_type = "multiopt" # the optimizer
                             , spring = 5.0          # only for NEB: spring constant
                             , output_level = 2
@@ -106,7 +106,7 @@ def find_path(pes, init_path
         disk_result_cache = '%s.ResultDict.pickle' % name
 
     # decide which method is actually to be used
-    cos_type = cos_type.lower()
+    method = method.lower()
 
     #
     # NOTE: most of the parameters to optimizers might be passed
@@ -114,7 +114,7 @@ def find_path(pes, init_path
     # the CoS constructors to accept trailing **kwargs for unrecognized
     # keywords, though:
     #
-    if cos_type == 'string':
+    if method == 'string':
          CoS = GrowingString(init_path,
                pes,
                beads_count,
@@ -125,7 +125,7 @@ def find_path(pes, init_path
                head_size=None,
                output_level=output_level,
                max_sep_ratio=0.3)
-    elif cos_type == 'growingstring':
+    elif method == 'growingstring':
          CoS = GrowingString(init_path,
                pes,
                beads_count,
@@ -136,7 +136,7 @@ def find_path(pes, init_path
                head_size=None,
                output_level=output_level,
                max_sep_ratio=0.3)
-    elif cos_type == 'searchingstring':
+    elif method == 'searchingstring':
          CoS = GrowingString(init_path,
                pes,
                beads_count,
@@ -148,7 +148,7 @@ def find_path(pes, init_path
                freeze_beads=True,
                head_size=None, # has no meaning for searching string
                growth_mode='search')
-    elif cos_type == 'neb':
+    elif method == 'neb':
          CoS = NEB(init_path,
                pes,
                spring,
@@ -157,7 +157,7 @@ def find_path(pes, init_path
                output_level=output_level,
                reporting=logfile)
     else:
-         raise Exception('Unknown type: %s' % cos_type)
+         raise Exception('Unknown type: %s' % method)
     #CoS.arc_record = open("archive.pickle", 'w')
     #dump("Version 0.1", CoS.arc_record)
     #dump(mi.build_coord_sys(init_path[0]), CoS.arc_record)
@@ -243,7 +243,7 @@ def mkparams(paramfile = None, **parameter):
 
     # naming for output files
     if params_dict["name"] == None:
-        params_dict["name"] = str(params_dict["cos_type"])
+        params_dict["name"] = str(params_dict["method"])
 
     # This is an alternative way of specifing calculator, default is
     # to keep atoms.get_calculator(): FIXME: this part belongs into
@@ -251,7 +251,7 @@ def mkparams(paramfile = None, **parameter):
     if type(params_dict["calculator"]) == str:
         params_dict["calculator"] = eval_calc(params_dict["calculator"])
 
-    if params_dict["cos_type"].lower() == "neb":
+    if params_dict["method"].lower() == "neb":
         if params_dict["opt_type"] == "multiopt":
             print "The optimizer %s is not designed for working with the method neb", params_dict["opt_type"]
             params_dict["opt_type"] = "ase_lbfgs"

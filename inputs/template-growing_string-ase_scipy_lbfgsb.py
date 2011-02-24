@@ -2,7 +2,7 @@
 opt_type = 'ase_scipy_lbfgsb'
 
 # Chain of State method to use
-cos_type = 'growingstring'
+method = 'growingstring'
 
 # mask of variables to freeze
 # True => optimised

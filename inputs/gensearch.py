@@ -62,8 +62,8 @@ if init_state_vec == None:
     init_state_vec = mi.reagent_coords
 
 # setup searcher i.e. String or NEB
-cos_type = cos_type.lower()
-if cos_type == 'string':
+method = method.lower()
+if method == 'string':
     CoS = pts.searcher.GrowingString(init_state_vec,
           calc_man, 
           beads_count,
@@ -73,7 +73,7 @@ if cos_type == 'string':
           freeze_beads=False,
           head_size=None,
           max_sep_ratio=0.3)
-elif cos_type == 'growingstring':
+elif method == 'growingstring':
     CoS = pts.searcher.GrowingString(init_state_vec,
           calc_man, 
           beads_count,
@@ -83,7 +83,7 @@ elif cos_type == 'growingstring':
           freeze_beads=False,
           head_size=None,
           max_sep_ratio=0.3)
-elif cos_type == 'searchingstring':
+elif method == 'searchingstring':
     CoS = pts.searcher.GrowingString(init_state_vec,
           calc_man, 
           beads_count,
@@ -95,7 +95,7 @@ elif cos_type == 'searchingstring':
           head_size=None, # has no meaning for searching string
           growth_mode='search')
 
-elif cos_type == 'neb':
+elif method == 'neb':
     CoS = pts.searcher.NEB(init_state_vec,
           calc_man, 
           spr_const,
@@ -103,7 +103,7 @@ elif cos_type == 'neb':
           parallel=True,
           reporting=logfile)
 else:
-    raise Exception('Unknown type: %s' % cos_type)
+    raise Exception('Unknown type: %s' % method)
 
 CoS.arc_record = open("archive.pickle", 'w')
 pickle.dump("Version 0.1", CoS.arc_record, protocol=2)
