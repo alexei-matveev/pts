@@ -18,6 +18,7 @@ from pts.memoize import Memoize
 from pts.parasearch import generic_callback
 from pts.searcher import GrowingString, NEB, ts_estims
 from pts.optwrap import runopt
+from pts.sopt import soptimize
 from pts.tools import pickle_path
 from pts.common import file2str
 # be careful: array is needed, when the init_path is an array
@@ -159,6 +160,9 @@ def find_path(pes, init_path
                parallel=True,
                output_level=output_level,
                reporting=logfile)
+    elif method == 'sopt':
+        pass
+        # nothing, but see below ...
     else:
          raise Exception('Unknown type: %s' % method)
 
@@ -172,7 +176,7 @@ def find_path(pes, init_path
          # if output_level > 1:
          #     pickle_path(mi, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
          cb_count_debug += 1
-         return generic_callback(x, None, CoS, tol=tol
+         return generic_callback(x, None, None, tol=tol
                     , name = output_path + "/" + name
                     , output_level=output_level
                     , output_path=output_path
@@ -181,10 +185,19 @@ def find_path(pes, init_path
     # print out initial path
     cb(init_path)
 
-    #
-    # Main optimisation loop:
-    #
-    converged = runopt(opt_type, CoS, callback=cb, **kwargs)
+    if method != 'sopt':
+        #
+        # Main optimisation loop:
+        #
+        converged = runopt(opt_type, CoS, callback=cb, **kwargs)
+        geometries, energies, gradients = CoS.state_vec, CoS.bead_pes_energies, CoS.bead_pes_gradients
+    else:
+        #
+        # Alternative optimizer:
+        #
+        geometries, stats = soptimize(pes, init_path, maxiter=20, maxstep=0.1, callback=cb)
+        _, converged, _, _ = stats
+        energies, gradients = zip(*map(pes.taylor, geometries))
 
 #   # write out path to a file
 #   if output_level > 0:
@@ -192,7 +205,7 @@ def find_path(pes, init_path
 
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration
-    return converged, CoS.get_state_vec(), CoS.bead_pes_energies, CoS.bead_pes_gradients
+    return converged, geometries, energies, gradients
 
 def output(beads, energies, gradients, cartesian):
     """Print user-friendly output.
