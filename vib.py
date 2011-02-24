@@ -283,12 +283,12 @@ def vibmod(mass, hessian):
 
     if pmap is choosen as a parallel variant, all gradient calculations will be performed
     in parallel
-    direction = 'central' should be the most accurate one but 'forward'/'backward' needs 
+    direction = 'central' should be the most accurate one but 'forward'/'backward' needs
     fewer calculations all together (but the results may be really much worse, compare the results
     from the derivatef tests in the doctests.
     delta is the defaultvalue for delta in the derivatef function
 
-    alsovec says that not only the frequencies of the mode but also the eigenvectors are 
+    alsovec says that not only the frequencies of the mode but also the eigenvectors are
     wanted
     """
     mass = asarray(mass)
