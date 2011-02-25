@@ -4,7 +4,7 @@ from pts.path import Path
 from pts.inputs.pathsearcher import find_path
 from numpy import array, linspace
 from sys import argv
-from pts.mueller_brown import MB, CHAIN_OF_STATES
+from pts.mueller_brown import MB
 """
 Small test example with MuellerBrown Potential.
 
@@ -16,6 +16,7 @@ with n beeing the number of beads to optimize.
 By changing the init_path different (parts) of
 the path can be examined.
 """
+convert = Pass_through()
 
 beads_count = int(argv[1])
 
@@ -27,26 +28,7 @@ min3 = CHAIN_OF_STATES[4] # array([ 0.62349942,  0.02803776])
 # Three minima:
 init_path = [min1, min2, min3]
 
-#
-# Initial guess:
-#
-if beads_count != len(init_path):
-    p = Path(init_path)
-    init_path = map(p, linspace(0., 1., beads_count))
-
-#
-# Search by default method:
-#
-res1 = find_path(MB, init_path, ftol = 0.001, maxit = 100)
-
-#
-# Search by an alternative method:
-#
-res2 = find_path(MB, init_path, ftol = 0.001, maxit = 100, method="sopt")
-
-print "\n"
-print "result 1=\n", res1[0], "\n", res1[1], "\n", res1[2], "\n", res1[3]
-print "\n"
-print "result 2=\n", res2[0], "\n", res2[1], "\n", res2[2], "\n", res2[3]
+# the complete run
+conv, path, es, gs = find_path(MB, init_path, ftol = 0.001, maxit = 100, beads_count = bn)
 
 
