@@ -168,20 +168,8 @@ def main(argv=None):
     posonstring = None
     posonstring2 = None
     # load pickle object as seen by Hugh
-    try:
-        coord_b, energy_b, gradients_b, posonstring, posonstring2, at_object =  pickle.load(f_ts)
-        f_ts.close()
-    except :
-        try:
-            f_ts.close()
-            f_ts = open(filename,"r")
-            coord_b, energy_b, gradients_b, posonstring, at_object =  pickle.load(f_ts)
-            f_ts.close()
-        except ValueError:
-            f_ts.close()
-            f_ts = open(filename,"r")
-            coord_b, energy_b, gradients_b, at_object = pickle.load(f_ts)
-            f_ts.close()
+    tuple, at_object =  pickle.load(f_ts)
+    coord_b, energy_b, gradients_b, posonstring, posonstring2 = tuple
     # calculate the (wanted) estimates
     estms, stx1, stx2, stx3 = esttsandmd(coord_b, energy_b, gradients_b, at_object, posonstring, posonstring2, wanted)
     # show the result
@@ -251,6 +239,7 @@ def estfrompathfirst(pt, ts_sum, cs, addtoname, which):
     estfrompath only calculates the one depending on a path
     """
     ts_est = []
+    __, int2cart = cs
     #cs_c = cs.copy()
     if 1 in which:
         ts_est.append(('Highest', pt.ts_highest()[-1]))
@@ -263,8 +252,7 @@ def estfrompathfirst(pt, ts_sum, cs, addtoname, which):
     # generates modevectors to the given TS-estimates
     for name, est in ts_est:
          energy, coords, s0, s1,s_ts,  l, r = est
-         cs.set_internals(coords)
-         modes =  pt.modeandcurvature(s_ts, l, r, cs)
+         modes =  pt.modeandcurvature(s_ts, l, r, int2cart)
          addforces = neighborforces(pt, l, r)
          ts_sum.append((name, est, modes, addforces))
 
@@ -278,6 +266,7 @@ def estfrompath(pt2, ts_sum, cs, addtoname, which ):
     which are choosen and put them back together
     """
     ts_est = []
+    __, int2cart = cs
     #cs_c = cs.copy()
     if 2 in which:
         ts_est.append(('Spline only', pt2.ts_spl()[-1]))
@@ -289,8 +278,7 @@ def estfrompath(pt2, ts_sum, cs, addtoname, which ):
     # generates modevectors to the given TS-estimates
     for name, est in ts_est:
          energy, coords, s0, s1,s_ts,  l, r = est
-         cs.set_internals(coords)
-         modes =  pt2.modeandcurvature(s_ts, l, r, cs)
+         modes =  pt2.modeandcurvature(s_ts, l, r, int2cart)
          addforces = neighborforces(pt2, l, r)
          ts_sum.append((name + addtoname , est, modes, addforces))
 
@@ -562,6 +550,7 @@ def print_estimates(ts_sum, cs, withmodes = False ):
      Prints the transition state estimates with their geometry
      in xyz-style, and their mode vectors if wanted
      """
+     __, int2cart = cs
      print "==================================================="
      print "printing all available transition state estimates"
      print "---------------------------------------------------"
@@ -570,8 +559,7 @@ def print_estimates(ts_sum, cs, withmodes = False ):
           energy, coords, s0, s1,s_ts,  l, r = est
           print "Energy was approximated as:", energy
           print "This gives the positition:"
-          cs.set_internals(coords)
-          print cs.xyz_str()
+          print int2cart(coords)
           print
           if withmodes:
               print "The possible modes are:"
@@ -586,14 +574,17 @@ def print_estimatesdump(ts_sum, cs ):
      """
      Prints all the geometries as a (jmol) xyz file
      """
+     symbs, int2cart = cs
      print
      for name, est, modes, addforces in ts_sum:
-          numats = cs.atoms_count
+          numats = len(symbs)
           print numats
           energy, coords, s0, s1,s_ts,  l, r = est
           print "Energy was approximated as:", energy
-          cs.set_internals(coords)
-          print cs.xyz_str()
+          carts = int2cart(coords)
+          for s, c in zip(symbs, carts):
+              x, y, z = c
+              print '%-2s %22.15f %22.15f %22.15f' % (s, x, y, z)
 
 
 

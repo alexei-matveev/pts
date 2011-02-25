@@ -206,7 +206,7 @@ class PathTools:
 
             yield along_path, across_path
        
-    def modeandcurvature(self, s0, leftbd, rightbd, cs_forcart):
+    def modeandcurvature(self, s0, leftbd, rightbd, int2cart):
         """The mode along the path in the point s0 and
         the curvature for it are given back in several
         possible approximations
@@ -214,8 +214,8 @@ class PathTools:
         if leftbd == rightbd:
             leftbd -= 1
             rightbd += 1
-        leftcoord = cs_forcart.int2cart(self.state[leftbd])
-        rightcoord = cs_forcart.int2cart(self.state[leftbd])
+        leftcoord = int2cart(self.state[leftbd])
+        rightcoord = int2cart(self.state[leftbd])
 
         modedirect = rightcoord - leftcoord
         normer = np.sqrt(sum(sum(modedirect * modedirect)))
@@ -224,14 +224,18 @@ class PathTools:
         modeint = self.state[rightbd] - self.state[leftbd]
         normer = np.sqrt(sum(modeint * modeint))
         modeint /= normer
-        transfer = cs_forcart.get_transform_matrix(self.xs(s0))
-        modefromint = np.dot( np.asarray(modeint), transfer)
+        modeint = np.asarray(modeint)
+        transfer = int2cart.fprime(self.xs(s0))
+        transfer.shape = (modeint.shape[0], -1)
+        modefromint = np.dot( modeint, transfer)
 
         modeint = self.state[-1] - self.state[0]
         normer = np.sqrt(sum(modeint * modeint))
         modeint /= normer
-        transfer = cs_forcart.get_transform_matrix(self.xs(s0))
-        modeallpath = np.dot( np.asarray(modeint), transfer)
+        modeint = np.asarray(modeint)
+        transfer = int2cart.fprime(self.xs(s0))
+        transfer.shape = (modeint.shape[0], -1)
+        modeallpath = np.dot(modeint, transfer)
 
         modeint = self.xs.fprime(s0)
         normer = np.sqrt(sum(modeint * modeint))
@@ -499,6 +503,7 @@ class PathTools:
 
         return ts_list
 
+from copy import deepcopy, copy
 
 def pickle_path(int2cart, ch_symbols, CoS, file):
     tuple = CoS.path_tuple()
