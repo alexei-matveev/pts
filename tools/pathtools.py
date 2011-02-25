@@ -500,12 +500,11 @@ class PathTools:
         return ts_list
 
 
-def pickle_path(mi, CoS, file):
-    a,b,c,d,e = CoS.path_tuple()
-    print "PICKLE",d, e
-    cs = mi.build_coord_sys(a[0])
+def pickle_path(int2cart, ch_symbols, CoS, file):
+    tuple = CoS.path_tuple()
+    cs = (ch_symbols, int2cart)
     f = open(file, 'wb')
-    pickle.dump((a,b,c,d,e,cs), f, protocol=2)
+    pickle.dump((tuple, cs), f, protocol=2)
     f.close()
 
 plot_s = \

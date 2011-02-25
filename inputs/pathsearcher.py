@@ -73,6 +73,8 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     # default to LJ, but rather keep atoms as is?
     pes = compose(QFunc(atoms, atoms.get_calculator()), funcart)
 
+    kwargs["int2cart"] = funcart
+    kwargs["ch_symbols"] = atoms.get_chemical_symbols()
     # Memoize the Func in case evaluations are expensive:
     pes = Memoize(pes)
 
@@ -92,6 +94,8 @@ def find_path(pes, init_path
                             , spring = 5.0          # only for NEB: spring constant
                             , output_level = 2
                             , output_path = "."
+                            , int2cart = 0       # For mere transformation of internal to Cartesians
+                            , ch_symbols = None     # Only needed if output needs them
                             , **kwargs):
     """This one does the real work ...
 
@@ -173,8 +177,8 @@ def find_path(pes, init_path
     # callback function
     def cb(x, tol=0.01):
          global cb_count_debug
-         # if output_level > 1:
-         #     pickle_path(mi, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
+         if output_level > 1:
+             pickle_path(int2cart, ch_symbols, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
          cb_count_debug += 1
          return generic_callback(x, None, None, tol=tol
                     , name = output_path + "/" + name
@@ -199,9 +203,9 @@ def find_path(pes, init_path
         _, converged, _, _ = stats
         energies, gradients = zip(*map(pes.taylor, geometries))
 
-#   # write out path to a file
-#   if output_level > 0:
-#       pickle_path(mi, CoS, "%s.path.pickle" % name)
+    # write out path to a file
+    if output_level > 0:
+        pickle_path(int2cart, ch_symbols, CoS, "%s.path.pickle" % name)
 
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration
