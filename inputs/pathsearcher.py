@@ -165,7 +165,7 @@ def find_path(pes, init_path
                output_level=output_level,
                reporting=logfile)
     elif method == 'sopt':
-        pass
+        CoS = None
         # nothing, but see below ...
     else:
          raise Exception('Unknown type: %s' % method)
