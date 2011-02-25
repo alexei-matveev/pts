@@ -1257,12 +1257,14 @@ class PathRepresentation(object):
         """Returns the tangent to the path at point x <- [0,1]."""
 
         path_tangent = []
+        value = []
         for f in self.__fs:
             path_tangent.append(f.fprime(x))
+            value.append(f(x))
 
         t = array(path_tangent).flatten()
         #t = t / linalg.norm(t)
-        t = t / mt.metric.norm_up(t, f(x))
+        t = t / mt.metric.norm_up(t, value)
         return t
 
     def set_rho(self, new_rho, normalise=True):
