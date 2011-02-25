@@ -71,6 +71,7 @@ def path_to_int(x, y, cs, num, allval, cell, tomove, howmove):
     path1 = Path(y, x)
     path = []
 
+    __, int2cart = cs
     # to decide how long x is, namely what
     # coordinate does the end x have
     # if there is no x at all, the path has
@@ -86,8 +87,7 @@ def path_to_int(x, y, cs, num, allval, cell, tomove, howmove):
          # the internal coordinates are converted
          # to Cartesian by the cs fake-Atoms object
          coord = path1((endx / (num -1) * i))
-         cs.set_internals(coord)
-         cart =  cs.get_cartesians()
+         cart =  int2cart(coord)
          if cell != None:
              cart2 = list(cart)
              expandlist(cart2, cell, tomove, howmove)
@@ -107,10 +107,10 @@ def beads_to_int(ys, cs, allval, cell, tomove, howmove):
     the frames
     """
     beads = []
+    syms, int2cart = cs
 
     for i,y in enumerate(ys):
-         cs.set_internals(y)
-         cart =  cs.get_cartesians()
+         cart = int2cart(y)
          if cell != None:
              cart2 = list(cart)
              expandlist(cart2, cell, tomove, howmove)
