@@ -53,21 +53,8 @@ def read_in_path(filename):
 
     # there are different versions of the path.pickle object around
     # this way all of them should be valid
-    try:
-        coord, energy, gradients, posonstring, posonstring2, at_object =  load(f_ts)
-        f_ts.close()
-    except :
-        try:
-            f_ts.close()
-            f_ts = open(filename,"r")
-            coord, energy, gradients, posonstring, at_object =  load(f_ts)
-            f_ts.close()
-        except ValueError:
-            f_ts.close()
-            f_ts = open(filename,"r")
-            coord, energy, gradients, at_object = load(f_ts)
-            f_ts.close()
-
+    geo_tuple, at_object =  load(f_ts)
+    coord, energy, gradients, posonstring, posonstring2 = geo_tuple
     return posonstring, coord, at_object
 
 def path_geos(x, y, cs, num):
@@ -80,6 +67,7 @@ def path_geos(x, y, cs, num):
     """
     path1 = Path(y, x)
 
+    __, int2cart = cs
     # to decide how long x is, namely what
     # coordinate does the end x have
     # if there is no x at all, the path has
@@ -97,7 +85,7 @@ def path_geos(x, y, cs, num):
          # the internal coordinates are converted
          # to Cartesian by the cs fake-Atoms object
          coord = path1((endx / (num -1) * i))
-         path.append(cs.int2cart(coord))
+         path.append(int2cart(coord))
          xvals.append((endx / (num -1) * i))
 
     return path, xvals
@@ -127,7 +115,7 @@ def print_xyz(x, y, cs, num):
     else:
         endx = float(x[-1])
 
-    symbs = cs._atoms.get_chemical_symbols()
+    symbs, int2cart = cs
     numats = len(symbs)
 
     for i in range(num):
@@ -137,8 +125,7 @@ def print_xyz(x, y, cs, num):
          print numats
          print "This is the %i'th frame" % (i+1)
          coord = path1((endx / (num -1) * i))
-         cs.set_internals(coord)
-         carts = cs.get_cartesians()
+         carts = int2cart(coord)
          for sy, pos in zip(symbs, carts):
              print '%-2s %22.15f %22.15f %22.15f' % (sy, pos[0], pos[1], pos[2])
 
@@ -153,13 +140,12 @@ def print_beads(ys, cs):
     exactly the beads which are used to create
     the frames
     """
-    symbs = cs._atoms.get_chemical_symbols()
+    symbs, int2cart = cs
     numats = len(symbs)
     for i,y in enumerate(ys):
          print numats
          print "This is the %i'th bead" % (i+1)
-         cs.set_internals(y)
-         carts = cs.get_cartesians()
+         carts = int2cart(y)
          for sy, pos in zip(symbs, carts):
              print '%-2s %22.15f %22.15f %22.15f' % (sy, pos[0], pos[1], pos[2])
 
