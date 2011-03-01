@@ -2,7 +2,6 @@
 import sys
 import numpy as np
 from scipy.optimize.optimize import fminbound
-from ase.optimize.optimize import Optimizer
 
 from pts.func import Func
 from pts.common import ObjLog
