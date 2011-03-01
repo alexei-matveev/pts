@@ -1400,8 +1400,12 @@ class GrowingString(ReactionPathway):
            [ 0.,  0.],
            [ 0.,  0.]]))
 
-    >>> s.obj_func_grad(new)
-    array([ 0.        ,  0.        ,  0.02041863, -0.02041863,  0.10998242, -0.10998242,  0.        ,  0.        ])
+    #Because of line breaking do max(abs(s.obj_func_grad - true_result)) nearly 0
+    # instead of looking at s.obj_func_grad directly
+    >>> a1 =  s.obj_func_grad(new)
+    >>> ac = array([ 0.        ,  0.        ,  0.02041863, -0.02041863,  0.10998242, -0.10998242,  0.        ,  0.        ])
+    >>> max(abs(a1 - ac)) < 1e-7
+    True
     >>> array(s.step[1])
     array([ 0.        ,  0.00149034,  0.000736  ,  0.        ])
 
