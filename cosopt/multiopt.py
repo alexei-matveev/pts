@@ -316,16 +316,11 @@ class MultiOpt(ObjLog):
         g.shape = (bs, -1)
 
         # get initial direction from per-bead optimisers
-        dr_raw = np.array([self.bead_opts[i].step(e[i], g[i], r[i], t=ts[i]) for i in range(bs)])
-        self.slog("DR_raw", dr_raw.reshape((bs,-1)))
+        dr = np.array([self.bead_opts[i].step(e[i], g[i], r[i], t=ts[i]) for i in range(bs)])
 
 
-        # project out parallel part of step, not needed as direction already correct
-        dr = dr_raw
-        #dr = self.atoms.exp_project(dr_raw) # - np.dot(dr, t) * t
         self.slog("DR", dr.reshape((bs,-1)))
         self.slog("G", g.reshape((bs,-1)))
-        self.slog("G_proj", self.atoms.exp_project(g))
 
         step_scales = np.array([self.bead_opts[i]._step_scale for i in range(bs)])
 

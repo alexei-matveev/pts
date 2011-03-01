@@ -690,24 +690,6 @@ class ReactionPathway(object):
 
         self.post_obj_func(grad)
 
-    def exp_project(self, vector):
-        """Exports projection functionality from CoS object."""
-        N = self.beads_count
-        assert vector.size >= self.tangents.size
-        v = vector.reshape(-1).copy()
-        v.resize(self.tangents.size)
-        v.shape = (N,-1)
-
-        for i in range(N):
-            # be carful: other order than in obj_func, as we expect
-            # v to be with indice up
-            t = self.tangents[i]
-            t_co = mt.metric.lower(t, self.state_vec[i])
-            v[i] = v[i] - dot(t_co, v[i]) * t / dot(t_co, t)
-            #v[i], _ = project_out(t, v[i])
-
-        return v
-       
     def get_final_bead_ix(self, i):
         """
         Based on bead index |i|, returns final index once string is fully 
