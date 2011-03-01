@@ -469,7 +469,10 @@ def mol_list_to_traj(molinterface, mols, energies, name):
     print "Trajectory written to", path
 
 def dump_steps(chain_of_states):
-    """Prints the steps taken during the optimisation."""
+    """Prints the steps taken during the optimisation.
+
+    FIXME:Seems to be used for NEB only?
+    """
 
     print "Steps taken during the optimisation..."
 
@@ -481,6 +484,8 @@ def dump_steps(chain_of_states):
             diff = curr - prev
 
             diff.shape = (chain_of_states.beads_count, -1)
+            #NNNN: do we need metric here? seems to be some
+            # kind of dead code
             diff = [numpy.linalg.norm(i) for i in diff]
 
     print "Chain energy history..."

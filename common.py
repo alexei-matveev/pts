@@ -286,6 +286,7 @@ def str2file(s, fn):
     lg.info("Writing " + fn)
 
 def normalise(x):
+    # used for zmatrix (and a test) thus no metric consideration
     x = x / numpy.linalg.norm(x)
     return x
 

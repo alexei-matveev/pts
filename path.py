@@ -429,7 +429,9 @@ class Path(Func):
         "Returns the 2-norm of the path tangential wrt spline argument"
 
         df = self.fprime(x)
-        ds = sqrt(dot(df, df))
+        #FIXME: do we want real norm here? it is part of the path-description
+        #ds = sqrt(dot(df, df))
+        ds = mt.metric.norm_up(df, self.f(x))
         return ds
 
     def tangent(self, x):
@@ -438,7 +440,10 @@ class Path(Func):
         # NOT ANYMORE: to avoid things like array([[1],[2]]) flatten:
         # Rather keep the shapes of p(x) and p.tangent(x) consistent:
         t = self.fprime(x) #.flatten()
-        t = t / linalg.norm(t)
+        #FIXME: real norm? projection does not expect vector to have length
+        # any more
+        #t = t / linalg.norm(t)
+        t = t / mt.metric.norm_up(t, self.f(x))
         return t
 
     @property

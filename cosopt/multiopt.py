@@ -209,6 +209,8 @@ class MiniBFGS(ObjLog):
         t_co = mt.metric.lower(t, pos)
         dir = -(grad_co - np.dot(grad, t)*t /np.dot(t_co, t))
         dir = np.asarray(dir)
+        # NNNN: This norm only scales the vector, it will be scaled later, so
+        # it is only needed to change it here if the scaling here has some importance
         norm = np.linalg.norm(dir)
 
         # guards against divide by zero
@@ -241,6 +243,8 @@ def calc_step(dir, H, grad):
     dir = np.asarray(dir)
     H = np.asarray(H)
     grad = np.asarray(grad)
+    # NNNNN: second time scalling (of an already scaled vector)
+    # change this exaclty if and how done in step
     dir = dir / np.linalg.norm(dir)
     def quadradic_energy(s):
         return s*np.dot(grad, dir) + 0.5*s*s*np.dot(dir, np.dot(H, dir))
@@ -326,6 +330,7 @@ class MultiOpt(ObjLog):
 
         dr = self.scale_step(dr, step_scales)
 
+       #NNNN: change norm description in output?
         self.slog("DB: Lengths of steps of each bead:", ['%.5f' % np.linalg.norm(dr_bead) for dr_bead in dr], when='always')
 
         self.atoms.state_vec = (r + dr)

@@ -573,6 +573,7 @@ class MolInterface:
         coordinate system of the optimisation."""
 
         transform_matrix = self.coordsys_trans_matrix(coords)
+        # not with metric because only inequality, only warning about trend
         if numpy.linalg.norm(transform_matrix) > 10:
             lg.warning(common.line() + "Enormous coordinate system derivatives" + common.line())
             lg.warning(logfilename + ": largest elts of trans matrix: " + str(common.vecmaxs(abs(transform_matrix))))
@@ -587,6 +588,7 @@ class MolInterface:
         print grads_cart.shape"""
 
         grads_opt = -numpy.dot(transform_matrix, grads_cart)
+        # not with metric because only inequality, only warning about trend
         if numpy.linalg.norm(grads_opt) > 10 or numpy.linalg.norm(grads_cart) > 10:
             lg.warning(common.line() + "Enormous gradients" + common.line())
             lg.warning(logfilename + ": Largest ZMat gradients: " + str(common.vecmaxs(abs(grads_opt))))
