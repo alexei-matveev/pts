@@ -410,6 +410,124 @@ def tell_params(params):
     for param, value in params.iteritems():
          print "    %s = %s" % (str(param), str(value))
 
+    if old_results != None:
+         print "Results from previous calculations are read in from %s", old_results
+
+
+def interpret_sysargs(rest):
+    """
+    Gets the arguments out of the sys arguemnts if pathsearcher
+    is called interactively
+    """
+    # This values have to be there in any case
+    old_results = None
+    paramfile = None
+    zmatrix = []
+    init_path = None
+
+    if "--help" in rest:
+        print __doc__
+        exit()
+
+    if "--defaults" in rest:
+        tell_default_params()
+        exit()
+
+    # store the geoemtry/atoms files
+    geos = []
+    # additional direct given paramters in here:
+    add_param = {}
+
+    # Now loop over the arguments
+    for i in range(len(rest)):
+        if rest == []:
+            # As we usual read in two at once, we may run out of
+            # arguements before the loop is over
+            break
+        elif rest[0].startswith("--"):
+            # this are the options given as
+            # --option argument
+            o = rest[0][2:]
+            a = rest[1]
+            # filter out the special ones
+            if o == "paramfile":
+                # file containing parameters
+                paramfile = file2str(a)
+            elif o in ( "--init_path"):
+                # inital path as state vector
+                init_path = file2str(a)
+            elif o in ("--old_results"):
+                # file to take results from previous calculations from
+                old_results = a
+            elif o in ("--zmatrix"):
+                # zmatrix if given separate to the geometries
+                zmatrix.append(file2str(a))
+            else:
+                # suppose that the rest are setting parameters
+                # compare the default_params
+                if o in are_floats:
+                    add_param[o] = float(a)
+                elif o in are_ints:
+                    add_param[o] = int(a)
+                else:
+                    add_param[o] = a
+
+            rest = rest[2:]
+        else:
+            # all other things are supposed to be geometries
+            geos.append(rest[0])
+            rest = rest[1:]
+
+    lgeo = len(geos)
+    # we need two files for the two terminal beads
+    # there may be additional ones for the initial path (if
+    # it has not given already directly)
+    if lgeo < 2:
+        print "ERROR: There is the need of at least two files, specifing the geometries"
+        print __doc__
+        exit()
+    elif lgeo > 2:
+        if not init_path == None:
+            print "ERROR: two differnt ways found to specify the inital path"
+            print "Which one should I take?"
+            print "Please give only one init path"
+            print __doc__
+            exit()
+
+        init_path = transformgeo(geos)
+
+    # the two terminal beads
+    tb = transformgeo([geos[0], geos[-1]])
+    tbead_left = tb[0]
+    tbead_right = tb[-1]
+
+    return tbead_left, tbead_right, init_path, old_results, paramfile, zmatrix, add_param
+
+def transformgeo(str1):
+    """
+    Geometry input can be a string (for zmatrix ect.)
+    or an in ase readable format input file
+    if both is possible ASE wins
+    """
+    try:
+        res = read_ase(str1[0])
+        asef = True
+    except ValueError:
+        res = file2str(str1[0])
+        asef = False
+
+    if asef:
+       res = [read_ase(st1) for st1 in str1]
+    else:
+       res = [file2str(st1) for st1 in str1]
+    return res
+
+def main(argv):
+    "To be used as main(sys.argv[1:])"
+    #tell_default_params()
+    tbead_left, tbead_right, init_path, old_results, paramfile, zmatrix, params = interpret_sysargs(argv)
+    pathsearcher(tbead_left, tbead_right, init_path = init_path, paramfile = paramfile, zmatrix = zmatrix, old_results = old_results, **params)
+
 if __name__ == "__main__":
      print __doc__
      tell_default_params()
