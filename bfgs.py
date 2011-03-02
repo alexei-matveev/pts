@@ -76,6 +76,7 @@ __all__ = ["SR1", "LBFGS", "BFGS", "Array"]
 
 from numpy import asarray, empty, dot
 from numpy import eye, outer
+from numpy.linalg import norm
 #from numpy.linalg import solve #, eigh
 
 def _sr1(B, s, y, thresh=1.0e-7):
@@ -414,6 +415,74 @@ class SR1:
             self.B = eye(len(s)) * self.B0
 
         return dot(self.B, s)
+
+class Hughs_Hessian:
+    """
+    Removed BFGS/SR1 code from optimizer multiopt
+    Used BFGS as prototype for the interface, but
+    be aware that this variant needs two more variables for update
+    """
+    def __init__(self, B0=70., update = "SR1", max_H_resets=1e10, id = -1):
+        """
+        Stores all the relevant data
+        """
+        self.B0 = B0
+        self.method = update
+        self.H = None
+        self._max_H_resets = max_H_resets
+        self._H_resets = 0
+        self.id = id
+
+    def update(self, dr, df):
+        """
+        Update the approximated hessian
+
+        It is tested if the
+        step is big enough for performing the actual update
+        if yes the actual update is done.
+
+        Update steps separated from the rest of the code,
+        there is a SR1 and a BFGS update dependant on choice of variable
+        "update" in initializing
+        """
+        if self.H is None:
+            self.H = eye(len(s)) * self.B0
+
+        # do nothing if the step is tiny (and probably hasn't changed at all)
+        if abs(dr).max() < 1e-7: # FIXME: Is this really tiny (enough)?
+            return
+
+        # from the code
+        dg = dot(self.H, dr)
+
+        if self.method == 'SR1':
+            c = df - dot(self.H, dr)
+
+            # guard against division by very small denominator
+            # norm only here to get to know trend
+            if norm(c) * norm(c) > 1e-8:
+                self.H += outer(c, c) / dot(c, dr)
+            else:
+                print "Bead %d: Hessian: skipping SR1 update, denominator too small" % self.id
+        elif self.method == 'BFGS':
+            a = dot(dr, df)
+            b = dot(dr, dg)
+            self.H += outer(df, df) / a - outer(dg, dg) / b
+        else:
+            assert False, 'Should never happen'
+
+    def app(self, s):
+        """Computes y = H * s using internal representation
+        of the hessian H.
+        """
+
+        # initial hessian (in case app() is called first):
+        if self.H is None:
+            self.H = eye(len(s)) * self.B0
+
+        return dot(self.H, s)
+
+
 
 
 class Array:

@@ -8,6 +8,7 @@ from pts.common import ObjLog
 import pts.metric as mt
 from numpy import sqrt
 from time import localtime
+from pts.bfgs import Hughs_Hessian
 
 def disp_step(dr, f):
     dr_f = np.dot(dr.flatten(), f.flatten())
@@ -22,7 +23,7 @@ class MiniBFGS(ObjLog):
     """
     """
 
-    def __init__(self, dims, H0=None, init_step_scale=0.5, max_step_scale=0.5, max_H_resets=1e10, id=-1):
+    def __init__(self, dims, B0=None, init_step_scale=0.5, max_step_scale=0.5, max_H_resets=1e10, id=-1):
         """
         max_scale:
             Maximum scale factor to be applied to the Quasi-Newton step. This
@@ -42,20 +43,23 @@ class MiniBFGS(ObjLog):
         self._max_step_scale = max_step_scale
         self._step_scale = init_step_scale
 
-        if H0 is None:
-            self.H = np.eye(dims)
+        self.hessian_params = {}
+        if B0 is None:
+           self.hessian_params["B0"] = 1.
         else:
-            self.H = H0.copy()
+           self.hessian_params["B0"] = B0
+        self.hessian_params["update"] = 'SR1'
+        self.hessian_params["id"] = id
 
-        self.initH = self.H.copy()
         self._max_H_resets = max_H_resets
         self._H_resets = 0
+        self.H_method = Hughs_Hessian
         self.id = id
-        self.method = 'SR1'
+        self.H = self.H_method( **self.hessian_params)
 
     def predictE(self, pos):
         dx = pos - self._pos0
-        E = self._E0 + np.dot(dx, self._grad0) + 0.5 * np.dot(dx, np.dot(self.H, dx))
+        E = self._E0 + np.dot(dx, self._grad0) + 0.5 * np.dot(dx, self.H.app(dx))
         return E
 
     def calc_step_scale(self, energy, pos, err_per_step=0.1):
@@ -99,46 +103,25 @@ class MiniBFGS(ObjLog):
             # hessian estimate.
             self._step_scale = self.calc_step_scale(energy, pos)
 
-            self.slog("Bead %d: dE = %f" % (self.id, energy - self._E0))
+            dE = energy - self._E0
+            self.slog("Bead %d: dE = %f" % (self.id, dE))
+            dr = pos - self._pos0
+            df = grad - self._grad0
 
             # Update Hessian
-            energy_went_up      = energy > self._E0
+            energy_went_up      = dE > 0.
             more_resets_allowed = self._H_resets < self._max_H_resets
             hessian_inaccurate  = np.abs(self._rho - 1) > 0.1
-            if energy_went_up and more_resets_allowed and hessian_inaccurate:# or (self.id==6 and self._its=10):
-                # reset Hessian to conservative value if energy goes up
-#                self.H *= np.eye(self._dims)
-                self.H = self.initH.copy()#np.min(self.initH[0,0], np.abs(self.H[0,0]).sum() * 2) * np.eye(self._dims)
+            if energy_went_up and more_resets_allowed and hessian_inaccurate:
+                self.H = self.H_method( **self.hessian_params)
                 self.slog("Bead %d: Energy went up, Hessian reset to" % self.id, when='always')
-                self.slog(self.H)
                 self._H_resets += 1
+                # Reset also Scaling factor
                 self._step_scale = self._init_step_scale
             else:
                 dr = pos - self._pos0
-                # do nothing if the step is tiny (and probably hasn't changed at all)
-                if np.abs(dr).max() >= 1e-7:
-                    # BFGS update
-                    df = grad - self._grad0
-                    dg = np.dot(self.H, dr)
-
-                    if self.method == 'SR1':
-                        c = df - np.dot(self.H, dr)
-
-                        # guard against division by very small denominator
-                        if np.linalg.norm(c) * np.linalg.norm(c) > 1e-8:
-                            self.H += np.outer(c, c) / np.dot(c, dr)
-                        else:
-                            self.slog("Bead %d: skipping SR1 update, denominator too small" % self.id, when='always')
-                    elif self.method == 'BFGS':
-                        a = np.dot(dr, df)
-                        b = np.dot(dr, dg)
-                        self.H += np.outer(df, df) / a - np.outer(dg, dg) / b
-                    else:
-                        assert False, 'Should never happen'
-                    self.slog("Bead %d: Hessian (BFGS) updated to" % self.id)
-                    self.slog(self.H)
-
-            self.slog('DB: Hessian min/max abs vals: %.2f %.2f' % (abs(self.H).min(), abs(self.H).max()), when='later')
+                df = grad - self._grad0
+                self.H.update(dr, df)
 
         self._its += 1
 
@@ -174,26 +157,25 @@ class MiniBFGS(ObjLog):
 
 def calc_step(dir, H, grad):
     """
-    >>> np.round(100*calc_step((-1.), (2.), (2.)))
+    >>> np.round(100*calc_step(np.array([-1.]), Hughs_Hessian(B0 = 2.), np.array([2.])))
     100.0
 
-    >>> np.round(100*calc_step((-1,1), ((2,0),(0,2)), (2.,2)))
+    >>> np.round(100*calc_step((-1,1), Hughs_Hessian(B0 = 2.), (2.,2)))
     0.0
 
-    >>> np.round(100*calc_step((-1,-1), ((2,0),(0,2)), (2.,2)))
+    >>> np.round(100*calc_step((-1,-1), Hughs_Hessian(B0 = 2.), (2.,2)))
     141.0
 
 
 
     """
     dir = np.asarray(dir)
-    H = np.asarray(H)
     grad = np.asarray(grad)
     # NNNNN: second time scalling (of an already scaled vector)
     # change this exaclty if and how done in step
     dir = dir / np.linalg.norm(dir)
     def quadradic_energy(s):
-        return s*np.dot(grad, dir) + 0.5*s*s*np.dot(dir, np.dot(H, dir))
+        return s*np.dot(grad, dir) + 0.5*s*s*np.dot(dir, H.app(dir))
 
     # This is silly: I need to change it to solving teh quadratic
     dist = np.atleast_1d(fminbound(quadradic_energy, 0., 2.))[0]
@@ -246,7 +228,7 @@ class MultiOpt(ObjLog):
         self.maxstep = maxstep
 
         # list of per-bead optimisers
-        self.bead_opts = [MiniBFGS(d, H0=np.eye(d)*alpha, id=i) for i in range(self.bs)]
+        self.bead_opts = [MiniBFGS(d, B0=alpha, id=i) for i in range(self.bs)]
         self.slog("Optimiser (MultiOpt): initial step scale factors", [m._step_scale for m in self.bead_opts], when='always')
 
 
