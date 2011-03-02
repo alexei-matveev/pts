@@ -378,14 +378,19 @@ class Metric_reduced(Metric):
 """
 The chosen metric, available are:
    * Default, for which contra- and covariant vectors are the same
-   * and Metric, using a Cartesian metric
+   * Metric, using a Cartesian metric
+   * Metric_reduced, using a Cartesian metric but removing the effects of
+     global rotation and translation. This metric makes only sense for systems in
+     internal coordinates if the coordinates do not contain already any kind of variables
+     for global positioning. It should be expected that a change in the global postitions
+     will have no effect on the energy of the system.
 
-Use metric.version() to find out which one is set currently.
+Use print metric to find out which one is set currently.
 Store and initalize the choosen metric in metric
 Here set up the global variable.
 Before use make sure that it is initalized with a fitting
 variable by function setup_metric.
-Do not import metric directly, as it would be the None version
+Do not import metric directly, as it would be the starting version
 but use for example
 
  import pts.metric as mt
