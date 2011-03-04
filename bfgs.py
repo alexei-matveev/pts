@@ -422,15 +422,13 @@ class Hughs_Hessian:
     Used BFGS as prototype for the interface, but
     be aware that this variant needs two more variables for update
     """
-    def __init__(self, B0=70., update = "SR1", max_H_resets=1e10, id = -1):
+    def __init__(self, B0=70., update = "SR1", id = -1):
         """
         Stores all the relevant data
         """
         self.B0 = B0
         self.method = update
-        self.H = None
-        self._max_H_resets = max_H_resets
-        self._H_resets = 0
+        self.B = None
         self.id = id
 
     def update(self, dr, df):
@@ -445,29 +443,29 @@ class Hughs_Hessian:
         there is a SR1 and a BFGS update dependant on choice of variable
         "update" in initializing
         """
-        if self.H is None:
-            self.H = eye(len(s)) * self.B0
+        if self.B is None:
+            self.B = eye(len(s)) * self.B0
 
         # do nothing if the step is tiny (and probably hasn't changed at all)
         if abs(dr).max() < 1e-7: # FIXME: Is this really tiny (enough)?
             return
 
         # from the code
-        dg = dot(self.H, dr)
+        dg = dot(self.B, dr)
 
         if self.method == 'SR1':
-            c = df - dot(self.H, dr)
+            c = df - dot(self.B, dr)
 
             # guard against division by very small denominator
             # norm only here to get to know trend
             if norm(c) * norm(c) > 1e-8:
-                self.H += outer(c, c) / dot(c, dr)
+                self.B += outer(c, c) / dot(c, dr)
             else:
                 print "Bead %d: Hessian: skipping SR1 update, denominator too small" % self.id
         elif self.method == 'BFGS':
             a = dot(dr, df)
             b = dot(dr, dg)
-            self.H += outer(df, df) / a - outer(dg, dg) / b
+            self.B += outer(df, df) / a - outer(dg, dg) / b
         else:
             assert False, 'Should never happen'
 
@@ -477,10 +475,10 @@ class Hughs_Hessian:
         """
 
         # initial hessian (in case app() is called first):
-        if self.H is None:
-            self.H = eye(len(s)) * self.B0
+        if self.B is None:
+            self.B = eye(len(s)) * self.B0
 
-        return dot(self.H, s)
+        return dot(self.B, s)
 
 
 
