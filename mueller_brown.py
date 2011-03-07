@@ -346,10 +346,14 @@ def show_chain(p=None, style="ro-", save=None, clear=False):
     from pylab import hold, contour, plot, xlim, ylim, show, savefig, clf #, imshow
     from numpy import linspace, empty, transpose
 
+    # intervals:
+    x_range = (-1.0, 1.0)
+    y_range = (-0.2, 1.8)
+
     # create grid:
     n = 100
-    xs = linspace(-1.0, 1.0, n)
-    ys = linspace(-0.2, 1.8, n)
+    xs = linspace(x_range[0], x_range[1], n)
+    ys = linspace(y_range[0], y_range[1], n)
 
     zs = empty((n, n))
     for i in range(n):
@@ -367,7 +371,7 @@ def show_chain(p=None, style="ro-", save=None, clear=False):
 #   imshow(zs, origin='lower', extent=[-1, 1, -1, 2])
 
     # Plotting contour lines:
-    contour(zs, 100, origin='lower', extent=[-1.0, 1.0, -0.2, 1.8])
+    contour(zs, 100, origin='lower', extent=(x_range + y_range))
 
     # three minima, and two TSs:
     points = array(CHAIN_OF_STATES)
@@ -381,8 +385,8 @@ def show_chain(p=None, style="ro-", save=None, clear=False):
     if p is not None:
         plot(p[:, 0], p[:, 1], style)
 
-    ylim(-0.2, 1.8)
-    xlim(-1.0, 1.0)
+    ylim(*y_range)
+    xlim(*x_range)
 
     if save is None:
         show()
