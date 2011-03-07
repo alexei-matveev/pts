@@ -347,7 +347,7 @@ def show_chain(p=None, style="ro-", save=None, clear=False):
     from numpy import linspace, empty, transpose
 
     # intervals:
-    x_range = (-1.0, 1.0)
+    x_range = (-1.2, 0.8)
     y_range = (-0.2, 1.8)
 
     # create grid:
