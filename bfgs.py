@@ -470,8 +470,8 @@ class Hughs_Hessian:
             assert False, 'Should never happen'
 
     def app(self, s):
-        """Computes y = H * s using internal representation
-        of the hessian H.
+        """Computes y = B * s using internal representation
+        of the hessian B.
         """
 
         # initial hessian (in case app() is called first):
