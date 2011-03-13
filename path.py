@@ -290,10 +290,6 @@ class Path(Func):
 
         # TODO check all beads have same dimensionality
 
-    @property
-    def xs(self):
-        return self.__xs.copy()
-
     # The next two implement the interface of Func(),
     # however the path function is vector valued!
     def f(self, x):

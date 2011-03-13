@@ -165,7 +165,7 @@ class PathTools:
         # once and a simple comaprison is made.
         diff = lambda a,b:np.abs(a-b)
         arc = func.Integral(self.xs.tangent_length)
-        self.lengths = np.array([arc(x) for x in self.xs.xs])
+        self.lengths = np.array([arc(x) for x in self.steps])
 #        print "self.lengths", self.lengths
 #        print "self.cart_lengths", self.cart_lengths
         self.s.append("Path length: %s" % self.lengths[-1])
