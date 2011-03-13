@@ -683,7 +683,7 @@ class PathRepresentation(Path):
 
         #  desired fractional positions along the string
         return [ self.arg(s) for s in arcs ]
-            
+
 def write_gplfile(path, file):
     f = open(file, 'w')
     ss = arange(0., 1., 1e-3)
