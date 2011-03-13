@@ -446,12 +446,6 @@ class Path(Func):
         t = t / mt.metric.norm_up(t, self.f(x))
         return t
 
-    @property
-    def tangents(self):
-        """Returns the unit tangents at path nodes."""
-
-        return array([ self.tangent(x) for x in self.__xs ])
-
 class PathRepresentation(Path):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points.
