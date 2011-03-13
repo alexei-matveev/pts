@@ -172,7 +172,7 @@ class PathTools:
 #        print "self.cart_lengths", self.cart_lengths
         self.s.append("Path length: %s" % self.lengths[-1])
         err = self.lengths - self.steps
-        err = [diff(err[i], err[i-1]) for i in range(len(err))[1:]] # why have I redefined err like this?
+        err = [diff(err[i], err[i-1]) for i in range(1, len(err))] # why have I redefined err like this?
         self.s.append("Difference between Pythag v.s. spline positions: %s" % np.array(err).round(4))
 
         # There have been some problems with the calculation of the slope along the path
