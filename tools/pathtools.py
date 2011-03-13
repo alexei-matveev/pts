@@ -15,7 +15,7 @@ import os
 import logging
 
 
-from pts.path import Path
+from pts.path import Path, Arc
 import numpy as np
 from pts.common import vector_angle
 import pts.func as func
@@ -164,7 +164,9 @@ class PathTools:
         # present, calculation of string length is too slow, so it's only done 
         # once and a simple comaprison is made.
         diff = lambda a,b:np.abs(a-b)
-        arc = func.Integral(self.xs.tangent_length)
+
+        # arc(t) computes the length of the path xs(t) from t=0:
+        arc = Arc(self.xs)
         self.lengths = np.array([arc(x) for x in self.steps])
 #        print "self.lengths", self.lengths
 #        print "self.cart_lengths", self.cart_lengths

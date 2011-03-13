@@ -60,7 +60,7 @@ the tangential of the path. Get this by calling the "derivative" method |fprime|
 Using the length of the tangential one can compute the arc length
 of the path section:
 
-    >>> arc = Integral(p.tangent_length)
+    >>> arc = Arc(p)
     >>> arc(0.0)
     0.0
 
@@ -97,7 +97,7 @@ also considered one may do:
 
 The length of the resulting tangent is identically one because of
 the chosen parametrization. Note, that P is not a Path() but rather
-a Func() so that, for example, P.tangent_length() will fail.
+a Func() so that, for example, P.nodes will fail.
 
 A similar functionality is provided by the PathRepresentation class:
 
@@ -424,16 +424,6 @@ class Path(Func):
                 # spline path
                 self.__fs.append(SplineFunc(self.__xs, ys))
 
-
-    def tangent_length(self, x):
-        "Returns the 2-norm of the path tangential wrt spline argument"
-
-        df = self.fprime(x)
-        #FIXME: do we want real norm here? it is part of the path-description
-        #ds = sqrt(dot(df, df))
-        ds = mt.metric.norm_up(df, self.f(x))
-        return ds
-
     def tangent(self, x):
         """Returns the (normalized) tangent to the path at point x <- [0,1]."""
 
@@ -445,6 +435,28 @@ class Path(Func):
         #t = t / linalg.norm(t)
         t = t / mt.metric.norm_up(t, self.f(x))
         return t
+
+class Arc(Integral):
+    """Line integral of over path x(t):
+
+                  t=T
+                  /
+        arc(T) = | dt * | dx/dt |
+                /
+                t=0
+
+        with the length of the tangent dx/dt defined by some norm.
+
+        Defaults to cartesian norm.
+    """
+
+    def __init__(self, x, norm=linalg.norm):
+
+        def sprime(t):
+            return norm(x.fprime(t))
+
+        Integral.__init__(self, sprime)
+
 
 class PathRepresentation(Path):
     """Supports operations on a path represented by a line, parabola, or a 
@@ -481,15 +493,15 @@ class PathRepresentation(Path):
         #
         #       x = arg(s): arc length of the path -> spline argument
         #
-        # by integrating the length of the path tangential tangent_length(x)
+        # by integrating the length of the path tangent.
         #
         # The derivative of s(x) must be positive for s(x) to be invertible.
-        # This is the case for tangent_length() that is the norm of the tangential.
+        # This is the case for tangent length.
         # It is assumed that s(0) = 0.
         #
 
         # Pass integration criteria to scipy.integrate.quad() via **kwargs if desired:
-        self.arc = Integral(self.tangent_length)
+        self.arc = Arc(self)
         self.arg = Inverse(self.arc)
 
         #
@@ -497,8 +509,8 @@ class PathRepresentation(Path):
         # parametrized by spline-argument |a| to the point parametrized by |x|.
         # NOTE: this is NOT the general path weight, just its (cartesian) length.
         #
-        # The cartesian length of the tangential returned by tangent_length()
-        # is by definition the derivative of the path length wrt spline argument:
+        # The length of the tangential is by definition the derivative of the
+        # path length wrt spline argument:
         #
         #  ds / dx = |dp / dx| > 0  =>  s(x) is a monotonic (invertible) function
         #
