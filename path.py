@@ -246,28 +246,18 @@ class Path(Func):
 
     def __init__(self, ys, xs=None):
 
-
-        # FIXME: check all beads have same dimensionality
-
-        # number of path nodes that define a path:
-        self.__node_count = len(ys)
-
-        if xs is not None:
-            # take predefined node spacing:
-            assert len(ys) == len(xs), "%d != %d" % (len(ys), len(xs))
-            self.__xs = asarray(xs)
-        else:
+        if xs is None:
             # generate initial paramaterisation density
             # TODO: Linear at present, perhaps change eventually
-            n = self.__node_count
+            n = len(ys)
             # evenly spaced array of length n from 0.0 to 1.0:
-            self.__xs = array([ i / (n - 1.0) for i in range(n) ])
+            xs = array([ i / (n - 1.0) for i in range(n) ])
+        # else, take predefined node abscissas.
 
-        # here the spline functions will be stored, one for each dimension:
-        self.__fs = [] # redundant
-
-        # so far this only accepts "ys" not "xs":
-        self.set_nodes(ys)
+        # Node is a tuple of (x, y(x)). We use assignment here to test the
+        # property handler (get/set_nodes). FIXME: we pass a tuple of arrays,
+        # not an array of tuples:
+        self.nodes = xs, ys
 
         # generate linear/quadratic/spline representation of the path
         # using the normalized positions chosen above for the respective
@@ -277,6 +267,7 @@ class Path(Func):
         # self.__regen_path_func()
 
         #
+        # COMMENT OUTDATED?
         # This function appeared idempotent, so calling it more than one time
         # doesnt hurt the numbers, only performance. However the legacy
         # behavior of the child class PathRepresentation changes if we
@@ -336,24 +327,36 @@ class Path(Func):
 #   self.__call__() equivalent to self.f() is inherited form Func()
 
     def get_nodes(self):
-        # in the original shape:
-        return self.__ys.reshape((self.__node_count,) + self.__yshape)
-
-    def set_nodes(self, ys, xs=None):
-        """So far does not accepts spacing of nodes in primary (spline) coordinate,
-        only the node positions |ys|. Because it is a property handler.
+        """Property handler, returns a tuple of arrays (xs, ys)
         """
+
+        # abscissas:
+        xs = self.__xs.copy()
+
+        # in the original shape:
+        ys = self.__ys.reshape((self.__node_count,) + self.__yshape)
+
+        return xs, ys
+
+    def set_nodes(self, nodes):
+        """Property handler, expects a tuple of arrays (xs, ys)
+        """
+
+        # Nodes is a tuple of abscisas and vectors:
+        xs, ys = nodes
+
+        assert len(xs) == len(ys)
+
+        # number of path nodes that define a path:
+        self.__node_count = len(ys)
 
         # |ys| is vector of arrays defining the path
         # FXIME: what if each array is of say Nx3 shape?
 
         # will reference original array if the type matches:
-        ys = asarray(ys)
+        ys = asarray(ys) # FIXME: make a copy, by using array()?
 
-        if xs != None:
-            xs = array(xs)
-            assert len(xs) == len(ys)
-            self.__xs = xs
+        self.__xs = array(xs)
 
         # first dimension is the node count:
         # HCM: changed 12/05/2010, nodes count now comes from 
@@ -380,6 +383,7 @@ class Path(Func):
         self.__regen_path_func()
 
         #
+        # COMMENT OUTDATED?
         # This function appeared idempotent, so calling it more than one time
         # doesnt hurt the numbers, only performance. However the legacy
         # behavior of the child class PathRepresentation changes if we
@@ -555,7 +559,7 @@ class PathRepresentation(Path):
         self._old_normd_positions = None
 
         # temporatry wrapper for Path.nodes property.
-        self.state_vec = self.nodes
+#       self.state_vec = self.nodes
 
     def get_fs(self):
         return self.__fs
@@ -597,7 +601,7 @@ class PathRepresentation(Path):
 
 
         # path nodes that are usually consistent with the path parametrization:
-        nodes = self.nodes
+        _xs, nodes = self.nodes
         (reactants, products) = (nodes[0], nodes[-1])
         bead_vectors = array([reactants] + bead_vectors + [products])
         bead_tangents = array([self.tangent(0)] + bead_tangents + [self.tangent(1)])
@@ -623,7 +627,7 @@ class PathRepresentation(Path):
             # currently this assumes to update the nodes of the Path but not
             # to generate a new Path parametrization. Are we misusing parent class
             # for bead storage here?
-            self.set_nodes(bead_vectors, self._normd_positions)
+            self.nodes = self._normd_positions, bead_vectors
             #
             # So, when is appropriate moment to reparametrize the path (regen_path_func())?
             # Should it be initiated from the |state_vec| handler?
@@ -691,7 +695,8 @@ def write_gplfile(path, file):
         f.write('\n')
     f.write('\n\n')
 
-    for i in path.nodes:
+    xs, ys = path.nodes
+    for i in ys:
         f.write('\t'.join(['%f' % num for num in i]))
         f.write('\n')
     f.close()
