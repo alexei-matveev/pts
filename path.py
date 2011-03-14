@@ -424,18 +424,6 @@ class Path(Func):
                 # spline path
                 self.__fs.append(SplineFunc(self.__xs, ys))
 
-    def tangent(self, x):
-        """Returns the (normalized) tangent to the path at point x <- [0,1]."""
-
-        # NOT ANYMORE: to avoid things like array([[1],[2]]) flatten:
-        # Rather keep the shapes of p(x) and p.tangent(x) consistent:
-        t = self.fprime(x) #.flatten()
-        #FIXME: real norm? projection does not expect vector to have length
-        # any more
-        #t = t / linalg.norm(t)
-        t = t / mt.metric.norm_up(t, self.f(x))
-        return t
-
 def cartesian_norm(dx, x):
     "Default cartesian norm of |dx|, |x| is ignored"
 
@@ -689,6 +677,18 @@ class PathRepresentation(Path):
 
         #  desired fractional positions along the string
         return [ self.arg(s) for s in arcs ]
+
+    def tangent(self, x):
+        """Returns the (normalized) tangent to the path at point x <- [0,1]."""
+
+        # NOT ANYMORE: to avoid things like array([[1],[2]]) flatten:
+        # Rather keep the shapes of p(x) and p.tangent(x) consistent:
+        t = self.fprime(x) #.flatten()
+        #FIXME: real norm? projection does not expect vector to have length
+        # any more
+        #t = t / linalg.norm(t)
+        t = t / mt.metric.norm_up(t, self.f(x))
+        return t
 
 def write_gplfile(path, file):
     f = open(file, 'w')
