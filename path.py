@@ -436,6 +436,11 @@ class Path(Func):
         t = t / mt.metric.norm_up(t, self.f(x))
         return t
 
+def cartesian_norm(dx, x):
+    "Default cartesian norm of |dx|, |x| is ignored"
+
+    return linalg.norm(dx)
+
 class Arc(Integral):
     """Line integral of over path x(t):
 
@@ -450,10 +455,11 @@ class Arc(Integral):
         Defaults to cartesian norm.
     """
 
-    def __init__(self, x, norm=linalg.norm):
+    def __init__(self, x, norm=cartesian_norm):
 
         def sprime(t):
-            return norm(x.fprime(t))
+            X, Xprime = x.taylor(t)
+            return norm(Xprime, X)
 
         Integral.__init__(self, sprime)
 
