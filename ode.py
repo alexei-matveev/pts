@@ -9,7 +9,7 @@ way?
 
 __all__ = ["odeint1", "rk45", "rk4", "rk5"]
 
-from numpy import asarray, max, abs, searchsorted
+from numpy import array, max, abs, searchsorted
 from scipy.integrate import odeint
 from func import Func
 
@@ -99,7 +99,8 @@ class ODE(Func):
             array([ 0.,  0.])
         """
 
-        y0 = asarray(y0).copy()
+        # make a copy of the input (paranoya):
+        y0 = array(y0)
 
         # table of know results:
         self.__ts = [t0]
