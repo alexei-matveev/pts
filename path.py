@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-To run these tests, execute "python path_representation.py".
+To run these tests, execute "python path.py".
 
 Example use: define a few nodes, here four nodes in 2D:
 
@@ -12,15 +12,6 @@ and construct a path connecting them by default with 4-equidistant nodes
 
 This builds linear, quadratic or spline representation of the path,
 depending on the number of nodes.
-
-    >>> from copy import deepcopy
-    >>> from pts.metric import setup_metric
-
-    >>> def identity(x):
-    ...     return deepcopy(x)
-
-    >>> setup_metric(identity)
-
 
 Now you can evaluate the path function at any point (between 0 and 1),
 the equidistant values 0, 1/3, 2/3 and 1 correspond to
@@ -100,6 +91,18 @@ the chosen parametrization. Note, that P is not a Path() but rather
 a Func() so that, for example, P.nodes will fail.
 
 A similar functionality is provided by the PathRepresentation class:
+
+FXIME: proper operation of PathRepresentation class needs these
+preparations:
+
+    >>> from copy import deepcopy
+    >>> from pts.metric import setup_metric
+
+    >>> def identity(x):
+    ...     return deepcopy(x)
+
+    >>> setup_metric(identity)
+
 
     >>> p = PathRepresentation(path)
     >>> p.arc(0.0)
