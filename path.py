@@ -357,11 +357,6 @@ class Path(Func):
 
         self.__xs = array(xs)
 
-        # first dimension is the node count:
-        # HCM: changed 12/05/2010, nodes count now comes from 
-        # assert self.__node_count == len(ys), "%d %d" % (self.__node_count, len(ys))
-        self.__node_count = len(ys)
-
         # save original shape of the input arrays:
         self.__yshape = ys[0].shape
 #       print "as is shape=", (self.__node_count,) + self.__yshape
