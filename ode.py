@@ -154,9 +154,7 @@ class ODE(Func):
         #
         # compute y(t):
         #
-        ytab = odeint(f1, y0, [t0, t])
-
-        y = ytab[1]
+        _y0, y = odeint(f1, y0, [t0, t])
 
         # restore original shape:
         y0.shape = self.__yshape
