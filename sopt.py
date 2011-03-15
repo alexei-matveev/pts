@@ -612,13 +612,24 @@ def glambda(G, H, T, A):
     """Compute Lagrange multipliers to compensate for the constrain violation
     that would occur if the motion would proceed along
 
-        dx / dh = - H * g.
+        dX = - H * G.
 
-    Lagrange multipliers "lam" are supposed to be used to add contributions
+    Lagrange multipliers LAM are supposed to be used to add contributions
     PARALLEL to the tangents and thus, redefine the default direction:
 
-        g := g - lam * T   (no sum over path point index i)
+        G := G - LAM * T   (no sum over path point index i)
          i    i     i   i
+
+    This amounts to solving the system of N equations for LAM with N being the
+    number of constraints (equal to the number of points)
+
+        A * dX = 0,  k = 1..N
+         k
+
+    or, more explicitly
+
+        A * H * ( G - LAM * T ) = 0
+         k
     """
 
     # number of constraints:
