@@ -7,7 +7,7 @@ __all__ = []
 
 from numpy import asarray, empty, ones, dot, max, abs, sqrt, shape, linspace
 from numpy import vstack
-# from numpy.linalg import solve #, eigh
+from numpy.linalg import norm as linalg_norm
 from bfgs import LBFGS, BFGS, Array
 
 VERBOSE = True
@@ -25,20 +25,25 @@ from chain import Spacing, Norm, Norm2
 # spacing = Spacing(Norm())
 spacing = Spacing(Norm2())
 
-def tangent1(X):
+def default_norm(dx, x):
+    "Default cartesian norm, x is unused"
+
+    return linalg_norm(dx)
+
+def tangent1(X, norm=default_norm):
     """For n geometries X[:] return n-2 tangents computed
     as averages of forward and backward tangents.
     """
+
     T = []
     for i in range(1, len(X) - 1):
         a = X[i] - X[i-1]
         b = X[i+1] - X[i]
-        # FIXME: works only for 1D arrays a and b:
-        a /= sqrt(dot(a, a))
-        b /= sqrt(dot(b, b))
-        t = a + b
-        t /= sqrt(dot(t, t))
-        T.append(t)
+
+        a /= norm(a, X[i]) # FIXME: (X[i] + X[i-1]) / 2.0 ?
+        b /= norm(b, X[i]) # FIXME: (X[i] + X[i+1]) / 2.0 ?
+
+        T.append(a + b)
 
     return T
 
@@ -46,29 +51,25 @@ def tangent2(X):
     """For n geometries X[:] return n-2 tangents computed
     as central differences.
     """
+
     T = []
     for i in range(1, len(X) - 1):
-        a = X[i-1]
-        b = X[i+1]
-        t = b - a
-        # FIXME: works only for 1D array t:
-        t /= sqrt(dot(t, t))
-        T.append(t)
+        T.append(X[i+1] - X[i-1])
 
     return T
 
 from path import Path
 
-def tangent3(X, s=None):
+def tangent3(X):
     """For n geometries X[:] return n-2 tangents computed
     from a fresh spline interpolation.
     """
-    if s is None:
-        s = linspace(0., 1., len(X))
+
+    s = linspace(0., 1., len(X))
 
     p = Path(X, s)
 
-    return map(p.tangent, s[1:-1])
+    return map(p.fprime, s[1:-1])
 
 from mueller_brown import show_chain
 
