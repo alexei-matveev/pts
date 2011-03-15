@@ -176,19 +176,26 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=ca
 
     tangents = wrap(tangent, x0[0], x0[-1])
 
-    # by default apply constraints that only allow
-    # displacement orthogonal to the tangents:
-    if constraints is None:
-        # make dynamic constran function with this definition
-        # of tangents:
-        constraints = mkconstr1(tangents)
-    else:
+    #
+    # The function "lambdas" is used to compute lagrange multipliers and is
+    # expected to adhere to specific interface.
+    #
+    # By default Lagrange multipliers ensure displacements are orthogonal to
+    # tangents:
+    #
+    lambdas = LAMBDAS
+
+    #
+    # If constraints are provided, use those to define "lambdas":
+    #
+    if constraints is not None:
+        assert False
         # real constraints require also the terminal beads:
         constraints = mkconstr2(constraints, x0[0], x0[-1])
 
-    # prepare function that will compute the largangian
-    # factors for this particular constran:
-    lambdas = mklambda1(constraints)
+        # prepare function that will compute the largangian
+        # factors for this particular constran:
+        lambdas = mklambda1(constraints)
 
     if callback is not None:
         callback = wrap(callback, x0[0], x0[-1])
@@ -542,6 +549,46 @@ def gprime(h, g, H, G0, X0, tangents, lambdas):
 
     return -G2
 
+def LAMBDA(x, g1, g2, h, t):
+    """Find the lagrange factor lam such that
+
+        dx = - h * (g2 - lam * t)
+
+    is orthogonal to t
+
+        t' * dx = 0
+
+    That is solve for lam in
+
+        lam * (t' * h * t) = (t' * h * g2)
+
+    Input:
+        x      -- geometry
+        g1, g2 -- tangential and complimentary components of the gradient
+        h      -- hessian
+        t      -- tangents
+
+    FIXME: needs more general definition of "orthogonality"
+    """
+
+    #
+    # This would appliy the (inverse) hessian twice:
+    #
+    # lam = dot(t, h.inv(g2)) / dot(t, h.inv(t))
+    #
+
+    # This applies hessian once:
+    ht = h.inv(t)
+
+    lam = dot(ht, g2) / dot(ht, t)
+
+    return lam
+
+def LAMBDAS(X, G1, G2, H, T):
+    "Array-version of LAMBDA"
+
+    return map(LAMBDA, X, G1, G2, H, T)
+
 def mklambda1(constr):
     """Returns a function that generates lagrangian "forces" due
     to the differentiable constrain from
@@ -614,28 +661,6 @@ def wrap(tangents, A, B):
         Y = vstack((A, X, B))
         return tangents(Y)
     return _tangents
-
-def mkconstr1(tangents):
-    """Returns dynamic costraint to restrict motion to the planes
-    orthogonal to the tangents.
-    """
-
-    def _constr(X):
-
-        T = tangents(X)
-
-        n = len(T)
-
-        A = zeros((n,) + shape(T))
-        # these constraints are local, A[i, j] == 0 if i /= j:
-        for i in xrange(n):
-            A[i, i, :] = T[i]
-
-        # these constraints have no meaningful values,
-        # only "derivatives":
-        return [None]*len(T), A
-
-    return _constr
 
 def mkconstr2(spacing, A, B):
     """Constrains on the chain of states based on state spacing.
