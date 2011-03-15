@@ -174,7 +174,7 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=ca
     # FIXME: available tangent definitions already expect/accept
     # (a group of) 1D vectors. Reshape them too, if needed.
 
-    tangents = wrap(tangent, x0[0], x0[-1])
+    tangents = wrap1(tangent, x0[0], x0[-1])
 
     #
     # The function "lambdas" is used to compute lagrange multipliers and is
@@ -191,14 +191,14 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=ca
     if constraints is not None:
         assert False
         # real constraints require also the terminal beads:
-        constraints = mkconstr2(constraints, x0[0], x0[-1])
+        constraints = wrap2(constraints, x0[0], x0[-1])
 
         # prepare function that will compute the largangian
         # factors for this particular constran:
         lambdas = mklambda1(constraints)
 
     if callback is not None:
-        callback = wrap(callback, x0[0], x0[-1])
+        callback = wrap1(callback, x0[0], x0[-1])
 
     # for restarts and post-analysis:
     pes = Memoize(pes, filename="soptimize.pkl")
@@ -372,10 +372,10 @@ def respace(x0, tangents, spacing):
 
     # FIXME: available tangent definitions already expect/accept
     # (a group of) 1D vectors. Reshape them too, if needed.
-    tangents = wrap(tangents, x0[0], x0[-1])
+    tangents = wrap1(tangents, x0[0], x0[-1])
 
     # spacing also requires terminal beads:
-    lambdas = wrap(spacing, x0[0], x0[-1])
+    lambdas = wrap1(spacing, x0[0], x0[-1])
 
     xm = resp(x0[1:-1], tangents, lambdas)
 
@@ -653,7 +653,7 @@ def glambda(G, H, T, A):
 
     return lam
 
-def wrap(tangents, A, B):
+def wrap1(tangents, A, B):
     """A decorator for the tangent function tangents(X) that appends
     terminal points A and B before calling it.
     """
@@ -662,7 +662,7 @@ def wrap(tangents, A, B):
         return tangents(Y)
     return _tangents
 
-def mkconstr2(spacing, A, B):
+def wrap2(spacing, A, B):
     """Constrains on the chain of states based on state spacing.
     """
 
