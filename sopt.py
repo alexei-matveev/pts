@@ -494,7 +494,7 @@ def onestep(h, G, H, X, tangents, lambdas):
 
 from numpy.linalg import solve
 
-def gprime(h, g, H, G0, X0, tangents, lambdas):
+def gprime(h, G, H, G0, X0, tangents, lambdas):
     """For the descent procedure return
 
       dg / dh = - (1 - t(g) * t'(g)) * g  + t(g) * lambda(g)
@@ -529,29 +529,26 @@ def gprime(h, g, H, G0, X0, tangents, lambdas):
     """
 
     # X = X(G):
-    X = X0 + H.inv(g - G0)
+    X = X0 + H.inv(G - G0)
 
     # T = T(X(G)):
     T = tangents(X)
 
-    # parallel and orthogonal components of g:
-    G1, G2 = projections(g, T)
+    # compute lagrange factors:
+    LAM = lambdas(X, G, H, T)
 
-    if lambdas is not None:
-        # compute lagrange factors:
-        lam = lambdas(X, G1, G2, H, T)
+    # add lagrange forces, only components parallel
+    # to the tangents is affected:
+    dG = empty(shape(G))
+    for i in xrange(len(G)):
+        dG[i] = G[i] - LAM[i] * T[i]
 
-        # add lagrange forces, only components parallel
-        # to the tangents is affected:
-        for i in xrange(len(G2)):
-            G2[i] -= lam[i] * T[i]
+    return -dG
 
-    return -G2
-
-def LAMBDA(x, g1, g2, h, t):
+def LAMBDA(x, g, h, t):
     """Find the lagrange factor lam such that
 
-        dx = - h * (g2 - lam * t)
+        dx = - h * (g - lam * t)
 
     is orthogonal to t
 
@@ -559,13 +556,13 @@ def LAMBDA(x, g1, g2, h, t):
 
     That is solve for lam in
 
-        lam * (t' * h * t) = (t' * h * g2)
+        lam * (t' * h * t) = (t' * h * g)
 
     Input:
-        x      -- geometry
-        g1, g2 -- tangential and complimentary components of the gradient
-        h      -- hessian
-        t      -- tangents
+        x -- geometry
+        g -- gradient
+        h -- hessian
+        t -- tangent
 
     FIXME: needs more general definition of "orthogonality"
     """
@@ -573,38 +570,37 @@ def LAMBDA(x, g1, g2, h, t):
     #
     # This would appliy the (inverse) hessian twice:
     #
-    # lam = dot(t, h.inv(g2)) / dot(t, h.inv(t))
+    # lam = dot(t, h.inv(g)) / dot(t, h.inv(t))
     #
 
     # This applies hessian once:
     ht = h.inv(t)
 
-    lam = dot(ht, g2) / dot(ht, t)
+    lam = dot(ht, g) / dot(ht, t)
 
     return lam
 
-def LAMBDAS(X, G1, G2, H, T):
+def LAMBDAS(X, G, H, T):
     "Array-version of LAMBDA"
 
-    return map(LAMBDA, X, G1, G2, H, T)
+    return map(LAMBDA, X, G, H, T)
 
 def mklambda1(constr):
     """Returns a function that generates lagrangian "forces" due
     to the differentiable constrain from
 
-        (X, G1, G2, H, T)
+        (X, G, H, T)
 
-    (geometry, tangential and complimentary components of the gradient,
-    hessian, and tangents)
+    (geometry, gradient, hessian, tangents)
     """
 
-    def _lambdas(X, G1, G2, H, T):
+    def _lambdas(X, G, H, T):
         # evaluate constraints and their derivatives:
         c, A = constr(X)
         # print "_lambdas: c=", c
 
         # for historical reasons the main code is here:
-        return glambda(G2, H, T, A)
+        return glambda(G, H, T, A)
 
     return _lambdas
 
