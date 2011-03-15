@@ -253,34 +253,52 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
         # FIXME: better make sure gradients are returned as arrays:
         G = asarray(G)
 
-        # purified gradient for CURRENT geometry, need tangents
-        # just for convergency check:
+        #
+        # Update the hessian representation:
+        #
+        if iteration > 0: # only then R0 and G0 are meaningfull!
+            H.update(R - R0, G - G0)
+
+        #
+        # Convergency checking, based on gradients (gtol) ... {{{
+        #
+
+        # need tangents just for convergency check:
         T = tangents(R)
-        g1, g2 = projections(G, T)
-        if max(abs(g2)) < gtol:
+
+        # lagrange multipliers (in simple case components of gradients parallel
+        # to the tangents):
+        LAM = lambdas(R, G, H, T)
+
+        # remaining gradient for CURRENT geometry just for convergency check:
+        G2 = empty(shape(G)) # move out of the loop
+        for i in xrange(len(G)):
+            G2[i] = G[i] - LAM[i] * T[i]
+
+        if max(abs(G2)) < gtol:
             # FIXME: this may change after update step!
             converged = True
             if VERBOSE:
-                print "sopt: converged by force max(abs(g2)))", max(abs(g2)), '<', gtol
+                print "sopt: converged by force max(abs(G2)))", max(abs(G2)), '<', gtol
 
         if VERBOSE:
             print "sopt: obtained energies E=", asarray(E)
             print "sopt: obtained gradients G="
             print G
-            print "sopt: g(para)=", g1
-            print "sopt: g(ortho norms)=", asarray([sqrt(dot(g, g)) for g in g2])
+            print "sopt: g(para)=", LAM, "(lambdas)"
+            print "sopt: g(ortho norms)=", asarray([sqrt(dot(g, g)) for g in G2])
             print "sopt: g(ortho)="
-            print g2
+            print G2
 
-        # update the hessian representation:
-        if iteration > 0: # only then R0 and G0 are meaningfull!
-            H.update(R - R0, G - G0)
+        # these were used for convergency check, not used below:
+        del T, LAM, G2
+        # ... done convergency check }}}
 
         # first rough estimate of the step:
         dR = onestep(1.0, G, H, R, tangents, lambdas)
 
         # FIXME: does it hold in general?
-        if lambdas is None:
+        if False:
             # assume positive hessian, H > 0
             assert Dot(G, dR) < 0.0
 
@@ -309,7 +327,9 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
             print "ODE step, h=", h, ":"
             print "sopt: dR=", dR
 
-        # check convergence, if any:
+        #
+        # Convergency check by step size (stol) ...
+        #
         if max(abs(dR)) < stol:
             converged = True
             if VERBOSE:
