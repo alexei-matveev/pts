@@ -189,7 +189,6 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=ca
     # If constraints are provided, use those to define "lambdas":
     #
     if constraints is not None:
-        assert False
         # real constraints require also the terminal beads:
         constraints = wrap2(constraints, x0[0], x0[-1])
 
