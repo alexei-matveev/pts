@@ -265,7 +265,8 @@ def test_GrowingString():
 
     # Wrapper callback function
     def mycb(x):
-        gs.update_path(x, respace = True)
+        gs.update_path(x)
+        gs.respace()
 #        surf_plot.plot(x)
         gs.plot()
         return gs.get_state_vec()

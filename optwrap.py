@@ -46,7 +46,7 @@ def runopt(name, CoS, ftol=0.1, xtol=0.03, etol=0.03, maxit=35, maxstep=0.2
             # Exceeding maxit is tested during an energy/gradient call.
             runopt_inner(name, CoS, ftol*0.01, maxit*100, cb, maxstep=maxstep, **kwargs)
         except MustRegenerate:
-            CoS.update_path()
+            CoS.respace()
             record_event(CoS, "Optimisation RESTARTED (respaced)")
             continue
 

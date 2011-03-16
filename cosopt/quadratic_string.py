@@ -12,7 +12,8 @@ def test_QSM():
 
     # Wrapper callback function
     def mycb(x):
-        gs.update_path(x, respace = True)
+        gs.update_path(x)
+        gs.respace()
         gs.plot()
         return gs.get_state_vec()
 
@@ -41,7 +42,8 @@ def test_GQSM():
 
     # Wrapper callback function
     def mycb(x):
-        gs.update_path(x, respace = True)
+        gs.update_path(x)
+        gs.respace()
         gs.plot()
         return gs.get_state_vec()
 
@@ -195,7 +197,8 @@ class QuadraticStringMethod():
             x = self.quadratic_opt(x, g, H)
 
             # respace, recalculate splines
-            self.__string.update_path(x, respace=True)
+            self.__string.update_path(x)
+            self.__string.respace()
 
 #            print "x",x
 #            print "prev_x",prev_x

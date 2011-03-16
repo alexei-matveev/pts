@@ -1513,7 +1513,7 @@ class GrowingString(ReactionPathway):
 
         if x != None:
 
-            self.update_path(x, respace = False)
+            self.update_path(x)
 
 #            self._path_rep.state_vec = array(x).reshape(self.beads_count, -1)
 
@@ -1803,50 +1803,50 @@ class GrowingString(ReactionPathway):
         g = result_bead_forces.flatten()
         return g
 
-    def respace(self):
-        self.update_path(respace=True)
+    def respace(self, smart_abscissa=True):
+        # respace the beads along the path
+        if smart_abscissa:
+            pythag_seps = common.pythag_seps(self.state_vec)
 
-    def update_path(self, state_vec=None, respace=True, smart_abscissa=True):
+            if len(self.state_vec) > 4:
+                # This is a kind of hack to prevent the bits of
+                # spline between the end beads from becoming too curved.
+                pythag_seps[0] *= 0.7
+                pythag_seps[-1] *= 0.7
+            new_abscissa = cumm_sum(pythag_seps, start_at_zero=True)
+            new_abscissa /= new_abscissa[-1]
+            self._path_rep.regen_path_func(normalised_positions=new_abscissa)
+
+        self._path_rep.generate_beads(update=True, update_mask=self.bead_update_mask)
+
+        # The following line ensure that the path used for the next
+        # step is the same as the one that is generated, at a later date,
+        # based on an outputted path pickle.
+        self._path_rep.regen_path_func()
+
+        self.respaces += 1
+
+        # TODO: this must eventually be done somewhere behind the scenes.
+        # I.e. Why would one ever want to update the path but not the tangents?
+        self._path_rep.update_tangents()
+
+    def update_path(self, state_vec):
         """After each iteration of the optimiser this function must be called.
-        It rebuilds a new (spline) representation of the path and then 
+        It rebuilds a new (spline) representation of the path and then
         redestributes the beads according to the density function."""
 
-        if state_vec != None:
-            new = array(state_vec).reshape(self.beads_count, -1)
-            assert new.size == self.state_vec.size
+        new = array(state_vec).reshape(self.beads_count, -1)
+        assert new.size == self.state_vec.size
 
-            tmp = self._path_rep.state_vec.copy()
+        tmp = self._path_rep.state_vec.copy()
 
-            for i in range(self.beads_count):
-                if self.bead_update_mask[i]:
-                    tmp[i] = new[i]
-            self._path_rep.state_vec = tmp # was '= new' until 07/05/10
+        for i in range(self.beads_count):
+            if self.bead_update_mask[i]:
+                tmp[i] = new[i]
+        self._path_rep.state_vec = tmp # was '= new' until 07/05/10
 
-            # rebuild line, parabola or spline representation of path
-            self._path_rep.regen_path_func()
-
-        # respace the beads along the path
-        if respace:
-            if smart_abscissa:
-                pythag_seps = common.pythag_seps(self.state_vec)
-
-                if len(self.state_vec) > 4:
-                    # This is a kind of hack to prevent the bits of
-                    # spline between the end beads from becoming too curved.
-                    pythag_seps[0] *= 0.7
-                    pythag_seps[-1] *= 0.7
-                new_abscissa = cumm_sum(pythag_seps, start_at_zero=True)
-                new_abscissa /= new_abscissa[-1]
-                self._path_rep.regen_path_func(normalised_positions=new_abscissa)
-
-            self._path_rep.generate_beads(update=True, update_mask=self.bead_update_mask)
-
-            # The following line ensure that the path used for the next 
-            # step is the same as the one that is generated, at a later date,
-            # based on an outputted path pickle.
-            self._path_rep.regen_path_func()
-
-            self.respaces += 1
+        # rebuild line, parabola or spline representation of path
+        self._path_rep.regen_path_func()
 
         # TODO: this must eventually be done somewhere behind the scenes.
         # I.e. Why would one ever want to update the path but not the tangents?
