@@ -467,24 +467,21 @@ from numpy.linalg import solve
 def gprime(h, G, H, G0, X0, tangents, lambdas):
     """For the descent procedure return
 
-      dg / dh = - (1 - t(g) * t'(g)) * g  + t(g) * lambda(g)
+      dy / dh = - ( y  - lambda(y) * t(y) )
 
-    The Lagrange contribution parallel to the tangent t(g)
-    is added if the function "lambdas()" is provided.
+    The Lagrange contribution parallel to the tangent t(y) is added if the
+    function "lambdas()" is provided.
 
-    Procedure uses the one-to-one relation between
-    gradients and coordinates
+    Procedure uses the one-to-one relation between coordinates
 
-      (x - x0) = H * (g - g0)
+      (x - x0) = H * (y - y0)
 
-    to compute the tangents:
+    to compute the tangents at x:
 
-      t(x) = t(x(g))
+      t(x) = t(x(y))
 
-    This is NOT the traditional steepest descent
-    where one has instead:
-
-      dx / dh = - (1 - t(x) * t'(x)) * g(x)
+    By now y is the same as the gradient G. Though the positive definite
+    hessian H may distrub this equivalence at some PES regions.
 
     The current form of gprime() translated to real space variables
 
