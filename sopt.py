@@ -20,6 +20,7 @@ CTOL = TOL   # constrain tolerance
 
 MAXITER = 50
 MAXSTEP = 0.05
+SPRING = 100.0
 
 from chain import Spacing, Norm, Norm2
 # spacing = Spacing(Norm())
@@ -183,7 +184,7 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=ca
     # By default Lagrange multipliers ensure displacements are orthogonal to
     # tangents:
     #
-    lambdas = LAMBDAS
+    lambdas = lambda1
 
     #
     # If constraints are provided, use those to define "lambdas":
@@ -194,7 +195,8 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=ca
 
         # prepare function that will compute the largangian
         # factors for this particular constran:
-        lambdas = mklambda1(constraints)
+        lambdas = mklambda3(constraints)
+#       lambdas = mklambda4(constraints)
 
     if callback is not None:
         callback = wrap1(callback, x0[0], x0[-1])
@@ -565,7 +567,19 @@ def gprime(h, G, H, G0, X0, tangents, lambdas):
 
     return -dG
 
-def LAMBDA(x, g, h, t):
+def vectorize(f):
+    """Array-version of f.  Used to build LOCAL lagrange factors.
+
+    FIXME: see if numpy.vectorize can be used
+    """
+
+    def _f(X, G, H, T):
+        return map(f, X, G, H, T)
+
+    return _f
+
+@vectorize
+def lambda1(x, g, h, t):
     """Find the lagrange factor lam such that
 
         dx = - h * (g - lam * t)
@@ -600,12 +614,36 @@ def LAMBDA(x, g, h, t):
 
     return lam
 
-def LAMBDAS(X, G, H, T):
-    "Array-version of LAMBDA"
+@vectorize
+def lambda2(x, g, h, t):
+    """Find the lagrange factor lam such that
 
-    return map(LAMBDA, X, G, H, T)
+        g   =  g - lam * t
+         bot
 
-def mklambda1(constr):
+    is orthogonal to t
+
+        t' * g   =   0
+              bot
+
+    That is solve for lam in
+
+        lam * (t' * t) = (t' * g)
+
+    Input:
+        x -- geometry
+        g -- gradient
+        h -- hessian
+        t -- tangent
+
+    FIXME: needs more general definition of "orthogonality"
+    """
+
+    lam = dot(t, g) / dot(t, t)
+
+    return lam
+
+def mklambda3(constr):
     """Returns a function that generates lagrangian "forces" due
     to the differentiable constrain from
 
@@ -614,15 +652,42 @@ def mklambda1(constr):
     (geometry, gradient, hessian, tangents)
     """
 
-    def _lambdas(X, G, H, T):
+    def lambda3(X, G, H, T):
+
         # evaluate constraints and their derivatives:
         c, A = constr(X)
-        # print "_lambdas: c=", c
 
         # for historical reasons the main code is here:
         return glambda(G, H, T, A)
 
-    return _lambdas
+    return lambda3
+
+def mklambda4(springs, k=SPRING):
+    """Returns a function that generates tangential "forces" due
+    to the springs from provided arguments:
+
+        (X, G, H, T)
+
+    (geometry, gradient, hessian, and tangents)
+    """
+
+    def lambda4(X, G, H, T):
+
+        # these are parallel components of gradients, to be removed:
+        lam2 = lambda2(X, G, H, T)
+
+        # evaluate deviations from equilibrium:
+        c, _ = springs(X)
+
+        # instead add spring forces:
+        lam4 = asarray(c) * k
+
+#       print "LAM (2) =", lam2
+#       print "LAM (4) =", lam4
+
+        return lam2 + lam4
+
+    return lambda4
 
 def glambda(G, H, T, A):
     """Compute Lagrange multipliers to compensate for the constrain violation
