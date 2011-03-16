@@ -434,32 +434,6 @@ def Dot(A, B):
 
     return sum([ dot(a, b) for a, b in zip(A, B) ])
 
-def projections(V, T):
-    """Decompose vectors V into parallel and orthogonal components
-    using the tangents T so that
-
-        v = v2 + v1 * t
-
-    for each (v, t) in zip(V, T).
-
-    Note that we dont assume here anything about
-    the length of t apart from that t /= 0.
-    """
-
-    V1 = empty(len(V))
-    V2 = empty(shape(V))
-
-    for i in xrange(len(V)):
-        v, t = V[i], T[i]
-
-        # parallel component:
-        V1[i] = dot(t, v) / dot(t, t)
-
-        # orthogonal component:
-        V2[i] = v - t * V1[i]
-
-    return V1, V2
-
 from ode import odeint1
 from numpy import log, min, zeros
 
