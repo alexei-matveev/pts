@@ -71,32 +71,40 @@ class ODE(Func):
 
             dy / dt = f(t, y, *args)
 
-        from t0 to t
+        from t0 to t.
+
+        It is supposed to work for any shape of y.
 
         Example:
 
             >>> def f(t, y):
             ...     yp = - (y - 100.0)
-            ...     yp[0] *= 0.01
-            ...     yp[1] *= 100.
+            ...     yp[0, 0] *= 0.01
+            ...     yp[0, 1] *= 100.
+            ...     yp[1, 0] *= 0.1
+            ...     yp[1, 1] *= 1.0
             ...     return yp
 
             >>> t0 = 0.0
-            >>> y0 = [80., 120]
+            >>> y0 = [[80., 120], [20.0, 200.]]
 
             >>> y = ODE(t0, y0, f)
 
             >>> y(0.0)
-            array([  80.,  120.])
+            array([[  80.,  120.],
+                   [  20.,  200.]])
 
             >>> y(1.0)
-            array([ 80.19900377, 100.        ])
+            array([[  80.19900333,   99.99999999],
+                   [  27.61300655,  136.78795028]])
 
-            >>> y(10000.0)
-            array([ 100.,  100.])
+        At large t all elements approach 100.0:
 
-            >>> y.fprime(2.0) - f(2.0, y(2.0))
-            array([ 0.,  0.])
+            >>> max(abs(y(10000.0) - 100.0)) < 1.0e-9
+            True
+
+            >>> max(abs(y.fprime(2.0) - f(2.0, y(2.0)))) == 0.0
+            True
         """
 
         # make a copy of the input (paranoya):
