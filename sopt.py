@@ -5,7 +5,7 @@
 
 __all__ = []
 
-from numpy import asarray, empty, ones, dot, max, abs, sqrt, shape, linspace
+from numpy import array, asarray, empty, ones, dot, max, abs, sqrt, shape, linspace
 from numpy import vstack
 from numpy.linalg import norm as linalg_norm
 from bfgs import LBFGS, BFGS, Array
@@ -74,7 +74,7 @@ def tangent3(X):
 
 from mueller_brown import show_chain
 
-def test(A, B):
+def test(A, B, trafo=None):
 
     print "A=", A
     print "B=", B
@@ -82,6 +82,19 @@ def test(A, B):
     from mueller_brown import MB
 
     x = [A, B]
+
+    # change coordinates:
+    if trafo is not None:
+        from func import compose
+        MB = compose(MB, trafo)
+        x = array(map(trafo.pinv, x))
+
+    def show(x):
+        if trafo is not None:
+            show_chain(map(trafo, x))
+        else:
+            show_chain(x)
+
     n = 3
     n_max = 30
     while True:
@@ -89,21 +102,20 @@ def test(A, B):
         s = linspace(0., 1., n)
         print "s=", s
 
-        x = map(p, s)
-        x = asarray(x)
+        x = array(map(p, s))
 
-        print "x=", x
-        show_chain(x)
+        print "BEFORE, x=", x
+        show(x)
 
-    #   x, stats = soptimize(MB, x, tangent1, spacing, maxiter=20, maxstep=0.1, callback=callback)
-        x, stats = soptimize(MB, x, tangent1, maxiter=20, maxstep=0.1, callback=callback)
-        savetxt("mb-path.txt", x)
-        show_chain(x)
-
-        print "x=", x
         x = respace(x, tangent1, spacing)
-        print "x=", x
-        show_chain(x)
+        print "RESPACE, x=", x
+        print "spacing(x)=", spacing(x)
+        show(x)
+
+#       x, stats = soptimize(MB, x, tangent1, spacing, maxiter=20, maxstep=0.1, callback=callback)
+        x, stats = soptimize(MB, x, tangent1, maxiter=20, maxstep=0.1, callback=callback)
+        savetxt("mb-path.txt-" + str(len(x)), x)
+        show(x)
 
         if n < n_max:
             # double the number of beads:
@@ -777,6 +789,8 @@ if __name__ == "__main__":
 #   test1()
 #   exit()
     from mueller_brown import CHAIN_OF_STATES as P
-    test(P[0], P[4])
+    # from testfuns2 import mb2
+    # trafo = mb2() #[[2.0, 0], [0.0, 0.5]])
+    test(P[0], P[4]) #, trafo)
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
