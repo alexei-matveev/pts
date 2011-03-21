@@ -848,7 +848,7 @@ class NEB(ReactionPathway):
         else:
             pr = PathRepresentation(reagents, beads_count, lambda x: 1)
             pr.regen_path_func()
-            pr.generate_beads(update = True)
+            pr.generate_beads()
             self._state_vec = pr.state_vec.copy()
 
     def update_tangents(self):
@@ -1143,7 +1143,7 @@ class PathRepresentation(object):
 
         lengths = array(lengths).flatten()
 
-    def generate_beads(self, update = False, update_mask=None):
+    def generate_beads(self, update_mask=None):
         """Returns an array of the self.__beads_count vectors of the coordinates 
         of beads along a reaction path, according to the established path 
         (line, parabola or spline) and the parameterisation density."""
@@ -1169,15 +1169,14 @@ class PathRepresentation(object):
         bead_vectors = array([reactants] + bead_vectors + [products])
         bead_tangents = array([self.__get_tangent(0)] + bead_tangents + [self.__get_tangent(1)])
 
-        if update:
-            # OLD: self.state_vec = bead_vectors
-            self.state_vec = masked_assign(update_mask, self.state_vec, bead_vectors)
+        # OLD: self.state_vec = bead_vectors
+        self.state_vec = masked_assign(update_mask, self.state_vec, bead_vectors)
 
-            # OLD: self.__path_tangents = bead_tangents
-            self.__path_tangents = masked_assign(update_mask, self.__path_tangents, bead_tangents)
+        # OLD: self.__path_tangents = bead_tangents
+        self.__path_tangents = masked_assign(update_mask, self.__path_tangents, bead_tangents)
 
-            self.__old_normalised_positions = self.__normalised_positions
-            self.__normalised_positions = array([0.0] + normd_positions + [1.0])
+        self.__old_normalised_positions = self.__normalised_positions
+        self.__normalised_positions = array([0.0] + normd_positions + [1.0])
 
         return bead_vectors
 
@@ -1463,7 +1462,7 @@ class GrowingString(ReactionPathway):
         self._path_rep.regen_path_func()
 
         # Space beads along the path
-        self._path_rep.generate_beads(update = True)
+        self._path_rep.generate_beads()
         self._path_rep.regen_path_func()
 
         self.parallel = parallel
@@ -1623,7 +1622,7 @@ class GrowingString(ReactionPathway):
         # numerical inaccuraties cause them to move and additional beads
         # to have their energies calculated.
         old = self.state_vec.copy()
-        new = self._path_rep.generate_beads(update = True)
+        new = self._path_rep.generate_beads()
         minimal_update(new, old, new_ixs) # only updates new_ixs
         self.bead_update_mask = freeze_ends(self.beads_count)
         self.state_vec = new
@@ -1681,7 +1680,7 @@ class GrowingString(ReactionPathway):
         # build new bead density function based on updated number of beads
         self.update_rho()
         old = self.state_vec.copy()
-        new = self._path_rep.generate_beads(update = True)
+        new = self._path_rep.generate_beads()
         minimal_update(new, old, new_ixs)
 
         # create a new bead_update_mask that permits us to set the state to what we want
@@ -1817,7 +1816,7 @@ class GrowingString(ReactionPathway):
             new_abscissa /= new_abscissa[-1]
             self._path_rep.regen_path_func(normalised_positions=new_abscissa)
 
-        self._path_rep.generate_beads(update=True, update_mask=self.bead_update_mask)
+        self._path_rep.generate_beads(update_mask=self.bead_update_mask)
 
         # The following line ensure that the path used for the next
         # step is the same as the one that is generated, at a later date,
