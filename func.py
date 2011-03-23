@@ -741,15 +741,29 @@ class Integral(Func):
         # these to be passed to |quad| as is:
         self.kwargs = kwargs
 
+        # dict cache for computed integral values:
+        self.__fs = {}
+
     def f(self, x):
         """f(x) as an integral of |fprime| assuming f(x0) = 0
         """
+
+        # alias:
+        fs = self.__fs
+
+        # return cached value, if possible:
+        if x in fs:
+            return fs[x]
 
         # alias:
         x0 = self.x0
 
         (s, err) = quad(self.fprime, x0, x, **self.kwargs)
         assert abs(err) <= abs(s) * 1.0e-3, "%f > %f" % (abs(err), abs(s) * 1.0e-7) # was 1e7, then 1e-7
+
+        # save computed value in cache:
+        fs[x] = s
+
         return s
 
 class Inverse(Func):
