@@ -1073,23 +1073,6 @@ class PathRepresentation(Path):
 
         return (list[-1], zip(param_steps, list))
 
-    def sub_str_lengths(self, normd_poses):
-        # delete this function? 07/05/10
-        """Finds the lengths of the pieces of the string specified in 
-        normd_poses in terms of normalised coordinate."""
-
-        my_normd_poses = array(normd_poses).flatten()
-
-        from scipy.integrate import quad
-        x0 = 0.0
-        lengths = []
-        for pos in my_normd_poses:
-            (len,err) = quad(self.__arc_dist_func, x0, pos)
-            lengths.append(len)
-            x0 = pos
-
-        lengths = array(lengths).flatten()
-
     def generate_beads(self, update_mask=None):
         """Returns an array of the self.__beads_count vectors of the coordinates 
         of beads along a reaction path, according to the established path 
