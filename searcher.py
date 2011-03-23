@@ -59,13 +59,6 @@ def _functionId(nFramesUp):
     co = sys._getframe(nFramesUp+1).f_code
     return "%s (%s @ %d)" % (co.co_name, co.co_filename, co.co_firstlineno)
 
-
-# Function labeller
-"""def flab(*args):
-    import sys
-    args = [str(a) for a in args]
-    lg.info("**** " + sys._getframe(1).f_code.co_name + ' '.join(args))"""
-
 def masked_assign(mask, dst, src):
     """Assigns y to x if mask allows it.
 
