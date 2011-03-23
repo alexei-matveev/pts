@@ -952,8 +952,6 @@ class PathRepresentation(Path):
 
         self.__path_tangents = []
 
-        self.__unit_interval = array((0.0,1.0))
-
         # generate initial paramaterisation density
         # TODO: Linear at present, perhaps change eventually
         points_cnt = len(self.__state_vec)
