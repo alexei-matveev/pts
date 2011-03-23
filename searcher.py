@@ -941,7 +941,7 @@ class NEB(ReactionPathway):
         lg.info("Spring energies %s" % spring_energies)
         return self.bead_pes_energies.sum()# + spring_energies
 
-class PathRepresentation(object):
+class PathRepresentation(Path):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
@@ -957,7 +957,6 @@ class PathRepresentation(object):
         self.__str_resolution = str_resolution
         self.__step = 1.0 / self.__str_resolution
 
-        self.__fs = []
         self.__path_tangents = []
 
         self.__unit_interval = array((0.0,1.0))
@@ -977,6 +976,9 @@ class PathRepresentation(object):
         self._integrals_stale = True
 
         # TODO check all beads have same dimensionality
+
+        # use Path functionality:
+        Path.__init__(self, self.__state_vec, self.__normalised_positions)
 
     @property
     def path_tangents(self):
@@ -1016,30 +1018,8 @@ class PathRepresentation(object):
 
         assert len(self.__state_vec) > 1
 
-        self.__fs = []
-
-#        assert self.__state_vec.shape == (self.beads_count, self.__dimension), "%s" % str(self.__state_vec.shape)
-        for i in range(self.__dimension):
-
-            ys = self.__state_vec[:,i]
-
-            # linear path
-            if len(self.__state_vec) == 2:
-                self.__fs.append(LinFunc(self.__unit_interval, ys))
-
-            # parabolic path
-            elif len(self.__state_vec) == 3:
-
-                # FIXME: at present, transition state assumed to be half way ebtween reacts and prods
-                ps = array((0.0, 0.5, 1.0))
-
-                self.__fs.append(QuadFunc(ps, ys))
-
-            else:
-                # spline path
-                xs = self.__normalised_positions
-                assert len(self.__normalised_positions) == len(self.__state_vec)
-                self.__fs.append(SplineFunc(xs,ys))
+        # use Path functionality, on setting nodes a new parametrizaiton is generated:
+        self.nodes = self.__normalised_positions, self.__state_vec
 
         (str_len_precise, error) = scipy.integrate.quad(self.__arc_dist_func, 0, 1, limit=100)
         lg.debug("String length integration error = " + str(error))
@@ -1051,10 +1031,9 @@ class PathRepresentation(object):
 
 
     def __arc_dist_func(self, x):
-        output = 0
-        for a in self.__fs:
-            output += a.fprime(x)**2
-        return sqrt(output)
+        # use Path functionality:
+        fprime = self.fprime(x)
+        return linalg.norm(fprime)
 
     def get_bead_separations(self):
         """Returns the arc length between beads according to the current 
@@ -1205,20 +1184,17 @@ class PathRepresentation(object):
 
     def __get_bead_coords(self, x):
         """Returns the coordinates of the bead at point x <- [0,1]."""
-        bead_coords = []
-        for f in self.__fs:
-            bead_coords.append(f.f(x))
+
+        # use Path functionality:
+        bead_coords = self(x)
 
         return (array(bead_coords).flatten())
 
     def __get_tangent(self, x):
         """Returns the tangent to the path at point x <- [0,1]."""
 
-        path_tangent = []
-        value = []
-        for f in self.__fs:
-            path_tangent.append(f.fprime(x))
-            value.append(f(x))
+        # use Path functionality:
+        value, path_tangent = self.taylor(x)
 
         t = array(path_tangent).flatten()
         #t = t / linalg.norm(t)
