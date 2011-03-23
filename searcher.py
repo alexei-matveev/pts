@@ -984,9 +984,6 @@ class PathRepresentation(object):
 
         # TODO check all beads have same dimensionality
 
-    """def get_fs(self):
-        return self.__fs"""
-
     @property
     def fs(self):
         return self.__fs
@@ -996,17 +993,6 @@ class PathRepresentation(object):
 
     def positions_on_string(self):
         return self.__normalised_positions
-
-    #def recalc_path_tangents(self):
-        """Returns the unit tangents to the path at the current set of 
-        normalised positions."""
-
-    """        tangents = []
-        for str_pos in self.__normalised_positions:
-            tangents.append(self.__get_tangent(str_pos))
-
-        tangents = array(tangents)
-        return tangents"""
 
     def get_state_vec(self):
         return self.__state_vec
