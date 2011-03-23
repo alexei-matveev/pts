@@ -725,6 +725,16 @@ class CubicSpline(Func):
 class Integral(Func):
     """This is slightly more than a quadrature, because it
     also saves and returns the exact derivative of the integral
+
+
+        >>> from numpy import cos, sin
+        >>> s = Integral(cos)
+        >>> s(0.0)
+        0.0
+        >>> s(1.0) - sin(1.0)
+        0.0
+        >>> s(-1.0) - sin(-1.0)
+        0.0
     """
 
     def __init__(self, fprime, a=0.0, **kwargs):
