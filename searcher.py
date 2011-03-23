@@ -581,12 +581,6 @@ class ReactionPathway(object):
         self.bead_separations = seps
         return seps
 
-    # commented out 06/05/2010 -> not needed? YES NEEDED
-    def pathfs(self):
-        """Used for plotting Analytical PES's"""
-        return None
-        return self.bead_separations
-
     @property
     def dimension(self):
         return self.__dimension
@@ -984,9 +978,6 @@ class PathRepresentation(object):
 
         # TODO check all beads have same dimensionality
 
-    @property
-    def fs(self):
-        return self.__fs
     @property
     def path_tangents(self):
         return self.__path_tangents
@@ -1472,10 +1463,6 @@ class GrowingString(ReactionPathway):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
 
         return len(common.make_like_atoms(self.state_vec))
-
-    def pathfs(self):
-        """Used for plotting Analytical PES's."""
-        return self._path_rep.fs
 
     def pathpos(self):
         return self._path_rep.pathpos()
