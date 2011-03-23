@@ -945,6 +945,8 @@ class PathRepresentation(Path):
 
         # number of vectors defining the path
         self.beads_count = beads_count
+
+        # NOTE: here we assume that state_vec[i] is a 1D array:
         self.__dimension = len(state_vec[0])
 
         self.__str_resolution = str_resolution
@@ -1160,17 +1162,14 @@ class PathRepresentation(Path):
         """Returns the coordinates of the bead at point x <- [0,1]."""
 
         # use Path functionality:
-        bead_coords = self(x)
-
-        return (array(bead_coords).flatten())
+        return self(x)
 
     def __get_tangent(self, x):
         """Returns the tangent to the path at point x <- [0,1]."""
 
         # use Path functionality:
-        value, path_tangent = self.taylor(x)
+        value, t = self.taylor(x)
 
-        t = array(path_tangent).flatten()
         #t = t / linalg.norm(t)
         t = t / mt.metric.norm_up(t, value)
         return t
