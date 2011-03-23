@@ -114,9 +114,6 @@ preparations:
     >>> p.arc(0.5)
     173.76789748627249
 
-    >>> p.arc(0.5, 0.0) + p.arc(1.0, 0.5) - p.arc(1.0, 0.0)
-    0.0
-
 The inverse of the |arc| method is the |arg| method that gives you
 the spline-coordinate of the point separated from the origin by
 any arc length:

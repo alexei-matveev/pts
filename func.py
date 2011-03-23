@@ -741,12 +741,12 @@ class Integral(Func):
         # these to be passed to |quad| as is:
         self.kwargs = kwargs
 
-    def f(self, x, x0=None):
+    def f(self, x):
         """f(x) as an integral of |fprime| assuming f(x0) = 0
-        The two argument version f(x, x0) returns the integral *from* x0 *to* x!
         """
 
-        if x0 is None: x0 = self.x0
+        # alias:
+        x0 = self.x0
 
         (s, err) = quad(self.fprime, x0, x, **self.kwargs)
         assert abs(err) <= abs(s) * 1.0e-3, "%f > %f" % (abs(err), abs(s) * 1.0e-7) # was 1e7, then 1e-7
