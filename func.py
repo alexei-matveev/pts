@@ -745,36 +745,48 @@ class Integral(Func):
         # we do not def fprime(self, x), is it a problem?
         self.fprime = fprime
 
-        # integrate from this (to any x):
-        self.x0 = a
-
         # these to be passed to |quad| as is:
         self.kwargs = kwargs
 
         # dict cache for computed integral values:
-        self.__fs = {}
+        self.__fs = {a: 0.0}
+        self.__xs = [a]
 
     def f(self, x):
         """f(x) as an integral of |fprime| assuming f(x0) = 0
         """
 
-        # alias:
+        # aliases:
         fs = self.__fs
+        xs = self.__xs
 
         # return cached value, if possible:
         if x in fs:
             return fs[x]
 
-        # alias:
-        x0 = self.x0
+        # find (x0, f0) that is not too far from x:
+        i = searchsorted(xs, x)
 
+        # FIXME: pick the closest of x[i-1], x[i]
+        if i > 0:
+            # default to forward integration ...
+            x0 = xs[i-1]
+        else:
+            # ... unless x < min(xs), then integrate backwards:
+            x0 = xs[0]
+
+        # f(x0) is cached, compute the integral from x0 to x:
         (s, err) = quad(self.fprime, x0, x, **self.kwargs)
         assert abs(err) <= abs(s) * 1.0e-3, "%f > %f" % (abs(err), abs(s) * 1.0e-7) # was 1e7, then 1e-7
 
-        # save computed value in cache:
-        fs[x] = s
+        # f(x) = f(x0) + integral from x0 to x:
+        fx = fs[x0] + s
 
-        return s
+        # save computed value in cache:
+        fs[x] = fx
+        xs.insert(i, x)
+
+        return fx
 
 class Inverse(Func):
     """For s = s(x) construct x = x(s)
