@@ -142,7 +142,8 @@ class ODE(Func):
         ys = self.__ys
         f1 = self.__f1
 
-        if t in ts:
+        # return cached value, if possible:
+        if t in ys:
             return ys[t]
 
         i = searchsorted(ts, t)
