@@ -1093,7 +1093,8 @@ class PathRepresentation(Path):
         bead_vectors = []
         bead_tangents = []
         for str_pos in normd_positions:
-            bead_vectors.append(self.__get_bead_coords(str_pos))
+            # use Path functionality:
+            bead_vectors.append(self(str_pos))
             bead_tangents.append(self.__get_tangent(str_pos))
 
         reactants = self.__state_vec[0]
@@ -1157,12 +1158,6 @@ class PathRepresentation(Path):
         # inaccuracies in the integration of the density function above, too
         # many points are generated in str_positions.
         return str_positions[0:self.beads_count-2]
-
-    def __get_bead_coords(self, x):
-        """Returns the coordinates of the bead at point x <- [0,1]."""
-
-        # use Path functionality:
-        return self(x)
 
     def __get_tangent(self, x):
         """Returns the tangent to the path at point x <- [0,1]."""
