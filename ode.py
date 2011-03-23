@@ -7,7 +7,7 @@ tolerance settings may require unnecessary much time. Is there a better
 way?
 """
 
-__all__ = ["odeint1", "rk45", "rk4", "rk5"]
+__all__ = ["ODE", "odeint1", "rk45", "rk4", "rk5"]
 
 from numpy import array, max, abs, searchsorted
 from scipy.integrate import odeint
