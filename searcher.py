@@ -1110,12 +1110,11 @@ class PathRepresentation(Path):
         # many points are generated in str_positions.
         return str_positions[0:self.beads_count-2]
 
-    def set_rho(self, new_rho, normalise=True):
+    def set_rho(self, new_rho):
         """Set new bead density function, ensuring that it is normalised."""
-        if normalise:
-            (integral, err) = scipy.integrate.quad(new_rho, 0.0, 1.0)
-        else:
-            integral = 1.0
+
+        integral, err = scipy.integrate.quad(new_rho, 0.0, 1.0)
+
         self.__rho = lambda x: new_rho(x) / integral
         return self.__rho
 
