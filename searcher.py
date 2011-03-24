@@ -1810,9 +1810,10 @@ class GrowingString(ReactionPathway):
         self._path_rep.update_tangents()
 
     def update_path(self, state_vec):
-        """After each iteration of the optimiser this function must be called.
-        It rebuilds a new (spline) representation of the path and then
-        redestributes the beads according to the density function."""
+        """
+        After each iteration of the optimiser this function must be called.
+        It rebuilds a new (spline) representation of the path
+        """
 
         new = array(state_vec).reshape(self.beads_count, -1)
         assert new.size == self.state_vec.size
