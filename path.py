@@ -228,7 +228,7 @@ from scipy.optimize import brentq as root
 #import matplotlib.pyplot as plt
 
 from numpy import linalg, array, dot, sqrt, arange
-from numpy import asarray, empty, linspace
+from numpy import asarray, empty, zeros, linspace
 
 from func import LinFunc, QuadFunc, SplineFunc, Func, RhoInterval
 from func import Integral, Inverse
@@ -432,12 +432,32 @@ def scatter(rho, weights):
 
         >>> wts = linspace(0.0, 1.0, 5)
 
-        >>> scatter(lambda s: 1.0, wts)
+    Usual density:
+
+        >>> rho = lambda s: 1.0
+
+        >>> scatter(rho, wts)
+        array([ 0.  ,  0.25,  0.5 ,  0.75,  1.  ])
+
+    Alternative implementations, see below:
+
+        >>> scatter1(rho, wts)
+        array([ 0.  ,  0.25,  0.5 ,  0.75,  1.  ])
+
+        >>> scatter2(rho, wts)
         array([ 0.  ,  0.25,  0.5 ,  0.75,  1.  ])
 
     Unnormalized density:
 
-        >>> scatter(lambda s: 10., wts)
+        >>> rho = lambda s: 10.0
+
+        >>> scatter(rho, wts)
+        array([ 0.  ,  0.25,  0.5 ,  0.75,  1.  ])
+
+        >>> scatter1(rho, wts)
+        array([ 0.  ,  0.25,  0.5 ,  0.75,  1.  ])
+
+        >>> scatter2(rho, wts)
         array([ 0.  ,  0.25,  0.5 ,  0.75,  1.  ])
 
     This is a piecewise defined density:
@@ -453,13 +473,16 @@ def scatter(rho, weights):
 
         >>> scatter(rho, wts[1:-1])
         array([ 0.375,  0.5  ,  0.625])
+
+    Neither scatter1() nor scatter2() appear to work for
+    non strictly positive densities rho.
     """
 
     # weight of a string:
     weight = Integral(rho)
 
-    # total weight:
-    W = weight(1.0)
+    # scale up weights so that they have the dimension of the integral:
+    weights = asarray(weights) * weight(1.0)
 
     arcs = empty(len(weights))
 
@@ -473,10 +496,63 @@ def scatter(rho, weights):
         # density rho(s) may not be continuous. Think of piecewise non-zero
         # rho.
         #
-        arcs[i] = root(lambda s: weight(s) - w * W, 0.0, 1.0)
+        arcs[i] = root(lambda s: weight(s) - w, 0.0, 1.0)
 
     return arcs
 
+def scatter1(rho, weights):
+    """See scatter ...
+
+    This one uses relies on Inverse of an Integral.
+    Implementation of Inverse uses the newton method, and
+    will have problems if rho is not strictly positive.
+    """
+
+    # weight of a string, W(S):
+    weight = Integral(rho)
+
+    # arc length, S(W):
+    arc = Inverse(weight)
+
+    # scale up weights so that they have the dimension of the integral:
+    weights = asarray(weights) * weight(1.0)
+
+    return array(map(arc, weights))
+
+def scatter2(rho, weights):
+    """See scatter ...
+
+    Caluculate the function to integrate for the path over
+    at several points, consider this function to be linear
+    in between and calculate with trapez rule the path-length
+    then make an inverse function of it and find the wanted points
+    """
+    from scipy.interpolate import splrep, splev
+
+    # arbitrary number of points:
+    NUM_POINTS = 100
+
+    # equally spaced grid:
+    x = linspace(0.0, 1.0, NUM_POINTS)
+
+    # density at the grid:
+    y = map(rho, x)
+
+    # integral:
+    w = zeros(len(y))
+    for i in range(len(w)-1):
+        w[i+1] = w[i] + 0.5 * (y[i+1] + y[i]) * (x[i+1] - x[i])
+
+    # linear spline, x = x(w)
+    spline = splrep(w, x, k = 1)
+
+    # scale up weights so that they have the dimension of the integral:
+    weights = asarray(weights) * w[-1]
+
+    # evaluate spline:
+    arcs = [splev(p, spline, der=0) for p in weights]
+
+    return array(arcs)
 
 def cartesian_norm(dx, x):
     "Default cartesian norm of |dx|, |x| is ignored"
