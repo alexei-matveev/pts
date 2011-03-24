@@ -976,12 +976,6 @@ class PathRepresentation(Path):
 
 
     @property
-    def path_len(self):
-        from pts.path import Arc
-        arc = Arc(self, norm = mt.metric.norm_up)
-        return arc(1)
-
-    @property
     def path_tangents(self):
         return self.__path_tangents
 
