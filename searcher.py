@@ -1148,8 +1148,37 @@ class PathRepresentation(Path):
 
         # some different variants to set the beads available
         # use the one with integrating over the path lenght
-        scat1 = scatter_inverse( self.taylor, fractional_positions, metric)
+        scat1 = scatter_inverse( self, fractional_positions, metric)
         return scat1
+
+    def scatter_old(self, taylor, fractional_positions, metric):
+        """
+        This is extracted from the old code
+        Calculate for some points the path lenght as sum of the
+        points before
+        Then find the values of them which are nearest to the wanted positions
+        """
+        from time import time
+
+        t0 = time()
+
+        # Find total string length and incremental distances x along the string
+        # in terms of the normalised coodinate y, as a list of (x,y).
+        incremental_positions = self._get_total_str_len( metric, taylor )
+        __, total_str_len = incremental_positions[-1]
+
+        normd_positions = []
+
+        lg.debug("fractional_positions: %s" % fractional_positions)
+        for frac_pos in fractional_positions:
+            for (norm, str) in incremental_positions:
+
+                if str >= frac_pos * total_str_len:
+                    normd_positions.append(norm)
+                    break
+
+        #print "Scatter old lasted", time() - t0
+        return normd_positions
 
 def scatter_inverse( taylor, pos, metric):
     """
@@ -1163,7 +1192,6 @@ def scatter_inverse( taylor, pos, metric):
     from time import time
     #print "Start scatter"
     t0 = time()
-    func = Func(taylor = taylor)
     arc = Arc(func, norm = metric.norm_up)
     total_str_len = arc(1.)
     arg = Inverse(arc)
@@ -1172,7 +1200,7 @@ def scatter_inverse( taylor, pos, metric):
     #print "Scatter inverse lasted", time() - t0
     return t
 
-def scatter_simple_linear( taylor, pos, metric):
+def scatter_simple_linear( func, pos, metric):
     """
     Caluculate the function to integrate for the path over
     at several points, consider this function to be linear
@@ -1180,12 +1208,11 @@ def scatter_simple_linear( taylor, pos, metric):
     then make an inverse function of it and find the wanted points
     """
     from scipy.interpolate import splrep, splev
-    from pts.func import Func, Integral, Inverse
+    from pts.func import Func, Inverse
     from time import time
     num_points = 100
     #print "Start scatter simple"
     t0 = time()
-    func = Func(taylor = taylor)
     y = []
     def sprime(t):
         X, Xprime = func.taylor(t)
