@@ -92,7 +92,7 @@ a Func() so that, for example, P.nodes will fail.
 
 A similar functionality is provided by the PathRepresentation class:
 
-FXIME: proper operation of PathRepresentation class needs these
+FIXME: proper operation of PathRepresentation class needs these
 preparations:
 
     >>> from copy import deepcopy
