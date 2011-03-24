@@ -1189,35 +1189,6 @@ class PathRepresentation(Path):
         scat1 = scatter_inverse( self.taylor, fractional_positions, metric)
         return scat1
 
-    def scatter_old(self, taylor, fractional_positions, metric):
-        """
-        This is extracted from the old code
-        Calculate for some points the path lenght as sum of the
-        points before
-        Then find the values of them which are nearest to the wanted positions
-        """
-        from time import time
-
-        t0 = time()
-
-        # Find total string length and incremental distances x along the string
-        # in terms of the normalised coodinate y, as a list of (x,y).
-        incremental_positions = self._get_total_str_len( metric, taylor )
-        __, total_str_len = incremental_positions[-1]
-
-        normd_positions = []
-
-        lg.debug("fractional_positions: %s" % fractional_positions)
-        for frac_pos in fractional_positions:
-            for (norm, str) in incremental_positions:
-
-                if str >= frac_pos * total_str_len:
-                    normd_positions.append(norm)
-                    break
-
-        #print "Scatter old lasted", time() - t0
-        return normd_positions
-
 def scatter_inverse( taylor, pos, metric):
     """
     Make an Arc functions, which integrates over the points
