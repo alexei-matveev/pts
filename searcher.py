@@ -1111,57 +1111,6 @@ class PathRepresentation(Path):
         # FIXME: for some reason arrays are not welcome:
         return list(args)
 
-def scatter_inverse(func, pos, metric):
-    """
-    Make an Arc functions, which integrates over the points
-
-    Then makes an Inverse function of them and calculates
-    the points where the wanted positions are reached
-    """
-    from pts.path import Arc
-    from pts.func import Inverse
-    #from time import time
-    #print "Start scatter"
-    #t0 = time()
-    arc = Arc(func, norm = metric.norm_up)
-    total_str_len = arc(1.)
-    arg = Inverse(arc)
-    pos = [p * total_str_len for p in pos]
-    t = map(arg, pos)
-    #print "Scatter inverse lasted", time() - t0
-    return t
-
-def scatter_simple_linear(func, pos, metric):
-    """
-    Caluculate the function to integrate for the path over
-    at several points, consider this function to be linear
-    in between and calculate with trapez rule the path-length
-    then make an inverse function of it and find the wanted points
-    """
-    from scipy.interpolate import splrep, splev
-    #from time import time
-    num_points = 100
-    #print "Start scatter simple"
-    #t0 = time()
-    y = []
-    def sprime(t):
-        X, Xprime = func.taylor(t)
-        return metric.norm_up(Xprime, X)
-
-    x = [float(i)/(num_points-1) for i in range(num_points)]
-    y = [ sprime(xi) for xi in x]
-    y_i = zeros(len(y))
-    for i in range(len(y)-1):
-        y_i[i+1] = y_i[i] + 0.5 * (y[i+1] + y[i]) * (x[i+1] - x[i])
-
-    splr = splrep(y_i, x, k = 1)
-
-    total_str_len = y_i[-1]
-    pos = [p * total_str_len for p in pos]
-    t = [splev(p, splr, der=0) for p in pos]
-    #print "Scatter simple  linear lasted", time() - t0
-    return t
-
 class PiecewiseRho:
     """Supports the creation of piecewise functions as used by the GrowingString
     class as the bead density function."""
