@@ -610,12 +610,9 @@ class ReactionPathway(object):
 
     state_vec = property(get_state_vec, set_state_vec)
 
-    def obj_func(self, new_state_vec=None, grad=False):
-        # diffinbeads is only needed for growing string, for everything else it
-        # can be set to zero
-
-        # NOTE: this automatically skips if new_state_vec == None
-        self.state_vec = new_state_vec
+    def obj_func(self, grad=False):
+       ## NOTE: this automatically skips if new_state_vec == None
+       #self.state_vec = new_state_vec
 
 #        self.reporting.write("self.prev_state updated")
 #        self.prev_state = self.state_vec.copy()
@@ -758,7 +755,8 @@ class NEB(ReactionPathway):
            [ 0.,  0.],
            [ 0.,  0.]]))
 
-    >>> neb.obj_func_grad([[0,0],[0.3,0.3],[0.9,0.9],[1,1]]).round(3)
+    >>> neb.state_vec = [[0,0],[0.3,0.3],[0.9,0.9],[1,1]]
+    >>> neb.obj_func_grad().round(3)
     array([-0.   , -0.   , -0.282, -0.318,  0.714,  0.286, -0.   , -0.   ])
 
     >>> neb.step[1].round(1)
@@ -794,7 +792,8 @@ class NEB(ReactionPathway):
     >>> neb = NEB([[0,0],[1,1]], pts.pes.GaussianPES(), 1., beads_count = 3)
     >>> neb.angles
     array([ 180.])
-    >>> neb.obj_func([[0,0],[0,1],[1,1]])
+    >>> neb.state_vec = [[0,0],[0,1],[1,1]]
+    >>> neb.obj_func()
     -1.6878414761432885
     >>> neb.tangents
     array([[ 0.,  1.],
@@ -901,8 +900,8 @@ class NEB(ReactionPathway):
         return self.obj_func()
 
 
-    def obj_func_grad(self, new_state_vec = None):
-        ReactionPathway.obj_func(self, new_state_vec, grad=True)
+    def obj_func_grad(self):
+        ReactionPathway.obj_func(self, grad=True)
 
         result_bead_forces = zeros((self.beads_count, self.dimension))
 #        print "pbf", self.perp_bead_forces.reshape((-1,2))
@@ -927,9 +926,9 @@ class NEB(ReactionPathway):
         g = -result_bead_forces.flatten()
         return g
 
-    def obj_func(self, new_state_vec = None, grad=False):
+    def obj_func(self, grad=False):
 
-        ReactionPathway.obj_func(self, new_state_vec)
+        ReactionPathway.obj_func(self)
 
         spring_energies = self.base_spr_const * self.bead_separations**2
         spring_energies = 0.5 * numpy.sum (spring_energies)
@@ -1390,7 +1389,8 @@ class GrowingString(ReactionPathway):
 
     #Because of line breaking do max(abs(s.obj_func_grad - true_result)) nearly 0
     # instead of looking at s.obj_func_grad directly
-    >>> a1 =  s.obj_func_grad(new)
+    >>> s.state_vec = new
+    >>> a1 =  s.obj_func_grad()
     >>> ac = array([ 0.        ,  0.        ,  0.02041863, -0.02041863,  0.10998242, -0.10998242,  0.        ,  0.        ])
     >>> max(abs(a1 - ac)) < 1e-7
     True
@@ -1400,7 +1400,8 @@ class GrowingString(ReactionPathway):
     Changed code of respacing, old result was:
     array([ 0.        ,  0.00149034,  0.000736  ,  0.        ])
 
-    >>> s.obj_func_grad([[0,0],[0.3,0.3],[0.9,0.9],[1,1]]).round(3)
+    >>> s.state_vec = [[0,0],[0.3,0.3],[0.9,0.9],[1,1]]
+    >>> s.obj_func_grad().round(3)
     array([ 0.   ,  0.   ,  0.018, -0.018,  0.214, -0.214,  0.   ,  0.   ])
     >>> s.lengths_disparate()
     False
@@ -1759,22 +1760,16 @@ class GrowingString(ReactionPathway):
         return diffs.max() > self.__max_sep_ratio
 
 
-    def obj_func(self, new_state_vec=None, individual=False):
-        # growing string object needs to know how many beads should be added
-        # for knowing the correct bead number _____AN
-#        diffbeads = self.__final_beads_count - self.beads_count
-        ReactionPathway.obj_func(self, new_state_vec)
+    def obj_func(self, individual=False):
+        ReactionPathway.obj_func(self)
 
         if individual:
             return self.bead_pes_energies
         else:
             return self.bead_pes_energies.sum()
 
-    def obj_func_grad(self, new_state_vec = None, raw=False):
-        # growing string object needs to know how many beads should be added
-        # for knowing the correct bead number _____AN
-        #diffbeads = self.__final_beads_count - self.beads_count
-        ReactionPathway.obj_func(self, new_state_vec, grad=True)
+    def obj_func_grad(self,  raw=False):
+        ReactionPathway.obj_func(self,  grad=True)
 
         result_bead_forces = zeros((self.beads_count, self.dimension))
         if raw:
