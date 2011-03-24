@@ -81,7 +81,7 @@ from numpy import asarray, empty, dot, sqrt, sin, cos, abs, array, eye, diag, ze
 from numpy import arccos
 from numpy import trace, pi, finfo, cross
 from numpy import max
-from numpy import outer, hstack, vstack
+from numpy import outer
 from func import Func
 
 __all__ = ["rotmat", "r3", "reper"]
@@ -770,18 +770,21 @@ class _Reper(Func):
         # di/du =                 di/dj * dj/du:
         iv =                 dot(E(-k), jv)
 
-        f = array([i, j, k])
+        f = empty((3, 3))
+        f[0] = i
+        f[1] = j
+        f[2] = k
 
         # convention: fprime[i, k] = df_i / dx_k
-        iprime = hstack((iu, iv))
-        jprime = hstack((ju, jv))
-        kprime = hstack((ku, kv))
+        fprime = empty((3, 3, 2, 3))
+        fprime[0, :, 0, :] = iu
+        fprime[0, :, 1, :] = iv
+        fprime[1, :, 0, :] = ju
+        fprime[1, :, 1, :] = jv
+        fprime[2, :, 0, :] = ku
+        fprime[2, :, 1, :] = kv
 
-        fprime = vstack((iprime,\
-                         jprime,\
-                         kprime))
-
-        return f, fprime.reshape((3, 3, 2, 3))
+        return f, fprime
 
 # one instance of Reper(Func):
 reper = _Reper()
