@@ -1019,7 +1019,7 @@ class PathRepresentation(Path):
 
         self._funcs_stale = False
 
-    def __arc_dist_func(self, x, metric, taylor):
+    def __arc_dist_func(self, x, metric):
         output = 0
         value, tangent = self.taylor( x)
 
@@ -1037,7 +1037,7 @@ class PathRepresentation(Path):
             seps = []
             def arc_fun(x):
                 # arc_dist_func needs also knowledge of some kind of metric
-                return self.__arc_dist_func(x, mt.metric, self.taylor)
+                return self.__arc_dist_func(x, mt.metric)
 
             for i in range(N)[1:]:
                 l, _ = scipy.integrate.quad(arc_fun, a[i-1], a[i])
@@ -1048,6 +1048,29 @@ class PathRepresentation(Path):
             self._integrals_stale = False
 
         return self.seps
+
+    def _get_total_str_len(self, metric, taylor):
+        """Returns a duple of the total length of the string and a list of 
+        pairs (x,y), where x a distance along the normalised path (i.e. on 
+        [0,1]) and y is the corresponding distance along the string (i.e. on
+        [0,string_len])."""
+        
+        print "Starting slow function: _get_total_str_len()"
+        # number of points to chop the string into
+        param_steps = arange(0, 1, self.__step)
+
+        list = []
+        cummulative = 0
+
+        for i in range(self.__str_resolution):
+            pos = (i + 0.5) * self.__step
+            sub_integral = self.__step * self.__arc_dist_func(pos, metric, taylor)
+            cummulative += sub_integral
+            list.append(cummulative)
+
+
+        print "Finishing slow function: _get_total_str_len()"
+        return zip(param_steps, list)
 
     def generate_beads(self, metric, update_mask=None):
         """Returns an array of the self.__beads_count vectors of the coordinates 
