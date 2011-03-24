@@ -987,11 +987,6 @@ class PathRepresentation(Path):
 
     state_vec = property(get_state_vec, set_state_vec)
 
-    __path_len = -1
-    @property
-    def path_len(self):
-        return self.__path_len
-
     @property
     def dimension(self):
         return self.__dimension
@@ -1011,7 +1006,6 @@ class PathRepresentation(Path):
         # use Path functionality, on setting nodes a new parametrizaiton is generated:
         self.nodes = self.__normalised_positions, self.__state_vec
 
-        self.__path_len = str_len_precise
         def arc_fun(x):
             # arc_dist_func needs also knowledge of some kind of metric
             return self.__arc_dist_func(x, mt.metric, self.taylor)
@@ -1067,9 +1061,6 @@ class PathRepresentation(Path):
             cummulative += sub_integral
             list.append(cummulative)
 
-        #lg.debug('int_approx = {0}, int_accurate = {1}'.format(cummulative, str_len_precise))
-        err = abs(list[-1] - self.__path_len)
-        assert err < 1e-4, "%e" % err
 
         print "Finishing slow function: _get_total_str_len()"
         return zip(param_steps, list)
