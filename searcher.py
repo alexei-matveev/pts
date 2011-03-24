@@ -4,7 +4,6 @@ import sys
 import inspect
 
 import scipy.integrate
-from scipy.optimize import fminbound
 from scipy.optimize import brentq as root
 
 from scipy import interpolate
@@ -14,11 +13,11 @@ from copy import deepcopy
 import pickle
 
 # TODO: change to import numpy as np???
-from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot, eye, outer, inf, isnan, isfinite, size, vstack, atleast_1d
+from numpy import linalg, zeros, array, ones, arange, ceil, abs, sqrt, dot, size
 from numpy import linspace
 
 from path import Path
-from func import LinFunc, QuadFunc, SplineFunc, RhoInterval
+from func import RhoInterval
 from func import Integral
 
 from common import * # TODO: must unify
