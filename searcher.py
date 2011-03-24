@@ -987,7 +987,7 @@ class PathRepresentation(Path):
         """Rebuild a new path function and the derivative of the path based on 
         the contents of state_vec."""
 
-        assert self._funcs_stale or (not normalised_positions is None), self._funcs_stale
+        assert self._funcs_stale or (normalised_positions is not None), self._funcs_stale
 
         if not normalised_positions is None:
             assert len(normalised_positions) == self.beads_count
