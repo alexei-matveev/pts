@@ -5,6 +5,7 @@ import inspect
 
 import scipy.integrate
 from scipy.optimize import fminbound
+from scipy.optimize import brentq as root
 
 from scipy import interpolate
 import tempfile, os
@@ -14,9 +15,11 @@ import pickle
 
 # TODO: change to import numpy as np???
 from numpy import linalg, floor, zeros, array, ones, arange, arccos, hstack, ceil, abs, ndarray, sqrt, column_stack, dot, eye, outer, inf, isnan, isfinite, size, vstack, atleast_1d
+from numpy import linspace
 
 from path import Path
 from func import LinFunc, QuadFunc, SplineFunc, RhoInterval
+from func import Integral
 
 from common import * # TODO: must unify
 import pts.common as common
@@ -1089,26 +1092,33 @@ class PathRepresentation(Path):
         self.beads_count, generates the fractional positions along the string 
         at which beads should occur."""
 
-        param_steps = arange(0, 1 - self.__step, self.__step)
-        integrated_density_inc = 1.0 / (self.beads_count - 1.0)
-        requirement_for_next_bead = integrated_density_inc
+        # weight function:
+        weight = Integral(self.__rho)
 
-        integral = 0
-        str_positions = []
-        prev_s = 0
-        for s in param_steps:
-            integral += 0.5 * (self.__rho(s) + self.__rho(prev_s)) * self.__step
-            if integral > requirement_for_next_bead:
-                str_positions.append(s)
-                requirement_for_next_bead += integrated_density_inc
-            prev_s = s
-        
-#        dump_diffs("spd", str_positions)
+        # total weight:
+        W = weight(1.0)
 
-        # Return first self.beads_count-2 points. Reason: sometimes, due to
-        # inaccuracies in the integration of the density function above, too
-        # many points are generated in str_positions.
-        return str_positions[0:self.beads_count-2]
+        # where to put beads:
+        weights = linspace(0.0, W, self.beads_count)
+
+        # FIXME: I guess this method is not supposed to return terminal beads?
+        weights = weights[1:-1]
+
+        arcs = []
+        for w in weights:
+            #
+            # for each weight w solve the equation
+            #
+            #   weight(s) == w
+            #
+            # without using derivatives. Note that the derivative, which is the
+            # density rho(s) may not be continuous. See PiecewiseRho class.
+            #
+            s = root(lambda s: weight(s) - w, 0.0, 1.0)
+
+            arcs.append(s)
+
+        return array(arcs)
 
     def set_rho(self, new_rho):
         """Set new bead density function, ensuring that it is normalised."""
