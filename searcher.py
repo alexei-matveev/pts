@@ -4,7 +4,6 @@ import sys
 import inspect
 
 import scipy.integrate
-from scipy.optimize import brentq as root
 
 from scipy import interpolate
 import tempfile, os
@@ -16,9 +15,8 @@ import pickle
 from numpy import linalg, zeros, array, ones, arange, ceil, abs, sqrt, dot, size
 from numpy import linspace
 
-from path import Path
+from path import Path, scatter
 from func import RhoInterval
-from func import Integral
 
 from common import * # TODO: must unify
 import pts.common as common
@@ -1083,39 +1081,6 @@ class PathRepresentation(Path):
     def pathpos(self):
         return (self.__normalised_positions, self.__old_normalised_positions)
 
-    def __get_str_positions(self):
-        """Based on the provided density function self.__rho(x) and 
-        self.beads_count, generates the fractional positions along the string 
-        at which beads should occur."""
-
-        # weight function:
-        weight = Integral(self.__rho)
-
-        # total weight:
-        W = weight(1.0)
-
-        # where to put beads:
-        weights = linspace(0.0, W, self.beads_count)
-
-        # FIXME: I guess this method is not supposed to return terminal beads?
-        weights = weights[1:-1]
-
-        arcs = []
-        for w in weights:
-            #
-            # for each weight w solve the equation
-            #
-            #   weight(s) == w
-            #
-            # without using derivatives. Note that the derivative, which is the
-            # density rho(s) may not be continuous. See PiecewiseRho class.
-            #
-            s = root(lambda s: weight(s) - w, 0.0, 1.0)
-
-            arcs.append(s)
-
-        return array(arcs)
-
     def set_rho(self, new_rho):
         """Set new bead density function, ensuring that it is normalised."""
 
@@ -1129,11 +1094,14 @@ class PathRepresentation(Path):
 
         # Get fractional positions along string, based on bead density function
         # and the desired total number of beads
-        fractional_positions = self.__get_str_positions()
+        weights = linspace(0.0, 1.0, self.beads_count)
+
+        # FIXME: I guess this method is not supposed to return terminal beads?
+        arcs = scatter(self.__rho, weights[1:-1])
 
         # some different variants to set the beads available
         # use the one with integrating over the path lenght
-        scat1 = scatter_inverse( self, fractional_positions, metric)
+        scat1 = scatter_inverse(self, arcs, metric)
         return scat1
 
 def scatter_inverse(func, pos, metric):
