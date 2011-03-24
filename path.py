@@ -235,10 +235,6 @@ from func import LinFunc, QuadFunc, SplineFunc, Func, RhoInterval
 from func import Integral, Inverse
 import pts.metric as mt
 
-# simplified logger:
-import sys
-def debug(msg): sys.stderr.write(msg + "\n")
-
 class Path(Func):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points.
