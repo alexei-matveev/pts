@@ -1207,9 +1207,9 @@ def scatter_inverse( taylor, pos, metric):
     """
     from pts.path import Arc
     from pts.func import Inverse, Func
-    from time import time
+    #from time import time
     #print "Start scatter"
-    t0 = time()
+    #t0 = time()
     arc = Arc(func, norm = metric.norm_up)
     total_str_len = arc(1.)
     arg = Inverse(arc)
@@ -1227,10 +1227,10 @@ def scatter_simple_linear( func, pos, metric):
     """
     from scipy.interpolate import splrep, splev
     from pts.func import Func, Inverse
-    from time import time
+    #from time import time
     num_points = 100
     #print "Start scatter simple"
-    t0 = time()
+    #t0 = time()
     y = []
     def sprime(t):
         X, Xprime = func.taylor(t)
