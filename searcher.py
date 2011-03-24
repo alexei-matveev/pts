@@ -1064,12 +1064,12 @@ class PathRepresentation(Path):
         for str_pos in normd_positions:
             # use Path functionality:
             bead_vectors.append(self(str_pos))
-            bead_tangents.append(self.__get_tangent(str_pos))
+            bead_tangents.append(self.fprime(str_pos))
 
         reactants = self.__state_vec[0]
         products = self.__state_vec[-1]
         bead_vectors = array([reactants] + bead_vectors + [products])
-        bead_tangents = array([self.__get_tangent(0)] + bead_tangents + [self.__get_tangent(1)])
+        bead_tangents = array([self.fprime(0)] + bead_tangents + [self.fprime(1)])
 
         # OLD: self.state_vec = bead_vectors
         self.state_vec = masked_assign(update_mask, self.state_vec, bead_vectors)
@@ -1086,7 +1086,7 @@ class PathRepresentation(Path):
         assert not self._funcs_stale
         ts = []
         for i in self.__normalised_positions:
-             ts.append(self.__get_tangent(i))
+             ts.append(self.fprime(i))
  
         self.__path_tangents = array(ts)
         
@@ -1127,16 +1127,6 @@ class PathRepresentation(Path):
         # inaccuracies in the integration of the density function above, too
         # many points are generated in str_positions.
         return str_positions[0:self.beads_count-2]
-
-    def __get_tangent(self, x):
-        """Returns the tangent to the path at point x <- [0,1]."""
-
-        # use Path functionality:
-        value, t = self.taylor(x)
-
-        #t = t / linalg.norm(t)
-        t = t / mt.metric.norm_up(t, value)
-        return t
 
     def set_rho(self, new_rho, normalise=True):
         """Set new bead density function, ensuring that it is normalised."""
