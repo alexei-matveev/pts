@@ -15,7 +15,7 @@ import pickle
 from numpy import linalg, zeros, array, ones, arange, ceil, abs, sqrt, dot, size
 from numpy import linspace
 
-from path import Path, scatter
+from path import Path, Arc, scatter, scatter1
 from func import RhoInterval
 
 from common import * # TODO: must unify
@@ -1097,12 +1097,19 @@ class PathRepresentation(Path):
         weights = linspace(0.0, 1.0, self.beads_count)
 
         # FIXME: I guess this method is not supposed to return terminal beads?
+        # This need to work also for piecewise rho:
         arcs = scatter(self.__rho, weights[1:-1])
 
-        # some different variants to set the beads available
-        # use the one with integrating over the path lenght
-        scat1 = scatter_inverse(self, arcs, metric)
-        return scat1
+        # this is a Func(s(t), ds/dt) that computes the path length, here we
+        # abuse it to provide the length of the tangent, ds/dt:
+        arc = Arc(self, norm=metric.norm_up)
+
+        # Other scatter variants are available, use the one with integrating
+        # over the tangent lenght, see also scatter(), scatter2():
+        args = scatter1(arc.fprime, arcs)
+
+        # FIXME: for some reason arrays are not welcome:
+        return list(args)
 
 def scatter_inverse(func, pos, metric):
     """
