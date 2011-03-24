@@ -21,6 +21,7 @@ from pts.optwrap import runopt
 from pts.sopt import soptimize
 from pts.tools import pickle_path
 from pts.common import file2str
+import pts.metric as mt
 # be careful: array is needed, when the init_path is an array
 # do not delete it, even if it never occures directly in this module!
 # FIXME: really?
@@ -116,6 +117,7 @@ def find_path(pes, init_path
     # decide which method is actually to be used
     method = method.lower()
 
+    mt.setup_metric(int2cart)
     #
     # NOTE: most of the parameters to optimizers might be passed
     # via **kwargs. This may require changes in the interface of
