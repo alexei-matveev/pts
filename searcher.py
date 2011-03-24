@@ -1017,10 +1017,6 @@ class PathRepresentation(Path):
         # use Path functionality, on setting nodes a new parametrizaiton is generated:
         self.nodes = self.__normalised_positions, self.__state_vec
 
-        def arc_fun(x):
-            # arc_dist_func needs also knowledge of some kind of metric
-            return self.__arc_dist_func(x, mt.metric, self.taylor)
-
         self._funcs_stale = False
 
     def __arc_dist_func(self, x, metric, taylor):
