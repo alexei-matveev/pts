@@ -419,7 +419,7 @@ class ReactionPathway(object):
             total_len_spline = self._path_rep.path_len
             seps_spline = self._path_rep.get_bead_separations()
             diff = seps_spline.sum() - total_len_spline
-            diffs = self._path_rep._get_total_str_len(mt.metric, self.taylor )
+            diffs = self._path_rep._get_total_str_len(mt.metric, self._path_rep.taylor )
             __, diff1 = diffs[-1]
             diff1 = abs(diff1 - total_len_spline)
             assert diff < 1e-6, "%e %e" % (diff, diff1)
@@ -973,6 +973,13 @@ class PathRepresentation(Path):
 
         # use Path functionality:
         Path.__init__(self, self.__state_vec, self.__normalised_positions)
+
+
+    @property
+    def path_len(self):
+        from pts.path import Arc
+        arc = Arc(self, norm = mt.metric.norm_up)
+        return arc(1)
 
     @property
     def path_tangents(self):
