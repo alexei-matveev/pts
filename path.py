@@ -223,13 +223,12 @@ Construct a rho() made of peicewise constant functions...
 
 __all__ = ["Path", "PathRepresentation"]
 
-import scipy.optimize
 import scipy.integrate
+from scipy.optimize import brentq as root
 #import matplotlib.pyplot as plt
 
-from numpy import linalg, array, dot, sqrt, ones, arange, column_stack
-from numpy import ndarray
-from numpy import asarray
+from numpy import linalg, array, dot, sqrt, arange
+from numpy import asarray, empty, linspace
 
 from func import LinFunc, QuadFunc, SplineFunc, Func, RhoInterval
 from func import Integral, Inverse
@@ -414,6 +413,70 @@ class Path(Func):
             else:
                 # spline path
                 self.__fs.append(SplineFunc(self.__xs, ys))
+
+
+def scatter(rho, weights):
+    """For each weight |w| in |weights| find an |s| such
+    that the integral equation holds:
+
+        W(s) / W(1) = w
+
+    with
+                  S
+                 /
+        W(S) =  | rho(s) ds
+               /
+               0
+
+    This amount to inversion W(S) -> S(W).
+
+        >>> wts = linspace(0.0, 1.0, 5)
+
+        >>> scatter(lambda s: 1.0, wts)
+        array([ 0.  ,  0.25,  0.5 ,  0.75,  1.  ])
+
+    Unnormalized density:
+
+        >>> scatter(lambda s: 10., wts)
+        array([ 0.  ,  0.25,  0.5 ,  0.75,  1.  ])
+
+    This is a piecewise defined density:
+
+        >>> def rho(s):
+        ...     if abs(s - 0.5) <= 0.25:
+        ...         return 1.0
+        ...     else:
+        ...         return 0.0
+
+    Solutions for W(S) = 0 or W(S) = W(1.0) are not unique,
+    avoid asking for ambiguous solutions:
+
+        >>> scatter(rho, wts[1:-1])
+        array([ 0.375,  0.5  ,  0.625])
+    """
+
+    # weight of a string:
+    weight = Integral(rho)
+
+    # total weight:
+    W = weight(1.0)
+
+    arcs = empty(len(weights))
+
+    for i, w in enumerate(weights):
+        #
+        # for each weight w solve the equation
+        #
+        #   weight(s) - w * weight(1) = 0
+        #
+        # without using derivatives. Note that the derivative, which is the
+        # density rho(s) may not be continuous. Think of piecewise non-zero
+        # rho.
+        #
+        arcs[i] = root(lambda s: weight(s) - w * W, 0.0, 1.0)
+
+    return arcs
+
 
 def cartesian_norm(dx, x):
     "Default cartesian norm of |dx|, |x| is ignored"
