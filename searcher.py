@@ -403,20 +403,6 @@ class ReactionPathway(object):
 
         total_len_pythag = seps_pythag.sum()
         total_len_spline = 0
-        if self.string:
-            total_len_spline = self._path_rep.path_len
-            seps_spline = self._path_rep.get_bead_separations()
-            diff = seps_spline.sum() - total_len_spline
-            diffs = self._path_rep._get_total_str_len(mt.metric, self._path_rep.taylor )
-            __, diff1 = diffs[-1]
-            diff1 = abs(diff1 - total_len_spline)
-            assert diff < 1e-6, "%e %e" % (diff, diff1)
-
-            # differences between spline and pythag distances
-            pyth_spl_diff = (seps_pythag - seps_spline) / seps_spline.max() * 100
-            print 'Spl / Pythag differences (%)',  ' '.join(['%.0f' % i for i in pyth_spl_diff])
-            
-
 
         state_sum, beads_sum = self.state_summary
 
@@ -1044,29 +1030,6 @@ class PathRepresentation(Path):
 
         return self.seps
 
-    def _get_total_str_len(self, metric, taylor):
-        """Returns a duple of the total length of the string and a list of 
-        pairs (x,y), where x a distance along the normalised path (i.e. on 
-        [0,1]) and y is the corresponding distance along the string (i.e. on
-        [0,string_len])."""
-        
-        print "Starting slow function: _get_total_str_len()"
-        # number of points to chop the string into
-        param_steps = arange(0, 1, self.__step)
-
-        list = []
-        cummulative = 0
-
-        for i in range(self.__str_resolution):
-            pos = (i + 0.5) * self.__step
-            sub_integral = self.__step * self.__arc_dist_func(pos, metric, taylor)
-            cummulative += sub_integral
-            list.append(cummulative)
-
-
-        print "Finishing slow function: _get_total_str_len()"
-        return zip(param_steps, list)
-
     def generate_beads(self, metric, update_mask=None):
         """Returns an array of the self.__beads_count vectors of the coordinates 
         of beads along a reaction path, according to the established path 
@@ -1170,36 +1133,7 @@ class PathRepresentation(Path):
         scat1 = scatter_inverse( self, fractional_positions, metric)
         return scat1
 
-    def scatter_old(self, taylor, fractional_positions, metric):
-        """
-        This is extracted from the old code
-        Calculate for some points the path lenght as sum of the
-        points before
-        Then find the values of them which are nearest to the wanted positions
-        """
-        from time import time
-
-        t0 = time()
-
-        # Find total string length and incremental distances x along the string
-        # in terms of the normalised coodinate y, as a list of (x,y).
-        incremental_positions = self._get_total_str_len( metric, taylor )
-        __, total_str_len = incremental_positions[-1]
-
-        normd_positions = []
-
-        lg.debug("fractional_positions: %s" % fractional_positions)
-        for frac_pos in fractional_positions:
-            for (norm, str) in incremental_positions:
-
-                if str >= frac_pos * total_str_len:
-                    normd_positions.append(norm)
-                    break
-
-        #print "Scatter old lasted", time() - t0
-        return normd_positions
-
-def scatter_inverse( taylor, pos, metric):
+def scatter_inverse( func, pos, metric):
     """
     Make an Arc functions, which integrates over the points
 
