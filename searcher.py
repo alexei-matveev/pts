@@ -419,16 +419,11 @@ class ReactionPathway(object):
             total_len_spline = self._path_rep.path_len
             seps_spline = self._path_rep.get_bead_separations()
             diff = seps_spline.sum() - total_len_spline
-            diffs = self._path_rep._get_total_str_len(mt.metric, self._path_rep.taylor )
-            __, diff1 = diffs[-1]
-            diff1 = abs(diff1 - total_len_spline)
-            assert diff < 1e-6, "%e %e" % (diff, diff1)
+            assert diff < 1e-6, "%e" % (diff,)
 
             # differences between spline and pythag distances
             pyth_spl_diff = (seps_pythag - seps_spline) / seps_spline.max() * 100
             print 'Spl / Pythag differences (%)',  ' '.join(['%.0f' % i for i in pyth_spl_diff])
-            
-
 
         state_sum, beads_sum = self.state_summary
 
@@ -1052,29 +1047,6 @@ class PathRepresentation(Path):
             self._integrals_stale = False
 
         return self.seps
-
-    def _get_total_str_len(self, metric, taylor):
-        """Returns a duple of the total length of the string and a list of 
-        pairs (x,y), where x a distance along the normalised path (i.e. on 
-        [0,1]) and y is the corresponding distance along the string (i.e. on
-        [0,string_len])."""
-        
-        print "Starting slow function: _get_total_str_len()"
-        # number of points to chop the string into
-        param_steps = arange(0, 1, self.__step)
-
-        list = []
-        cummulative = 0
-
-        for i in range(self.__str_resolution):
-            pos = (i + 0.5) * self.__step
-            sub_integral = self.__step * self.__arc_dist_func(pos, metric, taylor)
-            cummulative += sub_integral
-            list.append(cummulative)
-
-
-        print "Finishing slow function: _get_total_str_len()"
-        return zip(param_steps, list)
 
     def generate_beads(self, metric, update_mask=None):
         """Returns an array of the self.__beads_count vectors of the coordinates 
