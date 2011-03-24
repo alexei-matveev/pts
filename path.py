@@ -345,7 +345,7 @@ class Path(Func):
         # FXIME: what if each array is of say Nx3 shape?
 
         # will reference original array if the type matches:
-        ys = asarray(ys) # FIXME: make a copy, by using array()?
+        ys = array(ys)
 
         self.__xs = array(xs)
 
