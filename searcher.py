@@ -368,18 +368,6 @@ class ReactionPathway(object):
         """RMS forces, not including those of end beads."""
         return self.bead_pes_energies.sum(), self.bead_pes_energies
 
-    def set_positions(self, x):
-        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
-
-        tmp = x.flatten()[0:self.beads_count * self.dimension]
-        self.state_vec = x.flatten()[0:self.beads_count * self.dimension]
-
-    def get_positions(self):
-        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates.""" 
-
-        return common.make_like_atoms(self.state_vec.copy())
-
-    positions = property(get_positions, set_positions)
 
     @property
     def state_summary(self):
@@ -674,6 +662,19 @@ class ReactionPathway(object):
             self.perp_bead_forces[i] = perp_force
 
         self.post_obj_func(grad)
+
+    def set_positions(self, x):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
+
+        tmp = x.flatten()[0:self.beads_count * self.dimension]
+        self.state_vec = x.flatten()[0:self.beads_count * self.dimension]
+
+    def get_positions(self):
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates.""" 
+
+        return common.make_like_atoms(self.state_vec.copy())
+
+    positions = property(get_positions, set_positions)
 
     def get_final_bead_ix(self, i):
         """
