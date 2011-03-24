@@ -265,7 +265,7 @@ class MultiOpt(ObjLog):
 
         if self.respace:
             self.slog("Respacing Respacing Respacing Respacing Respacing ")
-            self.atoms.respace()
+            self.atoms.respace(mt.metric )
 
             dr_respace = self.atoms.state_vec.reshape(bs,-1) - (r + dr)
 
