@@ -929,7 +929,7 @@ class PathRepresentation(Path):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, beads_count, rho = lambda x: 1, str_resolution = 10000):
+    def __init__(self, state_vec, beads_count, rho = lambda s: 1.0):
 
         # vector of vectors defining the path
         self.__state_vec = array(state_vec)
@@ -939,9 +939,6 @@ class PathRepresentation(Path):
 
         # NOTE: here we assume that state_vec[i] is a 1D array:
         self.__dimension = len(state_vec[0])
-
-        self.__str_resolution = str_resolution
-        self.__step = 1.0 / self.__str_resolution
 
         self.__path_tangents = []
 
