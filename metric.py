@@ -1,4 +1,3 @@
-from func import NumDiff
 from numpy import dot, array, asarray, matrix, size, shape
 from numpy import sqrt
 from numpy import zeros, empty, eye
@@ -126,8 +125,7 @@ class Metric(Default):
         needs a function with a fprime function
         """
 
-        # FIXME: what if analytical derivatives are available?
-        self.fun = NumDiff(fun)
+        self.fun = fun
 
     def _fprime_as_matrix(self, x):
         """
@@ -264,7 +262,7 @@ class Metric_reduced(Metric):
         >>> dY = g.raises(dy, Y)
 
         >>> round(dY, 3)
-        array([-0.077, -0.077,  0.   , -0.077, -0.   , -0.   ])
+        array([-0.077, -0.077,  0.   , -0.077,  0.   ,  0.   ])
 
     Consistency check:
 
@@ -502,6 +500,7 @@ def B_globals(carts):
 
     This one also provides derivatives:
 
+        >>> from func import NumDiff
         >>> f = NumDiff(f)
 
     This one depends on rotational and translational parameters in addition:
