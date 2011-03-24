@@ -9,6 +9,7 @@ import logging
 
 import numpy
 from numpy import finfo
+from pts.metric import Default
 
 import pts
 
@@ -399,7 +400,7 @@ def atom_atom_dists(v):
 
     return output
 
-def pythag_seps(vs):
+def pythag_seps(vs, metric = Default(None)):
     """Returns pythag distances between vectors in a list/vector of vectors.
     
     >>> pythag_seps([[0,0],[1,1],[2,2]])
@@ -408,8 +409,9 @@ def pythag_seps(vs):
     """
     vs = numpy.asarray(vs)
     N = len(vs)
-    subs = [vs[i] - vs[i-1] for i in range(N)[1:]]
-    return numpy.array([numpy.dot(sub, sub)**0.5 for sub in subs])
+    subs = [vs[i] - vs[i-1] for i in range(1,N)]
+    vm = [0.5 *(vs[i] + vs[i-1]) for i in range(1,N)]
+    return numpy.array([metric.norm_up(sub, vi) for sub, vi in zip(subs,vm)])
 
 def cumm_sum(list, start_at_zero=False):
     """

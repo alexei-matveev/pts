@@ -1794,7 +1794,7 @@ class GrowingString(ReactionPathway):
     def respace(self, metric, smart_abscissa=True):
         # respace the beads along the path
         if smart_abscissa:
-            pythag_seps = common.pythag_seps(self.state_vec)
+            pythag_seps = common.pythag_seps(self.state_vec, metric)
 
             if len(self.state_vec) > 4:
                 # This is a kind of hack to prevent the bits of
