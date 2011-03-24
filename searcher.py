@@ -951,7 +951,7 @@ class PathRepresentation(Path):
 
         self.__max_integral_error = 1e-4
 
-        self.__rho = self.set_rho(rho)
+        self.set_rho(rho)
 
         self._funcs_stale = True
         self._integrals_stale = True
@@ -1116,9 +1116,7 @@ class PathRepresentation(Path):
         integral, err = scipy.integrate.quad(new_rho, 0.0, 1.0)
 
         self.__rho = lambda x: new_rho(x) / integral
-        return self.__rho
 
-          
     def __generate_normd_positions(self, metric):
         """Returns a list of distances along the string in terms of the normalised 
         coordinate, based on desired fractional distances along string."""
@@ -1636,7 +1634,8 @@ class GrowingString(ReactionPathway):
         if self.beads_count == self.__final_beads_count:
             self._path_rep.set_rho(self.__final_rho)
 
-            return self.__final_rho
+            # see below and how it is used, update_rho() does not return anything:
+            return None # self.__final_rho
 
         assert self.beads_count % 2 == 0
 
