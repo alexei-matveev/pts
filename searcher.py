@@ -747,6 +747,8 @@ class NEB(ReactionPathway):
     >>> neb.obj_func()
     -2.6541709711655024
 
+    Was changed because beads are put differently, was before:
+
     >>> neb.obj_func_grad().round(3)
     array([-0.   , -0.   , -0.291, -0.309,  0.327,  0.073, -0.   , -0.   ])
 
@@ -769,6 +771,9 @@ class NEB(ReactionPathway):
     >>> neb.angles
     array([ 180.,  180.,  180.,  180.,  180.,  180.,  180.,  180.])
     >>> neb.obj_func()
+    -4.5567506897820484
+
+    Was changed because of different spacing of beads, was before
     -4.5561921505021239
     >>> neb.tangents
     array([[ 0.70710678,  0.70710678],
@@ -1369,6 +1374,9 @@ class GrowingString(ReactionPathway):
 
     >>> new = s.state_vec.round(2).copy()
     >>> s.obj_func()
+    -2.5883308831798901
+
+    Was changed because of bead scattering changed, was before
     -2.5884273157684441
 
     >>> s.obj_func_grad().round(3)
