@@ -956,7 +956,7 @@ class PathRepresentation(Path):
         points_cnt = len(self.__state_vec)
         self.__normalised_positions = arange(0.0, 1.0 + 1.0 / (points_cnt - 1), 1.0 / (points_cnt - 1))
         self.__normalised_positions = self.__normalised_positions[0:points_cnt]
-        self.__old_normalised_positions = self.__normalised_positions
+        self.__old_normalised_positions = self.__normalised_positions.copy()
 
         self.__max_integral_error = 1e-4
 
