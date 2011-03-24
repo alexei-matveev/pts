@@ -419,7 +419,8 @@ class ReactionPathway(object):
             total_len_spline = self._path_rep.path_len
             seps_spline = self._path_rep.get_bead_separations()
             diff = seps_spline.sum() - total_len_spline
-            diff1, _ = self._path_rep._get_total_str_len()
+            diffs = self._path_rep._get_total_str_len(mt.metric, self.taylor )
+            __, diff1 = diffs[-1]
             diff1 = abs(diff1 - total_len_spline)
             assert diff < 1e-6, "%e %e" % (diff, diff1)
 
@@ -765,8 +766,6 @@ class NEB(ReactionPathway):
     2
 
     >>> neb = NEB([[0,0],[3,3]], pts.pes.GaussianPES(), 1., beads_count = 10)
-    Starting slow function: _get_total_str_len()
-    Finishing slow function: _get_total_str_len()
     >>> neb.angles
     array([ 180.,  180.,  180.,  180.,  180.,  180.,  180.,  180.])
     >>> neb.obj_func()
@@ -788,8 +787,6 @@ class NEB(ReactionPathway):
     array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
     >>> neb = NEB([[0,0],[1,1]], pts.pes.GaussianPES(), 1., beads_count = 3)
-    Starting slow function: _get_total_str_len()
-    Finishing slow function: _get_total_str_len()
     >>> neb.angles
     array([ 180.])
     >>> neb.obj_func([[0,0],[0,1],[1,1]])
@@ -835,7 +832,7 @@ class NEB(ReactionPathway):
         else:
             pr = PathRepresentation(reagents, beads_count, lambda x: 1)
             pr.regen_path_func()
-            pr.generate_beads()
+            pr.generate_beads(mt.metric)
             self._state_vec = pr.state_vec.copy()
 
     def update_tangents(self):
@@ -1014,19 +1011,18 @@ class PathRepresentation(Path):
         # use Path functionality, on setting nodes a new parametrizaiton is generated:
         self.nodes = self.__normalised_positions, self.__state_vec
 
-        (str_len_precise, error) = scipy.integrate.quad(self.__arc_dist_func, 0, 1, limit=100)
-        lg.debug("String length integration error = " + str(error))
-        assert error < self.__max_integral_error, "error = %f" % error
-
         self.__path_len = str_len_precise
+        def arc_fun(x):
+            # arc_dist_func needs also knowledge of some kind of metric
+            return self.__arc_dist_func(x, mt.metric, self.taylor)
 
         self._funcs_stale = False
 
+    def __arc_dist_func(self, x, metric, taylor):
+        output = 0
+        value, tangent = self.taylor( x)
 
-    def __arc_dist_func(self, x):
-        # use Path functionality:
-        fprime = self.fprime(x)
-        return linalg.norm(fprime)
+        return metric.norm_up(tangent, value)
 
     def get_bead_separations(self):
         """Returns the arc length between beads according to the current 
@@ -1038,8 +1034,12 @@ class PathRepresentation(Path):
             a = self.__normalised_positions
             N = len(a)
             seps = []
+            def arc_fun(x):
+                # arc_dist_func needs also knowledge of some kind of metric
+                return self.__arc_dist_func(x, mt.metric, self.taylor)
+
             for i in range(N)[1:]:
-                l, _ = scipy.integrate.quad(self.__arc_dist_func, a[i-1], a[i])
+                l, _ = scipy.integrate.quad(arc_fun, a[i-1], a[i])
                 seps.append(l)
 
             self.seps = array(seps)
@@ -1048,7 +1048,7 @@ class PathRepresentation(Path):
 
         return self.seps
 
-    def _get_total_str_len(self):
+    def _get_total_str_len(self, metric, taylor):
         """Returns a duple of the total length of the string and a list of 
         pairs (x,y), where x a distance along the normalised path (i.e. on 
         [0,1]) and y is the corresponding distance along the string (i.e. on
@@ -1063,7 +1063,7 @@ class PathRepresentation(Path):
 
         for i in range(self.__str_resolution):
             pos = (i + 0.5) * self.__step
-            sub_integral = self.__step * self.__arc_dist_func(pos)
+            sub_integral = self.__step * self.__arc_dist_func(pos, metric, taylor)
             cummulative += sub_integral
             list.append(cummulative)
 
@@ -1072,23 +1072,18 @@ class PathRepresentation(Path):
         assert err < 1e-4, "%e" % err
 
         print "Finishing slow function: _get_total_str_len()"
+        return zip(param_steps, list)
 
-        return (list[-1], zip(param_steps, list))
-
-    def generate_beads(self, update_mask=None):
+    def generate_beads(self, metric, update_mask=None):
         """Returns an array of the self.__beads_count vectors of the coordinates 
         of beads along a reaction path, according to the established path 
         (line, parabola or spline) and the parameterisation density."""
 
         assert not self._funcs_stale
 
-        # Find total string length and incremental distances x along the string 
-        # in terms of the normalised coodinate y, as a list of (x,y).
-        (total_str_len, incremental_positions) = self._get_total_str_len()
-
         # For the desired distances along the string, find the values of the
         # normalised coordinate that achive those distances.
-        normd_positions = self.__generate_normd_positions(total_str_len, incremental_positions)
+        normd_positions = self.__generate_normd_positions(metric)
 
         bead_vectors = []
         bead_tangents = []
@@ -1179,13 +1174,34 @@ class PathRepresentation(Path):
         return self.__rho
 
           
-    def __generate_normd_positions(self, total_str_len, incremental_positions):
+    def __generate_normd_positions(self, metric):
         """Returns a list of distances along the string in terms of the normalised 
         coordinate, based on desired fractional distances along string."""
 
         # Get fractional positions along string, based on bead density function
         # and the desired total number of beads
         fractional_positions = self.__get_str_positions()
+
+        # some different variants to set the beads available
+        # use the one with integrating over the path lenght
+        scat1 = scatter_inverse( self.taylor, fractional_positions, metric)
+        return scat1
+
+    def scatter_old(self, taylor, fractional_positions, metric):
+        """
+        This is extracted from the old code
+        Calculate for some points the path lenght as sum of the
+        points before
+        Then find the values of them which are nearest to the wanted positions
+        """
+        from time import time
+
+        t0 = time()
+
+        # Find total string length and incremental distances x along the string
+        # in terms of the normalised coodinate y, as a list of (x,y).
+        incremental_positions = self._get_total_str_len( metric, taylor )
+        __, total_str_len = incremental_positions[-1]
 
         normd_positions = []
 
@@ -1197,7 +1213,62 @@ class PathRepresentation(Path):
                     normd_positions.append(norm)
                     break
 
+        #print "Scatter old lasted", time() - t0
         return normd_positions
+
+def scatter_inverse( taylor, pos, metric):
+    """
+    Make an Arc functions, which integrates over the points
+
+    Then makes an Inverse function of them and calculates
+    the points where the wanted positions are reached
+    """
+    from pts.path import Arc
+    from pts.func import Inverse, Func
+    from time import time
+    #print "Start scatter"
+    t0 = time()
+    func = Func(taylor = taylor)
+    arc = Arc(func, norm = metric.norm_up)
+    total_str_len = arc(1.)
+    arg = Inverse(arc)
+    pos = [p * total_str_len for p in pos]
+    t = map(arg, pos)
+    #print "Scatter inverse lasted", time() - t0
+    return t
+
+def scatter_simple_linear( taylor, pos, metric):
+    """
+    Caluculate the function to integrate for the path over
+    at several points, consider this function to be linear
+    in between and calculate with trapez rule the path-length
+    then make an inverse function of it and find the wanted points
+    """
+    from scipy.interpolate import splrep, splev
+    from pts.func import Func, Integral, Inverse
+    from time import time
+    num_points = 100
+    #print "Start scatter simple"
+    t0 = time()
+    func = Func(taylor = taylor)
+    y = []
+    def sprime(t):
+        X, Xprime = func.taylor(t)
+        return metric.norm_up(Xprime, X)
+
+    x = [float(i)/(num_points-1) for i in range(num_points)]
+    y = [ sprime(xi) for xi in x]
+    y_i = zeros(len(y))
+    for i in range(len(y)-1):
+        y_i[i+1] = y_i[i] + 0.5 * (y[i+1] + y[i]) * (x[i+1] - x[i])
+
+    splr = splrep(y_i, x, k = 1)
+
+    total_str_len = y_i[-1]
+    pos = [p * total_str_len for p in pos]
+    t = [splev(p, splr, der=0) for p in pos]
+    #print "Scatter simple  linear lasted", time() - t0
+    return t
 
 class PiecewiseRho:
     """Supports the creation of piecewise functions as used by the GrowingString
@@ -1299,8 +1370,6 @@ class GrowingString(ReactionPathway):
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
     >>> qc = pts.pes.GaussianPES()
     >>> s = GrowingString(path, qc, beads_count=4, growing=False)
-    Starting slow function: _get_total_str_len()
-    Finishing slow function: _get_total_str_len()
     >>> s.state_vec.round(1)
     array([[ 0. ,  0. ],
            [ 0.3,  0.3],
@@ -1327,6 +1396,9 @@ class GrowingString(ReactionPathway):
     >>> max(abs(a1 - ac)) < 1e-7
     True
     >>> array(s.step[1])
+    array([ 0.        ,  0.00158625,  0.00074224,  0.        ])
+
+    Changed code of respacing, old result was:
     array([ 0.        ,  0.00149034,  0.000736  ,  0.        ])
 
     >>> s.obj_func_grad([[0,0],[0.3,0.3],[0.9,0.9],[1,1]]).round(3)
@@ -1383,7 +1455,7 @@ class GrowingString(ReactionPathway):
         self._path_rep.regen_path_func()
 
         # Space beads along the path
-        self._path_rep.generate_beads()
+        self._path_rep.generate_beads(mt.metric)
         self._path_rep.regen_path_func()
 
         self.parallel = parallel
@@ -1719,7 +1791,7 @@ class GrowingString(ReactionPathway):
         g = result_bead_forces.flatten()
         return g
 
-    def respace(self, smart_abscissa=True):
+    def respace(self, metric, smart_abscissa=True):
         # respace the beads along the path
         if smart_abscissa:
             pythag_seps = common.pythag_seps(self.state_vec)
@@ -1733,7 +1805,7 @@ class GrowingString(ReactionPathway):
             new_abscissa /= new_abscissa[-1]
             self._path_rep.regen_path_func(normalised_positions=new_abscissa)
 
-        self._path_rep.generate_beads(update_mask=self.bead_update_mask)
+        self._path_rep.generate_beads(metric, update_mask=self.bead_update_mask)
 
         # The following line ensure that the path used for the next
         # step is the same as the one that is generated, at a later date,
