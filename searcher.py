@@ -1061,6 +1061,10 @@ class PathRepresentation(Path):
         # OLD: self.state_vec = bead_vectors
         self.state_vec = masked_assign(update_mask, self.state_vec, bead_vectors)
 
+        # FIXME: this appears suspicious, changing a single node, or a single
+        # abscissa invalidates all tangents as one has to assume a different
+        # path parametrization. A "masked update" of tangents may seem
+        # unjustified! Is it done on purpose?
         # OLD: self.__path_tangents = bead_tangents
         self.__path_tangents = masked_assign(update_mask, self.__path_tangents, bead_tangents)
 
