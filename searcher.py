@@ -12,8 +12,8 @@ from copy import deepcopy
 import pickle
 
 # TODO: change to import numpy as np???
-from numpy import linalg, zeros, array, ones, arange, ceil, abs, sqrt, dot, size
-from numpy import linspace
+from numpy import linalg, array, asarray, ceil, abs, sqrt, dot, size
+from numpy import empty, zeros, ones, linspace, arange
 
 from path import Path, Arc, scatter, scatter1
 from func import RhoInterval
@@ -1036,28 +1036,33 @@ class PathRepresentation(Path):
 
         # For the desired distances along the string, find the values of the
         # normalised coordinate that achive those distances.
-        normd_positions = self.__generate_normd_positions(metric)
+        moving = self.__generate_normd_positions(metric)
 
-        bead_vectors = []
-        bead_tangents = []
-        for str_pos in normd_positions:
-            # use Path functionality:
-            bead_vectors.append(self(str_pos))
-            bead_tangents.append(self.fprime(str_pos))
+        # FIXME: for historical reasons self.__generate_normd_positions does
+        # not return abscissas for terminal beads:
+        self.__old_normalised_positions = self.__normalised_positions
+        self.__normalised_positions = empty(len(moving) + 2)
+        self.__normalised_positions[0] = 0.0
+        self.__normalised_positions[1:-1] = moving
+        self.__normalised_positions[-1] = 1.0
 
-        reactants = self.__state_vec[0]
-        products = self.__state_vec[-1]
-        bead_vectors = array([reactants] + bead_vectors + [products])
-        bead_tangents = array([self.fprime(0)] + bead_tangents + [self.fprime(1)])
+        # NOTE: Dont use list concatenation as in [reactant] + beads +
+        # [product] this is going to break with numpy arrays.
+
+        # use Path functionality:
+        pairs = map(self.taylor, self.__normalised_positions)
+
+        bead_vectors, bead_tangents = zip(*pairs)
+
+        # convert to arrays:
+        bead_vectors = asarray(bead_vectors)
+        bead_tangents = asarray(bead_tangents)
 
         # OLD: self.state_vec = bead_vectors
         self.state_vec = masked_assign(update_mask, self.state_vec, bead_vectors)
 
         # OLD: self.__path_tangents = bead_tangents
         self.__path_tangents = masked_assign(update_mask, self.__path_tangents, bead_tangents)
-
-        self.__old_normalised_positions = self.__normalised_positions
-        self.__normalised_positions = array([0.0] + normd_positions + [1.0])
 
         return bead_vectors
 
@@ -1108,8 +1113,7 @@ class PathRepresentation(Path):
         # over the tangent lenght, see also scatter(), scatter2():
         args = scatter1(arc.fprime, arcs)
 
-        # FIXME: for some reason arrays are not welcome:
-        return list(args)
+        return args
 
 class PiecewiseRho:
     """Supports the creation of piecewise functions as used by the GrowingString
