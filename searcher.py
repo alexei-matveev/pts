@@ -946,8 +946,6 @@ class PathRepresentation(Path):
         self.__normalised_positions = self.__normalised_positions[0:points_cnt]
         self.__old_normalised_positions = self.__normalised_positions.copy()
 
-        self.__max_integral_error = 1e-4
-
         self.set_rho(rho)
 
         self._funcs_stale = True
