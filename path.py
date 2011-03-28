@@ -96,12 +96,15 @@ FIXME: proper operation of PathRepresentation class needs these
 preparations:
 
     >>> from copy import deepcopy
+    >>> from numpy import eye
+    >>> from func import Func
     >>> from pts.metric import setup_metric
 
-    >>> def identity(x):
-    ...     return deepcopy(x)
+    >>> class identity(Func):
+    ...     def taylor(self, x):
+    ...         return deepcopy(x), eye(len(x))
 
-    >>> setup_metric(identity)
+    >>> setup_metric(identity())
 
 
     >>> p = PathRepresentation(path)
