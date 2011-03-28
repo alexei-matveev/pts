@@ -171,17 +171,18 @@ def calc_step(dir, H, grad):
     """
     dir = np.asarray(dir)
     grad = np.asarray(grad)
-    # NNNNN: second time scalling (of an already scaled vector)
-    # change this exaclty if and how done in step
-    dir = dir / np.linalg.norm(dir)
-    def quadradic_energy(s):
-        return s*np.dot(grad, dir) + 0.5*s*s*np.dot(dir, H.app(dir))
 
-    # This is silly: I need to change it to solving teh quadratic
-    dist = np.atleast_1d(fminbound(quadradic_energy, 0., 2.))[0]
-    assert dist > 0.
+    # minimize on energy approximation (quadratic energy):
+    # E(s) = s*np.dot(grad, dir) + 0.5*s*s*np.dot(dir, H.app(dir))
+    # FIXME: is restriction of steplength alrady here needed?
+    #        Multiopt will scale down later a second time
+    s_min = min(- np.dot(grad, dir) / np.dot(dir, H.app(dir)), 2.)
 
-    return dist
+    # found an undesired maximum (dir is already orientated in right direction)
+    # thus make maximal step in the other direction
+    if s_min < 0.: s_min = 2.
+
+    return s_min
 
 class MultiOpt(ObjLog):
     """ Description
