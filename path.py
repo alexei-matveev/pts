@@ -255,27 +255,12 @@ class Path(Func):
         # not an array of tuples:
         self.nodes = xs, ys
 
-        # generate linear/quadratic/spline representation of the path
+        # This generates linear/quadratic/spline representation of the path
         # using the normalized positions chosen above for the respective
-        # points from the state vector:
-
-        # removed 12/05/2010 by HCM, now called by set_nodes() above.
-        # self.__regen_path_func()
+        # points from the state vector.
 
         #
-        # COMMENT OUTDATED?
-        # This function appeared idempotent, so calling it more than one time
-        # doesnt hurt the numbers, only performance. However the legacy
-        # behavior of the child class PathRepresentation changes if we
-        # call __regen_path_func() from inside the set_nodes() property
-        # handler. PathRepresentation expects to be able to update
-        # the nodes of the parent Path without the path spline parametrization
-        # to be regenerated. This leaves the parent Path class in a somewhat
-        # inconsistent state.
-        #
-
-        #
-        # FIXME: ultimately, we should delegate the control over details
+        # We delegate the control over details
         # of the path parametrization to function composition.
         # All of
         #          Path(x), Path(x(s)), Path(x(s(w)))
@@ -283,8 +268,6 @@ class Path(Func):
         # run along the same path albeit the "distance" along the path
         # is measured differently every time: in x, in s, or in w.
         #
-
-        # TODO check all beads have same dimensionality
 
     # The next two implement the interface of Func(),
     # however the path function is vector valued!
@@ -343,52 +326,29 @@ class Path(Func):
         self.__node_count = len(ys)
 
         # |ys| is vector of arrays defining the path
-        # FXIME: what if each array is of say Nx3 shape?
-
-        # will reference original array if the type matches:
         ys = array(ys)
 
         self.__xs = array(xs)
 
         # save original shape of the input arrays:
         self.__yshape = ys[0].shape
-#       print "as is shape=", (self.__node_count,) + self.__yshape
 
         # internally we treat them flat, so care only about total size:
         self.__dimension = ys[0].size
-#       print "internal shape=", (self.__node_count, self.__dimension)
 
         # treat internally each of |ys| as a flat array:
         self.__ys = ys.reshape(self.__node_count, self.__dimension)
-#       print "ys=", self.__ys
 
         # generate linear/quadratic/spline representation of the path
         # using the normalized positions chosen above for the respective
         # points from the state vector:
-
-        # FIXME: uncommenting this will FAIL the last doctest:
         self.__regen_path_func()
-
-        #
-        # COMMENT OUTDATED?
-        # This function appeared idempotent, so calling it more than one time
-        # doesnt hurt the numbers, only performance. However the legacy
-        # behavior of the child class PathRepresentation changes if we
-        # call __regen_path_func() from inside of the set_nodes() property
-        # handler. PathRepresentation expects to be able to update
-        # the nodes of the parent Path without the path spline parametrization
-        # to be regenerated. This leaves the parent Path class in a somewhat
-        # inconsistent state.
-        #
-        # HCM: this is probably undesirable. I think I will change this.
 
     nodes = property(get_nodes, set_nodes)
 
     def __regen_path_func(self):
         """Rebuild a new path function and the derivative of the path based on 
         the contents of state_vec.
-        FXIME: This function appears to be idempotent, so one might want to ensure
-        the execution of the body only after state vector changes.
         """
 
         assert self.__node_count == len(self.__ys)
@@ -491,7 +451,7 @@ def scatter(rho, weights):
         #
         # for each weight w solve the equation
         #
-        #   weight(s) - w * weight(1) = 0
+        #   weight(s) - w = 0
         #
         # without using derivatives. Note that the derivative, which is the
         # density rho(s) may not be continuous. Think of piecewise non-zero
