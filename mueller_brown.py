@@ -309,17 +309,17 @@ class MuellerBrown(Func):
 
         v = asarray(v)
 
-        x = v[..., 0]
-        y = v[..., 1]
+        x = v[0]
+        y = v[1]
 
-        f = zeros(shape(v)[:-1])
+        f = zeros(shape(v)[1:])
         df = zeros(shape(v))
 
         for A, a, b, c, x0, y0 in zip(AA, aa, bb, cc, xx, yy):
             expt = A * exp( a * (x - x0)**2 + b * (x - x0) * (y - y0) + c * (y - y0)**2 )
             f += expt
-            df[..., 0] += ( 2 * a * (x - x0) + b * (y - y0) ) * expt
-            df[..., 1] += ( 2 * c * (y - y0) + b * (x - x0) ) * expt
+            df[0] += ( 2 * a * (x - x0) + b * (y - y0) ) * expt
+            df[1] += ( 2 * c * (y - y0) + b * (x - x0) ) * expt
 
         # FIXME: for doctests only:
         if shape(f) == ():
