@@ -941,9 +941,7 @@ class PathRepresentation(Path):
 
         # generate initial paramaterisation density
         # TODO: Linear at present, perhaps change eventually
-        points_cnt = len(self.__state_vec)
-        self.__normalised_positions = arange(0.0, 1.0 + 1.0 / (points_cnt - 1), 1.0 / (points_cnt - 1))
-        self.__normalised_positions = self.__normalised_positions[0:points_cnt]
+        self.__normalised_positions = linspace(0.0, 1.0, len(self.__state_vec))
         self.__old_normalised_positions = self.__normalised_positions.copy()
 
         self.set_rho(rho)
