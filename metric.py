@@ -136,7 +136,7 @@ class Metric(Default):
         """
 
         # FIXME: ensure that "fprime" is always returned as an array instead:
-        fprime = asarray(self.fun.fprime(x))
+        fprime = asarray(deepcopy(self.fun.fprime(x)))
 
         # convert shape of fprime, so that second dimension is length of vector x
         fprime.shape = (-1, size(x))
