@@ -998,8 +998,8 @@ class PathRepresentation(Path):
         self._funcs_stale = False
 
     def __arc_dist_func(self, x, metric):
-        output = 0
-        value, tangent = self.taylor( x)
+
+        value, tangent = self.taylor(x)
 
         return metric.norm_up(tangent, value)
 
