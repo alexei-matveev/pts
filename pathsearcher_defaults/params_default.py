@@ -27,7 +27,7 @@ default_params = {
     "xtol" : 0.03,             # step convergence criteria, only used if f < ftol*5
     "etol" : 0.03,             # energy convergence criteria
     "maxit" : 35,              # maximal number of iterations
-    "maxstep" : 0.2,           # maximal step size
+    "maxstep" : 0.1,           # maximal step size
     "spring" : 5.0,         # only for NEB: spring_constant
     "pre_calc_function" : None,
     "output_level" : 2,
