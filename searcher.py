@@ -1461,7 +1461,7 @@ class GrowingString(ReactionPathway):
         # numerical inaccuraties cause them to move and additional beads
         # to have their energies calculated.
         old = self.state_vec.copy()
-        new = self._path_rep.generate_beads()
+        new = self._path_rep.generate_beads(mt.metric)
         minimal_update(new, old, new_ixs) # only updates new_ixs
         self.bead_update_mask = freeze_ends(self.beads_count)
         self.state_vec = new
@@ -1519,7 +1519,7 @@ class GrowingString(ReactionPathway):
         # build new bead density function based on updated number of beads
         self.update_rho()
         old = self.state_vec.copy()
-        new = self._path_rep.generate_beads()
+        new = self._path_rep.generate_beads(mt.metric)
         minimal_update(new, old, new_ixs)
 
         # create a new bead_update_mask that permits us to set the state to what we want
