@@ -612,7 +612,7 @@ class PathRepresentation(Path):
         # FIXME: anything better than Newton solver for inverse function?
         #
 
-        self.__rho = self.set_rho(rho)
+        self.set_rho(rho)
 
         # Next, prepare the two transforamtions:
         #
@@ -737,14 +737,12 @@ class PathRepresentation(Path):
         print
         raw_input("that was rho...")
 
-    def set_rho(self, new_rho, normalise=True):
+    def set_rho(self, new_rho):
         """Set new bead density function, ensuring that it is normalised."""
-        if normalise:
-            (int, err) = scipy.integrate.quad(new_rho, 0.0, 1.0)
-        else:
-            int = 1.0
+
+        int, err = scipy.integrate.quad(new_rho, 0.0, 1.0)
+
         self.__rho = lambda x: new_rho(x) / int
-        return self.__rho
 
     def __generate_normd_positions(self):
 
