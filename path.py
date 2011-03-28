@@ -247,9 +247,7 @@ class Path(Func):
         if xs is None:
             # generate initial paramaterisation density
             # TODO: Linear at present, perhaps change eventually
-            n = len(ys)
-            # evenly spaced array of length n from 0.0 to 1.0:
-            xs = array([ i / (n - 1.0) for i in range(n) ])
+            xs = linspace(0.0, 1.0, len(ys))
         # else, take predefined node abscissas.
 
         # Node is a tuple of (x, y(x)). We use assignment here to test the
