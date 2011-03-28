@@ -467,6 +467,7 @@ def show_chain(p=None, style="ro-", save=None, clear=False):
 
     # overlay a path onto coutour plot:
     if p is not None:
+        p = asarray(p)
         plot(p[:, 0], p[:, 1], style)
 
     ylim(*y_range)
