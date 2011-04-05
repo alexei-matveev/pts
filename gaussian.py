@@ -27,6 +27,7 @@ class Gaussian:
             charge=0, 
             mult=1,
             nprocs=1,
+            add_input=None,
             chkpoint=None):
 
         """Construct Gaussian-calculator object.
@@ -45,6 +46,13 @@ class Gaussian:
 
         nprocs: int
             number of processors to use (shared memory)
+
+        add_input: str
+            if specified the content of the file given as add_input
+            will be used to extend the input file *.com
+            It will be put after the blank line follwing the geometry
+            data. Be aware that it will add the text in the same form it
+            will be found in the add_input file.
 
         chkpoint: str
             if specified, an initial checkpoint file to read a guess in from.
@@ -67,6 +75,12 @@ class Gaussian:
         assert type(nprocs) == int
 
 
+        if add_input == None:
+            self.inputstring = None
+        else:
+            file = open(add_input, "r")
+            self.inputstring = file.read()
+            file.close()
         # see function generate_header() also
         self.max_aggression = 1
         self.runs = 0
@@ -165,6 +179,8 @@ class Gaussian:
             job_str = self.generate_header(aggression=ag) + geom_str
             f = open(inputfile, "w")
             f.write(job_str)
+            if not self.inputstring == None:
+                 f.write(self.inputstring)
             f.close()
 
             args = [self.gau_command, inputfile]
