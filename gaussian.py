@@ -67,8 +67,6 @@ class Gaussian:
         self.charge = charge
         self.mult = mult
 
-        if not common.exec_in_path(gau_command):
-            raise GaussDriverError("Executable " + gau_command + " not found in path.")
         self.gau_command = gau_command
         self.nprocs = nprocs
         assert nprocs > 0
