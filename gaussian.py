@@ -163,7 +163,16 @@ class Gaussian:
 
     def calculate(self, atoms):
         self.positions = atoms.get_positions().copy()
-        inputfile = self.jobname + ".com"
+
+        cwd = os.getcwd()
+        __, self.jobname = cwd.rsplit("/",1)
+        inputfile = cwd + "/" +self.jobname + ".com"
+
+        # first remove old output if existant, as there should'nt be any results using
+        # an old version, we have problems that we might wait for a result to come back,
+        # this ensures that it is really the result from the current run then
+        if os.path.isfile(self.jobname + ".log"):
+            os.remove(self.jobname + ".log")
 
         list = ['%-2s %22.15f %22.15f %22.15f' % (s, x, y, z) for s, (x, y, z) in zip(atoms.get_chemical_symbols(), atoms.get_positions())]
         geom_str = '\n'.join(list) + '\n\n'
@@ -181,13 +190,21 @@ class Gaussian:
                  f.write(self.inputstring)
             f.close()
 
-            args = [self.gau_command, inputfile]
+            # pass as argument only the jobname, thus allows to identify the gaussianjob
+            # the current proccessor wants to run
+            args = [self.gau_command, self.jobname]
             command = " ".join(args)
 
             lg.info("Running Gau job " + command + " in " + os.getcwd())
-            p = subprocess.Popen(command, shell=True)
-            sts = os.waitpid(p.pid, 0)
-            parse_result = self.read()
+            #FIXME: what is the major difference between the two ways of using it?
+            #p = subprocess.Popen(command, shell=True)
+            #sts = os.waitpid(p.pid, 0)
+            p = os.system(command)
+
+            #FIXME: same problem as with ParaGauss. Somehow we need to pass time here,
+            # before the results are back, prefer reading to trash over sleeping through
+            os.system("ls > /dev/null")
+            parse_result = self.read(cwd)
 
             # next attempt will have higher aggression
             ag += 1
@@ -197,9 +214,9 @@ class Gaussian:
         self.converged = True
         self.runs += 1
         
-    def read(self):
+    def read(self, cwd):
         """Read results from Gaussian's text-output file."""
-        logfilename = self.jobname + '.log'
+        logfilename = cwd + "/" + self.jobname + '.log'
 #        os.system('cp %s ~/%s' % (logfilename, logfilename + str(time.time()))) # HACK for some data gathering
         print "GAUSS_DIRS: Working Dir:", os.getcwd(), "logfile path:", logfilename
         logfile = open(logfilename, 'r')
