@@ -95,7 +95,7 @@ def main(argv=None):
             print "type(mol._atoms.calc)", type(mol._atoms.calc)
             if 'jobname' in mol._atoms.calc.__dict__:
                 mol._atoms.calc.jobname = isolation_dir
-            g = - mol.get_forces().flatten()
+            g = -mol.get_forces(flat=True)
             assert len(g.shape) == 1
             e = mol.get_potential_energy()
 
