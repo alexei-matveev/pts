@@ -233,7 +233,7 @@ class MultiOpt(ObjLog):
         self.slog("Optimiser (MultiOpt): initial step scale factors", [m._step_scale for m in self.bead_opts], when='always')
 
 
-    def step(self, dummy):
+    def step(self, g):
         """Take a single step
 
         Use the given forces, update the history and calculate the next step --
@@ -243,7 +243,6 @@ class MultiOpt(ObjLog):
         bs = self.bs
 
         r = self.atoms.state_vec.reshape(bs, -1)
-        g = self.atoms.obj_func_grad(raw=True)
         e = self.atoms.obj_func(individual=True)
         ts = self.atoms.tangents.copy()
         g.shape = (bs, -1)
@@ -306,7 +305,7 @@ class MultiOpt(ObjLog):
 
         step = 0
         while step < steps:
-            f = self.atoms.get_forces()
+            f = self.atoms.obj_func_grad(raw=True)
             self.slog(f) # ObjLog method
             self.call_observers()
             self.step(f)
