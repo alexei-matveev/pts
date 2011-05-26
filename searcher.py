@@ -949,6 +949,10 @@ class PathRepresentation(Path):
         self._funcs_stale = True
         self._integrals_stale = True
 
+        # FIXME: please provide matric as an argument, explicit is better than
+        # implicit:
+        self.__metric = mt.metric
+
         # TODO check all beads have same dimensionality
 
         # use Path functionality:
@@ -1011,7 +1015,7 @@ class PathRepresentation(Path):
             seps = []
             def arc_fun(x):
                 # arc_dist_func needs also knowledge of some kind of metric
-                return self.__arc_dist_func(x, mt.metric)
+                return self.__arc_dist_func(x, self.__metric)
 
             for i in range(N)[1:]:
                 l, _ = scipy.integrate.quad(arc_fun, a[i-1], a[i])
