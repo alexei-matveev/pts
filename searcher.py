@@ -10,6 +10,7 @@ import tempfile, os
 import logging
 from copy import deepcopy
 import pickle
+from os import path, mkdir, chdir, getcwd
 
 # TODO: change to import numpy as np???
 from numpy import linalg, array, asarray, ceil, abs, sqrt, dot, size
@@ -17,6 +18,7 @@ from numpy import empty, zeros, ones, linspace, arange
 
 from path import Path, Arc, scatter, scatter1
 from func import RhoInterval
+from pts.memoize import Elemental_memoize, FileStore
 
 from common import * # TODO: must unify
 import pts.common as common
@@ -143,11 +145,14 @@ class ReactionPathway(object):
             beads_count, 
             pes,
             parallel, 
+            result_storage,
             reporting=None, 
             convergence_beads=3, 
             steps_cumm=3, 
+            pmap=map,
             freeze_beads=False, 
             output_level = 3,
+            output_path = ".",
             conv_mode='gradstep'):
         """
         convergence_beads:
@@ -165,6 +170,7 @@ class ReactionPathway(object):
         self.pes = pes
         self.beads_count = beads_count
         self.prev_beads_count = beads_count
+        self.output_path = output_path
 
         self.convergence_beads = convergence_beads
         self.steps_cumm = steps_cumm
@@ -192,7 +198,7 @@ class ReactionPathway(object):
         # This can be set externally to a file object to allow recording of picled archive data
         self.arc_record = None
         self.output_level = output_level
-
+        self.allvals = Elemental_memoize(self.pes, pmap=pmap, cache = FileStore(result_storage))
 
     def initialise(self):
         beads_count = self.beads_count
@@ -609,8 +615,18 @@ class ReactionPathway(object):
         assert len(self.bead_pes_energies) == self.beads_count
         assert len(self.bead_pes_gradients) == self.beads_count
 
-        # get PES energy/gradients, FIXME: do this by PMAP!
-        es, gs = zip(*map(self.pes.taylor, self.state_vec))
+        # calculation output should go to another place, thus change directory
+        wopl = getcwd()
+        if not path.exists(self.output_path):
+            mkdir(self.output_path)
+        chdir(self.output_path)
+
+
+        # get PES energy/gradients
+        es, gs = self.allvals.taylor( self.state_vec)
+
+        # return to former directory
+        chdir(wopl)
 
         # FIXME: does it need to be a a destructive update?
         self.bead_pes_energies[:] = es
@@ -803,11 +819,11 @@ class NEB(ReactionPathway):
     """
 
     growing = False
-    def __init__(self, reagents, pes, base_spr_const, beads_count=10,
-        parallel=False, reporting=None, output_level = 3):
+    def __init__(self, reagents, pes, base_spr_const, result_storage, beads_count=10, pmap = map,
+        parallel=False, reporting=None, output_level = 3, output_path = "."):
 
-        ReactionPathway.__init__(self, reagents, beads_count, pes,
-            parallel=parallel, reporting=reporting, output_level = output_level)
+        ReactionPathway.__init__(self, reagents, beads_count, pes, result_storage, pmap = pmap,
+            parallel=parallel, reporting=reporting, output_level = output_level, output_path = output_path)
 
         self.base_spr_const = base_spr_const
 
@@ -1267,9 +1283,10 @@ class GrowingString(ReactionPathway):
 
     string = True
 
-    def __init__(self, reagents, pes, beads_count = 10,
+    def __init__(self, reagents, pes, result_storage, beads_count = 10, pmap = map,
         rho = lambda x: 1, growing=True, parallel=False, head_size=None, output_level = 3,
-        max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False):
+        max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False,
+        output_path = "."):
 
         self.__final_beads_count = beads_count
 
@@ -1281,7 +1298,9 @@ class GrowingString(ReactionPathway):
 
         # create PathRepresentation object
         self._path_rep = PathRepresentation(reagents, initial_beads_count, rho)
-        ReactionPathway.__init__(self, reagents, initial_beads_count, pes, parallel, reporting=reporting, output_level = output_level)
+        ReactionPathway.__init__(self, reagents, initial_beads_count, pes, parallel, result_storage,
+                 reporting=reporting, output_level = output_level,
+                 pmap = pmap, output_path = output_path)
 
         # final bead spacing density function for grown string
         # make sure it is normalised

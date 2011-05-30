@@ -12,9 +12,11 @@ from re import findall
 from os import path, mkdir
 from pts.pathsearcher_defaults.params_default import *
 from pts.pathsearcher_defaults import *
-from pts.qfunc import QFunc
+from pts.qfunc import QFunc, QMap
 from pts.func import compose
-from pts.memoize import Memoize
+from pts.paramap import PMap, PMap3
+from pts.sched import Strategy
+from pts.memoize import Memoize, elemental_memoize
 from pts.parasearch import generic_callback
 from pts.searcher import GrowingString, NEB, ts_estims
 from pts.optwrap import runopt
@@ -74,10 +76,16 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     # default to LJ, but rather keep atoms as is?
     pes = compose(QFunc(atoms, atoms.get_calculator()), funcart)
 
+    # This parallel mapping function puts every single point calculation in
+    # its own subfolder
+    strat = Strategy(kwargs["cpu_architecture"], kwargs["pmin"], kwargs["pmax"])
+    kwargs["pmap"] = QMap(pmap = PMap3(strat=strat), format = "bead%02d")
+
+
     kwargs["int2cart"] = funcart
     kwargs["ch_symbols"] = atoms.get_chemical_symbols()
     # Memoize the Func in case evaluations are expensive:
-    pes = Memoize(pes)
+    #pes = Memoize(pes)
 
     # this operates with PES in internals:
     convergence, geometries, energies, gradients = find_path(pes, init_path, **kwargs)
@@ -97,6 +105,8 @@ def find_path(pes, init_path
                             , output_path = "."
                             , int2cart = 0       # For mere transformation of internal to Cartesians
                             , ch_symbols = None     # Only needed if output needs them
+                            , old_results = None
+                            , pmap = PMap()
                             , **kwargs):
     """This one does the real work ...
 
@@ -112,7 +122,7 @@ def find_path(pes, init_path
     logfile = open(name + '.log', 'w')
     disk_result_cache = None
     if output_level > 0:
-        disk_result_cache = '%s.ResultDict.pickle' % name
+        disk_result_cache = output_path + '/%s.ResultDict.pickle' % name
 
     # decide which method is actually to be used
     method = method.lower()
@@ -127,32 +137,41 @@ def find_path(pes, init_path
     if method == 'string':
         CoS = GrowingString(init_path,
                pes,
-               beads_count,
+               disk_result_cache,
+               beads_count=beads_count,
                growing=False,
                parallel=True,
                reporting=logfile,
                freeze_beads=False,
                head_size=None,
                output_level=output_level,
+               output_path=output_path,
+               pmap = pmap,
                max_sep_ratio=0.3)
     elif method == 'growingstring':
         CoS = GrowingString(init_path,
                pes,
-               beads_count,
+               disk_result_cache,
+               beads_count=beads_count,
                growing=True,
                parallel=True,
                reporting=logfile,
                freeze_beads=False,
                head_size=None,
+               pmap = pmap,
+               output_path=output_path,
                output_level=output_level,
                max_sep_ratio=0.3)
     elif method == 'searchingstring':
         CoS = GrowingString(init_path,
                pes,
-               beads_count,
+               disk_result_cache,
+               beads_count=beads_count,
                growing=True,
                parallel=True,
                reporting=logfile,
+               pmap = pmap,
+               output_path=output_path,
                output_level=output_level,
                max_sep_ratio=0.3,
                freeze_beads=True,
@@ -162,8 +181,11 @@ def find_path(pes, init_path
         CoS = NEB(init_path,
                pes,
                spring,
-               beads_count,
+               disk_result_cache,
+               beads_count=beads_count,
                parallel=True,
+               pmap = pmap,
+               output_path=output_path,
                output_level=output_level,
                reporting=logfile)
     elif method == 'sopt':
