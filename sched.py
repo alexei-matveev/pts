@@ -40,13 +40,38 @@ class Strategy:
 
     >>> strat = Strategy([1],1,1)
     >>> strat(4)
-    [(0, [0]), (0, [0]), (0, [0]), (0, [0])]
+    [([0], 0, [0]), ([0], 0, [0]), ([0], 0, [0]), ([0], 0, [0])]
 
     >>> strat = Strategy([4,4],2,4)
     >>> strat(5)
-    [(0, [0, 1]), (0, [2, 3]), (1, [0, 1]), (1, [2, 3]), (0, [0, 1, 2, 3])]
+    [([0, 1], 0, [0, 1]), ([2, 3], 0, [2, 3]), ([4, 5], 1, [0, 1]), ([6, 7], 1, [2, 3]), ([0, 1, 2, 3], 0, [0, 1, 2, 3])]
     >>> strat(4)
-    [(0, [0, 1]), (0, [2, 3]), (1, [0, 1]), (1, [2, 3])]
+    [([0, 1], 0, [0, 1]), ([2, 3], 0, [2, 3]), ([4, 5], 1, [0, 1]), ([6, 7], 1, [2, 3])]
+
+
+    FIXME: Strategy class seems a bit too complicated for what it is (now) supposed to
+           do, maybe simplify or replace it
+
+    Needed Interface: input: get topology (how many processes per node for all nodes
+                                  in a list
+                             pmin: minimal number of processors a single point calculation
+                                   might use
+                             pmax: maximal number of processors a single point calculation
+                                   might use
+
+                       Output: A list for all the n (given as input to call) tasks and how and
+                               where to run them. Should be an optimized task distribution, where
+                               no task has less than pmin and no more than pmax tasks, no task is distributed
+                               over several nodes and there is as less as possible overhead due to empty processors
+
+                               For every task there should be the following output:
+                              distribution: a list of processor numbers, on which the task should run
+                                             (global numbers)
+                               node: the number of the node to run on
+                               cpus: a list of cpus on the node to run on (local numbers)
+
+                       for example: strategy for 4 tasks on two four-core machines:
+                           [([0, 1], 0, [0, 1]), ([2, 3], 0, [2, 3]), ([4, 5], 1, [0, 1]), ([6, 7], 1, [2, 3])]
     """
     def __init__(self, topology = None, pmin = None, pmax = None):
 
@@ -69,11 +94,6 @@ class Strategy:
         self.top = Topology(self.topstring)
 
     def __call__(self, n):
-        sched = self.s.generate(self.top, n)
-        scheds = [r[1:3] for r in sched]
-        return scheds
-
-    def call_extended(self, n):
         sched = self.s.generate(self.top, n)
         scheds = [r[:3] for r in sched]
         return scheds
@@ -731,332 +751,6 @@ class Topology(object):
             for i in shape:
                 self.state.append([True for j in range(i)])
 
-class SchedQueueEmpty(Exception):
-    "SchedQueue was empty."
-    pass
-
-class SchedQueue():
-    """A thread-safe queue object that 
-        - annotates it's contents with scheduling information
-        - keeps track of which processors in the system are free via an 
-          internal model
-        - re-generate scheduling info when new jobs are added to the queue
-
-    Calls to get() will block until the internal model of the cluster 
-    indicates that there are sufficient CPUs free to run the net job.
-    """
-    """
-    
-    >>> sq = SchedQueue(([4],2,1))
-    >>> sq.empty()
-    True
-
-    >>> sq.put(1)
-    >>> sq.put(2)
-    >>> sq.put([3,4,5,6,7])
-
-    >>> l = []
-    >>> l += [sq.get(), sq.get()]
-    >>> l += [sq.get(), sq.get()]
-    >>> for id in [li.id for li in l]:
-    ...     sq.task_done(id)
-    >>> l = []
-    >>> l += [sq.get(), sq.get(), sq.get()]
-    >>> print sq
-    [0] / [4] / [[False, False, False, False]]
-    >>> sq.task_done(100)
-    Traceback (most recent call last):
-        ...
-    KeyError: 100
-
-    """
-
-    _sleeptime = 0.01
-
-    def __init__(self, processors = (DEFAULT_TOPOLOGY, DEFAULT_PMAX, DEFAULT_PMIN), sched_strategy=None):
-#        lg.info(self.__class__.__name__ + ": Topology: %s CPUs: %s" % (topology, procs))
-        topology, max_CPUs, min_CPUs = processors
-        procs = max_CPUs, min_CPUs
-
-        f = open("cpu_occupation_timing.txt", "a")
-        self._topology = Topology(topology, f_timing=f)
-        if sched_strategy == None:
-            self._sched_strategy = SchedStrategy_HCM_Simple(procs)
-            self.pure_strategy = Strategy(topology, min_CPUs, max_CPUs)
-        else:
-            self._sched_strategy = sched_strategy
-
-        self._deque = deque()
-        self._sched_info = deque()
-        self._lock = threading.RLock()
-
-    def __str__(self):
-        with self._lock:
-            s = str(self._topology)
-            for i, j in zip(self._deque, self._sched_info):
-                s += '\n' + str(i) + ': ' + str(j)
-            return s
-
-    def generate_strategy(self, n):
-         return self.pure_strategy(n)
-
-
-    def put(self, items):
-        """Places an item, or list of items, into the queue, and update the 
-        scheduling information based on (a) the total number of items now in 
-        the queue and (b) the currently in-use cpu set."""
-
-        if type(items) == np.ndarray:
-            items = items.tolist()
-        elif type(items) != list:
-            items = [items]
-        
-        with self._lock:
-            # add
-            for i in items:
-                self._deque.append(i)
-
-            # generate scheduling info
-            jobs = len(self._deque)
-            cpu_ranges = self._sched_strategy.generate(self._topology, jobs)
-
-            # decorate tasks with their allocated range of CPUs
-            self._sched_info = deque(cpu_ranges)
-
-            assert len(self._deque) == len(self._sched_info)
-
-
-    def task_done(self, id):
-        assert type(id) == int
-        self._topology.put_range(id)
-
-    def empty(self):
-        """Return True if and only the queue is empty."""
-        with self._lock:
-            return len(self._deque) == 0
-    def __len__(self):
-        with self._lock:
-            return len(self._deque)
-
-
-    def get(self):
-        """Gets an item from the queue"""
-        with self._lock:
-            if len(self._deque) == 0:
-                raise SchedQueueEmpty()
-
-            job = self._deque.popleft()
-            range = self._sched_info.popleft()
-            cpus = len(range[0])
-
-            # A noteworthy design decision has been made here...
-            # Instead of respecting the precise system CPU indices that were
-            # originally generated for this job, only the *total number* is
-            # used, in case we can find a better slot using the current 
-            # occupation of the system.
-
-            range = self._topology.get_range(cpus)
-            while not range:
-                time.sleep(self._sleeptime)
-                range = self._topology.get_range(cpus)
-
-            assert len(self._deque) == len(self._sched_info)
-
-            return Item(job, range)
-
-def test_SchedQueue(cpus, thread_count, items):
-    """Launches a whole lot of threads to test the functionality of SchedQueue.
-    """
-    """
-
-    cpus:         topology, max, min numbers of cpus per job
-    thread_count: total threads to launch
-    items:        items to process, can be any list, basically ignored
-    
-    >>> test_SchedQueue(([4],2,1), 8, range(100))
-    >>> test_SchedQueue(([4,4,2,1], 2,1), 100, range(1000))
-    >>> test_SchedQueue(([4,4,2,1], 5,1), 100, range(1000))
-    >>> test_SchedQueue(([1,1,1,2,3,4,5,6,7], 3,2), 200, range(1000))
-    >>> test_SchedQueue(([4,4,4,4,4], 4,2), 100, range(1000))
-
-    """
-
-    import random
-
-    sq = SchedQueue(cpus)
-    finished = Queue()
-
-    def worker(inq, outq):
-        while not inq.empty():
-            try:
-                j = inq.get()
-            except SchedQueueEmpty, sqe:
-                return
-            time.sleep(0.01*random.random())
-            inq.task_done(j.id)
-            outq.put(j.job)
-
-    sq.put(items)
-
-    for i in range(thread_count):
-        t = threading.Thread(target=worker, args=(sq,finished))
-        t.daemon = True
-        t.start()
-
-    while threading.activeCount() > 1: # this is a bit crude, can it be done better?
-        time.sleep(0.1)
-
-    input = list(items)
-    input.sort()
-    output = list(finished.queue.__iter__())
-    output.sort()
-
-    assert input == output
-    assert sq._topology.all == sq._topology.available
-
-class SchedException(Exception):
-    def __init__(self, msg):
-        self.msg = msg 
-    def __str__(self, msg):
-        return self.msg
-
-class ParaJobLauncher():
-    def run(self, j, ix):
-        params = dict()
-        params["placement_command"] = mol_interface.placement_progam + \
-                                      " " + \
-                                      mol_interface.placement_arg
-        mol_interface.run_job(j.v, params)
-
-def hugh_pmap(f, l, processors):
-    """Parallel map using the scheduling infrastructure in this module."""
-    assert False, "work in progress"
-
-    ps = ParaSched(f, procesors)
-    ps.batch_run(l)
-    return ps.get_results()
-    
-
-class ParaSched(object):
-    """Manages the threads responsible for running programs that perform 
-    electronic structure calculations. Builds queues and generates sceduling
-    info.
-    """
-    """
-
-    >>> ps = ParaSched(pts.pes.GaussianPES(fake_delay=0.2), ([8], 3, 1))
-    >>> vecs = np.arange(12).reshape(-1,2)
-    >>> jobs = [Job(i,[]) for i in vecs]
-    >>> ps.batch_run(jobs)
-    >>> res = np.array([r.g for r in ps.get_results()]).flatten()
-    >>> correct = np.array([pts.pes.GaussianPES().gradient(v) for v in vecs]).flatten()
-    >>> correct.sort()
-    >>> res.sort()
-    >>> (res == correct).all()
-    True
-
-    """
-    def __init__(self, qc_driver, processors):
-        """Constructor.
-        
-        qc_driver:
-            object with a run() function
-        processors:
-            3-tuple: ([N1,N2,...], max_CPUs, min_CPUs)
-            i.e. shape of system, max CPUs per job, min CPUs per job
-        """
-        
-        # pending queue contains self-generates scheduling info
-        self._pending = SchedQueue(processors)
-        self._finished = Queue()
-        self._qc_driver = qc_driver
-
-        sys_shape, _, min_cpus = processors
-
-        # no of workers to start
-        self._workers_count = sum(sys_shape) / min_cpus
-
-    def __worker(self, pending, finished, ix):
-        """Runs as a Python thread. "pending" and "finished" are both thread
-        safe queues of jobs to be consumed / added to by each worker. ix
-        is the index of each worker, used in node placement."""
-
-        my_id = thread.get_ident()
-
-        lg.info("Worker starting, id = %s ix = %s" % (my_id, ix))
-
-        while not pending.empty():
-
-            try:
-                item = pending.get()
-            except SchedQueueEmpty, sqe:
-#                lg.error(msg)
-                break
-            """except Exception, e:
-                msg = ' '.join(["Worker", str(my_id), "threw", str(e)])
-                lg.error(msg)
-                return"""
-
-            # just for testing what happens when a worker thread experiences an exception
-            # if ix % 2 == 0:
-            #   raise Exception("Dummy")
-
-            # setup parameter dictionary
-            params = dict()
-
-            # call quantum chem driver
-            try:
-                res = self._qc_driver.run(item)
-            except QCDriverException, inst:
-                # TODO: perhaps this needs to be done differently, when a worker 
-                # encounters an exception it should empty the queue rethrow, 
-                # and maybe kill all running QC jobs.
-                l = ["Worker", str(my_id), ": Exception thrown when", 
-                     "calling QC driver:", str(type(inst)),
-                     ":", str(inst.args)]
-                msg = ' '.join(l)
-                
-                res = Result(item.v, 0.0, flags = dict(ERROR_STR = msg))
-
-            finished.put(res)
-            lg.info("Worker %s finished a job." % my_id)
-            pending.task_done(item.id)
-            lg.debug("thread " + str(my_id) + ": item " + str(item) + " complete: " + str(res))
-
-        lg.info("Queue empty, worker %s exiting." % my_id)
-
-    def batch_run(self, jobs_list):
-        """Start threads to process jobs in queue."""
-
-        # place jobs in a queue
-        self._pending.put(jobs_list)
-
-#        lg.info("%d jobs in pending queue" % len(self._pending))
-        # start workers
-        lg.info("%s spawning %d worker threads" % (self.__class__.__name__, self._workers_count))
-        for i in range(self._workers_count):
-            t = threading.Thread(target=self.__worker, args=(self._pending, self._finished, i))
-            t.daemon = True
-            t.start()
-
-        # The normal method would be to join() the thread, but if one of the 
-        # threads dies then we get deadlock.
-        # this is a bit crude, can it be done better?
-        while threading.activeCount() > 1:
-            time.sleep(0.3333)
-
-        lg.debug("All worker threads exited")
-
-        if not self._pending.empty():
-            raise SchedException("Pending queue not empty but all threads exited.")
-
-    def get_results(self):
-        results = []
-        while not self._finished.empty():
-            results.append(self._finished.get())
-            self._finished.task_done()
-
-        return results
 
 if __name__ == "__main__":
     import doctest

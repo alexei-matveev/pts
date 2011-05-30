@@ -365,9 +365,7 @@ class PMap3(object):
         xs = [x for x in xs]
 
         # calculate the scheduling strategy
-        # the extended gives also the distribution in numbers of the cpus
-        # this is just easier to handle
-        sched = self.strat.call_extended(len(xs))
+        sched = self.strat(len(xs))
 
         # this is the input per job, stored in input for all of them
         input = [(jid, ffun, x, sched[jid]) for jid, x in enumerate(xs)]
