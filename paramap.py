@@ -148,7 +148,7 @@ __all__ = ["pmap"]
 from threading import Thread
 from Queue import Queue as TQueue
 from os import environ
-from sched import Strategy, SchedQueue, SchedQueueEmpty
+from sched import Strategy
 from time import sleep
 try:
     from multiprocessing import Process
@@ -350,7 +350,7 @@ class PMap3(object):
                 # the function needs also the information on the node and cpus
                 xplus = (x, (node, cpus))
                 # the calculation
-                result = (jid, fun(xplus, jid))
+                result = (jid, fun(xplus))
                 # this queue should hold the results
                 outq.put(result)
                 # release the cpus
@@ -453,7 +453,7 @@ def test(x, num = None):
     number = getenv("PTS_SCHED_JOB_CPUS")
     print "%s waits" % (num)
     sleep(0.5)
-    print "%s Scheduling informatiom: %s %s %s" % (num, host, nprocs, number)
+    print "%s Scheduling information: %s %s %s" % (num, host, nprocs, number)
 
     return x
 
