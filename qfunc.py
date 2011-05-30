@@ -115,7 +115,7 @@ class QFunc(Func):
 
 from paramap import pmap
 
-def qmap(f, xs, map=pmap, format="%02d"):
+class QMap(object):
     """Apply (parallel) map with chdir() isolation for each evaluation.
     Directories are created, if needed, following the format:
 
@@ -123,22 +123,38 @@ def qmap(f, xs, map=pmap, format="%02d"):
 
     The default format leads to directory names: 00, 01, 02, ...
     """
+    def __init__(self, pmap = pmap, format = "%02d"):
+        self.pmap = pmap
+        self.format = format
 
-    def _f(args):
-        i, x = args
+    def __call__(self, f, xs):
 
-        if format is not None:
-            dir = format % i
-        else:
-            dir ="."
+       def _f( args):
+           i, xj = args
 
-        context = QContext(wd=dir)
-        with context:
-            fx = f(x)
+           # some arguments might include informations where this
+           # value belongs (another number than by enumerate)
+           # try if this is the case
+           try:
+               x, j = xj
+           except TypeError:
+               # if not enumerate will also ensure that there are no
+               # two calculations with the same number
+               x = xj
+               j = i
 
-        return fx
+           if self.format is not None:
+               dir = self.format % j
+           else:
+               dir ="."
 
-    return pmap(_f, enumerate(xs))
+           context = QContext(wd=dir)
+           with context:
+               fx = f(xj)
+
+           return fx
+
+       return self.pmap(_f, enumerate(xs))
 
 # a list of restartfiles that might be usefull to copy-in
 # for a warm-start of a calculation, if it is complete, no
