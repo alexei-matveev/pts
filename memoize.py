@@ -442,6 +442,108 @@ class Memoize(Func):
             self.__d[key1] = fprime
             return f, fprime
 
+class Elemental_memoize(Func):
+    """
+    Memozise the f and fprime results (elemental) for function f
+    Execution is on array for all the x -values
+
+    Two functions with side effects:
+
+        >>> from math import sin, cos, pi
+
+        >>> def si(x):
+        ...     print "si(",x,")"
+        ...     return sin(x)
+
+        >>> def co(x):
+        ...     print "co(",x,")"
+        ...     return cos(x)
+
+        >>> s = Func(si, co)
+
+        >>> s1 = Elemental_memoize(s)
+
+    First evaluation:
+
+        >>> s1([0., 0.3 , pi/2.0])
+        si( 0.0 )
+        co( 0.0 )
+        si( 0.3 )
+        co( 0.3 )
+        si( 1.57079632679 )
+        co( 1.57079632679 )
+        [0.0, 0.29552020666133955, 1.0]
+
+    Second evaluation:
+
+        >>> s1([ 0., pi/2.0])
+        [0.0, 1.0]
+
+        >>> s1([0., pi/8., 0.3])
+        si( 0.392699081699 )
+        co( 0.392699081699 )
+        [0.0, 0.38268343236508978, 0.29552020666133955]
+
+    Same for derivative:
+
+        >>> s1.fprime([0., 0.3, pi/8.])
+        [1.0, 0.95533648912560598, 0.92387953251128674]
+    """
+    def __init__(self, f, pmap = map, cache=None):
+        # for each call to memoize, create a new cache
+        # (unless provided by caller):
+        if cache is None:
+            # Python dict() cannot be indexed by mutable keys,
+            # use custom dictionary, see below:
+            self.cache = Store()
+        else:
+            self.cache = cache
+
+        def f_t_rem_i(z):
+            # actual caclculation is only on x,
+            # i is given also so that pmap can
+            # steal it
+            x, i = z
+            return f.taylor(x)
+
+        self.memfun = f_t_rem_i
+        self.pmap = pmap
+
+    def taylor(self, xs):
+        # collect those to be computed:
+        xs1 = []
+        for i, x in enumerate(xs):
+            if x not in self.cache:
+                # some pmap functions (qmap) would like to know which
+                # number they got. add it and forward it to pmap
+                xs1.append((x,i))
+
+        # compute missing results:
+        ys1 = self.pmap(self.memfun, xs1)
+
+        # store new results:
+        for xi, y in zip(xs1, ys1):
+            x, i = xi
+            # store only with value of x, i might change
+            self.cache[x] = y
+
+        # return copies from the dictionary:
+        ys = []
+        for x in xs:
+            ys.append(copy(self.cache[x]))
+
+        # every ys is a tuple f, fprime
+        es = []
+        gs = []
+        for res in ys:
+            e1, g1 = res
+            es.append(e1)
+            gs.append(g1)
+
+
+        # FIXME: should we return two arrays?
+        return es, gs
+
 # python memoize.py [-v]:
 if __name__ == "__main__":
     import doctest
