@@ -16,7 +16,7 @@ from pts.qfunc import QFunc, QMap
 from pts.func import compose
 from pts.paramap import PMap, PMap3
 from pts.sched import Strategy
-from pts.memoize import Memoize, elemental_memoize
+from pts.memoize import Memoize, elemental_memoize, FileStore
 from pts.parasearch import generic_callback
 from pts.searcher import GrowingString, NEB, ts_estims
 from pts.optwrap import runopt
@@ -122,7 +122,7 @@ def find_path(pes, init_path
     logfile = open(name + '.log', 'w')
     disk_result_cache = None
     if output_level > 0:
-        disk_result_cache = output_path + '/%s.ResultDict.pickle' % name
+        disk_result_cache = FileStore(output_path + '/%s.ResultDict.pickle' % name)
 
     # decide which method is actually to be used
     method = method.lower()

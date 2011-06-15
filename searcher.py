@@ -18,7 +18,7 @@ from numpy import empty, zeros, ones, linspace, arange
 
 from path import Path, Arc, scatter, scatter1
 from func import RhoInterval
-from pts.memoize import Elemental_memoize, FileStore
+from pts.memoize import Elemental_memoize
 
 from common import * # TODO: must unify
 import pts.common as common
@@ -198,7 +198,7 @@ class ReactionPathway(object):
         # This can be set externally to a file object to allow recording of picled archive data
         self.arc_record = None
         self.output_level = output_level
-        self.allvals = Elemental_memoize(self.pes, pmap=pmap, cache = FileStore(result_storage))
+        self.allvals = Elemental_memoize(self.pes, pmap=pmap, cache = result_storage)
 
     def initialise(self):
         beads_count = self.beads_count
@@ -737,7 +737,7 @@ class NEB(ReactionPathway):
     
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
     >>> qc = pts.pes.GaussianPES()
-    >>> neb = NEB(path, qc, 1.0, beads_count = 4)
+    >>> neb = NEB(path, qc, 1.0, None, beads_count = 4)
     >>> neb.state_vec
     array([[ 0. ,  0. ],
            [ 0.2,  0.2],
@@ -792,7 +792,7 @@ class NEB(ReactionPathway):
     >>> abs(neb.step[1] - ones(neb.beads_count) * 0.1).round()
     array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
-    >>> neb = NEB([[0,0],[1,1]], pts.pes.GaussianPES(), 1., beads_count = 3)
+    >>> neb = NEB([[0,0],[1,1]], pts.pes.GaussianPES(), 1., None, beads_count = 3)
     >>> neb.angles
     array([ 180.])
     >>> neb.state_vec = [[0,0],[0,1],[1,1]]
@@ -822,8 +822,8 @@ class NEB(ReactionPathway):
     def __init__(self, reagents, pes, base_spr_const, result_storage, beads_count=10, pmap = map,
         parallel=False, reporting=None, output_level = 3, output_path = "."):
 
-        ReactionPathway.__init__(self, reagents, beads_count, pes, result_storage, pmap = pmap,
-            parallel=parallel, reporting=reporting, output_level = output_level, output_path = output_path)
+        ReactionPathway.__init__(self, reagents, beads_count, pes, parallel, result_storage, pmap = pmap,
+            reporting=reporting, output_level = output_level, output_path = output_path)
 
         self.base_spr_const = base_spr_const
 
@@ -1234,7 +1234,7 @@ class GrowingString(ReactionPathway):
 
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
     >>> qc = pts.pes.GaussianPES()
-    >>> s = GrowingString(path, qc, beads_count=4, growing=False)
+    >>> s = GrowingString(path, qc,None, beads_count=4, growing=False)
     >>> s.state_vec.round(1)
     array([[ 0. ,  0. ],
            [ 0.3,  0.3],
