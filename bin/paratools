@@ -67,7 +67,7 @@ def main(argv):
         from pts.inputs.pathsearcher import main as pathsearcher
 
         # prepend a flag for pathsearcher to understand the method:
-        argv1 = ["--cos_type"] + argv
+        argv1 = ["--method"] + argv
         # print "pts: call pathsearcher(", argv1, ")"
         pathsearcher(argv1)
 
