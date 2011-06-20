@@ -15,7 +15,7 @@ from ase.atoms import Atoms
 from ase.calculators.lj import LennardJones
 from pts.zmat import ZMat
 from pts.test.testfuns import diagsandhight
-from numpy import sqrt, asarray
+from numpy import sqrt, array
 from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
 
 paths = []
@@ -24,18 +24,23 @@ gradients = []
 converged = []
 
 nums = range(7)
+# Pathsearcher needs an ASE atoms object or something which provides
+# at least the functionality of mb_atoms example in mueller_brown.py
+# Here a real atom object is generated with 2 H atoms:
+h2 = Atoms("H2")
+
+# before giving it to pathsearcher attach a valid calculator
+h2.set_calculator(LennardJones())
+
+# Cartesian start geometry
+d = 1.0
+
 # choice = 0 should be the easiest case, best for understanding only
 # the way pathsearcher should be used
 for choice in nums:
-    # Pathsearcher needs an ASE atoms object or something which provides
-    # at least the functionality of mb_atoms example in mueller_brown.py
-    # Here a real atom object is generated with 2 H atoms:
-    h2 = Atoms("H2")
+    m1 = array([[0., 0., 0.],[0., 0., d]])
+    m2 = array([[0., 0., 0.],[0., 0., d*100.]])
 
-    # before giving it to pathsearcher attach a valid calculator
-    h2.set_calculator(LennardJones())
-
-    d = 1.0
 
     # Here the different ways of using the different functions are given
     if choice == 0:
@@ -51,9 +56,8 @@ for choice in nums:
         does pathsearcher.
         """
         func = Justcarts()
-
-        min1 = asarray([0., 0., 0.,0., 0., d])
-        min2 = asarray([0., 0., 0.,0., 0., d*100.])
+        min1 = func.pinv(m1)
+        min2 = func.pinv(m2)
 
     elif choice == 1:
         """
@@ -66,8 +70,9 @@ for choice in nums:
         """
         func = With_globals(Justcarts())
 
-        min1 = asarray([0., 0., 0.,0., 0., d, 0., 0., 0., 0.,0., 0.])
-        min2 = asarray([0., 0., 0.,0., 0., d*100., 0., 0., 0., 0.,0., 0.])
+        # Trick as there are not enough coordinates to revert them
+        min1 = array([0., 0., 0., 0., 0., d, 0., 0., 0., 1., 0., 0.])
+        min2 = array([0., 0., 0., 0., 0., d*100., 0., 1., 0., 1., 0., 0.])
 
     elif choice == 2:
         """
@@ -80,10 +85,9 @@ for choice in nums:
         """
         funcs = [Justcarts(), Justcarts()]
         dims = [3, 3]
-        func = Mergefuncs(funcs, dims)
-
-        min1 = asarray([0., 0., 0.,0., 0., d])
-        min2 = asarray([0., 0., 0.,0., 0., d*100.])
+        func = Mergefuncs(funcs, dims, dims_rev = [1,1])
+        min1 = func.pinv(m1)
+        min2 = func.pinv(m2)
 
     elif choice == 3:
         """
@@ -105,11 +109,10 @@ for choice in nums:
         for initalizing (vector all in our example)
         """
         mask = [False] * 5 + [True]
-        all = asarray([0., 0., 0.,0., 0., 0.])
+        all = array([0., 0., 0.,0., 0., 0.])
         func = Masked(Justcarts(), mask, all)
-
-        min1 = asarray([d])
-        min2 = asarray([d*100.])
+        min1 = func.pinv(m1)
+        min2 = func.pinv(m2)
 
     elif choice == 4:
         """
@@ -134,11 +137,10 @@ for choice in nums:
         The arrays for the path contain here only three elements.
         """
         mask = [1, 0, -1, 2, 2, 3]
-        start = asarray([0., 0., 0., 0., 0., 0.])
+        start = array([0., 0., 0., 0., 0., 0.])
         func = With_equals(Justcarts(), mask, start)
-
-        min1 = asarray([0., 1.,d])
-        min2 = asarray([0., 1., d*100.])
+        min1 = func.pinv(m1)
+        min2 = func.pinv(m2)
 
     elif choice == 5:
         """
@@ -151,18 +153,17 @@ for choice in nums:
         """
         funcs = [Justcarts(), Justcarts()]
         dims = [3, 3]
-        func2 = Mergefuncs(funcs, dims)
+        func2 = Mergefuncs(funcs, dims, dims_rev = [1,1])
 
         mask1 = [1, 1, 1, 2, 2, 3]
-        start = asarray([0., 0., 0., 0., 0., 0.])
+        start = array([0., 0., 0., 0., 0., 0.])
         func1 = With_equals(func2, mask1, start)
 
         mask = [False] * 2 + [True]
-        all = asarray([0., 0., 0.])
+        all = array([0., 0., 0.])
         func = Masked(func1, mask, all)
-
-        min1 = asarray([d])
-        min2 = asarray([d*100.])
+        min1 = func.pinv(m1)
+        min2 = func.pinv(m2)
 
     elif choice == 6:
         """
@@ -171,14 +172,13 @@ for choice in nums:
         """
         funcs = [Justcarts(), Justcarts()]
         dims = [3, 3]
-        func2 = Mergefuncs(funcs, dims)
+        func2 = Mergefuncs(funcs, dims, dims_rev = [1,1])
 
         mask1 = [0, 0, 0, 0, 0, 1]
-        start = asarray([0., 0., 0., 0., 0., 0.])
+        start = array([0., 0., 0., 0., 0., 0.])
         func = With_equals(func2, mask1, start)
-
-        min1 = asarray([d])
-        min2 = asarray([d*100.])
+        min1 = func.pinv(m1)
+        min2 = func.pinv(m2)
 
     # pathsearcher wants its inital path geometries on a string
     # there need to be at least to of them (of the two minima)
