@@ -632,6 +632,15 @@ class Quat(object):
 
         >>> k * k
         Quat((-1.0, 0.0, 0.0, 0.0))
+
+        >>> Quat((-1.0, 0.0, 0.0, 0.0)) / k == k
+        True
+
+        >>> Quat((0.0, 0.0, 0.0, -1.0)) / j == i
+        True
+
+        >>> i / k
+        Quat((0.0, 0.0, -1.0, 0.0))
     """
     def __init__(self, q=(1., 0., 0., 0.)):
         self.__q = asarray(q)
@@ -654,6 +663,23 @@ class Quat(object):
         r[2] = p[0] * q[2] + p[2] * q[0] - p[1] * q[3] + p[3] * q[1] 
         r[3] = p[0] * q[3] + p[3] * q[0] + p[1] * q[2] - p[2] * q[1] 
         return Quat(r)
+
+    def __div__(self, other):
+        "Division of self / other in that order"
+
+        p = self.__q
+        q = other.__q
+
+        r = empty(4)
+
+        nq = q[0]**2 + q[1]**2 + q[2]**2 + q[3]**2
+        r[0] = (p[0] * q[0] + p[1] * q[1] + p[2] * q[2] + p[3] * q[3]) / nq
+        r[1] = (q[0] * p[1] - q[1] * p[0] - q[2] * p[3] + q[3] * p[2]) / nq
+        r[2] = (q[0] * p[2] - q[2] * p[0] + q[1] * p[3] - q[3] * p[1]) / nq
+        r[3] = (q[0] * p[3] - q[3] * p[0] - q[1] * p[2] + q[2] * p[1]) / nq
+
+        return Quat(r)
+
 
     def __repr__(self):
         return "Quat(%s)" % str(tuple(self.__q))
