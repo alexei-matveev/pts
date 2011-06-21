@@ -21,6 +21,7 @@ which is a Func.
 
     Cartesian start vector:
     >>> x = asarray(fun1(y)).flatten()
+    >>> x_raw = fun1(y)
 
     Test addition of global paramter:
 
@@ -33,6 +34,10 @@ which is a Func.
     >>> max(abs(f_wg(y_wg) - fun1(y))) < 1e-12
     True
 
+    Pseudo inverse:
+    >>> max(abs(f_wg(f_wg.pinv(x_raw)) - f_wg(y_wg))) < 1e-12
+    True
+
     Ensure that the derivatives are correct:
     Consider that NumDiff has size (n,3,m), while we get normally something of
     size (n*3, m) back.
@@ -41,12 +46,16 @@ which is a Func.
     True
 
     Test adding several functions:
-    >>> f_set = Mergefuncs([fun2, fun2, fun2], [3,3,3])
+    >>> f_set = Mergefuncs([fun2, fun2, fun2], [3,3,3], dims_rev = [1,1,1])
 
     Gives the same result than a complete function for all three of them:
     >>> max(abs(f_set(x) - fun2(x))) < 1e-12
     True
     >>> max(abs(f_set.fprime(x) - fun2.fprime(x))) < 1e-12
+    True
+
+    >>> x2 = f_set(x)
+    >>> max(abs(f_set(f_set.pinv(x2)) - f_set(x))) < 1e-12
     True
 
     Test fixture of coordinates:
@@ -59,6 +68,10 @@ which is a Func.
 
     At the start point still the right values are given:
     >>> max(abs(f_m(y_red) - fun1(y))) < 1e-12
+    True
+
+    >>> x2 = f_m(y_red)
+    >>> max(abs(f_m(f_m.pinv(x2)) - f_m(y_red))) < 1e-12
     True
 
     Ensure that the derivatives are correct:
@@ -77,6 +90,9 @@ which is a Func.
     >>> max(abs(f_we(y_r2) - fun1(y))) < 1e-12
     True
 
+    >>> x = f_we(y_r2)
+    >>> max(abs(f_we(f_we.pinv(x))-f_we(y_r2))) < 1e-12
+    True
 
     Ensure that the derivatives are correct:
     >>> f_nd = NumDiff(f_we)
@@ -93,6 +109,9 @@ which is a Func.
     >>> max(abs(f_we(y_r2) - fun1(y))) < 1e-12
     True
 
+    >>> x = f_we(y_r2)
+    >>> max(abs(f_we(f_we.pinv(x))-f_we(y_r2))) < 1e-12
+    True
 
     Ensure that the derivatives are correct:
     >>> f_nd = NumDiff(f_we)
@@ -101,6 +120,7 @@ which is a Func.
 """
 from copy import deepcopy
 from numpy import eye, zeros, hstack, asarray
+from numpy import array
 
 from pts.func import Func
 from pts.zmat import RT
@@ -116,6 +136,9 @@ class Pass_through(Func):
          der = eye(len(x))
          return x1, der
 
+     def pinv(self, y):
+         x1 = deepcopy(y)
+         return x1
 
 
 class Justcarts(Func):
@@ -134,6 +157,10 @@ class Justcarts(Func):
         dres.shape = (-1, 3, len(x))
         return res, dres
 
+    def pinv(self, y):
+        res = deepcopy(y)
+        res.shape = (-1)
+        return res
 
 class With_globals(Func):
     """
@@ -183,6 +210,15 @@ class With_globals(Func):
         return x, dx
 
 
+    def pinv(self, x):
+        v, w, t = self._rt.pinv(x)
+        y = zeros(len(v) + 6)
+        y[:-6] = v
+        y[-6:-3] = w
+        y[-3:] = t
+
+        return y
+
 class Mergefuncs(Func):
     """
     Makes of a set of functions (in list funs_raw) a combined
@@ -191,9 +227,11 @@ class Mergefuncs(Func):
     needed internal coordinate arrays for the single functions,
     as it needs to know where to break the complete internals vector.
     """
-    def __init__(self, funs_raw, dims):
+    def __init__(self, funs_raw, dims, dims_rev = None):
         self._funs_raw = funs_raw
         self._dims = dims
+        # only needed if pinv will be used
+        self._dims_rev = dims_rev
 
     def taylor(self, x):
         res = []
@@ -208,6 +246,7 @@ class Mergefuncs(Func):
              dres.append(dr1)
              iter += dim
 
+        assert (iter == len(x))
         # the Cartesian coordinates have only to be brought to the correct shape
         res = hstack(res) # add all the coordinates up
         res.shape = (-1, 3) # (number atoms, 3)
@@ -231,6 +270,18 @@ class Mergefuncs(Func):
         mat.shape = (-1, 3, iter) # number atoms, 3, number internal coordinates
 
         return res, mat
+
+    def pinv(self, y):
+        res = []
+        iter = 0
+        for fun, dim in zip(self._funs_raw, self._dims_rev):
+             r1 = fun.pinv(y[iter:iter + dim,:])
+             res.append(r1.flatten())
+             iter += dim
+
+        assert (iter == len(y[:,0]))
+        res = hstack(res) # add all the coordinates up
+        return res
 
 class Masked(Func):
     """
@@ -275,6 +326,10 @@ class Masked(Func):
         mat.shape = (-1, 3, len(x)) # number atoms, 3, number internal coordinates
 
         return res, mat
+
+    def pinv(self, y):
+        res = self._fun_raw.pinv(y)
+        return array([res[i] for i in range(len(self._mask)) if self._mask[i]])
 
 class With_equals(Func):
     """
@@ -326,6 +381,40 @@ class With_equals(Func):
         mat.shape = (-1, 3, len(x)) # number atoms, 3, number internal coordinates
 
         return res, mat
+
+    def pinv(self, y):
+        tol = 1e-6
+
+        x0 = self._fun_raw.pinv(y)
+        x = zeros(max(self._mask))
+        num = zeros(max(self._mask))
+
+        # take average over those values which appear more often
+        for mp, x1 in zip(self._mask, x0):
+            if mp < 0:
+                x[-mp-1] -= x1
+                num[-mp-1] += 1
+            elif mp > 0:
+                x[mp-1] += x1
+                num[mp-1] += 1
+
+        for i in range(len(x)):
+            x[i] = x[i] / num[i]
+
+        # give warning if the corresponding values differ too much
+        for mp, x1 in zip(self._mask, x0):
+            if mp < 0:
+                if abs(x[-mp-1] + x1) > tol:
+                    print "WARNING: values declared as equal differ more than ", tol
+                    print "         for the variable", -mp, "the average over all appearences was", x[-mp-1]
+                    print "         while the current value gave", -x1
+            elif mp > 0:
+                if abs(x[mp-1] - x1) > tol:
+                    print "WARNING: values declared as equal differ more than ", tol
+                    print "         for the variable", mp, "the average over all appearences was", x[mp-1]
+                    print "         while the current value gave", x1
+
+        return x
 
 # python cfunc.py [-v]:
 if __name__ == "__main__":

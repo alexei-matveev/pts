@@ -230,7 +230,7 @@ from numpy import any, shape
 # from bmath import sin, cos, sqrt
 from func import Func
 from rc import distance, angle, dihedral
-from quat import _rotmat
+from quat import _rotmat, cart2vec, cart2veclin
 from quat import reper, r3
 
 class ZMError(Exception):
@@ -590,6 +590,14 @@ class RT(Func):
         >>> max(abs(X - X2)) < 1.e-10
         True
 
+        >>> V2, W2, T2 = Z.pinv(X)
+        >>> X3 = Z(V2, W2, T2)
+
+        # not verifiable V = V2, W = W2 because of periodicity
+        >>> max(abs(X - X3)) < 1.e-10
+        True
+
+
         >>> from func import NumDiff, Partial
 
     NumDiff operates only with functions of a single variable,
@@ -667,6 +675,31 @@ class RT(Func):
             X[i] = dot(R, X[i]) + T
 
         return X, (XV, XW, XT)
+
+    def pinv(self, X):
+        # alias:
+        f = self.__f
+        #FIXME: works only if first coordinate of f(v) is at origin
+        V = f.pinv(X)
+        X2 = f(V)
+        a, b = X2.shape
+        assert(b == 3)
+        assert max(abs(X2[0,:])) < 1e-12
+
+        T = X[0,:] - X2[0,:]
+
+        X1 = zeros((a,b))
+        for i in range(a):
+           X1[i,:] = X[i,:] - T
+
+        if a == 1:
+            W = zeros(3)
+        elif a == 2:
+            W = cart2veclin(X2, X1)
+        else:
+            W = cart2vec(X2, X1)
+
+        return V, W, T
 
 class ZMatrix3(Func):
     """
