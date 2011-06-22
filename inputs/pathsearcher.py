@@ -82,13 +82,12 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     # This parallel mapping function puts every single point calculation in
     # its own subfolder
     strat = Strategy(kwargs["cpu_architecture"], kwargs["pmin"], kwargs["pmax"])
-    kwargs["pmap"] = QMap(pmap = PMap3(strat=strat), format = "bead%02d")
-
+    kwargs["pmap"] = PMap3(strat=strat)
 
     kwargs["int2cart"] = funcart
     kwargs["ch_symbols"] = atoms.get_chemical_symbols()
-    # Memoize the Func in case evaluations are expensive:
-    #pes = Memoize(pes)
+    # always do single point energy/force calculation in separate folder
+    kwargs["workhere"] = False
 
     # this operates with PES in internals:
     convergence, geometries, energies, gradients = find_path(pes, init_path, **kwargs)
@@ -110,6 +109,7 @@ def find_path(pes, init_path
                             , ch_symbols = None     # Only needed if output needs them
                             , old_results = None
                             , pmap = PMap()
+                            , workhere = False
                             , **kwargs):
     """This one does the real work ...
 

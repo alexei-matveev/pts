@@ -14,7 +14,7 @@ Two functions with side effects:
     ...     return cos(x)
 
     >>> fn = "/tmp/TeMpOrArY.pickle"
-    >>> if os.path.exists(fn): os.unlink(fn)
+    >>> if path.exists(fn): unlink(fn)
 
 If you dont provide |filename|, cache will not be duplicated
 in file, thus reload will not be possible:
@@ -75,16 +75,18 @@ Delete the object and recreate from file:
     >>> f.fprime(b)
     array([ 0.99500417,  0.98006658,  0.95533649])
 
-    >>> os.unlink(fn)
+    >>> unlink(fn)
 """
 
 from __future__ import with_statement
 from numpy import asarray
 from copy import copy
 from func import Func
-import os  # only os.path.exisist
+#import os  # only os.path.exisist
 import sys # only stderr
 from pickle import dump, load
+from numpy import dot
+from os import mkdir, chdir, getcwd, unlink, path
 
 def memoize(f, cache=None):
     """Returns a memoized function f.
@@ -299,7 +301,7 @@ class FileStore(Store):
     """Minimalistic disk-persistent dictionary.
 
         >>> fn = "/tmp/tEmP.pickle"
-        >>> if os.path.exists(fn): os.unlink(fn)
+        >>> if path.exists(fn): unlink(fn)
 
         >>> d = FileStore(fn)
         >>> d[0.] = 10.
@@ -322,7 +324,7 @@ class FileStore(Store):
         True
         >>> e[[1., 2.]]
         30.0
-        >>> os.unlink(fn)
+        >>> unlink(fn)
     """
     def __init__(self, filename="FileStore.pickle"):
 
@@ -330,7 +332,7 @@ class FileStore(Store):
         if filename[0] != '/':
             # use absolute names, otherwise the storage will not be
             # found after chdir() e.g. in QContext() handler:
-            filename = os.getcwd() + '/' + filename
+            filename = getcwd() + '/' + filename
 
         self.filename = filename
 
@@ -442,6 +444,104 @@ class Memoize(Func):
             self.__d[key1] = fprime
             return f, fprime
 
+
+class Empty_contex(object):
+   """
+   Context doing nothing actually,
+   For the cases when there is no contex needed
+   """
+   def __init__(self, wd, format = None):
+      pass
+
+   def __enter__(self):
+      pass
+
+   def __exit__(self, exc_type, exc_val, exc_tb):
+       assert (exc_type == None)
+       return True
+
+def global_distribution(xs, xlast_i ):
+    """
+    find out which of the new values to calculate fits
+    to the ones from the last calculation
+
+    >>> xl = [0,3,4,23,5]
+    >>> xs = [0, 3.5, 22, 8]
+    >>> global_distribution(xs, xl)
+    [0, 1, 3, 4]
+    >>> xs = [-5, 15, 3.5, 3.1, 6]
+    >>> global_distribution(xs, xl)
+    [0, 3, 1, 5, 4]
+
+    Normally we expect the x to be vectors:
+    >>> from numpy import array
+    >>> xs = [array([0.,0., 1., 4.]), array([2.,0., 3., 4.]),
+    ...       array([-0.,-0., -1., -4.]), array([20.,10., 15., 14.])]
+    >>> xl = [array([0.1,0.1, 1.1, 4.1]) ,array([0.,0., 1., 4.]) ]
+    >>> global_distribution(xs, xl)
+    [1, 0, 2, 3]
+    >>> global_distribution(xl, xs)
+    [0, 4]
+    """
+    occupied = []
+    new = len(xlast_i)
+    if len(xlast_i) > 0:
+        for x in xs:
+            # find to wich of the last values this one is
+            # the nearest
+            dis = [dot(x-xl, x-xl) for xl in xlast_i]
+            j = dis.index(min(dis))
+
+            # if this one is already used, create a new one
+            # else take it
+            if j in occupied:
+                occupied.append(new)
+                new = new + 1
+            else:
+                occupied.append(j)
+    else:
+        # if there a not yet any old values
+        occupied = range(len(xs))
+
+    return occupied
+
+class Single_contex(object):
+    """
+    Single context,
+    changes in given directory
+
+    >>> num = 2
+    >>> prep = Single_contex(num)
+
+    Change in temporear working directory:
+    >>> cwd = getcwd()
+    >>> chdir("/tmp/")
+
+    For a single calculation:
+    >>> with prep:
+    ...     print getcwd()
+    /tmp/02
+
+    Clean up
+    >>> from os import system
+    >>> system("rmdir /tmp/%02d" % num)
+    0
+    >>> chdir(cwd)
+    """
+    def __init__(self, wdi, format = "%02d"):
+       self.__wd = format % wdi
+
+    def __enter__(self):
+        self.__cwd = getcwd()
+        if not path.exists(self.__wd):
+            mkdir(self.__wd)
+        chdir(self.__wd)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        assert (exc_type == None)
+        chdir(self.__cwd)
+        return True
+
 class Elemental_memoize(Func):
     """
     Memozise the f and fprime results (elemental) for function f
@@ -461,7 +561,7 @@ class Elemental_memoize(Func):
 
         >>> s = Func(si, co)
 
-        >>> s1 = Elemental_memoize(s)
+        >>> s1 = Elemental_memoize(s, workhere = True)
 
     First evaluation:
 
@@ -474,6 +574,9 @@ class Elemental_memoize(Func):
         co( 1.57079632679 )
         [0.0, 0.29552020666133955, 1.0]
 
+        >>> [round(r,3) for r in s1.last_xs_is]
+        [0.0, 0.29999999999999999, 1.571]
+
     Second evaluation:
 
         >>> s1([ 0., pi/2.0])
@@ -484,12 +587,27 @@ class Elemental_memoize(Func):
         co( 0.392699081699 )
         [0.0, 0.38268343236508978, 0.29552020666133955]
 
+        >>> [round(r,3) for r in s1.last_xs_is]
+        [0.0, 0.39300000000000002, 1.571]
+
+        >>> s1([0.0, 0.1, pi/8.+ 0.0001, pi/8., 0.3, 0.4])
+        si( 0.1 )
+        co( 0.1 )
+        si( 0.392799081699 )
+        co( 0.392799081699 )
+        si( 0.4 )
+        co( 0.4 )
+        [0.0, 0.099833416646828155, 0.38277581840476976, 0.38268343236508978, 0.29552020666133955, 0.38941834230865052]
+
+        >>> [round(r,3) for r in s1.last_xs_is]
+        [0.10000000000000001, 0.39300000000000002, 1.571, 0.40000000000000002]
+
     Same for derivative:
 
         >>> s1.fprime([0., 0.3, pi/8.])
         [1.0, 0.95533648912560598, 0.92387953251128674]
     """
-    def __init__(self, f, pmap = map, cache=None):
+    def __init__(self, f, pmap = map, cache=None, workhere = True, format = "%02d" ):
         # for each call to memoize, create a new cache
         # (unless provided by caller):
         if cache is None:
@@ -499,12 +617,23 @@ class Elemental_memoize(Func):
         else:
             self.cache = cache
 
+        self.format = format
+
+        if workhere:
+            self.contex = Empty_contex
+        else:
+            self.contex = Single_contex
+
+        self.last_xs_is = []
+
         def f_t_rem_i(z):
             # actual caclculation is only on x,
             # i is given also so that pmap can
             # steal it
             x, i = z
-            return f.taylor(x)
+            contex = self.contex(i, format = self.format)
+            with contex:
+                return f.taylor(x)
 
         self.memfun = f_t_rem_i
         self.pmap = pmap
@@ -514,18 +643,24 @@ class Elemental_memoize(Func):
         xs1 = []
         for i, x in enumerate(xs):
             if x not in self.cache:
-                # some pmap functions (qmap) would like to know which
-                # number they got. add it and forward it to pmap
-                xs1.append((x,i))
+                xs1.append(x)
 
+        wds = global_distribution(xs1, self.last_xs_is)
         # compute missing results:
-        ys1 = self.pmap(self.memfun, xs1)
+        ys1 = self.pmap(self.memfun, zip(xs1,wds) )
 
         # store new results:
-        for xi, y in zip(xs1, ys1):
-            x, i = xi
-            # store only with value of x, i might change
+        for x, i, y in zip(xs1, wds, ys1):
+            # store only with value of x
             self.cache[x] = y
+            # store last values
+            if i < len(self.last_xs_is):
+                self.last_xs_is[i] = x
+            elif i == len(self.last_xs_is):
+                self.last_xs_is.append(x)
+            else:
+                print "ERROR: invalid number to calculate in"
+                abort()
 
         # return copies from the dictionary:
         ys = []

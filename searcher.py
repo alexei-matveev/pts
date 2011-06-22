@@ -150,6 +150,7 @@ class ReactionPathway(object):
             convergence_beads=3, 
             steps_cumm=3, 
             pmap=map,
+            workhere = False,
             freeze_beads=False, 
             output_level = 3,
             output_path = ".",
@@ -198,7 +199,8 @@ class ReactionPathway(object):
         # This can be set externally to a file object to allow recording of picled archive data
         self.arc_record = None
         self.output_level = output_level
-        self.allvals = Elemental_memoize(self.pes, pmap=pmap, cache = result_storage)
+
+        self.allvals = Elemental_memoize(self.pes, pmap=pmap, cache = result_storage, workhere = workhere, format = "bead%02d")
 
     def initialise(self):
         beads_count = self.beads_count
@@ -820,10 +822,10 @@ class NEB(ReactionPathway):
 
     growing = False
     def __init__(self, reagents, pes, base_spr_const, result_storage, beads_count=10, pmap = map,
-        parallel=False, reporting=None, output_level = 3, output_path = "."):
+        parallel=False, workhere = False, reporting=None, output_level = 3, output_path = "."):
 
         ReactionPathway.__init__(self, reagents, beads_count, pes, parallel, result_storage, pmap = pmap,
-            reporting=reporting, output_level = output_level, output_path = output_path)
+            reporting=reporting, output_level = output_level, output_path = output_path, workhere = workhere)
 
         self.base_spr_const = base_spr_const
 
@@ -1286,7 +1288,7 @@ class GrowingString(ReactionPathway):
     def __init__(self, reagents, pes, result_storage, beads_count = 10, pmap = map,
         rho = lambda x: 1, growing=True, parallel=False, head_size=None, output_level = 3,
         max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False,
-        output_path = "."):
+        output_path = ".", workhere = False):
 
         self.__final_beads_count = beads_count
 
@@ -1300,7 +1302,7 @@ class GrowingString(ReactionPathway):
         self._path_rep = PathRepresentation(reagents, initial_beads_count, rho)
         ReactionPathway.__init__(self, reagents, initial_beads_count, pes, parallel, result_storage,
                  reporting=reporting, output_level = output_level,
-                 pmap = pmap, output_path = output_path)
+                 pmap = pmap, output_path = output_path, workhere = workhere)
 
         # final bead spacing density function for grown string
         # make sure it is normalised
