@@ -770,7 +770,7 @@ class NEB(ReactionPathway):
     >>> neb.eg_calls
     2
 
-    >>> neb = NEB([[0,0],[3,3]], pts.pes.GaussianPES(), 1., beads_count = 10)
+    >>> neb = NEB([[0,0],[3,3]], pts.pes.GaussianPES(), 1., None, beads_count = 10)
     >>> neb.angles
     array([ 180.,  180.,  180.,  180.,  180.,  180.,  180.,  180.])
     >>> neb.obj_func()
