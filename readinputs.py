@@ -1,4 +1,213 @@
 #!/usr/bin/env python
+"""
+This tool is the interface to the string and NEB methods.
+
+Usage:
+
+  pathsearcher.py --calculator CALC GEOM1 GEOM2
+
+For either string or NEB methods one needs to specify at least two geometries
+and the calculator.
+
+GEOMETRY
+
+Geometries can be provided as files, which can be interpreted by ASE. This
+includes xyz-, POSCAR, and gx-files. File format is in part determied from the
+file name or extension, e.g. POSCAR and gx-files by the presence of "POSCAR" or
+"gx" substrings. If the format is not extractable from the filename it can be
+given as an addtional parameter as --format <format> . The Values for <format>
+are gx or are in the list of short names in the ASE documentation.
+
+If the calculation should be done in internal (or mixed coordinate system) one gives
+the geometries in cartesians  and specifies additionally the zmatrix/zmatrices
+They will then be given by writing --zmatrix zmat_file. It is supposed that the first atom
+of each zmatrix is the uppermost not yet used atom of ones given.
+
+ZMATRIX
+
+A zmatrix may look something like:
+
+""
+C
+H 1 var1
+H 1 var2 2 var3
+H 1 var4 2 var5 3 var6
+H 1 var7 2 var8 4 var9
+""
+
+The first element of each line is supposed to be the name of the atom.
+Then follows the connectivity matrix, where for each appearing variable a
+name is given. The connectivities are given by the line number of the atom,
+starting with 1. First variable is always the length, second the angle and
+third the dihedral angle. If variable names appear more than once these variables
+are set to the same value. Giving a variable name as another variable name with a
+- in front of it, the values are always set to the negative of the other variable.
+
+SETTING VARIABLES
+
+There are some other parameters specified, which decide on how the program will
+run. There is a list of default parameters
+
+  pathsearcher.py --defaults
+
+shows all of them They can be changed in two different ways: by including in
+the parameters in the calculation above:
+
+  --paramfile filename
+
+all the variables could be set in the file filename or by giving directly
+
+  --parameter_to_change new_value
+
+this only works for parameters which take a string, a float or a integer
+(always a single number, or a name), ch tells if they could changed by giving
+the parameter values directly in the parameter list, so for example
+
+  --name NewName
+
+would set the name to NewName in the parameters If the same variable is set in
+both the paramfile and directly, the directly set value is taken
+
+There exists:
+Parameter    ch     short description
+------------------------------------------------
+ "method"  yes      what calculation is really wanted, like neb, string,
+                    growingstring or searchingstring, if using paratools <method> this
+                    is set automatically
+ "opt_type"  yes    what kind of optimizer is used for changing the geometries
+                    of the string, as default the new multiopt is used for the
+                    string methods, while neb is reset to ase_lbgfs
+ "pmax"      yes    maximal number of CPUs per bead, with our workarounds normaly
+                    only indirect used
+ "pmin"      yes    minimal number of CPUs per bead, with our workarounds normaly
+                    only indirect used
+ "cpu_architecture" no  descriebes the computer architecture, which should be used,
+                    with our workaround only indirect used, pmax, pmin and
+                    cpu_architecture should be adapted to each other
+ "name"      yes    the name of the calculation, appears as basis of the names
+                    for all the output, needn't be set, as a default it takes
+                    the cos_type as name
+ "calculator" no    the quantum chemstry program to use, like Vasp or ParaGauss
+ "placement"  no    executable function for placing processes on beads, only
+                    used for advanced calculations
+ "cell"       no    the cell in which the molecule is situated
+ "pbc"        no    which cell directions have periodic boundary conditions
+ "mask"       no    which of the given geometry variables are supposed to be
+                    changed (True) and which should stay fix during the
+                    calculation (False), should be a string containing for each
+                    of the variables the given value. The default does not set
+                    this variable and then all of them
+                    are optimized
+ "beads_count" yes  how many beads (with the two minima) are there at maximum
+                    (growingstring and searchingstring start with less)
+ "ftol"       yes   the force convergence criteria, calculation stops if
+                    RMS(force) < ftol
+ "xtol"       yes   the step convergence criteria, only used if force has at
+                    least ftol * 10
+ "etol"       yes   energy convergence criteria, not really used
+ "maxit"      yes   if the convergence criteria are still not met at maxit
+                    iterations, the calculation is stopped anyhow
+ "maxstep"    yes   the maximum step a path can take
+ "spring"  yes   the spring constant, only needed for neb
+ "pre_calc_function"  no function for precalculations, for gaussian ect.
+ "output_level" yes the amount of output is decided here
+                       0  minimal output, not recommended
+                          only logfile, geometries of the beads for the last
+                          iteration (named Bead?) and the output needed for
+                          the calculation to run
+                       1  recommended output level (default) additional the
+                          ResultDict.pickle (usable for rerunning or extending the
+                          calculation without having to repeat the quantum
+                          chemical calculations) and a path.pickle of the last
+                          path, may be used as input for some other tools,
+                          stores the "whole" path at it is in a special foramt
+                       2  additional a path.pickle for every path, good if
+                          development of path is
+                          wanted to be seen (with the additional tools)
+                       3  some more output in every iteration, for debugging ect.
+
+ "output_path"   yes   place where most of the output is stored, thus the
+                       working directory is not filled up too much
+ "output_geo_format" yes ASE format, to write the outputgeometries of the
+                       last iteration to is xyz as default, but can be changed
+                       for example to gx or vasp (POSCAR)
+
+Additional informations can be taken from the minima ASE inputs. The ase atoms
+objects may contain more informations than only the chemical symbols and the
+geometries of the wanted object. For example if reading in POSCARs there are
+additional informations as about the cell (pbc would be also set automatically
+to true in all directions). This informations can also be read in by this tool,
+if they are available, they are only used, if these variables still contain the
+default parameters.  Additionally ase can hold some constraints, which may be
+taken from a POSCAR or set directly. Some of them can be also used to generate
+a mask. This is only done if cartesian coordinates are used.
+
+CALCULATOR
+
+The calculator can be given in ASE format. It can be set in the paramfile or in
+an own file via
+
+  --calculator calc_file
+
+Additionally one can use some of the default specified calculators by for
+example:
+
+  --calculator default_vasp
+
+The way to set up those calculators is given best on the ASE homepage at:
+
+  https://wiki.fysik.dtu.dk/ase/ase/calculators/calculators.html#module-calculators
+
+Reuse RESULTS FROM PREVIOUS CALCULATIONS
+
+It is possible to store the results of the quantum chemical calculations (which
+are the computational most expensive part of the calculation) in a
+ResultDict.pickle file. It is done by default for an output level with at least
+1. If a calculation with the same system should be done, or the system should
+be repeated, this results can be reused (the QC- program mustn't be changed, as
+well as the geometries of the two minima). To reuse this results say in the
+parameters:
+
+  --old_results filename
+
+filename should be directed on the file (with location) where the Results are
+stored
+
+INITIAL PATH
+
+One can provide the inital path by giving geometries as for the two minima
+(all in the same format, please). In this case the call of the method would be
+something like
+
+  pathsearcher.py --parmeter some_params minima1 bead2 bead3 bead4  minima2
+
+or for example:
+
+  pathsearcher.py --parmeter some_params POSCAR? POSCAR??
+
+The number of inital points and beads need not be the same.
+Be aware that there are sometimes differnet interpolations between two beads possible.
+So for example the dihedral angle (or the quaternion angle) have a 2*pi periodicity.
+The interpolation points between two same (Cartesian) geometries but with different of these
+angles should normally differ. Here the angles are choosen such that they differ of
+at least pi (the shortest possible way in these coordinates). If another path is wanted
+one needs to specify more points of the inital path to force the pathsearcher to
+take the wanted path (if two paths differ completly at the beginning they would hardly
+never converge to the same path at the end, thus it makes sense to make sure that
+the inital path is fitting)
+
+EXAMPLES
+
+A minimal one:
+
+  pathsearcher.py --calculator default_lj left.xyz right.xyz
+
+Having several POSCAR's for the inital path (from POSCAR0 to POSCAR11). A
+parameterfile (called params.py) should hold some parameters, so especially the
+calculator) but ftol is anyway 0.07
+
+  pathsearcher.py --paramfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
+"""
 from pts.pathsearcher_defaults.params_default import default_params, are_floats, are_ints
 from pts.common import file2str
 from pts.readcos import read_geos_from_file, read_zmt_from_file
