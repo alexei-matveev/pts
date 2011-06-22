@@ -9,7 +9,8 @@ Geometries have to be given in internal coordinates (the ones the function accep
 """
 from sys import argv, exit
 from re import findall
-from os import path, mkdir
+from os import path, mkdir, remove
+from shutil import copyfile
 from pts.pathsearcher_defaults.params_default import *
 from pts.pathsearcher_defaults import *
 from pts.qfunc import QFunc, QMap
@@ -23,6 +24,7 @@ from pts.optwrap import runopt
 from pts.sopt import soptimize
 from pts.tools import pickle_path
 from pts.common import file2str
+from pts.readinputs import interprete_input
 import pts.metric as mt
 # be careful: array is needed, when the init_path is an array
 # do not delete it, even if it never occures directly in this module!
@@ -31,6 +33,7 @@ import pts.metric as mt
 
 # needed as global variable
 cb_count_debug = 0
+
 
 def pathsearcher(atoms, init_path, funcart, **kwargs):
     """Script-verison of find_path(), interprets and prints results to tty.
@@ -61,9 +64,6 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     # collect them in a dictionary, adding to those provided:
     kwargs = mkparams(**kwargs)
 
-    # print parameters to STDOUT:
-    tell_params(kwargs)
-
     # calculator from kwargs, if valid, has precedence over
     # the associated (or not) with the atoms:
     if kwargs["calculator"] is not None:
@@ -71,6 +71,9 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
 
     # calculator is not used below:
     del kwargs["calculator"]
+
+    # print parameters to STDOUT:
+    tell_params(kwargs)
 
     # PES to be used for energy, forces. FIXME: maybe adapt QFunc not to
     # default to LJ, but rather keep atoms as is?
@@ -418,14 +421,6 @@ def eval_calc(calc):
     # eval/exec are supposed to set a variable named "calculator":
     return calculator
 
-def tell_default_params():
-    """
-    Show the default params
-    """
-    print "The default parameters for the path searching algorithm are:"
-    for param, value in default_params.iteritems():
-         print "    %s = %s" % (str(param), str(value))
-
 def tell_params(params):
     """
     Show the actual params
@@ -434,9 +429,19 @@ def tell_params(params):
     for param, value in params.iteritems():
          print "    %s = %s" % (str(param), str(value))
 
+def main(args):
+    """
+    starts a pathsearcher calculation
+    This variant expects the calculation to be done with an ASE atoms object
+    coordinate systems are limited to internal, Cartesian and mixed systems
+
+    Uses the arguments of the standard input for setting the parameters
+    """
+    atoms, init_path, funcart, kwargs = interprete_input(args)
+    pathsearcher(atoms, init_path, funcart, **kwargs)
+
+
 if __name__ == "__main__":
-     print __doc__
-     tell_default_params()
-     exit()
+    main(argv[1:])
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
