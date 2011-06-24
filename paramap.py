@@ -241,7 +241,7 @@ def f_schedwr(f):
 
      Described as seperate class to please pool_map
      """
-     def f1(xplus, num = None):
+     def f1(xplus):
           x, env = xplus
           node, processes = env
           np = len(processes)
@@ -254,10 +254,7 @@ def f_schedwr(f):
           environ['PTS_SCHED_JOB_HOST'] = "%s" % (node)
           environ['PTS_SCHED_JOB_NPROCS'] = "%s" % (np)
           environ['PTS_SCHED_JOB_CPUS'] = value
-          if num == None:
-              return f(x)
-          else:
-              return f(x, num)
+          return f(x)
 
      return f1
 
@@ -415,6 +412,14 @@ class PMap2():
     def __call__ (self, f, xs):
          n = len(xs)
          sched = self.strat(n)
+
+         # sched contains to many informations here
+         red_sched = []
+         for s in sched:
+            d, h, c = s
+            red_sched.append((h, c))
+
+         sched = red_sched
 
          ffun = f_schedwr(f)
 
