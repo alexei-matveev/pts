@@ -218,6 +218,7 @@ from numpy import array, pi
 from numpy.linalg import norm
 from ase.calculators import *
 from pts.qfunc import constraints2mask
+from pts.cmdline import get_calculator
 
 def interprete_input(args):
     """
@@ -291,9 +292,7 @@ def get_geos(geos, dc, zmi):
     at, geo_carts = read_geos_from_file(geos, dc["format"])
 
     if "calculator" in dc.keys():
-          calculator = None
-          str1 = file2str(dc["calculator"])
-          exec(str1)
+          calculator = get_calculator(dc["calculator"])
           at.set_calculator(calculator)
 
 

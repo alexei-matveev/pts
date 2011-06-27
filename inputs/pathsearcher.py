@@ -407,20 +407,6 @@ def expand_zmat(zmts):
         #print zmts_new
     return zmts_new, num_vars
 
-def eval_calc(calc):
-
-    # See eval below, that may be one of the ASE calculators:
-    from ase.calculators import *
-
-    if calc in default_calcs:
-        calculator = eval("%s" % (calc))
-    else:
-        str1 = file2str(calc)
-        exec(str1)
-
-    # eval/exec are supposed to set a variable named "calculator":
-    return calculator
-
 def tell_params(params):
     """
     Show the actual params
