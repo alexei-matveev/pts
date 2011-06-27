@@ -94,8 +94,6 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> ar4.set_constraint(c)
 
     >>> freqs, modes = vibmodes(ar4, workhere=True)
-    FWRAPPER: The following mask has been obtained from the constraints of the atoms
-    [True, True, True, False, False, False, False, False, False, True, True, True]
 
     >>> r_freqs = array([ 1041.10 +0.j,     764.64 +0.j ,    529.25 +0.j ,    441.39 +0.j,
     ...   441.00 +0.j,       0.00+14.35j])

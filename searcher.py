@@ -774,7 +774,7 @@ class NEB(ReactionPathway):
     >>> neb.angles
     array([ 180.,  180.,  180.,  180.,  180.,  180.,  180.,  180.])
     >>> neb.obj_func()
-    -4.5567506897820484
+    -4.5571068838569122
 
     Was changed because of different spacing of beads, was before
     -4.5561921505021239
@@ -1238,14 +1238,14 @@ class GrowingString(ReactionPathway):
     >>> qc = pts.pes.GaussianPES()
     >>> s = GrowingString(path, qc,None, beads_count=4, growing=False)
     >>> s.state_vec.round(1)
-    array([[ 0. ,  0. ],
+    array([[-0. , -0. ],
            [ 0.3,  0.3],
            [ 0.7,  0.7],
            [ 1. ,  1. ]])
 
     >>> new = s.state_vec.round(2).copy()
     >>> s.obj_func()
-    -2.5883308831798901
+    -2.5882373808383816
 
     Was changed because of bead scattering changed, was before
     -2.5884273157684441
@@ -1267,9 +1267,10 @@ class GrowingString(ReactionPathway):
     >>> max(abs(a1 - ac)) < 1e-7
     True
     >>> array(s.step[1])
-    array([ 0.        ,  0.00158625,  0.00074224,  0.        ])
+    array([ 0.        ,  0.00162017,  0.00081008,  0.        ])
 
-    Changed code of respacing, old result was:
+    Changed code of respacing, old results were:
+    array([ 0.        ,  0.00158625,  0.00074224,  0.        ])
     array([ 0.        ,  0.00149034,  0.000736  ,  0.        ])
 
     >>> s.state_vec = [[0,0],[0.3,0.3],[0.9,0.9],[1,1]]

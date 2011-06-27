@@ -6,7 +6,6 @@ print "tsdf"
 import pts.test.numerical as numerical
 import pts.test.zmatrix as zmatrix
 import pts.test.searcher as searcher
-import pts.test.coord_sys as coord_sys
 import pts.test.gaussian as gaussian
 
 print "here"
