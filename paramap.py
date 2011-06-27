@@ -222,6 +222,8 @@ def pool_map(f, xs, processes=MAXPROCS):
     problems with interactive use, therefore there are no tests
     for it in the doctests of this module.
     """
+    #FIXME: This function has special requirements on the function f
+    #       Thus it does not work with freuqency or pathsearcher at present
 
     # Initializing the Pool() with processes=None will
     # start as many workers as there are CPUs on the workstation.

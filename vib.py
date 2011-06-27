@@ -140,17 +140,22 @@ Ar4 Cluster as first simple atomic/molecule test system with
     ----------------------------------------------------
 """
 from numpy import array, asarray, dot, zeros, max, abs, eye, diag, sqrt
-from numpy import argsort, savetxt
+from numpy import argsort, savetxt, empty
 from scipy.linalg import eigh
+from numpy import repeat
 import ase.atoms
 import ase.units as units
-from paramap import pool_map
+from paramap import pmap3
 import sys
-from qfunc import fwrapper
+from pts.func import compose
+from pts.qfunc import QFunc
+from pts.qfunc import fwrapper, constraints2mask, pwrapper
+from pts.cfunc import Masked, Justcarts
+from copy import deepcopy
 
 VERBOSE = False
 
-def derivatef( g0, x0, delta = 0.01, pmap = pool_map, direction = 'central' ):
+def derivatef( g0, x0, delta = 0.01, pmap = pmap3, direction = 'central' ):
     '''
     Derivates another function numerically,
 
@@ -186,12 +191,10 @@ def derivatef( g0, x0, delta = 0.01, pmap = pool_map, direction = 'central' ):
         # two inputs per geometry values
         # one in each direction
         for i in range(geolen):
-            xinter = []
-            xinter = x0[:]
+            xinter = deepcopy(x0)
             xinter[i] += delta
             xs.append(xinter)
-            xinter = []
-            xinter = x0[:]
+            xinter = deepcopy(x0)
             xinter[i] -= delta
             xs.append(xinter)
     else:
@@ -200,8 +203,7 @@ def derivatef( g0, x0, delta = 0.01, pmap = pool_map, direction = 'central' ):
         xs.append(x0[:])
         # for the rest only one per geometry
         for  i in range(geolen):
-            xinter = []
-            xinter = x0[:]
+            xinter = deepcopy(x0)
             xinter[i] += delta
             xs.append(xinter)
 
@@ -237,24 +239,74 @@ def derivatef( g0, x0, delta = 0.01, pmap = pool_map, direction = 'central' ):
             deriv[i,:] = (gval - gmiddle) / delta
     return deriv
 
-def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, give_output = 0, **kwargs):
+def get_mass_in_internals(mass1, mask):
+    """
+    gives back the masses form the atoms as a vector
+    filtered through the mask
+    mass1 are the masses in the Cartesian (atoms object)
+    """
+    massvec = eye(len(mass1) * 3) *  repeat(mass1, 3)
+    if mask is not None:
+        massvec = reducevecm(massvec, mask)
+    return massvec
+
+def reducevecm( mass, mask):
+    """
+    gives back a mass-matrix, containing only the elements
+    which are True in mask * mask, therefore giving
+    only back the mass-matrix relevant for the active
+    elements
+    """
+
+    imax, jmax = mass.shape
+    assert imax == jmax # both dimensions share the mask[:]
+
+    # list of indices of variable coordinates as given by mask:
+    vars = [ i for i, var in enumerate(mask) if var ]
+
+    # number of variables
+    nvars = len(vars)
+
+    # output smaller matrix:
+    mass1 = empty((nvars, nvars))
+
+    for i, ii in enumerate(vars):
+        for j, jj in enumerate(vars):
+            mass1[i, j] = mass[ii, jj]
+
+    return mass1
+
+def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, give_output = 0, pmap = pmap3, **kwargs):
     """
     Wrapper around vibmode, which used the atoms objects
     The hessian is calculated by derivatef
     qfunc.fwrapper is used as a wrapper to calulate the gradients
     """
-    func = fwrapper(atoms, startdir = startdir, mask = mask, workhere = workhere)
+    coord = atoms.get_positions()
 
-    xcenter = func.getpositionsfromatoms()
+    if mask == None:
+        mask = constraints2mask(atoms)
 
-    mass = func.getmassfromatoms()
+    if mask == None: # (if still None)
+        fun = Justcarts()
+    else:
+        fun = Masked(Justcarts(), mask, coord.flatten())
+
+    xcenter = fun.pinv(coord)
+
+    myfunc = compose( QFunc(atoms, atoms.get_calculator()), fun)
+
+    pmapc = pwrapper(pmap)
+    func = fwrapper(myfunc, startdir = startdir, mask = mask, workhere = workhere)
 
     # the derivatives are needed
-    hessian = derivatef( func.perform, xcenter,**kwargs )
+    hessian = derivatef( func, xcenter, pmap = pmapc, **kwargs)
 
     # save is assumend to be a filename, so far only the hessian is saved:
     if save is not None:
         savetxt(save, hessian)
+
+    mass = get_mass_in_internals( atoms.get_masses(), mask)
 
     freqs, modes = vibmod(mass, hessian)
 
