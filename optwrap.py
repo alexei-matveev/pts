@@ -76,9 +76,17 @@ def runopt(name, CoS, ftol=0.1, xtol=0.03, etol=0.03, maxit=35, maxstep=0.2
 def runopt_inner(name, CoS, ftol, maxit, callback, maxstep=0.2, **kwargs):
 
     if name == 'scipy_lbfgsb':
-        opt, energy, dict = fmin_l_bfgs_b(CoS.obj_func,
+        def fun(x):
+           CoS.state_vec = x
+           return CoS.obj_func()
+
+        def fprime(x):
+           CoS.state_vec = x
+           return CoS.obj_func_grad()
+
+        opt, energy, dict = fmin_l_bfgs_b(fun,
                                   CoS.get_state_as_array(),
-                                  fprime=CoS.obj_func_grad,
+                                  fprime=fprime,
                                   callback=callback,
                                   pgtol=ftol,
                                   factr=10, # stops when step is < factr*machine_precision
