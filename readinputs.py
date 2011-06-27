@@ -546,6 +546,25 @@ def create_params_dict(new_params, paramfile):
             print "Please check if it is written correctly"
             exit()
 
+   # naming for output files
+    if params_dict["name"] == None:
+        params_dict["name"] = str(params_dict["method"])
+
+    # This is an alternative way of specifing calculator, default is
+    # to keep atoms.get_calculator(): FIXME: this part belongs into
+    # section of reading/parsing parameters (maybe reset_params_f?):
+    if type(params_dict["calculator"]) == str:
+        params_dict["calculator"] = eval_calc(params_dict["calculator"])
+
+    if params_dict["method"].lower() == "neb":
+        if params_dict["opt_type"] == "multiopt":
+            print ""
+            print "The optimizer %s is not designed for working with the method neb" % (params_dict["opt_type"])
+            params_dict["opt_type"] = "scipy_lbfgsb"
+            print "Thus it is replaced by the the optimizer", params_dict["opt_type"]
+            print "This optimizer is supposed to be the default for neb calculations"
+            print ""
+
     return params_dict
 
 def reset_params_file(params_dict, lines):

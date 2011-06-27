@@ -61,10 +61,6 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
       They can be also specified in an input file given as paramfile.
     """
 
-    # there is a lot of parameters affecting the calculation,
-    # collect them in a dictionary, adding to those provided:
-    kwargs = mkparams(**kwargs)
-
     # calculator from kwargs, if valid, has precedence over
     # the associated (or not) with the atoms:
     if kwargs["calculator"] is not None:
@@ -275,22 +271,6 @@ def output(beads, energies, gradients, cartesian):
 def mkparams(paramfile = None, **parameter):
     """Returns a dictionary with parameters of the search procedure
     """
-
-#   print "mkparams: parameter=\n", parameter
-
-    # set up parameters (fill them in a dictionary)
-    params_dict = set_defaults()
-
-#   print "mkparams: defaults=\n", params_dict
-
-    if paramfile is not None:
-        params_dict = reset_params_f(params_dict, paramfile)
-
-#   print "mkparams: from text=\n", params_dict
-
-    params_dict = reset_params_d(params_dict, parameter)
-
-#   print "mkparams: from dict=\n", params_dict
 
     # naming for output files
     if params_dict["name"] == None:
