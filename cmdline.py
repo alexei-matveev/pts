@@ -5,6 +5,11 @@ Shared code for parsing command line here
 
 import getopt
 
+# for get calculator
+from ase.calculators import *
+from pts.common import file2str
+from pts.pathsearcher_defaults.params_default import *
+
 LONG_OPTIONS = ["calculator="]
 
 def get_options(argv, options="", long_options=LONG_OPTIONS):
@@ -20,16 +25,16 @@ def get_defaults():
     return default_params.copy()
 
 def get_calculator(file_name):
-    from ase.calculators import *
-    from pts.common import file2str
-   #scope = {}
-   #execfile(file_name, scope)
-    # print "scope=", scope
-    str1 = file2str(file_name) # file file_name has to
-    # contain line calculator = ...
-    exec(str1)
+
+    calculator = None
+    if file_name in default_calcs:
+        calculator = eval("%s" % (file_name))
+    else:
+        str1 = file2str(file_name) # file file_name has to
+        # contain line calculator = ...
+        exec(str1)
+
     return calculator
-    #return scope["calculator"]
 
 def get_mask(strmask):
     mask = eval("%s" % (strmask))
