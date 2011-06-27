@@ -546,17 +546,6 @@ def create_params_dict(new_params, paramfile):
             print "Please check if it is written correctly"
             exit()
 
-    # Special treatment, set name in any case and check for not allowed combinations
-    if params_dict["name"] == None:
-        params_dict["name"] = str(params_dict["method"])
-
-    if params_dict["method"].lower() == "neb":
-        if params_dict["opt_type"] == "multiopt":
-            print "The optimizer %s is not designed for working with the method neb", params_dict["opt_type"]
-            params_dict["opt_type"] = "ase_lbfgs"
-            print "Thus it is replaced by the the optimizer", params_dict["opt_type"]
-            print "This optimizer is supposed to be the default for neb calculations"
-
     return params_dict
 
 def reset_params_file(params_dict, lines):

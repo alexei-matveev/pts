@@ -87,8 +87,6 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
 
     kwargs["int2cart"] = funcart
     kwargs["ch_symbols"] = atoms.get_chemical_symbols()
-    # always do single point energy/force calculation in separate folder
-    kwargs["workhere"] = False
 
     # this operates with PES in internals:
     convergence, geometries, energies, gradients = find_path(pes, init_path, **kwargs)
@@ -306,14 +304,17 @@ def mkparams(paramfile = None, **parameter):
 
     if params_dict["method"].lower() == "neb":
         if params_dict["opt_type"] == "multiopt":
-            print "The optimizer %s is not designed for working with the method neb", params_dict["opt_type"]
-            params_dict["opt_type"] = "ase_lbfgs"
+            print ""
+            print "The optimizer %s is not designed for working with the method neb" % (params_dict["opt_type"])
+            params_dict["opt_type"] = "scipy_lbfgsb"
             print "Thus it is replaced by the the optimizer", params_dict["opt_type"]
             print "This optimizer is supposed to be the default for neb calculations"
+            print ""
 
     return params_dict
 
 def set_defaults():
+
     """
     Initalize the parameter dictionary with the default parameters
     """
