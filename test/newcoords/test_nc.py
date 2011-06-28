@@ -52,7 +52,10 @@ only gives reasonable results if testfun is set to zmat or zmate
 #test_what = "contraforce"
 
 # specify which testfunction == first input argument
-testfun = argv[1]
+try:
+    testfun = argv[1]
+except IndexError:
+    testfun = "zmat"
 
 # The ASE atoms object for calculating the forces
 ar4 = Atoms("Ar4")
