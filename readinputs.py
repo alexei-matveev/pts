@@ -231,6 +231,7 @@ def interprete_input(args):
     # pathsearcher_defaults/params_default
     para_dict = create_params_dict(add_param, paramfile)
     geo_dict["mask"] = para_dict["mask"]
+    para_dict["old_results"] = old_results
     # geometries are given in Cartesian, here transform them to internals
     # calculator for forces, internal start path, function to transform internals to Cartesian coordinates,
     # the numbers where dihedrals are, which of the function parts have global positions, how many
