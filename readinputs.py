@@ -168,10 +168,11 @@ be repeated, this results can be reused (the QC- program mustn't be changed, as
 well as the geometries of the two minima). To reuse this results say in the
 parameters:
 
-  --old_results filename
+  --cache filename
 
 filename should be directed on the file (with location) where the Results are
-stored
+stored. (For consitency with older versions of ParaTools it is also valid to
+use the parameter --old_result filename)
 
 INITIAL PATH
 
@@ -226,12 +227,12 @@ def interprete_input(args):
     interpretes it
     """
     # first read in geometries and sort parameter
-    geos, geo_dict, zmat, add_param, paramfile, old_results = interpret_sysargs(args)
+    geos, geo_dict, zmat, add_param, paramfile, cache = interpret_sysargs(args)
     # most parameters are stored in a dictionary, default parameters are stored in
     # pathsearcher_defaults/params_default
     para_dict = create_params_dict(add_param, paramfile)
     geo_dict["mask"] = para_dict["mask"]
-    para_dict["old_results"] = old_results
+    para_dict["cache"] = cache
     # geometries are given in Cartesian, here transform them to internals
     # calculator for forces, internal start path, function to transform internals to Cartesian coordinates,
     # the numbers where dihedrals are, which of the function parts have global positions, how many
@@ -472,7 +473,7 @@ def interpret_sysargs(rest):
         exit()
 
     paramfile = None
-    old_results = None
+    cache = None
     geo_dict = { "format": None}
     geos = []
     add_param = {}
@@ -493,9 +494,9 @@ def interpret_sysargs(rest):
             if o == "paramfile":
                 # file containing parameters
                 paramfile = file2str(a)
-            elif o in ("old_results"):
+            elif o in ("old_results", "cache"):
                 # file to take results from previous calculations from
-                old_results = a
+                cache = a
             elif o in ("zmatrix"):
                 # zmatrix if given separate to the geometries
                 zmatrix.append(a)
@@ -522,7 +523,7 @@ def interpret_sysargs(rest):
             geos.append(rest[0])
             rest = rest[1:]
 
-    return geos, geo_dict, zmatrix, add_param, paramfile, old_results
+    return geos, geo_dict, zmatrix, add_param, paramfile, cache
 
 def create_params_dict(new_params, paramfile):
     """

@@ -11,6 +11,7 @@ from sys import argv, exit
 from re import findall
 from os import path, mkdir, remove
 from shutil import copyfile
+from warnings import warn
 from pts.pathsearcher_defaults.params_default import *
 from pts.pathsearcher_defaults import *
 from pts.qfunc import QFunc, QMap
@@ -107,7 +108,7 @@ def find_path(pes, init_path
                             , output_path = "."
                             , int2cart = 0       # For mere transformation of internal to Cartesians
                             , ch_symbols = None     # Only needed if output needs them
-                            , old_results = None
+                            , cache = None
                             , pmap = PMap()
                             , workhere = False
                             , **kwargs):
@@ -125,7 +126,17 @@ def find_path(pes, init_path
     logfile = open(name + '.log', 'w')
     disk_result_cache = None
     if output_level > 0:
-        disk_result_cache = FileStore(output_path + '/%s.ResultDict.pickle' % name)
+        cache_name = output_path + '/%s.ResultDict.pickle' % name
+        if  cache == None:
+            try:
+                remove(cache_name)
+                warn("WARNING: found old ResultDict.pickle, which was not given as previous results")
+                warn("         Thus I will remove it")
+            except OSError:
+                pass
+        else:
+             cache_name = cache
+        disk_result_cache = FileStore(cache_name)
 
     # decide which method is actually to be used
     method = method.lower()
