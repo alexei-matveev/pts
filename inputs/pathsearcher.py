@@ -10,7 +10,7 @@ Geometries have to be given in internal coordinates (the ones the function accep
 from sys import argv, exit
 from re import findall
 from os import path, mkdir, remove
-from shutil import copyfile
+from numpy import savetxt
 from warnings import warn
 from pts.pathsearcher_defaults.params_default import *
 from pts.pathsearcher_defaults import *
@@ -219,6 +219,8 @@ def find_path(pes, init_path
          global cb_count_debug
          if output_level > 1:
              pickle_path(int2cart, ch_symbols, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
+         if output_level > 2:
+             savetxt("%s/%s.state_vec%d.txt" % (output_path, name, cb_count_debug), CoS.state_vec.reshape(CoS.beads_count,-1))
          cb_count_debug += 1
          return generic_callback(x, None, None, tol=tol
                     , name = output_path + "/" + name

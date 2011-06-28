@@ -215,7 +215,7 @@ from pts.readcos import read_geos_from_file, read_zmt_from_file
 from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
 from pts.zmat import ZMat
 from pts.quat import Quat, uquat, quat2vec
-from numpy import array, pi
+from numpy import array, pi, loadtxt
 from numpy.linalg import norm
 from ase.calculators import *
 from pts.qfunc import constraints2mask
@@ -227,7 +227,7 @@ def interprete_input(args):
     interpretes it
     """
     # first read in geometries and sort parameter
-    geos, geo_dict, zmat, add_param = interpret_sysargs(args)
+    geos, geo_dict, zmat, add_param, direct_path = interpret_sysargs(args)
     # geometries are given in Cartesian, here transform them to internals
     # calculator for forces, internal start path, function to transform internals to Cartesian coordinates,
     # the numbers where dihedrals are, which of the function parts have global positions, how many
@@ -237,6 +237,9 @@ def interprete_input(args):
     init_path = ensure_short_way(init_path, dih, quats, lengt)
     # if a mask has been provided, some variables are not optimized
     funcart, init_path = get_masked(funcart, atoms, geo_dict, zmat == None, init_path)
+    # if the path in interals is given directly, this should be respected:
+    if not direct_path == None:
+       init_path = direct_path
     # this is everything that is needed for a pathsearcher calculation
     return atoms, init_path, funcart, add_param
 
@@ -468,6 +471,7 @@ def interpret_sysargs(rest):
         exit()
 
     geo_dict = { "format": None}
+    direct_path = None
     geos = []
     add_param = {}
     zmatrix = []
@@ -493,6 +497,9 @@ def interpret_sysargs(rest):
             elif o in ("zmatrix"):
                 # zmatrix if given separate to the geometries
                 zmatrix.append(a)
+            elif o in ("init_path"):
+                # zmatrix if given separate to the geometries
+                direct_path = loadtxt(a)
             elif o in ("format", "calculator"):
                 # only needed to build up the geometry
                 geo_dict[o] = a
@@ -517,7 +524,7 @@ def interpret_sysargs(rest):
             geos.append(rest[0])
             rest = rest[1:]
 
-    return geos, geo_dict, zmatrix, add_param
+    return geos, geo_dict, zmatrix, add_param, direct_path
 
 def create_params_dict(new_params ):
     """
