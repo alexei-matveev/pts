@@ -25,7 +25,7 @@ from pts.optwrap import runopt
 from pts.sopt import soptimize
 from pts.tools import pickle_path
 from pts.common import file2str
-from pts.readinputs import interprete_input
+from pts.readinputs import interprete_input, create_params_dict
 import pts.metric as mt
 # be careful: array is needed, when the init_path is an array
 # do not delete it, even if it never occures directly in this module!
@@ -60,18 +60,21 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
       They are provided as kwargs in here. For a list of them see pathsearcher_defaults/params_default.py
       They can be also specified in an input file given as paramfile.
     """
+    # most parameters are stored in a dictionary, default parameters are stored in
+    # pathsearcher_defaults/params_default
+    para_dict = create_params_dict(kwargs )
 
     # calculator from kwargs, if valid, has precedence over
-    if "calculator" in kwargs.keys():
+    if "calculator" in para_dict.keys():
         # the associated (or not) with the atoms:
-        if kwargs["calculator"] is not None:
-            atoms.set_calculator(kwargs["calculator"])
+        if para_dict["calculator"] is not None:
+            atoms.set_calculator(para_dict["calculator"])
 
         # calculator is not used below:
-        del kwargs["calculator"]
+        del para_dict["calculator"]
 
     # print parameters to STDOUT:
-    tell_params(kwargs)
+    tell_params(para_dict)
 
     # PES to be used for energy, forces. FIXME: maybe adapt QFunc not to
     # default to LJ, but rather keep atoms as is?
@@ -79,14 +82,18 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
 
     # This parallel mapping function puts every single point calculation in
     # its own subfolder
-    strat = Strategy(kwargs["cpu_architecture"], kwargs["pmin"], kwargs["pmax"])
-    kwargs["pmap"] = PMap3(strat=strat)
+    strat = Strategy(para_dict["cpu_architecture"], para_dict["pmin"], para_dict["pmax"])
+    del para_dict["cpu_architecture"]
+    del para_dict["pmin"]
+    del para_dict["pmax"]
+    if not "pmap" in para_dict.keys():
+        para_dict["pmap"] = PMap3(strat=strat)
 
-    kwargs["int2cart"] = funcart
-    kwargs["ch_symbols"] = atoms.get_chemical_symbols()
+    para_dict["int2cart"] = funcart
+    para_dict["ch_symbols"] = atoms.get_chemical_symbols()
 
     # this operates with PES in internals:
-    convergence, geometries, energies, gradients = find_path(pes, init_path, **kwargs)
+    convergence, geometries, energies, gradients = find_path(pes, init_path, **para_dict)
 
     # print user-friendly output, including cartesian geometries:
     output(geometries, energies, gradients, funcart)

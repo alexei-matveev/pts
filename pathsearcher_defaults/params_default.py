@@ -32,7 +32,8 @@ default_params = {
     "pre_calc_function" : None,
     "output_level" : 2,
     "output_path" : "workplace",
-    "output_geo_format" : "xyz"
+    "output_geo_format" : "xyz",
+    "cache" : None          # where the results of the single point calculations will be stored
     }
 
 default_calcs = {

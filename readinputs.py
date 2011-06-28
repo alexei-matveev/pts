@@ -227,12 +227,7 @@ def interprete_input(args):
     interpretes it
     """
     # first read in geometries and sort parameter
-    geos, geo_dict, zmat, add_param, paramfile, cache = interpret_sysargs(args)
-    # most parameters are stored in a dictionary, default parameters are stored in
-    # pathsearcher_defaults/params_default
-    para_dict = create_params_dict(add_param, paramfile)
-    geo_dict["mask"] = para_dict["mask"]
-    para_dict["cache"] = cache
+    geos, geo_dict, zmat, add_param = interpret_sysargs(args)
     # geometries are given in Cartesian, here transform them to internals
     # calculator for forces, internal start path, function to transform internals to Cartesian coordinates,
     # the numbers where dihedrals are, which of the function parts have global positions, how many
@@ -243,7 +238,7 @@ def interprete_input(args):
     # if a mask has been provided, some variables are not optimized
     funcart, init_path = get_masked(funcart, atoms, geo_dict, zmat == None, init_path)
     # this is everything that is needed for a pathsearcher calculation
-    return atoms, init_path, funcart, para_dict
+    return atoms, init_path, funcart, add_param
 
 def restructure(dat):
     """
@@ -472,8 +467,6 @@ def interpret_sysargs(rest):
             print "    %s = %s" % (str(param), str(value))
         exit()
 
-    paramfile = None
-    cache = None
     geo_dict = { "format": None}
     geos = []
     add_param = {}
@@ -493,10 +486,10 @@ def interpret_sysargs(rest):
             # filter out the special ones
             if o == "paramfile":
                 # file containing parameters
-                paramfile = file2str(a)
+                add_param['paramfile'] = file2str(a)
             elif o in ("old_results", "cache"):
                 # file to take results from previous calculations from
-                cache = a
+                add_param["cache"] = a
             elif o in ("zmatrix"):
                 # zmatrix if given separate to the geometries
                 zmatrix.append(a)
@@ -506,6 +499,7 @@ def interpret_sysargs(rest):
             elif o in ("mask"):
                 # needed to build up the geometry and wanted for params output
                 add_param[o] = eval("%s" % (a))
+                geo_dict[o] = add_param[o]
             else:
                 assert(o in default_params.keys())
                 # suppose that the rest are setting parameters
@@ -523,12 +517,19 @@ def interpret_sysargs(rest):
             geos.append(rest[0])
             rest = rest[1:]
 
-    return geos, geo_dict, zmatrix, add_param, paramfile, cache
+    return geos, geo_dict, zmatrix, add_param
 
-def create_params_dict(new_params, paramfile):
+def create_params_dict(new_params ):
     """
     create the parameter dictionary for the pathsearcher routine
     """
+    if 'paramfile' in new_params.keys():
+         paramfile = new_params['paramfile']
+         print paramfile
+         del new_params['paramfile']
+    else:
+         paramfile = None
+
     # set up parameters (fill them in a dictionary)
     params_dict = default_params.copy()
 
