@@ -62,12 +62,13 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     """
 
     # calculator from kwargs, if valid, has precedence over
-    # the associated (or not) with the atoms:
-    if kwargs["calculator"] is not None:
-        atoms.set_calculator(kwargs["calculator"])
+    if "calculator" in kwargs.keys():
+        # the associated (or not) with the atoms:
+        if kwargs["calculator"] is not None:
+            atoms.set_calculator(kwargs["calculator"])
 
-    # calculator is not used below:
-    del kwargs["calculator"]
+        # calculator is not used below:
+        del kwargs["calculator"]
 
     # print parameters to STDOUT:
     tell_params(kwargs)
