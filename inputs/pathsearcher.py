@@ -62,7 +62,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     """
     # most parameters are stored in a dictionary, default parameters are stored in
     # pathsearcher_defaults/params_default
-    para_dict = create_params_dict(kwargs )
+    para_dict = create_params_dict(kwargs)
 
     # calculator from kwargs, if valid, has precedence over
     if "calculator" in para_dict.keys():
