@@ -299,7 +299,7 @@ def get_geos(geos, dc, zmi):
     # read cartesian data
     at, geo_carts = read_geos_from_file(geos, dc["format"])
 
-    if "calculator" in dc.keys():
+    if "calculator" in dc:
           calculator = get_calculator(dc["calculator"])
           at.set_calculator(calculator)
 
@@ -382,7 +382,7 @@ def get_masked(int2cart, at, geo_carts, zmat, geos):
     """
 
     mask = None
-    if "mask" in geo_carts.keys():
+    if "mask" in geo_carts:
        mask = geo_carts["mask"]
     elif zmat:
        mask = constraints2mask(at)
@@ -512,7 +512,7 @@ def interpret_sysargs(rest):
                 add_param[o] = eval("%s" % (a))
                 geo_dict[o] = add_param[o]
             else:
-                assert(o in default_params.keys())
+                assert(o in default_params)
                 # suppose that the rest are setting parameters
                 # compare the default_params
                 if o in are_floats:
@@ -534,7 +534,7 @@ def create_params_dict(new_params):
     """
     create the parameter dictionary for the pathsearcher routine
     """
-    if 'paramfile' in new_params.keys():
+    if 'paramfile' in new_params:
          paramfile = new_params['paramfile']
          print paramfile
          del new_params['paramfile']
@@ -549,7 +549,7 @@ def create_params_dict(new_params):
         params_dict = reset_params_file(params_dict, paramfile)
 
     # ovewrite all of them by those given directly into the input
-    for key in new_params.keys():
+    for key in new_params:
         if key in params_dict:
             params_dict[key] = new_params[key]
         else:
@@ -599,12 +599,12 @@ def reset_params_file(params_dict, lines):
     glob = locals()
     print glob.keys()
 
-    for param in glob.keys():
-        if not param in glob_olds.keys():
+    for param in glob:
+        if param not in glob_olds:
              if param == "glob_olds":
                  # There is one more new variable, which is not wanted to be taken into account
                  pass
-             elif not param in params_dict.keys():
+             elif param not in params_dict:
                  # this parameter are set during exec of the parameterfile, but they are not known
                  print "WARNING: unrecognised variable in parameter input file"
                  print "The variable", param," is unknown"
