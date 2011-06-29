@@ -407,9 +407,9 @@ class PMap2():
     PTS_SCHED_JOB_CPUS gives the number of the CPUs (starting with 0)
            on the host, which should be used
     """
-    def __init__ (self, strat = Strategy(), p_map = pmap):
+    def __init__ (self, strat = Strategy(), pmap = pmap):
         self.strat = strat
-        self.p_map = p_map
+        self.pmap = pmap
 
     def __call__ (self, f, xs):
          n = len(xs)
@@ -442,7 +442,7 @@ class PMap2():
                count += 1
          #print "Number of jobs running in parallel", count
 
-         fxs = self.p_map(ffun, zip(xs, sched), count)
+         fxs = self.pmap(ffun, zip(xs, sched), count)
          return fxs
 
 pmap2 = PMap2()
@@ -467,7 +467,7 @@ if __name__ == "__main__":
     x1 = [[1, 4, 5], [2, 2, 2], [2, 5, 7], [1, 0, 0], [2, 3, 4], [1, 1, 1]]
     x2 = [[7],[9],[1, 4, 5], [2, 2, 2], [2, 5, 7], [1, 0, 0], [2, 3, 4], [1, 1, 1],[3],[1],[4],[90,9], [1, 4, 5], [2, 2, 2], [2, 5, 7], [1, 0, 0], [2, 3, 4], [1, 1, 1],[3],[1],[4],[90,9]]
     sched = Strategy(topology = [4], pmin = 1, pmax = 2)
-#   pmap4 = PMap2(strat = sched, p_map = pool_map)
+#   pmap4 = PMap2(strat = sched, pmap = pool_map)
 #   pmap5 = PMap3(strat = sched)
 #   print pmap4(test, x1)
 #   print pmap5(test, x1)
