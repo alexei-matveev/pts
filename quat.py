@@ -664,6 +664,49 @@ class Quat(object):
         r[3] = p[0] * q[3] + p[3] * q[0] + p[1] * q[2] - p[2] * q[1] 
         return Quat(r)
 
+    def __pow__(self, n):
+        """Power, used only for iverse powers, that is only n == -1 is accepted so far.
+
+            >>> q = Quat((1.0, 1.0, 1.0, 1.0))
+
+            >>> q**(-1)
+            Quat((0.25, -0.25, -0.25, -0.25))
+
+        Verify the definition of the (left and right) inverse:
+
+            >>> q**(-1) * q
+            Quat((1.0, 0.0, 0.0, 0.0))
+
+            >>> q * q**(-1)
+            Quat((1.0, 0.0, 0.0, 0.0))
+
+        Dont forget there is no division as quaternions do not commute:
+
+            >>> p = Quat((0.0, 0.0, 0.0, 1.0))
+
+            >>> p * q**-1
+            Quat((0.25, 0.25, -0.25, 0.25))
+
+            >>> q**-1 * p
+            Quat((0.25, -0.25, 0.25, 0.25))
+        """
+
+        # FIXME: generalize:
+        assert(n == -1)
+
+        # alias:
+        q = self.__q
+
+        r = empty(4)
+
+        nq = q[0]**2 + q[1]**2 + q[2]**2 + q[3]**2
+        r[0] =   q[0] / nq
+        r[1] = - q[1] / nq
+        r[2] = - q[2] / nq
+        r[3] = - q[3] / nq
+
+        return Quat(r)
+
     def __div__(self, other):
         "Division of self / other in that order"
 
