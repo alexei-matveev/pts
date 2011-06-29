@@ -227,7 +227,7 @@ class PathTools:
         normer = np.sqrt(sum(modeint * modeint))
         modeint /= normer
         modeint = np.asarray(modeint)
-        transfer = int2cart.fprime(self.xs(s0))
+        transfer = int2cart.fprime(self.xs(s0)).flatten()
         transfer.shape = (modeint.shape[0], -1)
         modefromint = np.dot( modeint, transfer)
 
@@ -235,7 +235,7 @@ class PathTools:
         normer = np.sqrt(sum(modeint * modeint))
         modeint /= normer
         modeint = np.asarray(modeint)
-        transfer = int2cart.fprime(self.xs(s0))
+        transfer = int2cart.fprime(self.xs(s0)).flatten()
         transfer.shape = (modeint.shape[0], -1)
         modeallpath = np.dot(modeint, transfer)
 
