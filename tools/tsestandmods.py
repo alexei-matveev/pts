@@ -2,6 +2,7 @@
 
 import sys
 import pickle
+from numpy.linalg import norm
 
 from pts.tools.pathtools import PathTools
 from pts.searcher import PathRepresentation
@@ -35,23 +36,6 @@ def main(argv=None):
           if no other argument is set
     --m : print also available mode vector estimates
           (can also be given by any combination of p and m)
-    --f : calculates the forces on each transition state estimate and
-          gives also their projection on the mode vectors
-          (the calculator, which is used, is pickled in the path.pickle)
-          by default the --p option is set false
-          the following argument can be the name of a file to write the
-          forces and energies to, which may be reused for later calculations
-          the file's name should not be a number or start with --
-    --ff: like f but the output of the comparision is printed  to an external file
-          energyandforce.dat
-    --r : the next argument has to be the name of a file to read the forces from
-          it is only useful together with the --f option
-          if it is set, the program will look in the forces file if there is 
-          already a calculation for the current approximation (note it will not
-          check anything else) and then use it instead of a new calculation
-          missing forces will be calculated as before
-          The file should be look like the energyandforce.dat generated with the 
-          --ff option
     --c : for comparing the strings with the previous ones
           the output are relevant data from the approximated string
           the --p option is set to false by default
@@ -59,13 +43,11 @@ def main(argv=None):
           the program search in it for data to compare the results
           from
 
-    Except with the --ff option all output goes by default to the standard output
+    All output goes by default to the standard output
     """
 
     printwithmodes = False
     printvectors = True
-    calculateforces = False
-    reloadfile = None
     wanted = []
     fileout = "-"
     fileout2 = None
@@ -111,31 +93,6 @@ def main(argv=None):
                 elif arg == 'd':
                      print "Only special output"
                      dump = True
-                elif arg in ['ff', 'ffile', 'foutput']:
-                     fileout2 = 'energyandforce.dat'
-                     calculateforces = True
-                     printvectors = False
-                     try:
-                         if not argv[1].startswith('--'):
-                           try:
-                             int(argv[1])
-                           except:
-                             fileout = argv[1]
-                             argv = argv[1:]
-                     except:
-                       pass
-                elif arg.startswith('f'):
-                     calculateforces = True
-                     printvectors = False
-                     if not argv[1].startswith('--'):
-                        try:
-                            int(argv[1])
-                        except:
-                            fileout = argv[1]
-                            argv = argv[1:]
-                elif arg in ['reload', 'reloadforces', 'reloadfile', 'r']:
-                     reloadfile = argv[1]
-                     argv = argv[1:]
                 elif arg == 'c':
                      comparepath = True
                      printvectors = False
@@ -171,23 +128,20 @@ def main(argv=None):
     tuple, at_object =  pickle.load(f_ts)
     coord_b, energy_b, gradients_b, posonstring, posonstring2 = tuple
     # calculate the (wanted) estimates
-    estms, stx1, stx2, stx3 = esttsandmd(coord_b, energy_b, gradients_b, at_object, posonstring, posonstring2, wanted)
+    estms, stx1, stx2 = esttsandmd(coord_b, energy_b, gradients_b, at_object, posonstring, wanted)
     # show the result
     if printvectors:
         if dump:
             print_estimatesdump(estms, at_object)
         else:
             print_estimates(estms, at_object, printwithmodes)
-    if calculateforces:
-        getforces(estms, at_object, fileout, reloadfile, fileout2, dump)
     if comparepath:
         newpath = Path(coord_b, stx2)
         oldpath = Path(coord_b, stx1)
-        thirdpath = Path(coord_b, stx3)
-        comparepathes(oldpath, newpath, thirdpath, gradients_b, numinfile, filecomp)
+        comparepathes(oldpath, newpath, gradients_b, numinfile, filecomp)
 
 def esttsandmd(coord_b, energy_b, gradients_b, at_object, states = None,\
-              statesold = None, ts_wanted = [1, 2, 3, 4, 5, 6] ):
+               ts_wanted = [1, 2, 3, 4, 5, 6] ):
     """
     calculating of wanted TS-estimates and their modes
     This is done in two different ways of parametrizing the string:
@@ -222,14 +176,8 @@ def esttsandmd(coord_b, energy_b, gradients_b, at_object, states = None,\
         estfrompath(path2, ts_all, at_object, " with initial distance by string", ts_wanted )
     else:
         estfrompath(path2, ts_all, at_object, " with given distance by string", ts_wanted )
-    statex3 = startx
-    if not statesold == None:
-        startx = statesold
-        #path = PathTools(coord_b, energy_b, gradients_b, startx)
-        #estfrompath(path, ts_all, at_object, " with given distance by previous string", ts_wanted )
-        statex3 = path.steps
 
-    return (ts_all, statex1, statex2, statex3)
+    return (ts_all, statex1, statex2)
 
 
 def estfrompathfirst(pt, ts_sum, cs, addtoname, which):
@@ -282,16 +230,13 @@ def estfrompath(pt2, ts_sum, cs, addtoname, which ):
          addforces = neighborforces(pt2, l, r)
          ts_sum.append((name + addtoname , est, modes, addforces))
 
-def comparepathes(oldpath, path, thirdpath, gradients, num, file):
+def comparepathes(oldpath, path, gradients, num, file):
 
     print "Data of new path"
     xs, project = projpath(path, gradients)
 
     print "Data of old path"
     xso, projecto = projpath(oldpath, gradients)
-
-    #print "Data of third path"
-    #xst, projectt = projpath(thirdpath, gradients)
 
     if not file==None:
         print
@@ -318,30 +263,17 @@ def comparepathes(oldpath, path, thirdpath, gradients, num, file):
                      print "Difference in the projection of the force on the string:"
                      diff1 = [project[i] - dataline[i] for i in range(len(dataline))]
                      diff2 = [projecto[i] - dataline[i] for i in range(len(dataline))]
-                     #diff4 = [projectt[i] - dataline[i] for i in range(len(dataline))]
                      diff3 = [projecto[i] - project[i] for i in range(len(dataline))]
-                     #diff5 = [projectt[i] - project[i] for i in range(len(dataline))]
-                     #diff6 = [projectt[i] - projecto[i] for i in range(len(dataline))]
                      print "the values from the path approximations (old/new)  and the values stored in the logfile"
-                     #print "the values from the path approximations (old/new/third)  and the values stored in the logfile"
                      for i in range(len(dataline)):
                           print "%-d    %-12.7f  %-12.7f | %-12.7f" %  (i, projecto[i], project[i], dataline[i])
-                          #print "%-d    %-12.7f  %-12.7f  %-12.7f  | %-12.7f" %  (i, projecto[i], project[i], projectt[i], dataline[i])
                      print "The differences are (logfile to old/new):"
-                     #print "The differences are (logfile to old/new/third):"
                      for i in range(len(dataline)):
                           print "%-d    %-12.7f  %-12.7f " % (i, diff2[i], diff1[i])
-                          #print "%-d    %-12.7f  %-12.7f  %-12.7f" % (i, diff2[i], diff1[i], diff4[i])
                      print "The differences between the projections:"
                      print "old - new"
                      differ = '   '.join(['%12.7f' % i for i in diff3])
                      print differ
-                     #print  "third - new"
-                     #differ = '   '.join(['%12.7f' % i for i in diff5])
-                     #print differ
-                     #print "third - old"
-                     #differ = '   '.join(['%12.7f' % i for i in diff6])
-                     #print differ
                  if line.startswith('Bead Path Position'):
                      fields = line.split()
                      dataline = []
@@ -349,27 +281,24 @@ def comparepathes(oldpath, path, thirdpath, gradients, num, file):
                      for i in range(datapoints):
                          dataline.append(float(fields[4 +2 * i]))
                      print "Difference of the stored bead positions (to old/new):"
-                     #print "Difference of the stored bead positions (to old/new/third):"
                      diff1 = [xso[i]/xso[-1] - dataline[i] for i in range(len(dataline))]
                      diff2 = [xs[i] - dataline[i] for i in range(len(dataline))]
-                     #diff3 = [xst[i]/xst[-1] - dataline[i] for i in range(len(dataline))]
                      differ1 = '   '.join(['%12.7f' % i for i in diff1])
                      differ2 = '   '.join(['%12.7f' % i for i in diff2])
-                     #differ3 = '   '.join(['%12.7f' % i for i in diff3])
                      print differ1
                      print differ2
-                     #print differ3
 
 
 def projpath(path, gradients):
     print path.get_nodes()
-    xs = path.xs
+    xs, ys = path.get_nodes()
     print xs
     print "Forces on String"
     project = []
     for i, x in enumerate(xs):
          grad = gradients[i].flatten()
-         mode = -path.tangent(x).flatten()
+         mode = -path.fprime(x).flatten()
+         mode = mode / norm(mode)
          proj = np.dot(mode, grad)
          print proj
          project.append(proj)
@@ -382,7 +311,10 @@ def neighborforces(pt, il, ir):
     return (paral, perpl, parar, perpr)
 
 def oneneighb(pt, i):
-    mode = -pt.xs.tangent(pt.xs.xs[i]).flatten()
+
+    xs, ys = pt.xs.get_nodes()
+    mode = -pt.xs.fprime(xs[i]).flatten()
+    mode = mode / norm(mode)
     fr = pt.gradients[i].flatten()
     para, perp = para_perp_forces(mode, fr)
     perprms = np.sqrt(np.dot(perp.flatten(), perp.flatten()))
