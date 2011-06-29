@@ -13,6 +13,7 @@ import getopt
 import pickle
 
 import numpy as np
+from ase.io import read
 
 import pts
 import pts.tools.rotate as rot
@@ -35,6 +36,17 @@ def disp_forces(pathtools):
         f_para = rms(f_para)
 
         print "%.3f\t%.3f" % (f_perp, f_para)
+
+def energy_from_file(f):
+    energy = None
+    f_in = open(f, "r")
+    n= f_in.readline()
+    energystr = f_in.readline()
+    f_in.close()
+    if "E" in energystr:
+       fields = energystr.split()
+       energy = float(fields[-1])
+    return energy
 
 def main(argv=None):
     if argv is None:
@@ -71,22 +83,9 @@ def main(argv=None):
 
         fn_pickle = args[0]
         f_ts = open(fn_pickle)
-        try:
-            state, es, gs, ss, ssold, cs = pickle.load(f_ts)
-            f_ts.close()
-        except ValueError:
-            ssold = None
-            try:
-                f_ts.close()
-                f_ts = open(fn_pickle)
-                state, es, gs, ss, cs = pickle.load(f_ts)
-                f_ts.close()
-            except ValueError:
-                f_ts.close()
-                f_ts = open(fn_pickle)
-                state, es, gs, cs = pickle.load(f_ts)
-                f_ts.close()
-                ss = None
+        tuple, at_object =  pickle.load(f_ts)
+        state, es, gs, ss, ssold = tuple
+        ns, cs = at_object
         max_coord_change = np.abs(state[0] - state[-1]).max()
         print "Max change in any one coordinate was %.2f" % max_coord_change
         print "                            Per bead %.2f" % (max_coord_change / len(state))
@@ -96,9 +95,9 @@ def main(argv=None):
         ts_known = len(args) == 2
         if ts_known:
              fn_ts = args[1]
-             ts = pts.coord_sys.XYZ(file2str(fn_ts))
-             ts_carts = ts.get_cartesians()
-             ts_energy = ts.get_potential_energy()
+             ts = read(fn_ts)
+             ts_carts = ts.get_positions()
+             ts_energy = energy_from_file(fn_ts)
 
         if gnuplot_out:
             s = '\n'.join(['%.2f' % e for e in es])
@@ -130,6 +129,7 @@ def main(argv=None):
             if forces:
                 disp_forces(pt2)
 
+
         def estims():
             ks = methods.keys()
             ks.sort()
@@ -140,11 +140,11 @@ def main(argv=None):
 
         for name, est in estims():
             energy, coords, s0, s1, s_ts, l, r = est
-            cs.set_internals(coords)
             if ts_from_path:
                 print name
-                print cs.xyz_str()
-#                print cs.get_internals()
+                carts_c = cs(coords)
+                for n, cor in zip(ns, carts_c):
+                     print "%3s  %12.8f %12.8f %12.8f" %(n, cor[0], cor[1], cor[2])
                 print
             if modes:
                 modes =  pt.modeandcurvature(s_ts, l, r, cs)
@@ -154,7 +154,7 @@ def main(argv=None):
                          print "   %12.8f  %12.8f  %12.8f" % (line[0], line[1], line[2])
                 print
 
-            carts = cs.get_cartesians()
+            carts = cs(coords)
             if ts_known:
                 energy_err = energy - ts_energy
                 error = rot.cart_diff(carts, ts_carts)[0]
