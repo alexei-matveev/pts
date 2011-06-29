@@ -35,38 +35,46 @@ H 1 var4 2 var5 3 var6
 H 1 var7 2 var8 4 var9
 ""
 
-The first element of each line is supposed to be the name of the atom.
-Then follows the connectivity matrix, where for each appearing variable a
-name is given. The connectivities are given by the line number of the atom,
-starting with 1. First variable is always the length, second the angle and
-third the dihedral angle. If variable names appear more than once these variables
-are set to the same value. Giving a variable name as another variable name with a
-- in front of it, the values are always set to the negative of the other variable.
+The first element of each line is supposed to be the name of the atom. Then
+follows the connectivity matrix, where for each appearing variable a name is
+given. The connectivities are given by the line number of the atom, starting
+with 1. First variable is always the length, second the angle and third the
+dihedral angle. If variable names appear more than once these variables are set
+to the same value. Giving a variable name as another variable name with a
+"-" in front of it, the values are always set to the negative of the other
+variable.
 
-SETTING VARIABLES
+SETTING PARAMETERS
 
-There are some other parameters specified, which decide on how the program will
-run. There is a list of default parameters
+Many other parameters affect the program execution. To get a list of default
+parameters execute
 
   pathsearcher.py --defaults
 
-shows all of them They can be changed in two different ways: by including in
-the parameters in the calculation above:
+Some parameters may be set in two ways: a) by specifying a
 
-  --paramfile filename
+  parameter = value
 
-all the variables could be set in the file filename or by giving directly
+pair in the so called "paramfile" at location specified in the command line
 
-  --parameter_to_change new_value
+  --paramfile location
 
-this only works for parameters which take a string, a float or a integer
-(always a single number, or a name), ch tells if they could changed by giving
-the parameter values directly in the parameter list, so for example
+or b) from the command line by specifying a pair
 
-  --name NewName
+  --parameter value
 
-would set the name to NewName in the parameters If the same variable is set in
-both the paramfile and directly, the directly set value is taken
+This latter works only for parameters which take a string, a float or an
+integer. The column "ch" in the table below tells you if the parameter could be
+set in the command line. For example
+
+  --paramfile params.py --method neb
+
+would set the parameter "method" to "neb". Command line options have higher
+precedence than the settings in "paramfile", so that setting
+
+  method = "string"
+
+in the file "params.py" located in the current directory would have no effect.
 
 There exists:
 Parameter    ch     short description
@@ -132,13 +140,13 @@ Parameter    ch     short description
                        last iteration to is xyz as default, but can be changed
                        for example to gx or vasp (POSCAR)
 
-Additional informations can be taken from the minima ASE inputs. The ase atoms
+Additional informations can be taken from the minima ASE inputs. The ASE atoms
 objects may contain more informations than only the chemical symbols and the
 geometries of the wanted object. For example if reading in POSCARs there are
 additional informations as about the cell (pbc would be also set automatically
 to true in all directions). This informations can also be read in by this tool,
 if they are available, they are only used, if these variables still contain the
-default parameters.  Additionally ase can hold some constraints, which may be
+default parameters. Additionally ASE can hold some constraints, which may be
 taken from a POSCAR or set directly. Some of them can be also used to generate
 a mask. This is only done if cartesian coordinates are used.
 
@@ -158,7 +166,7 @@ The way to set up those calculators is given best on the ASE homepage at:
 
   https://wiki.fysik.dtu.dk/ase/ase/calculators/calculators.html#module-calculators
 
-Reuse RESULTS FROM PREVIOUS CALCULATIONS
+REUSE RESULTS FROM PREVIOUS CALCULATIONS
 
 It is possible to store the results of the quantum chemical calculations (which
 are the computational most expensive part of the calculation) in a
@@ -180,11 +188,11 @@ One can provide the inital path by giving geometries as for the two minima
 (all in the same format, please). In this case the call of the method would be
 something like
 
-  pathsearcher.py --parmeter some_params minima1 bead2 bead3 bead4  minima2
+  pathsearcher.py --parameter value minima1 bead2 bead3 bead4  minima2
 
 or for example:
 
-  pathsearcher.py --parmeter some_params POSCAR? POSCAR??
+  pathsearcher.py --parameter value POSCAR? POSCAR??
 
 The number of inital points and beads need not be the same.
 Be aware that there are sometimes differnet interpolations between two beads possible.
