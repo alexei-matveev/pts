@@ -371,11 +371,7 @@ def reduce(vec, mask):
     Function for generating starting values.
     Use a mask to reduce the complete vector.
     """
-    vec_red = []
-    for i, m in enumerate(mask):
-         if m:
-             vec_red.append(vec[i])
-    return array(vec_red)
+    return array([vec[i] for i, flag in enumerate(mask) if flag])
 
 
 def get_masked(int2cart, at, geo_carts, zmat, geos):
