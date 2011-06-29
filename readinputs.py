@@ -534,7 +534,7 @@ def interpret_sysargs(rest):
 
     return geos, geo_dict, zmatrix, add_param, direct_path
 
-def create_params_dict(new_params ):
+def create_params_dict(new_params):
     """
     create the parameter dictionary for the pathsearcher routine
     """
