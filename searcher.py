@@ -1287,7 +1287,7 @@ class GrowingString(ReactionPathway):
     string = True
 
     def __init__(self, reagents, pes, result_storage, beads_count = 10, pmap = map,
-        rho = lambda x: 1, growing=True, parallel=False, head_size=None, output_level = 3,
+        rho = lambda x: 1.0, growing=True, parallel=False, head_size=None, output_level = 3,
         max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False,
         output_path = ".", workhere = False):
 
