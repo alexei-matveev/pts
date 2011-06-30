@@ -19,8 +19,22 @@ on the kind choosen. There are the possiblilities:
  distance to  plane      dp       4 (the first is the atom, the others define the plane;
                                      the plane atoms must not be on a line)
 
+
+some options handle a different way of input:
+Here coordinates are given in cordinate files (coordinates in internal coordinates for all
+beads). One has to set addtionally at least the symbols.
+    --symbols symfile            : file should contain all the symbols of the atoms
+    --zmat    zmatfile           : to switch from Cartesian to Zmatrix coordinates, should be
+                                   given the same way as for path tools
+    --mask   maskfile geo_raw    : mask has to be given separately in maskfile one complete
+                                   internal geometry has to be given as geo_raw to provide the
+                                   tool with the fixed values
+    --abcissa  abcissafile       : the abcissa for the coordinate file. There need not to be any
+                                   but if there are some there need to be exactly one file for
+                                   each coordinate file
+
 der are other options which may be set:
-    --diff                       :for the next two internal coordinates the difference 
+    --diff                       :for the next two internal coordinates the difference
                                   will be taken, instead of the values
     --expand cellfile expandfile : the atoms will be exanded with atoms choosen as
                                    original ones shifted with cell vectors, as described
@@ -57,6 +71,7 @@ from sys import exit
 from sys import argv as sargv
 from pickle import load
 from pts.tools.path2xyz import read_in_path
+from pts.tools.pathtools import read_path_fix, read_path_coords
 from pts.tools.xyz2tabint import returnall, interestingvalue, expandlist
 from pts.tools.tab2plot import plot_tabs
 import numpy as np
@@ -138,6 +153,13 @@ def main(argv=None):
 
     # store the files containing the pathes somewhere
     filenames = []
+    # input need not to be path.pickle
+    symbfile = None
+    zmats = []
+    mask = None
+    maskgeo = None
+    abcis = []
+
     # the default values for the parameter
     num = 100
     diff = []
@@ -257,6 +279,19 @@ def main(argv=None):
              elif option.startswith("logscale"):
                  logscale.append(argv[1])
                  argv = argv[2:]
+             elif option == "symbols":
+                 symbfile = argv[1]
+                 argv = argv[2:]
+             elif option == "zmat":
+                 zmats.append(argv[1])
+                 argv = argv[2:]
+             elif option == "mask":
+                 mask = argv[1]
+                 maskgeo = argv[2]
+                 argv = argv[3:]
+             elif option in ["abcissa", "pathpos"]:
+                abcis.append(argv[1])
+                argv = argv[2:]
              else:
                  # For everything that does not fit in
                  print "This input variable is not valid:"
@@ -281,10 +316,21 @@ def main(argv=None):
         # names_of_lines[i]
         names_of_lines.append([])
 
+    if symbfile is not None:
+        symb, i2c = read_path_fix( symbfile, zmats, mask, maskgeo )
+        obj = symb, i2c
+
     # For each file prepare the plot
     for i, filename in enumerate(filenames):
         # read in the path
-        x, y, obj = read_in_path(filename)
+        if symbfile is None:
+            x, y, obj = read_in_path(filename)
+        else:
+            patf = None
+            if len(abcis) > 0:
+                patf = abcis[i]
+            y, x, __, __ = read_path_coords(filename, patf, None, None)
+
         # extract the internal coordiantes, for path and beads
         beads = beads_to_int(y, obj, allval, cell, tomove, howmove)
         path = path_to_int(x, y, obj, num, allval, cell, tomove, howmove)

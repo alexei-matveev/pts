@@ -21,6 +21,9 @@ from pts.common import vector_angle
 import pts.func as func
 import scipy as sp
 from pts.threepointmin import ts_3p_gr
+from pts.readinputs import get_transformation
+from pts.cfunc import Justcarts, Masked
+from numpy import loadtxt
 
 lg = logging.getLogger("pts.tools")
 lg.setLevel(logging.INFO)
@@ -216,6 +219,12 @@ class PathTools:
         if leftbd == rightbd:
             leftbd -= 1
             rightbd += 1
+
+        if leftbd < 0:
+             leftbd = 0
+        if rightbd > (len(self.state)-1):
+             rightbd = len(self.state) -1
+
         leftcoord = int2cart(self.state[leftbd])
         rightcoord = int2cart(self.state[leftbd])
 
@@ -521,6 +530,69 @@ def unpickle_path(file):
     coord, pathps, energy, gradients = geo_tuple
     symbols, int2cart = at_object
     return coord, pathps, energy, gradients, symbols, int2cart
+
+
+def read_path_fix( symbfile, zmatifiles = None, maskfile = None, maskedgeo = None ):
+    """
+    If not stored in a pickle.path it does not makes too much sense to give
+    unchangeable things for every geoemtry, thus separate them
+
+    Here the symbols (define the system) are read in, the function to tranform into cartesian
+    is also generated, uses zmat files to build the same system as before, if the coordinates
+    are with a mask, here is the possibility to set this also
+    """
+    # loadtxt (and especially savetxt) do not seems to like strings
+    f = open(symbfile, "r")
+    sr = f.read()
+    f.close()
+    symbols = sr.split()
+
+
+    if len(zmatifiles)==0:
+        int2cart = Justcarts()
+    else:
+        int2cart, __, __, __ = get_transformation(zmatifiles, len(symbols))
+
+    if maskfile is not None:
+        assert (maskedgeo is not None)
+        f = open(maskfile, "r")
+        sr = f.read()
+        f.close()
+        mask = sr.split()
+        mask = [m == "True" for m in mask]
+        geo_raw = loadtxt(maskedgeo)
+        int2cart = Masked(int2cart, mask, geo_raw)
+
+    return symbols, int2cart
+
+def read_path_coords(coordfile, pathpsfile = None, energyfile = None, forcefile = None):
+    """
+    If not stored in a pickle.path it does not makes too much sense to give
+    unchangeable things for every geoemtry, thus separate them
+
+    Here a the things which change with every iteration, pathps (abcissa) are only
+    there if it has been a string calculation
+    energies and forces are not needed every time and will propably not provided then
+    """
+
+    coord = loadtxt(coordfile)
+
+    if pathpsfile == None:
+        pathps = None
+    else:
+        pathps = loadtxt(pathpsfile)
+
+    if energyfile == None:
+        energy = None
+    else:
+        energy = loadtxt(energyfile)
+
+    if forcefile == None:
+        force = None
+    else:
+        force = loadtxt(forcefile)
+
+    return coord, pathps, energy, force
 
 plot_s = \
 """

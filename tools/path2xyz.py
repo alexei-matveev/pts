@@ -11,7 +11,7 @@ were beads in the path.pickle file, but any number N can be given
 
 Run:
 
-    $path2xyz.py some.path.pickle N
+    $path2xyz.py some.path.pickle --num N
 
 or simply:
 
@@ -24,12 +24,32 @@ This could be done by:
 
     $path2xyz.py some.path.pickle -b
 
+Furthermore it is possible to provide the input in separate files, then instead
+of the some.path.pickle file a coordinate file should be provided, including the
+geometry for all the beads. The minimal requirements are this coordinate file and
+a file containing the atoms symbols.
+
+    $path2xyz.py coordinate.file --symbols symbolfile
+
+It might be possible that the coordinates are in internal coordinates and at least
+when the path is wanted it is required to build up the internal coordinate transformation
+rather than transforming the coordinates.
+Further options for building up the transformation into Cartesian coordinates
+    (needed if coordinate.file contains internal coordinates and not only flattend Caresians)
+    --zmat zmatrixfile  : adds zmatrix of zmatrixfile to transformation
+    --mask maskfile raw_geom : only variables wich are "True" in mask are supposed to be
+                          contained in coordinate.file, raw_geom has to give complete set
+                          (fixed coordinates will be gotten from there)
+
+Further options:
+    --abcissa abcissafile : abcissa data can be gotten from here. String calcualations provide
+                            this data.
 """
 
 from pts.path import Path
 from sys import exit
 from sys import argv as sargv
-from pts.tools.pathtools import unpickle_path
+from pts.tools.pathtools import unpickle_path, read_path_fix, read_path_coords
 
 
 def read_in_path(filename):
@@ -46,6 +66,17 @@ def read_in_path(filename):
         print "The use of this function:"
         print __doc__
         exit()
+
+    return pathps, coord, (symbols, int2cart)
+
+def read_in_path_raw(coordfile, symbfile, zmatifiles = None, pathpsfile = None, \
+        maskfile = None, maskedgeo = None ):
+    """
+    Reads in a path from several user readable files and gives
+    back the informations of interest
+    """
+    symbols, int2cart = read_path_fix( symbfile, zmatifiles, maskfile, maskedgeo )
+    coord, pathps, __, __ = read_path_coords(coordfile, pathpsfile, None, None)
 
     return pathps, coord, (symbols, int2cart)
 
@@ -160,24 +191,51 @@ def main(argv=None):
 
     beads = False
     num = None
+    symbfile = None
+    zmats = []
+    mask = None
+    maskgeo = None
+    abcis = None
 
     # There is one more decicion to make:
     # how many points in between or exactly the beads?
     # as default there will be a path , giving back beadnumber
     # of frames
     if len(argv)>1:
-       if argv[1] in ["beads", "bd", "b", "-b"]:
-            beads = True
-       else:
-            try:
-                 num = int(argv[1])
-            except:
-                 print "Could not read in wanted number of pictures"
-                 print "The second argument of call should be a integer number"
-                 print __doc__
-                 exit()
+       argv = argv[1:]
+       for i in range(len(argv)):
+           if argv == []:
+              break
 
-    x, y, obj = read_in_path(filename)
+           if argv[0] in ["beads", "bd", "b", "-b"]:
+                beads = True
+                argv = argv[1:]
+           elif argv[0] in ["--num"]:
+                num = int(argv[1])
+                argv = argv[2:]
+           elif argv[0] in ["--symbols", "--symbol", "-s"]:
+                symbfile = argv[1]
+                argv = argv[2:]
+           elif argv[0].startswith("--zmat"):
+                zmats.append(argv[1])
+                argv = argv[2:]
+           elif argv[0] in ["--mask", "-m"]:
+                mask = argv[1]
+                maskgeo = argv[2]
+                argv = argv[3:]
+           elif argv[0] in ["--abcissa", "--pathpos"]:
+                abcis = argv[1]
+                argv = argv[2:]
+           else:
+                print "Could not read in the argument", argv[0]
+                print __doc__
+                exit()
+
+    if symbfile == None:
+        x, y, obj = read_in_path(filename)
+    else:
+        x, y, obj = read_in_path_raw(filename, symbfile, zmats, abcis, \
+        mask, maskgeo )
 
     if beads:
         print_beads(y, obj)

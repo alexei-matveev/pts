@@ -4,6 +4,7 @@ import sys
 from numpy.linalg import norm
 
 from pts.tools.pathtools import PathTools, unpickle_path
+from pts.tools.pathtools import read_path_fix, read_path_coords
 from pts.searcher import PathRepresentation
 from pts.path import Path
 from pts.common import make_like_atoms
@@ -30,6 +31,21 @@ def main(argv=None):
     5  : Three points
     6  : Bell method
 
+    Arguments for different read in fo input: (if used instead of path.pickle file
+          with geometries one has to provide a coordinate file
+    --s  symbolfile energyfile forcefile : This three files are needed in any case
+          if the other way of input is choosen. Symbolfile contains all atom symbols
+          energyfile and forcefile the energies/forces to the given geometries from
+          coordinates file
+    --a abcissafile: the abcissa to the coordinates is optional, string calculations
+          use some, some others like neb do not have them at all, if the calcualtion
+          of the path had been one with abcissa it is preferable to give them here
+    --zmat zmatfile : give the same zmatfiles (each with its own --zmat) as in the
+          path calculation, only this way the internal coordinates can be interpreted
+          correctly
+    --mask maskfile geo_raw: only variables set to True in maskfile are supposed
+          to be given in coordinate files, all others are extracted from geo_raw
+
     Other possible arguments:
     --p : print the resulting transition state estimates (is also the default
           if no other argument is set
@@ -52,6 +68,17 @@ def main(argv=None):
     fileout2 = None
     comparepath = False
     dump = False
+
+
+    # for other way of input:
+    zmats = []
+    mask = None
+    maskgeo = None
+    abcis = None
+    symbfile = None
+    energies = None
+    forces = None
+
 
     # structure of inputs, has to be improved later
     if argv is None:
@@ -91,6 +118,21 @@ def main(argv=None):
                 elif arg == 'd':
                      print "Only special output"
                      dump = True
+                elif arg == "s":
+                    symbfile = argv[1]
+                    energies = argv[2]
+                    forces = argv[3]
+                    argv = argv[3:]
+                elif arg =="zmat":
+                    zmats.append(argv[1])
+                    argv = argv[1:]
+                elif arg == "mask":
+                    mask = argv[1]
+                    maskgeo = argv[2]
+                    argv = argv[2:]
+                elif arg == "a":
+                   abcis = argv[1]
+                   argv = argv[1:]
                 elif arg == 'c':
                      comparepath = True
                      printvectors = False
@@ -120,7 +162,12 @@ def main(argv=None):
     if wanted == []:
         wanted = [1, 2, 3, 4, 6]
 
-    coord_b, posonstring, energy_b, gradients_b, symbols, int2cart = unpickle_path(f_ts)
+    if symbfile == None:
+        coord_b, posonstring, energy_b, gradients_b, symbols, int2cart = unpickle_path(f_ts)
+    else:
+        symbols, int2cart = read_path_fix( symbfile, zmats, mask, maskgeo )
+        coord_b, posonstring, energy_b, gradients_b = read_path_coords(f_ts, abcis, energies, forces)
+
     at_object = (symbols, int2cart)
     # calculate the (wanted) estimates
     estms, stx1, stx2 = esttsandmd(coord_b, energy_b, gradients_b, at_object, posonstring, wanted)
@@ -188,10 +235,12 @@ def estfrompathfirst(pt, ts_sum, cs, addtoname, which):
         ts_est.append(('Highest', pt.ts_highest()[-1]))
     if 5 in which:
         ts_int = pt.ts_threepoints()
-        ts_est.append(('Three points', ts_int[-1]))
+        if len(ts_int) > 0:
+            ts_est.append(('Three points', ts_int[-1]))
     if 6 in which:
         ts_int = pt.ts_bell()
-        ts_est.append(('Bell Method',ts_int[-1]))
+        if len(ts_int) > 0:
+            ts_est.append(('Bell Method',ts_int[-1]))
     # generates modevectors to the given TS-estimates
     for name, est in ts_est:
          energy, coords, s0, s1,s_ts,  l, r = est
@@ -212,11 +261,17 @@ def estfrompath(pt2, ts_sum, cs, addtoname, which ):
     __, int2cart = cs
     #cs_c = cs.copy()
     if 2 in which:
-        ts_est.append(('Spline only', pt2.ts_spl()[-1]))
+        ts_int = pt2.ts_spl()
+        if len(ts_int) > 0:
+            ts_est.append(('Spline only',ts_int[-1]))
     if 3 in which:
-        ts_est.append(('Spline and average', pt2.ts_splavg()[-1]))
+        ts_int = pt2.ts_splavg()
+        if len(ts_int) > 0:
+             ts_est.append(('Spline and average', ts_int[-1]))
     if 4 in which:
-        ts_est.append(('Spling and cubic', pt2.ts_splcub()[-1]))
+        ts_int = pt2.ts_splcub()
+        if len(ts_int) > 0:
+            ts_est.append(('Spling and cubic', ts_int[-1]))
 
     # generates modevectors to the given TS-estimates
     for name, est in ts_est:

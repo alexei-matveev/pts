@@ -307,6 +307,20 @@ def get_geos(geos, dc, zmi):
     function for changing between internal and Cartesian
     (Cartesian to be fed into atoms object)
     """
+    at, geo_carts = get_cartesian_geos(geos, dc)
+    # RETURN POINT: only Cartesian geometry
+    if zmi == []:
+       geo_int = array([ge.flatten() for ge in geo_carts])
+       return at, geo_int, Justcarts(), [[]], [False], [len(geo_carts[0].flatten())]
+
+    func, d_nums, quats, size_nums = get_transformation(zmi, len(geo_carts[0].flatten()))
+    # transform Cartesians to internals (all functions used
+    # till know have pseudoinverse)
+    geo_int = [func.pinv(geo) for geo in geo_carts]
+    return at, geo_int, func, d_nums, quats, size_nums
+
+
+def get_cartesian_geos(geos, dc):
     # read cartesian data
     at, geo_carts = read_geos_from_file(geos, dc["format"])
 
@@ -314,14 +328,11 @@ def get_geos(geos, dc, zmi):
           calculator = get_calculator(dc["calculator"])
           at.set_calculator(calculator)
 
+    return at, geo_carts
 
-    # RETURN POINT: only Cartesian geometry
-    if zmi == []:
-       geo_int = array([ge.flatten() for ge in geo_carts])
-       return at, geo_int, Justcarts(), [[]], [False], [len(geo_carts[0].flatten())]
 
-    len_carts = len(geo_carts[0].flatten())
 
+def get_transformation(zmi, len_carts):
     # extract data from (several) zmatrices
     datas = [read_zmt_from_file(zm) for zm in zmi]
     names, zmat, var_nums, mult, d_nums, size_sys, size_nums, size_carts = restructure(datas)
@@ -372,10 +383,8 @@ def get_geos(geos, dc, zmi):
         # no need to merge a single function
         func = funcs[0]
 
-    # transform Cartesians to internals (all functions used
-    # till know have pseudoinverse)
-    geo_int = [func.pinv(geo) for geo in geo_carts]
-    return at, geo_int, func, d_nums, quats, size_nums
+    return func, d_nums, quats, size_nums
+
 
 def reduce(vec, mask):
     """
