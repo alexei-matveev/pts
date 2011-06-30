@@ -552,6 +552,8 @@ def create_params_dict(new_params):
     for key in new_params:
         if key in params_dict:
             params_dict[key] = new_params[key]
+        elif key in ["workhere"]:
+            params_dict[key] = new_params[key]
         else:
             print "ERROR: unrecognised variable in parameter"
             print "The variable",key, "has not been found"
