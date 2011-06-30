@@ -217,9 +217,9 @@ def find_path(pes, init_path
     # callback function
     def cb(x, tol=0.01):
          global cb_count_debug
-         if output_level > 1:
+         if output_level > 1 and CoS is not None:
              pickle_path(int2cart, symbols, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
-         if output_level > 2:
+         if output_level > 2 and CoS is not None:
              savetxt("%s/%s.state_vec%d.txt" % (output_path, name, cb_count_debug), CoS.state_vec.reshape(CoS.beads_count,-1))
          cb_count_debug += 1
          return generic_callback(x, None, None, tol=tol
@@ -246,7 +246,7 @@ def find_path(pes, init_path
         energies, gradients = zip(*map(pes.taylor, geometries))
 
     # write out path to a file
-    if output_level > 0:
+    if output_level > 0 and CoS is not None:
         pickle_path(int2cart, symbols, CoS, "%s.path.pickle" % name)
 
     # Return (hopefully) converged discreete path representation:
