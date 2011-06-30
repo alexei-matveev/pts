@@ -65,7 +65,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     para_dict = create_params_dict(kwargs)
 
     # calculator from kwargs, if valid, has precedence over
-    if "calculator" in para_dict.keys():
+    if "calculator" in para_dict:
         # the associated (or not) with the atoms:
         if para_dict["calculator"] is not None:
             atoms.set_calculator(para_dict["calculator"])
@@ -86,7 +86,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     del para_dict["cpu_architecture"]
     del para_dict["pmin"]
     del para_dict["pmax"]
-    if not "pmap" in para_dict.keys():
+    if "pmap" not in para_dict:
         para_dict["pmap"] = PMap3(strat=strat)
 
     para_dict["int2cart"] = funcart
