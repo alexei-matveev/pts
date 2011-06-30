@@ -384,7 +384,7 @@ class ReactionPathway(object):
         return s, s_beads
 
     def path_tuple(self):
-        state, energies, gradients, (pathps, pathpsold)  = \
+        state, energies, gradients, (pathps, pathpsold) = \
             self.state_vec.reshape(self.beads_count,-1), \
             self.bead_pes_energies.reshape(-1), \
             self.bead_pes_gradients.reshape(self.beads_count,-1), \
@@ -1361,11 +1361,10 @@ class GrowingString(ReactionPathway):
 
     def path_tuple(self):
         state, energies, gradients, (pathps, pathpsold) = \
-            (self.state_vec.reshape(self.beads_count,-1), \
+            self.state_vec.reshape(self.beads_count,-1), \
             self.bead_pes_energies.reshape(-1), \
             self.bead_pes_gradients.reshape(self.beads_count,-1), \
-            self.pathpos())
-
+            self.pathpos()
         return state, energies, gradients, pathps, pathpsold
 
     def get_state_vec(self):
