@@ -354,7 +354,7 @@ class ReactionPathway(object):
         return common.rms(self.perp_bead_forces[1:-1]), [common.rms(f) for f in self.perp_bead_forces]
 
     def pathpos(self):
-         return None, None
+         return None
 
     @property
     def maxf_perp(self):
@@ -384,19 +384,19 @@ class ReactionPathway(object):
         return s, s_beads
 
     def path_tuple(self):
-        state, energies, gradients, (pathps, pathpsold) = \
+        state, energies, gradients, (pathps, pathpsold)  = \
             self.state_vec.reshape(self.beads_count,-1), \
             self.bead_pes_energies.reshape(-1), \
             self.bead_pes_gradients.reshape(self.beads_count,-1), \
             self.pathpos()
-        return state, energies, gradients, pathps, pathpsold
+        return state, pathps, energies, gradients
         
     def __str__(self):
         e_total, e_beads = self.energies
         rmsf_perp_total, rmsf_perp_beads = self.rmsf_perp
         rmsf_para_total, rmsf_para_beads = self.rmsf_para
         maxf_beads = [abs(f).max() for f in self.bead_pes_gradients]
-        path_pos, path_pos_old  = self.pathpos()
+        path_pos  = self.pathpos()
 
         if path_pos == None:
              # set up dummy spline abscissa for non-spline methods
@@ -490,8 +490,7 @@ class ReactionPathway(object):
             arc['state_vec'] = sv
             arc['energies']  = self.bead_pes_energies.reshape(-1)
             arc['gradients'] = self.bead_pes_gradients.reshape(self.beads_count, -1)
-            arc['pathps'] = self.pathpos()[0]
-            arc['pathpsold'] = self.pathpos()[1]
+            arc['pathps'] = self.pathpos()
 
             pickle.dump(arc, self.arc_record, protocol=2)
             self.arc_record.flush()
@@ -708,9 +707,9 @@ def ts_estims(beads, energies, gradients, alsomodes = False, converter = None):
     pt = pts.tools.PathTools(beads, energies, gradients)
 
     estims = pt.ts_splcub()
-    f = open("tsplot.dat", "w")
-    f.write(pt.plot_str)
-    f.close()
+   #f = open("tsplot.dat", "w")
+   #f.write(pt.plot_str)
+   #f.close()
 
     tsisspl = True
     if len(estims) < 1:
@@ -894,7 +893,7 @@ class NEB(ReactionPathway):
         return int(ceil((self.beads_count * self.dimension / 3.)))
 
     def pathpos(self):
-        return (None, None)
+        return None
 
     def get_forces(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -1106,7 +1105,7 @@ class PathRepresentation(Path):
         raw_input("that was rho...")
 
     def pathpos(self):
-        return (self.__normalised_positions, self.__old_normalised_positions)
+        return self.__normalised_positions
 
     def set_rho(self, new_rho):
         """Set new bead density function, ensuring that it is normalised."""
@@ -1358,6 +1357,14 @@ class GrowingString(ReactionPathway):
 
     def pathpos(self):
         return self._path_rep.pathpos()
+
+    def path_tuple(self):
+        state, energies, gradients, (pathps, pathpsold) = \
+            self.state_vec.reshape(self.beads_count,-1), \
+            self.bead_pes_energies.reshape(-1), \
+            self.bead_pes_gradients.reshape(self.beads_count,-1), \
+            self.pathpos()
+        return state, energies, gradients, pathps, pathpsold
 
     def get_state_vec(self):
         assert not '_state_vec' in self.__dict__

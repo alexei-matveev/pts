@@ -7,6 +7,7 @@ GEOMETRY
 Geometries have to be given in internal coordinates (the ones the function accepts)
 
 """
+from ase.io import write
 from sys import argv, exit
 from re import findall
 from os import path, mkdir, remove
@@ -93,12 +94,12 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     para_dict["symbols"] = atoms.get_chemical_symbols()
 
     # this operates with PES in internals:
-    convergence, geometries, energies, gradients = find_path(pes, init_path, **para_dict)
+    convergence, optimized_path = find_path(pes, init_path, **para_dict)
 
     # print user-friendly output, including cartesian geometries:
-    output(geometries, energies, gradients, funcart)
+    output(optimized_path, funcart, para_dict["output_level"], para_dict["output_geo_format"], atoms)
 
-    return convergence, geometries, energies, gradients
+    return convergence, optimized_path
 
 def find_path(pes, init_path
                             , beads_count = None    # default to len(init_path)
@@ -159,6 +160,7 @@ def find_path(pes, init_path
                parallel=True,
                reporting=logfile,
                freeze_beads=False,
+               workhere=workhere,
                head_size=None,
                output_level=output_level,
                output_path=output_path,
@@ -173,6 +175,7 @@ def find_path(pes, init_path
                parallel=True,
                reporting=logfile,
                freeze_beads=False,
+               workhere=workhere,
                head_size=None,
                pmap = pmap,
                output_path=output_path,
@@ -187,6 +190,7 @@ def find_path(pes, init_path
                parallel=True,
                reporting=logfile,
                pmap = pmap,
+               workhere=workhere,
                output_path=output_path,
                output_level=output_level,
                max_sep_ratio=0.3,
@@ -201,6 +205,7 @@ def find_path(pes, init_path
                beads_count=beads_count,
                parallel=True,
                pmap = pmap,
+               workhere=workhere,
                output_path=output_path,
                output_level=output_level,
                reporting=logfile)
@@ -220,6 +225,7 @@ def find_path(pes, init_path
          if output_level > 1 and CoS is not None:
              pickle_path(int2cart, symbols, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
          if output_level > 2 and CoS is not None:
+             # store interal coordinates of given iteration in file
              savetxt("%s/%s.state_vec%d.txt" % (output_path, name, cb_count_debug), CoS.state_vec.reshape(CoS.beads_count,-1))
          cb_count_debug += 1
          return generic_callback(x, None, None, tol=tol
@@ -236,6 +242,7 @@ def find_path(pes, init_path
         # Main optimisation loop:
         #
         converged = runopt(opt_type, CoS, callback=cb, **kwargs)
+        abcissa  = CoS.pathpos()
         geometries, energies, gradients = CoS.state_vec, CoS.bead_pes_energies, CoS.bead_pes_gradients
     else:
         #
@@ -243,6 +250,7 @@ def find_path(pes, init_path
         #
         geometries, stats = soptimize(pes, init_path, maxiter=20, maxstep=0.1, callback=cb)
         _, converged, _, _ = stats
+        abcissa  = None
         energies, gradients = zip(*map(pes.taylor, geometries))
 
     # write out path to a file
@@ -251,21 +259,31 @@ def find_path(pes, init_path
 
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration
-    return converged, geometries, energies, gradients
+    return converged, (geometries, abcissa, energies, gradients)
 
-def output(beads, energies, gradients, cartesian):
+def output(optimized_path, cartesian, output_level, format , atoms):
     """Print user-friendly output.
     Also estimates locations of transition states from bead geometries.
     """
+    beads, abcissa, energies, gradients = optimized_path
 
     print "Optimized path:"
     print "in internals"
     for bead in beads:
         print bead
+    if output_level > 0:
+        savetxt("internal_coordinates", beads)
+        savetxt("energies", energies)
+        savetxt("forces", gradients)
+        if abcissa is not None:
+            savetxt("abcissa", abcissa)
 
-    print "in Cartesians"
-    for bead in beads:
-        print cartesian(bead)
+        print "in Cartesians"
+    for i, bead in enumerate(beads):
+        carts = cartesian(bead)
+        print carts
+        atoms.set_positions(carts)
+        write("bead%d" % i, atoms, format=format)
 
     # get best estimate(s) of TS from band/string
     tss = ts_estims(beads, energies, gradients, alsomodes=False, converter=cartesian)
@@ -276,8 +294,13 @@ def output(beads, energies, gradients, cartesian):
         e, v, s0, s1,_ ,bead0_i, bead1_i = ts
         print "Energy = %.4f eV, between beads %d and %d." % (e, bead0_i, bead1_i)
         print "Positions", v
-        print "Cartesians", cartesian(v)
-
+        carts = cartesian(v)
+        print "Cartesians", carts
+        atoms.set_positions(carts)
+        if output_level > 0:
+             write("ts_estimate%d" % i, atoms, format = format)
+        if output_level > 1:
+             savetxt("ts_internals%d" % i, v)
 
 def tell_params(params):
     """

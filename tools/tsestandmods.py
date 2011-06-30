@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
 import sys
-import pickle
 from numpy.linalg import norm
 
-from pts.tools.pathtools import PathTools
+from pts.tools.pathtools import PathTools, unpickle_path
 from pts.searcher import PathRepresentation
 from pts.path import Path
 from pts.common import make_like_atoms
@@ -65,8 +64,7 @@ def main(argv=None):
         sys.exit()
     else:
         try:
-            filename = argv[0]
-            f_ts = open(filename,"r")
+            f_ts = argv[0]
         except:
             print "ERROR: No path file found to read input from"
             print "First argument of call must be a path.pickle object"
@@ -122,11 +120,8 @@ def main(argv=None):
     if wanted == []:
         wanted = [1, 2, 3, 4, 6]
 
-    posonstring = None
-    posonstring2 = None
-    # load pickle object as seen by Hugh
-    tuple, at_object =  pickle.load(f_ts)
-    coord_b, energy_b, gradients_b, posonstring, posonstring2 = tuple
+    coord_b, posonstring, energy_b, gradients_b, symbols, int2cart = unpickle_path(f_ts)
+    at_object = (symbols, int2cart)
     # calculate the (wanted) estimates
     estms, stx1, stx2 = esttsandmd(coord_b, energy_b, gradients_b, at_object, posonstring, wanted)
     # show the result

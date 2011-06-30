@@ -92,7 +92,7 @@ pes = compose(pes, func)
 init_path = [min1, min2]
 
 # Let pathseracher optimize the path
-pathsearcher(PdH, init_path, funcart = func, ftol = 0.1, maxit = 12, beads_count = 5)
+pathsearcher(PdH, init_path, funcart = func, ftol = 0.1, maxit = 12, beads_count = 5, output_level = 0)
 
 
 

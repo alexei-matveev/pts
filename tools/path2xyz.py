@@ -29,7 +29,7 @@ This could be done by:
 from pts.path import Path
 from sys import exit
 from sys import argv as sargv
-from pickle import load
+from pts.tools.pathtools import unpickle_path
 
 
 def read_in_path(filename):
@@ -39,7 +39,7 @@ def read_in_path(filename):
     coordinates and path positions of the beads
     """
     try:
-        f_ts = open(filename,"r")
+        coord, pathps, energy, gradients, symbols, int2cart = unpickle_path(filename)
     except:
         print "ERROR: No path file found to read input from"
         print "First argument of call must be a path.pickle object"
@@ -47,15 +47,7 @@ def read_in_path(filename):
         print __doc__
         exit()
 
-    # some older files and neb files don't have path positions
-    # the value None should give a default path
-    posonstring = None
-
-    # there are different versions of the path.pickle object around
-    # this way all of them should be valid
-    geo_tuple, at_object =  load(f_ts)
-    coord, energy, gradients, posonstring, posonstring2 = geo_tuple
-    return posonstring, coord, at_object
+    return pathps, coord, (symbols, int2cart)
 
 def path_geos(x, y, cs, num):
     """

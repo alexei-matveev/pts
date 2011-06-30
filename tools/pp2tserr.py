@@ -10,7 +10,7 @@ error between various estimates of the transition state and the real transition 
 
 import sys
 import getopt
-import pickle
+from pts.tools.pathtools import unpickle_path
 
 import numpy as np
 from ase.io import read
@@ -82,10 +82,7 @@ def main(argv=None):
             raise Usage("Requires either one or two arguments.")
 
         fn_pickle = args[0]
-        f_ts = open(fn_pickle)
-        tuple, at_object =  pickle.load(f_ts)
-        state, es, gs, ss, ssold = tuple
-        ns, cs = at_object
+        state, ss, es, gs, ns, cs = unpickle_path(fn_pickle)
         max_coord_change = np.abs(state[0] - state[-1]).max()
         print "Max change in any one coordinate was %.2f" % max_coord_change
         print "                            Per bead %.2f" % (max_coord_change / len(state))

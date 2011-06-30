@@ -42,7 +42,7 @@ res1 = find_path(MB, init_path, ftol = 0.001, maxit = 100)
 #
 # Search by an alternative method:
 #
-res2 = find_path(MB, init_path, ftol = 0.001, maxit = 100, method="sopt", workhere = True)
+res2 = find_path(MB, init_path, ftol = 0.001, maxit = 100, method="sopt", workhere = True, output_level = 0)
 
 print "\n"
 print "result 1=\n", res1[0], "\n", res1[1], "\n", res1[2], "\n", res1[3]

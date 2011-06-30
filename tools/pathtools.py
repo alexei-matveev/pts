@@ -506,13 +506,21 @@ class PathTools:
         return ts_list
 
 from copy import deepcopy, copy
+from pickle import load, dump
 
 def pickle_path(int2cart, ch_symbols, CoS, file):
     tuple = CoS.path_tuple()
     cs = (ch_symbols, int2cart)
     f = open(file, 'wb')
-    pickle.dump((tuple, cs), f, protocol=2)
+    dump((tuple, cs), f, protocol=2)
     f.close()
+
+def unpickle_path(file):
+    f = open(file, "r")
+    geo_tuple, at_object = load(f)
+    coord, pathps, energy, gradients = geo_tuple
+    symbols, int2cart = at_object
+    return coord, pathps, energy, gradients, symbols, int2cart
 
 plot_s = \
 """
