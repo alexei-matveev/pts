@@ -217,6 +217,7 @@ calculator) but ftol is anyway 0.07
 
   pathsearcher.py --paramfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
 """
+import ase
 from pts.pathsearcher_defaults.params_default import default_params, are_floats, are_ints
 from pts.common import file2str
 from pts.readcos import read_geos_from_file, read_zmt_from_file
@@ -235,7 +236,17 @@ def interprete_input(args):
     interpretes it
     """
     # first read in geometries and sort parameter
-    geos, geo_dict, zmat, add_param, direct_path = interpret_sysargs(args)
+    geos, geo_dict, zmat, add_param, direct_path, paramfile = interpret_sysargs(args)
+    # noverwrite by those given in parameter file
+    if not paramfile == None:
+        params_dict = from_params_file( paramfile)
+    else:
+        params_dict = {}
+
+    # this way dirct paramter have preferance (will overwrite the ones from the file)
+    params_dict.update(add_param)
+    if "mask" in params_dict:
+        geo_dict["mask"] = params_dict["mask"]
     # geometries are given in Cartesian, here transform them to internals
     # calculator for forces, internal start path, function to transform internals to Cartesian coordinates,
     # the numbers where dihedrals are, which of the function parts have global positions, how many
@@ -249,7 +260,7 @@ def interprete_input(args):
     if direct_path is not None:
        init_path = direct_path
     # this is everything that is needed for a pathsearcher calculation
-    return atoms, init_path, funcart, add_param
+    return atoms, init_path, funcart, params_dict
 
 def restructure(dat):
     """
@@ -476,6 +487,7 @@ def interpret_sysargs(rest):
 
     geo_dict = { "format": None}
     direct_path = None
+    paramfile = None
     geos = []
     add_param = {}
     zmatrix = []
@@ -494,7 +506,7 @@ def interpret_sysargs(rest):
             # filter out the special ones
             if o == "paramfile":
                 # file containing parameters
-                add_param['paramfile'] = file2str(a)
+                paramfile = file2str(a)
             elif o in ("old_results", "cache"):
                 # file to take results from previous calculations from
                 add_param["cache"] = a
@@ -510,7 +522,6 @@ def interpret_sysargs(rest):
             elif o in ("mask"):
                 # needed to build up the geometry and wanted for params output
                 add_param[o] = eval("%s" % (a))
-                geo_dict[o] = add_param[o]
             else:
                 assert(o in default_params)
                 # suppose that the rest are setting parameters
@@ -528,25 +539,14 @@ def interpret_sysargs(rest):
             geos.append(rest[0])
             rest = rest[1:]
 
-    return geos, geo_dict, zmatrix, add_param, direct_path
+    return geos, geo_dict, zmatrix, add_param, direct_path, paramfile
 
 def create_params_dict(new_params):
     """
     create the parameter dictionary for the pathsearcher routine
     """
-    if 'paramfile' in new_params:
-         paramfile = new_params['paramfile']
-         print paramfile
-         del new_params['paramfile']
-    else:
-         paramfile = None
-
     # set up parameters (fill them in a dictionary)
     params_dict = default_params.copy()
-
-    # noverwrite by those given in parameter file
-    if not paramfile == None:
-        params_dict = reset_params_file(params_dict, paramfile)
 
     # ovewrite all of them by those given directly into the input
     for key in new_params:
@@ -579,7 +579,7 @@ def create_params_dict(new_params):
 
     return params_dict
 
-def reset_params_file(params_dict, lines):
+def from_params_file( lines):
     """
     overwrite params in the params dictionary with the params
     specified in the string lines (can be the string read from a params file
@@ -589,10 +589,11 @@ def reset_params_file(params_dict, lines):
     # the get the params out of the file is done by exec, this
     # will also execute the calculator for example, we need ase here
     # so that the calculators from there can be used
-    import ase
-    from ase.calculators import *
 
     # execute the string, the variables should be set in the locals
+    from pts.pathsearcher_defaults.params_default import default_params
+    params_dict = {}
+
     glob_olds = locals().copy()
     print glob_olds.keys()
     exec(lines)
@@ -604,7 +605,7 @@ def reset_params_file(params_dict, lines):
              if param == "glob_olds":
                  # There is one more new variable, which is not wanted to be taken into account
                  pass
-             elif param not in params_dict:
+             elif param not in default_params:
                  # this parameter are set during exec of the parameterfile, but they are not known
                  print "WARNING: unrecognised variable in parameter input file"
                  print "The variable", param," is unknown"
