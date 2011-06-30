@@ -90,7 +90,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
         para_dict["pmap"] = PMap3(strat=strat)
 
     para_dict["int2cart"] = funcart
-    para_dict["ch_symbols"] = atoms.get_chemical_symbols()
+    para_dict["symbols"] = atoms.get_chemical_symbols()
 
     # this operates with PES in internals:
     convergence, geometries, energies, gradients = find_path(pes, init_path, **para_dict)
@@ -109,7 +109,7 @@ def find_path(pes, init_path
                             , output_level = 2
                             , output_path = "."
                             , int2cart = 0       # For mere transformation of internal to Cartesians
-                            , ch_symbols = None     # Only needed if output needs them
+                            , symbols = None     # Only needed if output needs them
                             , cache = None
                             , pmap = PMap()
                             , workhere = False
@@ -218,7 +218,7 @@ def find_path(pes, init_path
     def cb(x, tol=0.01):
          global cb_count_debug
          if output_level > 1:
-             pickle_path(int2cart, ch_symbols, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
+             pickle_path(int2cart, symbols, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
          if output_level > 2:
              savetxt("%s/%s.state_vec%d.txt" % (output_path, name, cb_count_debug), CoS.state_vec.reshape(CoS.beads_count,-1))
          cb_count_debug += 1
@@ -247,7 +247,7 @@ def find_path(pes, init_path
 
     # write out path to a file
     if output_level > 0:
-        pickle_path(int2cart, ch_symbols, CoS, "%s.path.pickle" % name)
+        pickle_path(int2cart, symbols, CoS, "%s.path.pickle" % name)
 
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration
