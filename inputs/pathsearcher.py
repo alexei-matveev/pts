@@ -224,7 +224,11 @@ def find_path(pes, init_path
     def cb(x, tol=0.01):
          global cb_count_debug
          if output_level > 1 and CoS is not None:
-             pickle_path(int2cart, symbols, CoS, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
+             coords, pathps, energies, gradients = CoS.state_vec.reshape(CoS.beads_count,-1), \
+                   CoS.pathpos(), \
+                   CoS.bead_pes_energies.reshape(-1), \
+                   CoS.bead_pes_gradients.reshape(CoS.beads_count,-1)
+             pickle_path(coords, pathps, energies, gradients, symbols, int2cart, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
          if output_level > 2 and CoS is not None:
              # store interal coordinates of given iteration in file
              savetxt("%s/%s.state_vec%d.txt" % (output_path, name, cb_count_debug), CoS.state_vec.reshape(CoS.beads_count,-1))
@@ -256,7 +260,11 @@ def find_path(pes, init_path
 
     # write out path to a file
     if output_level > 0 and CoS is not None:
-        pickle_path(int2cart, symbols, CoS, "%s.path.pickle" % name)
+        coords, pathps, energies, gradients = CoS.state_vec.reshape(CoS.beads_count,-1), \
+              CoS.pathpos(), \
+              CoS.bead_pes_energies.reshape(-1), \
+              CoS.bead_pes_gradients.reshape(CoS.beads_count,-1)
+        pickle_path(coords, pathps, energies, gradients, symbols, int2cart, "%s.path.pickle" % (name))
 
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration

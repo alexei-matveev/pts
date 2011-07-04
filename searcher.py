@@ -383,14 +383,6 @@ class ReactionPathway(object):
         s_beads = [common.vec_summarise(b) for b in self.state_vec]
         return s, s_beads
 
-    def path_tuple(self):
-        state, energies, gradients, pathps  = \
-            self.state_vec.reshape(self.beads_count,-1), \
-            self.bead_pes_energies.reshape(-1), \
-            self.bead_pes_gradients.reshape(self.beads_count,-1), \
-            self.pathpos()
-        return state, pathps, energies, gradients
-        
     def __str__(self):
         e_total, e_beads = self.energies
         rmsf_perp_total, rmsf_perp_beads = self.rmsf_perp
