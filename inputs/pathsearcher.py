@@ -22,6 +22,7 @@ from pts.sched import Strategy
 from pts.memoize import Memoize, elemental_memoize, FileStore
 from pts.parasearch import generic_callback
 from pts.searcher import GrowingString, NEB, ts_estims
+from pts.cfunc import Pass_through
 from pts.optwrap import runopt
 from pts.sopt import soptimize
 from pts.tools import pickle_path
@@ -109,7 +110,7 @@ def find_path(pes, init_path
                             , spring = 5.0          # only for NEB: spring constant
                             , output_level = 2
                             , output_path = "."
-                            , int2cart = 0       # For mere transformation of internal to Cartesians
+                            , int2cart = Pass_through()   # For mere transformation of internal to Cartesians
                             , symbols = None     # Only needed if output needs them
                             , cache = None
                             , pmap = PMap()
