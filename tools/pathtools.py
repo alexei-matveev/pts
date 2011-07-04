@@ -570,7 +570,7 @@ def read_path_coords(coordfile, pathpsfile = None, energyfile = None, forcefile 
     If not stored in a pickle.path it does not makes too much sense to give
     unchangeable things for every geoemtry, thus separate them
 
-    Here a the things which change with every iteration, pathps (abcissa) are only
+    Here a the things which change with every iteration, pathps (abscissa) are only
     there if it has been a string calculation
     energies and forces are not needed every time and will propably not provided then
     """

@@ -37,7 +37,7 @@ if beads_count != len(init_path):
 #
 # Search by default method:
 #
-res1 = find_path(MB, init_path, ftol = 0.001, maxit = 100)
+res1 = find_path(MB, init_path, ftol = 0.001, maxit = 100, workhere = True, output_level = 0)
 
 #
 # Search by an alternative method:

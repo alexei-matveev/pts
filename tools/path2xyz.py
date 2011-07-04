@@ -42,7 +42,7 @@ Further options for building up the transformation into Cartesian coordinates
                           (fixed coordinates will be gotten from there)
 
 Further options:
-    --abcissa abcissafile : abcissa data can be gotten from here. String calcualations provide
+    --abscissa abscissafile : abscissa data can be gotten from here. String calcualations provide
                             this data.
 """
 
@@ -223,7 +223,7 @@ def main(argv=None):
                 mask = argv[1]
                 maskgeo = argv[2]
                 argv = argv[3:]
-           elif argv[0] in ["--abcissa", "--pathpos"]:
+           elif argv[0] in ["--abscissa", "--pathpos"]:
                 abcis = argv[1]
                 argv = argv[2:]
            else:

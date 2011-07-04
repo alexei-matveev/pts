@@ -37,9 +37,9 @@ def main(argv=None):
           if the other way of input is choosen. Symbolfile contains all atom symbols
           energyfile and forcefile the energies/forces to the given geometries from
           coordinates file
-    --a abcissafile: the abcissa to the coordinates is optional, string calculations
+    --a abscissafile: the abscissa to the coordinates is optional, string calculations
           use some, some others like neb do not have them at all, if the calcualtion
-          of the path had been one with abcissa it is preferable to give them here
+          of the path had been one with abscissa it is preferable to give them here
     --zmat zmatfile : give the same zmatfiles (each with its own --zmat) as in the
           path calculation, only this way the internal coordinates can be interpreted
           correctly

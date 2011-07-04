@@ -29,7 +29,7 @@ beads). One has to set addtionally at least the symbols.
     --mask   maskfile geo_raw    : mask has to be given separately in maskfile one complete
                                    internal geometry has to be given as geo_raw to provide the
                                    tool with the fixed values
-    --abcissa  abcissafile       : the abcissa for the coordinate file. There need not to be any
+    --abscissa  abscissafile     : the abscissa for the coordinate file. There need not to be any
                                    but if there are some there need to be exactly one file for
                                    each coordinate file
 
@@ -289,7 +289,7 @@ def main(argv=None):
                  mask = argv[1]
                  maskgeo = argv[2]
                  argv = argv[3:]
-             elif option in ["abcissa", "pathpos"]:
+             elif option in ["abscissa", "pathpos"]:
                 abcis.append(argv[1])
                 argv = argv[2:]
              else:

@@ -243,7 +243,7 @@ def find_path(pes, init_path
         # Main optimisation loop:
         #
         converged = runopt(opt_type, CoS, callback=cb, **kwargs)
-        abcissa  = CoS.pathpos()
+        abscissa  = CoS.pathpos()
         geometries, energies, gradients = CoS.state_vec, CoS.bead_pes_energies, CoS.bead_pes_gradients
     else:
         #
@@ -251,7 +251,7 @@ def find_path(pes, init_path
         #
         geometries, stats = soptimize(pes, init_path, maxiter=20, maxstep=0.1, callback=cb)
         _, converged, _, _ = stats
-        abcissa  = None
+        abscissa  = None
         energies, gradients = zip(*map(pes.taylor, geometries))
 
     # write out path to a file
@@ -260,13 +260,13 @@ def find_path(pes, init_path
 
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration
-    return converged, (geometries, abcissa, energies, gradients)
+    return converged, (geometries, abscissa, energies, gradients)
 
 def output(optimized_path, cartesian, output_level, format , atoms):
     """Print user-friendly output.
     Also estimates locations of transition states from bead geometries.
     """
-    beads, abcissa, energies, gradients = optimized_path
+    beads, abscissa, energies, gradients = optimized_path
 
     print "Optimized path:"
     print "in internals"
@@ -276,8 +276,8 @@ def output(optimized_path, cartesian, output_level, format , atoms):
         savetxt("internal_coordinates", beads)
         savetxt("energies", energies)
         savetxt("forces", gradients)
-        if abcissa is not None:
-            savetxt("abcissa", abcissa)
+        if abscissa is not None:
+            savetxt("abscissa", abscissa)
 
         print "in Cartesians"
     for i, bead in enumerate(beads):
