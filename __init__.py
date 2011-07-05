@@ -12,9 +12,6 @@ import io
 # locally modified l_bfgs_b optimiser from scipy
 import cosopt
 
-# bring through top level functions / classes for users' scripts
-from parasearch import neb_calc, string_calc, read_files, generic_callback, dump_steps
-
 class MustRegenerate(Exception):
     """Used to force the optimiser to exit if bead spacing has become uneven."""
     pass

@@ -20,7 +20,7 @@ from pts.func import compose
 from pts.paramap import PMap, PMap3
 from pts.sched import Strategy
 from pts.memoize import Memoize, elemental_memoize, FileStore
-from pts.parasearch import generic_callback
+from pts.callback import generic_callback
 from pts.searcher import GrowingString, NEB, ts_estims
 from pts.cfunc import Pass_through
 from pts.optwrap import runopt

@@ -19,6 +19,7 @@ from ase.io.trajectory import write_trajectory
 import pts
 import pts.common as common
 from common import ParseError
+from pts.callback import generic_callback
 
 file_dump_count = 0
 def get_file_dump_count():
@@ -39,7 +40,7 @@ lg.addHandler(ch)
 
 flags = dict()
 
-__all__ = ["neb_calc", "string_calc", "read_files", "generic_callback", "dump_steps"]
+__all__ = ["neb_calc", "string_calc", "read_files", "dump_steps"]
 
 class Usage(Exception):
     def __init__(self, msg):
@@ -239,15 +240,6 @@ def setup_and_run(mol_strings, params):
         string_calc(molinterface, calc_man, params)
     else:
         assert False, "Should never happen, program should check earlier that the opt is specified correctly."
-
-# callback function
-def generic_callback(x, molinterface, CoS, tol=0.01, correct_ts=None
-                                    , name="generic-callback"
-                                    , output_level=0
-                                    , **kwargs):
-    """
-    FIXME: need to design an suitable interface for callbacks ...
-    """
 
 def unused():
     print common.line()
