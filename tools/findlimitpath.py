@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys
+from sys import exit, argv as sargv
 import re
 from pydoc import help
 
@@ -11,7 +11,7 @@ class storedata:
         # argv = "which variable" limit  specialopt
         if len(argv) < 3:
             print "ERROR: there are 4 values needed\n"
-            sys.exit()
+            exit()
         self.file = file
         self.argument = argv[0]
         self.inval = float(argv[1])
@@ -49,7 +49,7 @@ class storedata:
             pass
         else:
             print "ERROR: This option does not exist!",specialalrg
-            sys.exit()
+            exit()
         self.uninteresting = len(self.argument.split())
         # to find out if there is growing string and for
         # filling up the data then
@@ -261,17 +261,17 @@ class interpretvalues():
     handles the interaction between them (if several)
     holds the output formats
     """
-    def __init__(self):
+    def __init__(self, args):
         # We need at least 3 arguments
-        assert( len(sys.argv) > 3)
+        assert( len(args) > 2)
         # The first one should be the filename, in which we search
-        self.file = sys.argv[1]
-        if len(sys.argv[2:]) < 4:
+        self.file = args[0]
+        if len(args) < 4:
             # in this case there are 3 or 4 arguments all together
-            # (one for the file) and 2 to tree for the rest
+            # (one for the file) and 2 to 3 for the rest
             # we also have only one variable to look at:
             self.vals = 1
-            arg2 = sys.argv[2:]
+            arg2 = args[1:]
             if len(arg2) < 3:
                 # if there are no special options we can allow orself
                 # the luxury in not saying it, but the storedataclass
@@ -287,17 +287,17 @@ class interpretvalues():
         else:
             # if there are more than one variable, we need to know, how to
             # connect them, there exist the options and or or
-            if sys.argv[-1] == '-a' :
+            if args[-1] == '-a' :
                 self.merge = 0
-            elif sys.argv[-1] == '-o':
+            elif args[-1] == '-o':
                 self.merge = 1
             else:
                 print "ERROR: You need to specify the interaction between the different"
                 print "values to look at"
-                sys.exit()
+                exit()
             # the other arguments given are the variables
             # in this case we insist on the special options
-            arg = sys.argv[2:-1]
+            arg = args[1:-1]
             self.vals = len(arg)/3
             assert(len(arg) == 3 * self.vals)
             self.stn = [None for i in range(self.vals)]
@@ -463,7 +463,7 @@ class interpretvalues():
                 print "Here the maximum bead was number (counting starts with 1):",stx[0].maxbead[res.maxbeadlimit-1]+1
         print " "
 
-def findlimitpath():
+def main(args):
     """
 This programme was designed to interpret the output data one gets with the neb, string or growing string method from
 the ParaTools framework
@@ -559,7 +559,10 @@ but stayed there after None
 Here the None's say that he has not find anything, -1 is the default value for
 not fallen above afterwards
     """
-    find = interpretvalues()
+    if args[0] == '--help':
+       help(main)
+
+    find = interpretvalues(args)
     if find.vals == 1:
         result = find.searchlimit(find.st1)
         if find.st1.procent:
@@ -573,8 +576,9 @@ not fallen above afterwards
             result = find.searchlimitor(find.stn)
         find.outputall(find.stn, result)
 
-if sys.argv[1] == '--help':
-    help(findlimitpath)
-else:
-    findlimitpath()
+if __name__ == "__main__":
+    if sargv[1] == '--help':
+        help(main)
+    else:
+        main(sargv[1:])
 

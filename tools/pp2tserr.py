@@ -48,12 +48,10 @@ def energy_from_file(f):
        energy = float(fields[-1])
     return energy
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv
+def main(argv):
     try:
         try:
-            opts, args = getopt.getopt(argv[1:], "htmgf", ["help"])
+            opts, args = getopt.getopt(argv, "htmgf", ["help"])
         except getopt.error, msg:
              usage()
              return
@@ -168,5 +166,5 @@ def main(argv=None):
         return -1
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
 

@@ -12,7 +12,7 @@ import numpy as np
 from pydoc import help
 from os import path, mkdir, chdir, getcwd, system
 
-def main(argv=None):
+def main(argv):
     """
     Takes a path.pickle file and estimates the transition states from it
 
@@ -81,9 +81,6 @@ def main(argv=None):
 
 
     # structure of inputs, has to be improved later
-    if argv is None:
-         argv = sys.argv[1:]
-
     # The --help option is handled seperatly
     # The first input argument has to be the path.pickle object
     if argv[0] == '--help':
@@ -571,6 +568,6 @@ def print_estimatesdump(ts_sum, cs ):
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
 
 

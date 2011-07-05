@@ -483,7 +483,7 @@ def how_exact_picture_td(geom):
     return max_exact
 
 
-def main():
+def main(args):
      global ar4_diag
      set_sides(ar4_diag)
      num = 25
@@ -499,7 +499,6 @@ def main():
      pl_exact = False
      with_ase = False
 
-     args = argv[1:]
      while args[0].startswith("--"):
         if args[0] == "--tol":
            tol = int(args[1])
@@ -605,4 +604,4 @@ if __name__ == "__main__":
      if argv[1] == "--help":
          print __doc__
          exit()
-     main()
+     main(argv[1:])

@@ -173,16 +173,13 @@ def print_beads(ys, cs):
              print '%-2s %22.15f %22.15f %22.15f' % (sy, pos[0], pos[1], pos[2])
 
 
-def main(argv=None):
+def main(argv):
     """
     Reads in stuff from the sys.argv if not
     provided an other way
     set up a path and gives back positions
     on it
     """
-    if argv is None:
-        argv = sargv[1:]
-
     if argv[0] == '--help':
         print __doc__
         exit()
@@ -246,5 +243,5 @@ def main(argv=None):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    main()
+    main(sargv[1:])
 

@@ -20,7 +20,7 @@ def readxyz(file, n ):
         yield positions
     return
 
-def getdistancesandanglesfromxyz():
+def getdistancesandanglesfromxyz(argv):
    '''performs all the calculations
    '''
    # these variable may be used but need not
@@ -31,16 +31,16 @@ def getdistancesandanglesfromxyz():
    allval = []
    # read in parameters needed ones are a xyz file
    # and a list what is wanted to be calculated
-   if len(sys.argv) < 2:
+   if len(argv) < 1:
        print "ERROR: at least one argument (inputfile) is required\n"
        helpfun()
    else:
      second = 0
-     for num in range(1, len(sys.argv)):
+     for num in range(len(argv)):
          if second ==0 :
            # the other arguments
-           if sys.argv[num].startswith('--'):
-             option = sys.argv[num][2:]
+           if argv[num].startswith('--'):
+             option = argv[num][2:]
              if option == 'help':
                  helpfun()
              # switch output of angles to degree
@@ -60,15 +60,15 @@ def getdistancesandanglesfromxyz():
                  helpfun()
            else :
                # everything else is a xyz file
-               filein.append(sys.argv[num])
+               filein.append(argv[num])
          elif second ==1:
              # the input of the wanted values can be given directly or by file
-             opt2 = sys.argv[num-1][3:]
+             opt2 = argv[num-1][3:]
              allval = []
              # by file
              if opt2 == 'i':
                 second = 0
-                fileval = open(sys.argv[num],"r" )
+                fileval = open(argv[num],"r" )
                 for num, line  in enumerate(fileval):
                     #print line, line[0]
                     fields = line.split()
@@ -79,7 +79,7 @@ def getdistancesandanglesfromxyz():
                     #print allval[num].partners
             # directly
              elif opt2 == 'd':
-                kval = int(sys.argv[num])
+                kval = int(argv[num])
                 # print kval
                 second = 2
                 kiter = 1
@@ -90,13 +90,12 @@ def getdistancesandanglesfromxyz():
          # still belongs to the direct input values, there are kval of them
          # order see helpfun()
          elif second == 2:
-             #print sys.argv[num]
              if kfinish:
-                 allval.append(interestingvalue(sys.argv[num]))
+                 allval.append(interestingvalue(argv[num]))
                  allval[kiter -1].partners = []
                  kfinish = False
              else :
-                 allval[kiter-1].partners.append(int( sys.argv[num]))
+                 allval[kiter-1].partners.append(int(argv[num]))
                  if (len(allval[kiter-1].partners) == int(allval[kiter-1].lengthneeded())):
                      #print "now to the next one"
                      kiter += 1
@@ -106,7 +105,7 @@ def getdistancesandanglesfromxyz():
              #print second, kfinish, kiter, kval
          # for expansion, first read in cell
          elif second == 3:
-             filecell = open(sys.argv[num],"r" )
+             filecell = open(argv[num],"r" )
              cell = np.zeros((3,3))
              for  num, line  in enumerate(filecell):
                     fields = line.split()
@@ -116,7 +115,7 @@ def getdistancesandanglesfromxyz():
              second = 4
          # expansion, get atoms which should be shifted and where they should go
          elif second == 4:
-             filemove = open(sys.argv[num],"r" )
+             filemove = open(argv[num],"r" )
              tomove = []
              howmove = []
              for  num, line  in enumerate(filemove):
@@ -390,11 +389,11 @@ class interestingvalue:
 
 
  # main:
-def main():
-    getdistancesandanglesfromxyz()
+def main(argv):
+    getdistancesandanglesfromxyz(argv)
 
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    main()
+    main(sys.argv[1:])
 

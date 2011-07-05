@@ -54,94 +54,96 @@ stdout
 """
 
 import sys
-if sys.argv[1] == '--help':
-    print __doc__
-    sys.exit()
-
 from ase.io import write
 from pts.readinputs import get_geos, ensure_short_way
 from pts.path import Path
 from numpy import linspace
 
-# Defaultvalues for parameters
-# output as xyz, and 7 beads
-output = 0
-steps = 7
+def main(args):
 
-args = sys.argv[1:]
+    if args[0] == '--help':
+        print __doc__
+        sys.exit()
 
-zmts = []
-mis = []
-dc = { "format" : None}
+    # Defaultvalues for parameters
+    # output as xyz, and 7 beads
+    output = 0
+    steps = 7
 
-for k in range(len(args)):
-    if args == []:
-         break
-    if args[0] == "--pos":
-         output = 1
-         #print "set POSCAR's as output!"
-         args = args[1:]
-    elif args[0] == "--allcoord":
-         output = 2
-         #print "output gives all coordinates!"
-         args = args[1:]
-    elif args[0] == "--num":
-         steps = int(args[1])
-         #print "interpolation of %d beads" % (steps)
-         args = args[2:]
-    elif args[0] == "--format":
-         dc["format"] = args[1]
-         args = args[2:]
-    elif args[0] == "--zmat":
-#Then read in the zmatrix in ag form
-         zmts1 = args[1]
-         #print "interpolation in internal coordinates"
-         args = args[2:]
-         # The variables in the zmat may not be set yet
-         #then do this as service
-         zmts.append(zmts1)
+    zmts = []
+    mis = []
+    dc = { "format" : None}
 
-#the two files for the minima
-    else:
-         mis.append(args[0])
-         args = args[1:]
+    for k in range(len(args)):
+        if args == []:
+             break
+        if args[0] == "--pos":
+             output = 1
+             #print "set POSCAR's as output!"
+             args = args[1:]
+        elif args[0] == "--allcoord":
+             output = 2
+             #print "output gives all coordinates!"
+             args = args[1:]
+        elif args[0] == "--num":
+             steps = int(args[1])
+             #print "interpolation of %d beads" % (steps)
+             args = args[2:]
+        elif args[0] == "--format":
+             dc["format"] = args[1]
+             args = args[2:]
+        elif args[0] == "--zmat":
+             #Then read in the zmatrix in ag form
+             zmts1 = args[1]
+             #print "interpolation in internal coordinates"
+             args = args[2:]
+             # The variables in the zmat may not be set yet
+             #then do this as service
+             zmts.append(zmts1)
 
-assert len(mis) > 1
+        #the two files for the minima
+        else:
+             mis.append(args[0])
+             args = args[1:]
 
-# mol is the ase-atom object to create the ase output
-mol, mi, funcart, dih, quats, lengt = get_geos(mis, dc, zmts)
-mi = ensure_short_way(mi, dih, quats, lengt)
+    assert len(mis) > 1
 
-# path between two minima (linear in coordinates):
-ipm1m2 = Path(mi)
+    # mol is the ase-atom object to create the ase output
+    mol, mi, funcart, dih, quats, lengt = get_geos(mis, dc, zmts)
+    mi = ensure_short_way(mi, dih, quats, lengt)
 
-if output == 2:
-    if zmts == []:
-        print "Interpolation between M1 and M2 in Cartesians:"
-    else:
-        print "Interpolation between M1 and M2 in internals:"
+    # path between two minima (linear in coordinates):
+    ipm1m2 = Path(mi)
 
-for i, x in enumerate(linspace(0., 1., steps)):
-   if output == 2:
-       print "Path coordinate of step  =" , x
+    if output == 2:
+        if zmts == []:
+            print "Interpolation between M1 and M2 in Cartesians:"
+        else:
+            print "Interpolation between M1 and M2 in internals:"
 
-#  # path object can be called with path coordinate as input:
-   y = ipm1m2(x)
-   if output == 2:
-       print "Internal coordinates ="
-       print y
+    for i, x in enumerate(linspace(0., 1., steps)):
+        if output == 2:
+            print "Path coordinate of step  =" , x
 
-#  # z-matrix object can be called with internals as input:
-   if output == 2:
-       print "Cartesian coordinates ="
-       print funcart(y)
+        # path object can be called with path coordinate as input:
+        y = ipm1m2(x)
+        if output == 2:
+            print "Internal coordinates ="
+            print y
 
-   # give these new coordinates (in cartesian) to mol
-   mol.set_positions(funcart(y))
-   # coordinates are written out in xyz or poscar format
-   # for the last make sure, that the cell is set in the inputs
-   if output == 1:
-       write("POSCAR%i" % i, mol, format="vasp", direct = "True")
-   elif output == 0:
-       write("-" , mol)
+        # z-matrix object can be called with internals as input:
+        if output == 2:
+            print "Cartesian coordinates ="
+            print funcart(y)
 
+        # give these new coordinates (in cartesian) to mol
+        mol.set_positions(funcart(y))
+        # coordinates are written out in xyz or poscar format
+        # for the last make sure, that the cell is set in the inputs
+        if output == 1:
+            write("POSCAR%i" % i, mol, format="vasp", direct = "True")
+        elif output == 0:
+            write("-" , mol)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

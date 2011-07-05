@@ -134,7 +134,7 @@ def beads_to_int(ys, cs, allval, cell, tomove, howmove):
 
     return beads
 
-def main(argv=None):
+def main(argv):
     """
     Reads in stuff from the sys.argv if not
     provided an other way
@@ -144,9 +144,6 @@ def main(argv=None):
     for each inputfile a path of the given
     coordinates with beads marked on them
     """
-    if argv is None:
-        argv = sargv[1:]
-
     if argv[0] == '--help':
         print __doc__
         exit()
@@ -468,5 +465,5 @@ def read_line_from_log(filename, whichline, num):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    main()
+    main(sargv[1:])
 

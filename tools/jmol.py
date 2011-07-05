@@ -102,8 +102,7 @@ def jmol_write(xyz, syms=None, comment="", file=sys.stdout):
         line = "%4s  %12.8f %12.8f %12.8f\n" % (s, v[0], v[1], v[2])
         write(line)
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     refinenum = 1
     if argv[0] == '--refine':
         refinenum = int(argv[1])
@@ -128,6 +127,6 @@ def main():
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    main()
+    main(sys.argv[1:])
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax

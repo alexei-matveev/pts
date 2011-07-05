@@ -178,7 +178,7 @@ def read_tab(filename):
     return path, pname, beads, bname, rest, rname
 
 
-def main(argv = None):
+def main(argv):
 
     files = []
     option = None
@@ -191,9 +191,6 @@ def main(argv = None):
     yrange = None
 
 
-    # Variables coulb be given directly or via system
-    if argv is None:
-        argv = arg[1:]
 
     # there may be some options inside
     # otherwise it should be a file used
@@ -537,7 +534,7 @@ class testsymmetric():
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    main()
+    main(arg[1:])
 
 
 
