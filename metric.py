@@ -61,6 +61,16 @@ class Default:
         vec_con = self.raises(vec, place)
         return sqrt(dot(vec_con, vec))
 
+    def g_mat(self, place):
+        g = zeros((len(place), len(place)))
+        c = zeros(len(place))
+        for i in xrange(len(place)):
+            c[i] = 1.
+            g[:,i] = self.lower(c, place)
+            c[i] = 0.
+
+        return g
+
     def __str__(self):
         return "Metric: Working with Metric direct internals (Default)"
 
