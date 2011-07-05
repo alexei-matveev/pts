@@ -212,13 +212,18 @@ Construct a rho() made of peicewise constant functions...
     >>> path = ((-100., 100.), (0,0), (0,10), (100., 100.))
     >>> p = PathRepresentation(path, 6, rho)
     >>> pts = p.generate_beads(update=True)
-    >>> write_gplfile(p, 'gp1.txt')
+
+    # do not generate output files during (and only for) docstrings
+    #>>> write_gplfile(p, 'gp1.txt')
     >>> p = PathRepresentation(pts, 6, rho, xs=[0, 0.1, 0.2, 0.25, 0.9, 1])
-    >>> write_gplfile(p, 'gp2.txt')
+
+    #>>> write_gplfile(p, 'gp2.txt')
     >>> p = PathRepresentation(pts, 6, rho)
-    >>> write_gplfile(p, 'gp3.txt')
+
+    #>>> write_gplfile(p, 'gp3.txt')
     >>> p = PathRepresentation(pts, 6, rho, xs=[0, 0.08, 0.2, 0.25, 0.9, 1])
-    >>> write_gplfile(p, 'gp4.txt')
+
+    #>>> write_gplfile(p, 'gp4.txt')
 
 
 
