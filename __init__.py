@@ -7,6 +7,7 @@ import qcdrivers
 import pes
 import path
 import tools
+import io
 
 # locally modified l_bfgs_b optimiser from scipy
 import cosopt

@@ -55,7 +55,7 @@ stdout
 
 import sys
 from ase.io import write
-from pts.readinputs import get_geos, ensure_short_way
+from pts.io.read_inputs import get_geos, ensure_short_way
 from pts.path import Path
 from numpy import linspace
 

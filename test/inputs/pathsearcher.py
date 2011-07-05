@@ -27,7 +27,7 @@ from pts.optwrap import runopt
 from pts.sopt import soptimize
 from pts.tools import pickle_path
 from pts.common import file2str
-from pts.readinputs import interprete_input, create_params_dict
+from pts.io.read_inputs import interprete_input, create_params_dict
 import pts.metric as mt
 # be careful: array is needed, when the init_path is an array
 # do not delete it, even if it never occures directly in this module!

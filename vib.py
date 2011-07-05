@@ -511,7 +511,7 @@ def main(argv):
            --mask  string : string should contain the mask, which Cartesian coordinates should
                             be fixed
     """
-    from cmdline import get_options, get_calculator, get_mask
+    from pts.io.cmdline import get_options, get_calculator, get_mask
     from pts.sched import Strategy
     from pts.paramap import PMap3
 

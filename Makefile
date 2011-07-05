@@ -26,7 +26,6 @@ src =	\
 	vib.py \
 	metric.py \
 	cfunc.py \
-        readcos.py \
 
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.doctest)

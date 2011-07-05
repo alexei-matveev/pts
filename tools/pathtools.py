@@ -21,7 +21,7 @@ from pts.common import vector_angle
 import pts.func as func
 import scipy as sp
 from pts.threepointmin import ts_3p_gr
-from pts.readinputs import get_transformation
+from pts.io.read_inputs import get_transformation
 from pts.cfunc import Justcarts, Masked
 from numpy import loadtxt
 

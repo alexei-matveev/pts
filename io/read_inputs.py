@@ -220,7 +220,7 @@ calculator) but ftol is anyway 0.07
 import ase
 from pts.pathsearcher_defaults.params_default import default_params, are_floats, are_ints
 from pts.common import file2str
-from pts.readcos import read_geos_from_file, read_zmt_from_file
+from pts.io.read_COS import read_geos_from_file, read_zmt_from_file
 from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
 from pts.zmat import ZMat
 from pts.quat import Quat, uquat, quat2vec
@@ -228,7 +228,7 @@ from numpy import array, pi, loadtxt
 from numpy.linalg import norm
 from ase.calculators import *
 from pts.qfunc import constraints2mask
-from pts.cmdline import get_calculator
+from pts.io.cmdline import get_calculator
 
 def interprete_input(args):
     """

@@ -131,7 +131,7 @@ def single_point(argv):
 
         forces --calculator <calculator file> <geometry file 1> [ <geometry file 2> ... ]
     """
-    from pts.cmdline import get_options, get_calculator
+    from pts.io.cmdline import get_options, get_calculator
     import ase
 
     # first arg tells what to do:
@@ -195,7 +195,7 @@ def minimize(argv):
                             while in this context the atoms are fixed (Thus only one flag for each atom
                             despite 3 in the other case)
     """
-    from pts.cmdline import get_options, get_calculator, get_mask
+    from pts.io.cmdline import get_options, get_calculator, get_mask
     from ase.io import read, write
     from ase.constraints import FixAtoms
 
