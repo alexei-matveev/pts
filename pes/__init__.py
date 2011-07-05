@@ -1,7 +1,8 @@
 import time
 import random
 import numpy as np
-import mueller_brown as mb
+from mueller_brown import energy as mbenergy
+from mueller_brown import gradient as mbgradient
 from pts.func import Func
 
 class MuellerBrown(Func):
@@ -15,7 +16,7 @@ class MuellerBrown(Func):
     1649.1505581288852
     """
     def f(self, v):
-        return mb.energy(v) * 0.001
+        return mbenergy(v) * 0.001
 
     def fprime(self, v):
         return mb.gradient(v) * 0.001

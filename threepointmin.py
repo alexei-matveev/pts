@@ -2,7 +2,7 @@
 """
 Test on Mueller Brown Potential:
 
-    >>> from mueller_brown import MuellerBrown
+    >>> from pts.pes.mueller_brown import MuellerBrown
     >>> mb = MuellerBrown()
 
     Function which just returns the needed values for the
@@ -24,7 +24,7 @@ Test on Mueller Brown Potential:
     >>> mb.fprime(np.array([-0.19577454,  0.03811052])), mb.f(np.array([-0.19577454,  0.03811052]))
     (array([-101.73697899,  -93.82146582]), -30.234251920790779)
 
-    >>> from mueller_brown import show_chain, CHAIN_OF_STATES
+    >>> from pts.pes.mueller_brown import show_chain, CHAIN_OF_STATES
     >>> from path import Path
     >>> points = np.array(CHAIN_OF_STATES)
     >>> pth = Path(points, np.linspace(-1., 1., len(points)))

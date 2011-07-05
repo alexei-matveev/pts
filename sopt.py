@@ -72,14 +72,14 @@ def tangent3(X):
 
     return map(p.fprime, s[1:-1])
 
-from mueller_brown import show_chain
 
 def test(A, B, trafo=None):
 
     print "A=", A
     print "B=", B
 
-    from mueller_brown import MB
+    from pts.pes.mueller_brown import MB
+    from pts.pes.mueller_brown import show_chain
 
     x = [A, B]
 
@@ -131,7 +131,6 @@ from numpy import savetxt, loadtxt
 def callback(x):
     savetxt("path.txt", x)
     print "chain spacing=", spacing(x)
-#   show_chain(x)
 
 from func import Reshape, Elemental
 from memoize import Memoize
@@ -788,7 +787,7 @@ if __name__ == "__main__":
     # doctest.testmod()
 #   test1()
 #   exit()
-    from mueller_brown import CHAIN_OF_STATES as P
+    from pts.pes.mueller_brown import CHAIN_OF_STATES as P
     # from testfuns2 import mb2
     # trafo = mb2() #[[2.0, 0], [0.0, 0.5]])
     test(P[0], P[4]) #, trafo)

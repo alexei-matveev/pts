@@ -16,7 +16,6 @@ src =	\
 	bezier.py \
 	chebyshev.py \
 	zmat.py \
-	mueller_brown.py \
 	memoize.py \
 	bfgs.py \
 	fopt.py \

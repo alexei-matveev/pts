@@ -2,7 +2,7 @@
 """
 Hessian update schemes go here.
 
-    >>> from mueller_brown import gradient as g, CHAIN_OF_STATES
+    >>> from pts.pes.mueller_brown import gradient as g, CHAIN_OF_STATES
 
 Minimium A on MB surface:
 

@@ -88,7 +88,7 @@ appears cumbersome:
 
 NumDiff() for multivariante functions, MB79 is a 2D PES:
 
-    >>> from mueller_brown import MuellerBrown
+    >>> from pts.pes.mueller_brown import MuellerBrown
     >>> mb1 = MuellerBrown()
     >>> mb2 = NumDiff(mb1)
 

@@ -3,7 +3,7 @@
 
 Test with the two-dimensional MB potential:
 
-    >>> from mueller_brown import MuellerBrown as MB
+    >>> from pts.pes.mueller_brown import MuellerBrown as MB
     >>> f = MB()
 
 Find the three minima, A, B and C as denoted in the original

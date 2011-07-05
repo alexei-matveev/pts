@@ -4,7 +4,7 @@ from pts.path import Path
 from pts.path_searcher import find_path
 from numpy import array, linspace
 from sys import argv
-from pts.mueller_brown import MB, CHAIN_OF_STATES
+from pts.pes.mueller_brown import MB, CHAIN_OF_STATES
 """
 Small test example with MuellerBrown Potential.
 
