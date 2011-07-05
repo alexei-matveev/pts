@@ -12,6 +12,7 @@ src =	\
 	func.py \
 	ode.py \
 	path.py \
+        quat.py \
 	bezier.py \
 	chebyshev.py \
 	zmat.py \
@@ -22,9 +23,11 @@ src =	\
 	qfunc.py \
 	chain.py \
 	rc.py \
+        dct.py \
 	paramap.py \
 	vib.py \
 	metric.py \
+        threepointmin.py \
 	cfunc.py \
 
 # dont call it "test" as we have a directory called so:
