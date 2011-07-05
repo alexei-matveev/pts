@@ -14,12 +14,14 @@ from os import path, mkdir, chdir, getcwd, system
 
 def main(argv):
     """
-    Takes a path.pickle file and estimates the transition states from it
+    Takes a path file and estimates the transition states from it
+    path file can be in path.pickle format or alterantively with the
+    needed values by separate user readable files.
 
     gives back the transition states (and the modevectors) for different
     transition state estimates
 
-    first argument is the path.pickle file to read in
+    first argument is the path.pickle or internal coordinate file to read in
     (or --help to get this help text)
 
     One can choose which transtition state estimates are to be generated

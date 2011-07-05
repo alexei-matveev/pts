@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 """
-This tools takes a path.pickle file
+This tools takes a path file
 reads it in and gives a string of
-jmol -type xyz-files to the standartoutput
+jmol-type xyz-files to the standartoutput
+path file can be in path.pickle format, else it can be
+given via internal coordinates file with some extra handling
+see below
 
 They are equally spaced in the path coordinate
 
@@ -11,25 +14,25 @@ were beads in the path.pickle file, but any number N can be given
 
 Run:
 
-    $path2xyz.py some.path.pickle --num N
+    $paratools path2xyz some.path.pickle --num N
 
 or simply:
 
-    $path2xyz.py some.path.pickle
+    $paratools path2xyz some.path.pickle
 
 One could also demand just to give back the beads in this format
 (as the beads my differ from the equally in the path coordinate spaced
 points)
 This could be done by:
 
-    $path2xyz.py some.path.pickle -b
+    $paratools path2xyz some.path.pickle -b
 
 Furthermore it is possible to provide the input in separate files, then instead
 of the some.path.pickle file a coordinate file should be provided, including the
 geometry for all the beads. The minimal requirements are this coordinate file and
 a file containing the atoms symbols.
 
-    $path2xyz.py coordinate.file --symbols symbolfile
+    $paratools path2xyz coordinate.file --symbols symbolfile
 
 It might be possible that the coordinates are in internal coordinates and at least
 when the path is wanted it is required to build up the internal coordinate transformation

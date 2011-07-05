@@ -7,10 +7,10 @@ ase and ParaTools needs to be known when running
 The input can be in any ase format, in the files GEOL
 and GEOR
 
-usage: makepath.py  GEOL GEOR
+usage: paratools make_path  GEOL GEOR
 
 or
-   makepath.py --num 12 GEOL GEOR
+   paratools make_path --num 12 GEOL GEOR
 
 --num gives the number of interpolated points, default
 would be 7

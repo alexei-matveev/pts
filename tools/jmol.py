@@ -2,24 +2,31 @@
 """
 Run
 
-    $ jmol.py POSCAR1 POSCAR2 ... POSCARn
+    $ paratools jmol POSCAR1 POSCAR2 ... POSCARn
 
 or
 
-    $ jmol.py 1.xyz 1.xyz ... n.xyz
+    $ paratools jmol 1.xyz 1.xyz ... n.xyz
 
 to vizualize a path in 3D with jmol.
 
 To refine this path set --refine num
 Thus:
 
-    $ jmol.py --refine 2  1.xyz 1.xyz ... n.xyz
+    $ paratools jmol --refine 2  1.xyz 1.xyz ... n.xyz
 
 will visualize the path in 3D with jmol with
 an extra image (approximated by a path through
 the origional images) will be shown
 
 Alternatively
+
+1)
+
+    $ python jmol.py 1.xyz 1.xyz ... n.xyz
+
+in the pts/tools/ subfolder
+2)
 
     >>> from pts.tools.jmol import jmol_view_path
     >>> geoms = [[(0., 0., 0.), (0., 0., 1.)],

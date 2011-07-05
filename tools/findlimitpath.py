@@ -465,7 +465,7 @@ class interpretvalues():
 
 def main(args):
     """
-This programme was designed to interpret the output data one gets with the neb, string or growing string method from
+The programme find_limit_path  was designed to interpret the output data one gets with the neb, string or growing string method from
 the ParaTools framework
 It uses the *.log file for it (created by the ParaTools framework), which contains data like:
 Bead Energies            :   -61.4932 |   -61.1503 |   -60.2848 |   -59.9914 |   -60.4461 |   -60.9149 |   -61.1336
@@ -479,7 +479,7 @@ The programme looks for the reaching of the limit in each bead and for all beads
 A typical call for it may look like:
 
   *** Example: ***
-findlimitpath.py chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 -n "Bead Energies" 0.9 % "RMS Step Size" 0.01 -n  -a
+paratools find_limit_path chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 -n "Bead Energies" 0.9 % "RMS Step Size" 0.01 -n  -a
   ***----------***
 
 In this case it looks for the variables RMS Perp Forces, Bead Energies and RMS Step Size.
@@ -511,7 +511,7 @@ settings
 are the same.
 
 To return to the example above:
-findlimitpath.py chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 -n "Bead Energies" 0.9 % "RMS Step Size" 0.01 -n  -a
+paratools find_limit_path chch2_to_cch2_with_params.log "RMS Perp Forces" 0.5 -n "Bead Energies" 0.9 % "RMS Step Size" 0.01 -n  -a
 This means that in the file chch2_to_cch2_with_params.log there is a search when the variable RMS Perp Forces is below 0.5,
 the Bead Energies has fallen 90% of its change and at the same iteration the RMS Step Size has fallen below 0.01
 
@@ -560,7 +560,8 @@ Here the None's say that he has not find anything, -1 is the default value for
 not fallen above afterwards
     """
     if args[0] == '--help':
-       help(main)
+       print main.__doc__
+       exit()
 
     find = interpretvalues(args)
     if find.vals == 1:

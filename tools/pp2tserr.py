@@ -20,9 +20,9 @@ import pts.tools.rotate as rot
 from pts.common import file2str, rms
 
 def usage():
-    print "Usage: " + sys.argv[0] + " [options] file.pickle [ts-actual.xyz]"
+    print "Usage: paratools pp2ts_err [options] file.pickle [ts-actual.xyz]"
     print "Options:"
-    print " -t: find TS aprpoximation from path"
+    print " -t: find TS approximation from path"
     print " -g: gnuplot output"
     print " -m: display modes"
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """
-This tools takes  path.pickle files
+This tools takes pathes given by files (path.pickle or others)
 reads it in and gives a picture back of some preselected internal coordinates
 
-As input the path.pickle file(s) have to be given and at least two
-internal coordinates have to be choosen
+As input the path file(s) have to be given and at least two
+internal coordinates
 
 An internal coodinate is selected by settings --kind n1 n2 ...
 where the ni's are the atomnumbers (starting with 1) which should be used
@@ -19,6 +19,8 @@ on the kind choosen. There are the possiblilities:
  distance to  plane      dp       4 (the first is the atom, the others define the plane;
                                      the plane atoms must not be on a line)
 
+easiest input is by path.pickle files which can be given directly without need of
+any option.
 
 some options handle a different way of input:
 Here coordinates are given in cordinate files (coordinates in internal coordinates for all
