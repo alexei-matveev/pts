@@ -228,7 +228,7 @@ from numpy import array, pi, loadtxt
 from numpy.linalg import norm
 from ase.calculators import *
 from pts.qfunc import constraints2mask
-from pts.io.cmdline import get_calculator
+from pts.io.cmdline import get_calculator, get_mask
 
 def interprete_input(args):
     """
@@ -530,7 +530,7 @@ def interpret_sysargs(rest):
                 geo_dict[o] = a
             elif o in ("mask"):
                 # needed to build up the geometry and wanted for params output
-                add_param[o] = eval("%s" % (a))
+                add_param[o] = get_mask(a)
             else:
                 assert(o in default_params)
                 # suppose that the rest are setting parameters

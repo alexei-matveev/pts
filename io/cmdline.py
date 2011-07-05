@@ -37,8 +37,8 @@ def get_calculator(file_name):
     return calculator
 
 def get_mask(strmask):
-    mask = eval("%s" % (strmask))
-    print mask
+    mask = strmask.split()
+    mask = [m == "True" for m in mask]
     return mask
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax

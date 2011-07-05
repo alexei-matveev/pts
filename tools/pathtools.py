@@ -22,6 +22,7 @@ import pts.func as func
 import scipy as sp
 from pts.threepointmin import ts_3p_gr
 from pts.io.read_inputs import get_transformation
+from pts.io.cmdline import get_mask
 from pts.cfunc import Justcarts, Masked
 from numpy import loadtxt
 
@@ -558,8 +559,7 @@ def read_path_fix( symbfile, zmatifiles = None, maskfile = None, maskedgeo = Non
         f = open(maskfile, "r")
         sr = f.read()
         f.close()
-        mask = sr.split()
-        mask = [m == "True" for m in mask]
+        mask = get_mask(sr)
         geo_raw = loadtxt(maskedgeo)
         int2cart = Masked(int2cart, mask, geo_raw)
 
