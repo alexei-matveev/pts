@@ -8,7 +8,7 @@ import getopt
 # for get calculator
 from ase.calculators import *
 from pts.common import file2str
-from pts.pathsearcher_defaults.params_default import *
+from pts.defaults import default_params, default_calcs, default_lj, default_vasp
 
 LONG_OPTIONS = ["calculator="]
 

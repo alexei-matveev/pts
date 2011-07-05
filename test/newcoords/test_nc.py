@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from pts.inputs.pathsearcher import pathsearcher
+from pts.path_searcher import pathsearcher
 from ase.atoms import Atoms
 from ase.calculators.lj import LennardJones
 from pts.zmat import ZMat

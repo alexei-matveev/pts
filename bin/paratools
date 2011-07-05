@@ -54,10 +54,10 @@ import pts.tools.tab2plot
 import pts.tools.tsestandmods
 import pts.tools.xyz2tabint
 import pts.vib
-import pts.inputs.pathsearcher
+import pts.path_searcher
 
 methods = {
-   "path_searcher"   : pts.inputs.pathsearcher.main  ,
+   "path_searcher"   : pts.path_searcher.main  ,
    "frequencies"     : pts.vib.main                  ,
    "find_limit_path" : pts.tools.findlimitpath.main  ,
    "jmol"            : pts.tools.jmol.main           ,
@@ -102,7 +102,7 @@ def main(argv):
 
         # import right here in order not to import everything,
         # while using only one specific method:
-        from pts.inputs.pathsearcher import main as pathsearcher
+        from pts.path_searcher import main as pathsearcher
 
         # prepend a flag for pathsearcher to understand the method:
         argv1 = ["--method"] + argv

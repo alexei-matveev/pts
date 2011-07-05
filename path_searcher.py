@@ -13,8 +13,6 @@ from re import findall
 from os import path, mkdir, remove
 from numpy import savetxt
 from warnings import warn
-from pts.pathsearcher_defaults.params_default import *
-from pts.pathsearcher_defaults import *
 from pts.qfunc import QFunc, QMap
 from pts.func import compose
 from pts.paramap import PMap, PMap3
@@ -59,11 +57,11 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
       * funcart is a Func to transform internal to Cartesian coordinates. 
 
       * the other parameters give the possibility to overwrite some of the default behaviour of the module,
-      They are provided as kwargs in here. For a list of them see pathsearcher_defaults/params_default.py
+      They are provided as kwargs in here. For a list of them see defaults.py
       They can be also specified in an input file given as paramfile.
     """
     # most parameters are stored in a dictionary, default parameters are stored in
-    # pathsearcher_defaults/params_default
+    # defaults.py
     para_dict = create_params_dict(kwargs)
 
     # calculator from kwargs, if valid, has precedence over

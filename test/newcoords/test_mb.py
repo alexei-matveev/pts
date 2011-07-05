@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from pts.path import Path
-from pts.inputs.pathsearcher import find_path
+from pts.path_searcher import find_path
 from numpy import array, linspace
 from sys import argv
 from pts.mueller_brown import MB, CHAIN_OF_STATES

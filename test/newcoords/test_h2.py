@@ -10,7 +10,7 @@ For seeing how the pathsearcher runs just look at the code with choice 0.
 For see how the functions in cfunc could be used together with some other
 functions see the other choices.
 """
-from pts.inputs.pathsearcher import pathsearcher
+from pts.path_searcher import pathsearcher
 from ase.atoms import Atoms
 from ase.calculators.lj import LennardJones
 from pts.zmat import ZMat

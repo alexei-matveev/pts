@@ -218,7 +218,7 @@ calculator) but ftol is anyway 0.07
   pathsearcher.py --paramfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
 """
 import ase
-from pts.pathsearcher_defaults.params_default import default_params, are_floats, are_ints
+from pts.defaults import default_params, are_floats, are_ints
 from pts.common import file2str
 from pts.io.read_COS import read_geos_from_file, read_zmt_from_file
 from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
@@ -602,7 +602,7 @@ def from_params_file( lines):
     # so that the calculators from there can be used
 
     # execute the string, the variables should be set in the locals
-    from pts.pathsearcher_defaults.params_default import default_params
+    from pts.defaults import default_params
     params_dict = {}
 
     glob_olds = locals().copy()

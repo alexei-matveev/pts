@@ -4,7 +4,7 @@ Test example with VASP:
 
 A H-Atom is moving on a small (fixed) Pd surface
 """
-from pts.inputs.pathsearcher import pathsearcher
+from pts.path_searcher import pathsearcher
 from ase.atoms import Atoms
 from ase.calculators.vasp import Vasp
 from pts.cfunc import Justcarts, Masked
