@@ -16,8 +16,10 @@ with n beeing the number of beads to optimize.
 By changing the init_path different (parts) of
 the path can be examined.
 """
-
-beads_count = int(argv[1])
+try:
+    beads_count = int(argv[1])
+except IndexError:
+    beads_count = 7
 
 # The tree minima
 min1 = CHAIN_OF_STATES[0] # array([-0.55822362,  1.44172583])
@@ -37,14 +39,14 @@ if beads_count != len(init_path):
 #
 # Search by default method:
 #
-res1 = find_path(MB, init_path, ftol = 0.001, maxit = 100, workhere = True, output_level = 0)
+conv1, res1 = find_path(MB, init_path, ftol = 0.001, maxit = 100, workhere = True, output_level = 0)
 
 #
 # Search by an alternative method:
 #
-res2 = find_path(MB, init_path, ftol = 0.001, maxit = 100, method="sopt", workhere = True, output_level = 0)
+conv2, res2 = find_path(MB, init_path, ftol = 0.001, maxit = 100, method="sopt", workhere = True, output_level = 0)
 
 print "\n"
-print "result 1=\n", res1[0], "\n", res1[1], "\n", res1[2], "\n", res1[3]
+print "result 1=\n", conv1, "\n", res1[0], "\n", res1[1], "\n", res1[2], "\n", res1[3]
 print "\n"
-print "result 2=\n", res2[0], "\n", res2[1], "\n", res2[2], "\n", res2[3]
+print "result 2=\n", conv2, "\n", res2[0], "\n", res2[1], "\n", res2[2], "\n", res2[3]
