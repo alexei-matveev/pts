@@ -730,7 +730,7 @@ class NEB(ReactionPathway):
     
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
     >>> qc = pts.pes.GaussianPES()
-    >>> neb = NEB(path, qc, 1.0, None, beads_count = 4)
+    >>> neb = NEB(path, qc, 1.0, None, beads_count = 4, workhere=True)
     >>> neb.state_vec
     array([[ 0. ,  0. ],
            [ 0.2,  0.2],
@@ -761,7 +761,8 @@ class NEB(ReactionPathway):
     >>> neb.eg_calls
     2
 
-    >>> neb = NEB([[0,0],[3,3]], pts.pes.GaussianPES(), 1., None, beads_count = 10)
+    >>> neb = NEB([[0,0],[3,3]], pts.pes.GaussianPES(), 1., None, beads_count = 10,
+    ...             workhere= True)
     >>> neb.angles
     array([ 180.,  180.,  180.,  180.,  180.,  180.,  180.,  180.])
     >>> neb.obj_func()
@@ -785,7 +786,8 @@ class NEB(ReactionPathway):
     >>> abs(neb.step[1] - ones(neb.beads_count) * 0.1).round()
     array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
-    >>> neb = NEB([[0,0],[1,1]], pts.pes.GaussianPES(), 1., None, beads_count = 3)
+    >>> neb = NEB([[0,0],[1,1]], pts.pes.GaussianPES(), 1., None, beads_count = 3,
+    ...             workhere=True)
     >>> neb.angles
     array([ 180.])
     >>> neb.state_vec = [[0,0],[0,1],[1,1]]
@@ -1227,7 +1229,7 @@ class GrowingString(ReactionPathway):
 
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
     >>> qc = pts.pes.GaussianPES()
-    >>> s = GrowingString(path, qc,None, beads_count=4, growing=False)
+    >>> s = GrowingString(path, qc,None, beads_count=4, growing=False, workhere=True)
     >>> s.state_vec.round(1)
     array([[-0. , -0. ],
            [ 0.3,  0.3],

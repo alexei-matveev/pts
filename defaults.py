@@ -7,7 +7,8 @@ The values for the variables are read in after starting such a calculation
 and than overwritten by explicitly given ones in the params file or in the
 standard input
 """
-from ase.calculators import Vasp, LennardJones
+from ase.calculators.vasp import Vasp
+from ase.calculators.lj import LennardJones
 import pts.config as config
 
 default_params = {
