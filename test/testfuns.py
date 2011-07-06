@@ -59,6 +59,250 @@ class diagsandhight(Func):
 
 
 
+class mb1(Func):
+   """
+   2 -> 2 variables
+   r, phi -> x, y
+   """
+   def __init__(self, cent = zeros(2)):
+      self.centrum = cent
+
+   def taylor(self, vec):
+       """
+       >>> fun = mb1()
+       >>> from pts.func import NumDiff
+       >>> from numpy import max, abs, dot, pi
+       >>> fun2 = NumDiff(mb1())
+       >>> x1 = array([1.,1.])
+       >>> x2 = array([1., 0.])
+       >>> x3 = array([0.01, 0.999 * pi])
+
+       >>> max(abs(fun.fprime(x1) - fun2.fprime(x1))) < 1e-12
+       True
+       >>> max(abs(fun.fprime(x2) - fun2.fprime(x2))) < 1e-12
+       True
+       >>> max(abs(fun.fprime(x3) - fun2.fprime(x3))) < 1e-12
+       True
+       """
+       r, phi = vec
+       v = zeros(2)
+       v[0] = self.centrum[0] + r * cos(phi)
+       v[1] = self.centrum[1] + r * sin(phi)
+       dv = zeros((2,2))
+       dv[0,0] = cos(phi)
+       dv[1,0] = sin(phi)
+       dv[0,1] = -r* sin(phi)
+       dv[1,1] = r *cos(phi)
+
+       return v, dv
+
+   def pinv(self, v):
+       """
+       >>> fun = mb1()
+       >>> v = [0.,0.]
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+       >>> v = [9.3,1.5]
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+       >>> fun = mb1(array([0., 7.]) )
+       >>> v = [0.,0.]
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+       >>> v = [0.3,0.5]
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+       >>> v = [9.3,1.5]
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+
+       >>> fun = mb1(array( [-0.55822362,  1.44172583]))
+       >>> v = array([ 0.80376337,  0.57728775])
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+       >>> v = array([ 0.62349942,  0.02803776])
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+       """
+       vc = v - self.centrum
+       r = sqrt(dot(vc, vc))
+       if r < 1e-12:
+           phi = 0.
+       else:
+           phi = acos(vc[0] / r)
+       if vc[1] < 0.:
+           phi = 2. * pi - phi
+       return array([r, phi])
+
+class mb2(Func):
+   """
+   2 -> 2 variables
+   x1, y1 -> x, y
+   """
+   def __init__(self, par = 0.5):
+       self.par = par
+       assert self.par < 1.
+
+   def taylor(self, vec):
+       """
+       >>> fun = mb2()
+       >>> from pts.func import NumDiff
+       >>> from numpy import max, abs, dot, pi
+       >>> fun2 = NumDiff(mb2())
+       >>> x1 = array([1.,1.])
+       >>> x2 = array([1., 0.])
+       >>> x3 = array([0.01, 0.999 * pi])
+
+       >>> max(abs(fun.fprime(x1) - fun2.fprime(x1))) < 1e-12
+       True
+       >>> max(abs(fun.fprime(x2) - fun2.fprime(x2))) < 1e-12
+       True
+       >>> max(abs(fun.fprime(x3) - fun2.fprime(x3))) < 1e-12
+       True
+       """
+       v = zeros(2)
+       v[0] = vec[0] + (1.- self.par) * vec[1]
+       v[1] = vec[1] * self.par
+       dv = zeros((2,2))
+       dv[0,0] = 1.
+       dv[1,0] = 0.
+       dv[0,1] = (1.- self.par)
+       dv[1,1] = self.par
+
+       return v, dv
+
+   def pinv(self, v):
+       vec = zeros(2)
+       vec[1] = v[1] / self.par
+       vec[0] = v[0] - (1.- self.par) * vec[1]
+       return vec
+
+class mb3(Func):
+   """
+   3 -> 3
+   r, theta, phi -> x, y, z
+   spherical coordinates
+   """
+   def __init__(self, r0 = array([0., 1., 2.])):
+       self.r0 = r0
+
+   def taylor(self, vec):
+       """
+       >>> fun = mb3()
+       >>> from pts.func import NumDiff
+       >>> from numpy import max, abs, dot, pi
+       >>> fun2 = NumDiff(mb3())
+       >>> x1 = array([1.,1., 1.])
+       >>> x2 = array([1., 0., 0.5])
+       >>> x3 = array([0.01, 0.999 * pi, 0.0001 * pi ])
+
+       >>> max(abs(fun.fprime(x1) - fun2.fprime(x1))) < 1e-11
+       True
+       >>> max(abs(fun.fprime(x2) - fun2.fprime(x2))) < 1e-12
+       True
+       >>> max(abs(fun.fprime(x3) - fun2.fprime(x3))) < 1e-12
+       True
+       """
+       r, theta, phi = vec
+       v = zeros(3)
+       v[0] = self.r0[0] + r * cos(phi) * cos(theta)
+       v[1] = self.r0[1] + r * sin(phi) * cos(theta)
+       v[2] = self.r0[2] + r * sin(theta)
+       dv = zeros((3,3))
+       dv[0,0] = cos(phi) * cos(theta)
+       dv[1,0] = sin(phi) * cos(theta)
+       dv[2,0] = sin(theta)
+       dv[0,1] = -r * cos(phi) * sin(theta)
+       dv[1,1] = - r * sin(phi) * sin(theta)
+       dv[2,1] = r * cos(theta)
+       dv[0,2] = -r * sin(phi) * cos(theta)
+       dv[1,2] = r * cos(phi) * cos(theta)
+       dv[2,2] = 0.
+       return v, dv
+
+   def pinv(self, v):
+       """
+       >>> fun = mb3()
+       >>> v = array([0.,0., 0.])
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+       >>> v = array([9.3,1.5, 0.5])
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-13
+       True
+       >>> fun = mb3(array([0., 7., - 2.]) )
+       >>> v = array([0.,0., 0.])
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+       >>> v = [0.3,0.5, 0.2]
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+       >>> v = [9.3,1.5, 0.7]
+       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+       True
+       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+       True
+       """
+       vc = v - self.r0
+       r = sqrt(dot(vc, vc))
+       if r < 1e-12:
+           phi = 0.
+           theta = 0.
+       else:
+           theta = asin(vc[2] / r)
+           r_flat = r * cos(theta)
+           phi = acos(vc[0] / r_flat)
+       if vc[1] < 0:
+           phi = 2 * pi - phi
+       return array([r, theta, phi])
+
+class mb4(Func):
+    def __init__(self, r0 = array([0.,1.,2.])):
+        self.fun = mb3(r0)
+        self.last = r0[2]
+
+    def taylor(self, vec):
+        r, phi = vec
+        theta = asin(-self.last / r)
+        v1 = array((r, theta, phi))
+        y, dy = self.fun.taylor(v1)
+        x = y[:2]
+        dx = zeros((2,2))
+        dx[:,0] = dy[:2,0]
+        dx[:,1] = dy[:2,2]
+        assert abs(y[2]) < 1e-8
+        return x, dx
+
+    def pinv(self, v):
+        vin = zeros(3)
+        vin[:2] = v
+        x = self.fun.pinv(vin)
+        y = zeros(2)
+        y[0] = x[0]
+        y[1] = x[2]
+        return y
+
 class Elliptic(Func):
     def __init__(self, f0 = array([- 1.0, 0.]), f1 = array([ 1.0, 0.])):
         """
