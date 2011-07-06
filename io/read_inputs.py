@@ -226,7 +226,6 @@ from pts.zmat import ZMat
 from pts.quat import Quat, uquat, quat2vec
 from numpy import array, pi, loadtxt
 from numpy.linalg import norm
-from ase.calculators import *
 from pts.qfunc import constraints2mask
 from pts.io.cmdline import get_calculator, get_mask
 

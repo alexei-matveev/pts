@@ -7,6 +7,7 @@ import getopt
 
 # for get calculator
 from ase.calculators import *
+from pts.gaussian import Gaussian
 from pts.common import file2str
 from pts.defaults import default_params, default_calcs, default_lj, default_vasp
 
