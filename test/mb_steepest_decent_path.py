@@ -3,9 +3,9 @@
 This module calculates the "real" Mueller-Brown potential
 minimum reaction path by a steepest decent method.
 """
-from pts.mueller_brown import show_chain, CHAIN_OF_STATES
-from pts.mueller_brown import MB
-from pts.simpledecent import find_connections, relax_points
+from pts.pes.mueller_brown import show_chain, CHAIN_OF_STATES
+from pts.pes.mueller_brown import MB
+from pts.simple_decent import find_connections, relax_points
 from pylab import show
 from numpy import savetxt, array
 
