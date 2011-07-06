@@ -20,7 +20,7 @@ def readxyz(file, n ):
         yield positions
     return
 
-def getdistancesandanglesfromxyz(argv):
+def main(argv):
    '''performs all the calculations
    '''
    # these variable may be used but need not
@@ -388,9 +388,6 @@ class interestingvalue:
             sys.exit()
 
 
- # main:
-def main(argv):
-    getdistancesandanglesfromxyz(argv)
 
 if __name__ == "__main__":
     import doctest
