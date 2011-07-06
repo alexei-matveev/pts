@@ -218,6 +218,7 @@ calculator) but ftol is anyway 0.07
   pathsearcher.py --paramfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
 """
 import ase
+from copy import deepcopy
 from pts.defaults import default_params, are_floats, are_ints
 from pts.common import file2str
 from pts.io.read_COS import read_geos_from_file, read_zmt_from_file
@@ -277,6 +278,10 @@ def restructure(dat):
     f: how many Cartesian coordinates are covered
     g: how many variables (internals)
     h: how many variables (Cartesians)
+
+    >>> print restructure(((["N"], 2., 3., 4., 5., (6., 7.)),(["N"],2.,3.,4.,5.,(6., 7.))
+    ...     ,(["N"], 2.,3.,4.,5.,(6., 7.))))
+    (['N', 'N', 'N'], [2.0, 2.0, 2.0], [3.0, 3.0, 3.0], [4.0, 4.0, 4.0], [5.0, 5.0, 5.0], 18.0, [7.0, 7.0, 7.0], [6.0, 6.0, 6.0])
     """
     a = []
     b = []
@@ -412,12 +417,87 @@ def get_masked(int2cart, at, geo_carts, zmat, geos):
 
     return int2cart, geos
 
-def ensure_short_way(init_path, dih, quats, lengt):
+def ensure_short_way(init_path_raw, dih, quats, lengt):
     """
     Ensures that between two images of init_path the shortest way is taken
     Thus that the dihedrals differ of less than pi and that the
     quaternions are also nearest as possible
+    >>> from numpy import pi, array, dot, sqrt
+
+    (Zmatrix1: Pd
+               Pd 1 l1
+               Pd 1 l2 2 a1
+               Pd  2 l3 1 a2 3 d1)
+
+    >>> init_path = [[1., 1., pi, 1.3, 0.5 * pi, 0.1 * pi],
+    ...              [1., 1., pi, 1.7, 0.3 * pi, 1.9 * pi]]
+    >>> new_path = ensure_short_way(init_path, [[5]], [False], [6])
+
+    # first bead stays the same
+    >>> array(init_path[0]) - array(new_path[0])
+    array([ 0.,  0.,  0.,  0.,  0.,  0.])
+
+    # second bead is moved
+    >>> (array(init_path[1]) - array(new_path[1])) / pi
+    array([ 0.,  0.,  0.,  0.,  0.,  2.])
+
+     (Zmatrix2: C
+                H 1 d1
+                H 1 d1 2 a1
+                H 1 d1 2 -a1 3 d1
+                H 1 d1 2 a1  3 d2 )
+
+    >>> i_z2 = [[0.5, 107.5/180 * pi, 0.1, 0.3],
+    ...         [0.5, 0.5 * pi, 0.2, -19.0]]
+
+    >>> new_path = ensure_short_way(i_z2, [[2,3]], [False], [4])
+    >>> (array(i_z2[1]) - array(new_path[1])) / pi
+    array([ 0.,  0.,  0., -6.])
+
+    # and now together:
+    >>> globs = [[0.,0.,20., 0., 0.,0.],[1., -3., -17., 1., 6., 4.]]
+    >>> init_path = [init_path[0] + globs[0] + i_z2[0] + globs[1], init_path[1] + globs[1] + i_z2[1] + globs[0]]
+    >>> new_path = ensure_short_way(init_path, [[5],[2,3]], [True, True], [12,10])
+
+    # For the zmatrix coordinates as above:
+    >>> [ round((i-n)/pi,2) for n, i in zip(new_path[1][0:6], init_path[1][0:6])]
+    [0.0, 0.0, 0.0, 0.0, 0.0, 2.0]
+    >>> [ round((i-n)/pi,2) for n, i in zip(new_path[1][12:16], init_path[1][12:16])]
+    [0.0, 0.0, 0.0, -6.0]
+
+    # No change in the global positions
+    >>> array(init_path[1][9:12]) - array(new_path[1][9:12])
+    array([ 0.,  0.,  0.])
+    >>> array(init_path[1][19:22]) - array(new_path[1][19:22])
+    array([ 0.,  0.,  0.])
+
+    # consider the rotations:
+    >>> r1_i = array(init_path[1][6:9])
+    >>> r1_n = array(new_path[1][6:9])
+
+    # they differ:
+    >>> round(r1_i[2] - r1_n[2], 3)
+    -12.353999999999999
+
+    # but lead to the same rotation
+    >>> from pts.quat import rotmat
+    >>> max(abs((rotmat(r1_i).flatten() - rotmat(r1_n).flatten()))) < 1e-10
+    True
+
+    # for the second rotation
+    >>> r1_i = array(init_path[1][16:19])
+    >>> r1_n = array(new_path[1][16:19])
+
+    # they differ:
+    >>> round(r1_i[2] - r1_n[2], 3)
+    25.132999999999999
+
+    # but lead to the same rotation
+    >>> from pts.quat import rotmat
+    >>> max(abs((rotmat(r1_i).flatten() - rotmat(r1_n).flatten()))) < 1e-10
+    True
     """
+    init_path = deepcopy(init_path_raw)
     for i_n1, m2 in enumerate(init_path[1:]):
        m1 = init_path[i_n1]
        # m1, m2 are two succeding images
@@ -624,4 +704,8 @@ def from_params_file( lines):
                  params_dict[param] = glob[param]
 
     return params_dict
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
 
