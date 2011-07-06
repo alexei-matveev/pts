@@ -38,8 +38,16 @@ def get_calculator(file_name):
     return calculator
 
 def get_mask(strmask):
+    tr = ["True", "T", "t", "true"]
+    fl = ["False", "F", "f", "false"]
     mask = strmask.split()
-    mask = [m == "True" for m in mask]
+    # test that all values are valid:
+    true_or_false = tr + fl
+    for element_of_mask in mask:
+        assert( element_of_mask in true_or_false)
+    # Transform mask in logicals ([bool(m)] would
+    # be only false for m = ""
+    mask = [m in tr for m in mask]
     return mask
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
