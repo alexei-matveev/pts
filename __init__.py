@@ -3,7 +3,6 @@ import common
 import test
 import sched
 #import zmatrix
-import qcdrivers
 import pes
 import path
 import tools

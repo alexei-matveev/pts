@@ -15,10 +15,10 @@ mask = None #[False for i in range(12*3)] + [True for i in range(3*3)]
 #   Performs any necessary actions on ASE style calculator |calc| based on 
 #   dictionary |data|.
 calc_tuple = (
-    ase.EMT,#pts.qcdrivers.Gaussian, 
+    ase.EMT,#pts.gaussian.Gaussian, 
     [], 
     {},#{'basis': '3-21G', 'charge': 0, 'mult': 1}, 
-    None)#pts.qcdrivers.pre_calc_function_g03)
+    None)#pts.gaussian.pre_calc_function_g03)
 
 # scheduling information
 # Field 1: list of processors per node e.g.

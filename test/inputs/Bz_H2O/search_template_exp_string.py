@@ -16,7 +16,7 @@ mask = [False for i in range(12*3)] + [True for i in range(3*3)]
 
 # calculator 3-tuple: 
 # (constructor, arguments (list), keyword arguments (dictionary))
-calc_tuple = (pts.qcdrivers.Gaussian, [], {'basis': '3-21G'})
+calc_tuple = (pts.gaussian.Gaussian, [], {'basis': '3-21G'})
 
 # scheduling information
 # Field 1: list of processors per node e.g.

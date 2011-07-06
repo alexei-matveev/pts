@@ -15,15 +15,15 @@ mask = None #[False for i in range(12*3)] + [True for i in range(3*3)]
 #   Performs any necessary actions on ASE style calculator |calc| based on 
 #   dictionary |data|.
 calc_tuple_test = (
-    ase.EMT,#pts.qcdrivers.Gaussian, 
+    ase.EMT,#pts.gaussian.Gaussian, 
     [], 
     {},#{'basis': '3-21G', 'charge': 0, 'mult': 1}, 
-    None)#pts.qcdrivers.pre_calc_function_g03)
+    None)#pts.gaussian.pre_calc_function_g03)
 calc_tuple_g = (
-    pts.qcdrivers.Gaussian, 
+    pts.gaussian.Gaussian, 
     [], 
     {'basis': '3-21G', 'charge': -1, 'mult': 1}, 
-    pts.qcdrivers.pre_calc_function_g03)
+    pts.gaussian.pre_calc_function_g03)
 
 calc_tuple = calc_tuple_g
 

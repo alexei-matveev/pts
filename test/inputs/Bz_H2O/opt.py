@@ -8,7 +8,7 @@ cs = coord_sys.XYZ(common.file2str("Bz_H2O-2.xyz"))
 cs.set_var_mask([False for i in range(12*3)] + [True for i in range(3*3)])
 
 # setup quantum chem program (calculator)
-g = qcdrivers.Gaussian, [], {'nprocs': 2, 'basis': '3-21G'}
+g = gaussian.Gaussian, [], {'nprocs': 2, 'basis': '3-21G'}
 cs.set_calculator(g)
 
 # setup optimiser
