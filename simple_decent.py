@@ -102,7 +102,7 @@ def relax_points(fun, points, tolerance):
 def steepest_decent(force, x0, fixedlength = True, alpha = 0.001):
     """
     Simple steepest decent step,
-    function fun should give the forces belonging to the paramter x
+    forces should be belonging to the paramter x
     x0 is the old place
     fixedlength = True will norm the step of the object
     alhpa is the scaling factor for the step, together with
@@ -142,7 +142,6 @@ def steepest_decent_path_simple(fun, x0, metric, store_every = 1,
         start_step = - start_step
 
     xval = x0 + start_step * alpha
-    xold = None
     force = None
     force_old = None
 
@@ -155,8 +154,7 @@ def steepest_decent_path_simple(fun, x0, metric, store_every = 1,
 
         force_old = force
         force = -fun.fprime(xval)
-        xold = xval
-        xval = steepest_decent_met(metric, force, xval, alpha = 0.01, **params)
+        xval = steepest_decent_met(metric, force, xval, alpha = alpha, **params)
 
     path.append(xval)
 

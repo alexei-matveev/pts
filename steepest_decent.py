@@ -85,7 +85,7 @@ def steepest_decent_path(fun, x0, metric, store_steps = 0.0,
                  path.append(xval)
                  t_old = t
 
-         # FIXME: testing for tau==NaN, but if try which value to use
+         # FIXME: testing for tau==NaN, but if true which value to use
          if tau != tau:
              if h <= h_old:
                  h = h * 0.01
@@ -224,7 +224,7 @@ def start_values(fun, metric, x0):
     direction
 
     Example: use mueller brown potential
-    >>> from pts.mueller_brown import MB, CHAIN_OF_STATES
+    >>> from pts.pes.mueller_brown import MB, CHAIN_OF_STATES
     >>> from pts.metric import Default, Metric
     >>> from pts.func import compose
     >>> from pts.test.testfuns import mb2
@@ -308,9 +308,9 @@ def start_values(fun, metric, x0):
 
     # energy goes down in sdir and up in max_dir
     >>> mb(ts1_2 + sdir2 * 0.01)
-    -40.70300236357501
+    -40.703002363574988
     >>> mb(ts1_2 + max_dir * 0.01)
-    -40.625299777152236
+    -40.625299777152264
 
     Here we got the same direction
     >>> max(abs(ts1 + sdir * 0.01 - fun(ts1_2 - sdir2 * 0.01))) < 1e-14

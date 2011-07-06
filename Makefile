@@ -21,6 +21,8 @@ src =	\
 	fopt.py \
 	qfunc.py \
 	chain.py \
+        steepest_decent.py \
+        simple_decent.py \
 	rc.py \
         dct.py \
 	paramap.py \
