@@ -76,6 +76,8 @@ from pts.tools.path2xyz import read_in_path
 from pts.tools.pathtools import read_path_fix, read_path_coords
 from pts.tools.xyz2tabint import returnall, interestingvalue, expandlist
 from pts.tools.tab2plot import plot_tabs
+from pts.cfunc import Pass_through
+from pts.io.read_COS import read_geos_from_file_more
 import numpy as np
 
 
@@ -158,6 +160,10 @@ def main(argv):
     mask = None
     maskgeo = None
     abcis = []
+    # ase inputs:
+    ase = False
+    next = [0]
+    format = None
 
     # the default values for the parameter
     num = 100
@@ -266,6 +272,19 @@ def main(argv):
              elif option == "ylabel":
                  ylab = argv[1]
                  argv = argv[2:]
+             elif option == "ase":
+                 ase = True
+                 argv = argv[1:]
+             elif option == "format":
+                 format = argv[1]
+                 argv = argv[2:]
+             elif option == "next":
+                 ase = True
+                 next.append(xfiles)
+                 argv = argv[1:]
+             elif option == "ylabel":
+                 ylab = argv[1]
+                 argv = argv[2:]
              elif option == "name":
                  names_of_lines.append(argv[1])
                  argv = argv[2:]
@@ -304,6 +323,10 @@ def main(argv):
              argv = argv[1:]
              xfiles += 1
 
+    if ase:
+        next.append(len(filenames)+1)
+        filenames = reorder_files(filenames, next)
+
     # plot environment
     pl = plot_tabs(title = title, x_label = xlab, y_label = ylab, log = logscale)
 
@@ -322,7 +345,11 @@ def main(argv):
     # For each file prepare the plot
     for i, filename in enumerate(filenames):
         # read in the path
-        if symbfile is None:
+        if ase:
+            atoms, y = read_geos_from_file_more(filename, format=format)
+            obj =  atoms.get_chemical_symbols(), Pass_through()
+
+        elif symbfile is None:
             x, y, obj = read_in_path(filename)
         else:
             patf = None
@@ -332,12 +359,15 @@ def main(argv):
 
         # extract the internal coordiantes, for path and beads
         beads = beads_to_int(y, obj, allval, cell, tomove, howmove)
-        path = path_to_int(x, y, obj, num, allval, cell, tomove, howmove)
-        # they are wanted as arrays and the other way round
-        path = np.asarray(path)
-        path = path.T
         beads = np.asarray(beads)
         beads = beads.T
+        if ase:
+            path = None
+        else:
+            path = path_to_int(x, y, obj, num, allval, cell, tomove, howmove)
+            # they are wanted as arrays and the other way round
+            path = np.asarray(path)
+            path = path.T
         name_p = str(i + 1)
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
@@ -345,7 +375,10 @@ def main(argv):
         # prepare plot from the tables containing the path and bead data
         # only if there are enough for x AND y values
         if num_opts > 1:
-            pl.prepare_plot( path, name_p, beads, "_nolegend_", None, None, opt)
+            if ase:
+               pl.prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt)
+            else:
+               pl.prepare_plot( path, name_p, beads, "_nolegend_", None, None, opt)
 
         # if some data has been extracted from a logfile, after this file i has been used
         # it has to be plotted here, as here the x values of the files are valid
@@ -368,6 +401,21 @@ def main(argv):
 
     # now plot
     pl.plot_data(xrange = xran, yrange = yran )
+
+def reorder_files(files, next):
+    new_order = []
+    line = []
+    n = next[1]
+    k = 2
+    for i, file in enumerate(files):
+        if i > n:
+           n = next[k]
+           k = k+1
+           new_order.append(line)
+           line = []
+        line.append(file)
+    new_order.append(line)
+    return new_order
 
 def get_expansion(celldat, expand):
      """

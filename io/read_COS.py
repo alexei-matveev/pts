@@ -14,6 +14,26 @@ def read_geos_from_file(geom_files, format):
     geom = [r.get_positions() for r in res]
     return atom, geom
 
+def read_geos_from_file_more(geom_files, format):
+    """
+    Read in geometries from ASE readable file
+    returns one atoms object (with geometry of first minima set)
+    and a list of geometries
+    """
+    res = []
+    for st1 in geom_files:
+       index = 0
+       while True:
+           try:
+               r1 = read_ase(st1, format = format, index = index)
+           except IndexError:
+               break
+           res.append(r1)
+           index += 1
+    atom = res[0]
+    geom = [r.get_positions() for r in res]
+    return atom, geom
+
 def read_zmt_from_file(zmat_file):
     """
     Read zmatrix from file
