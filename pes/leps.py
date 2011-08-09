@@ -24,20 +24,35 @@ def leps(ab, bc, ac):
       [2]    :   Jonathan et al., Mol. Phys. vol. 43 (1981) 215
     """
 
-    # set potential parameters for F-D-Br
-    # 0 = DF, 1 = DBr, 2 = FBr
+    # set potential parameters for H-F-F
+    # 0 = HF, 1 = FF, 2 = FH
 
     # dissociation energies
-    D = array([ 590.7, 378.2, 249.1 ])
+    D = array([ 590.5, 157.3, 590.5 ])
 
     # beta parameters
-    beta = array([ 2.203, 1.797, 2.294 ])
+    beta = array([ 2.219, 2.920, 2.219 ])
 
     # equilibrium positions
-    REQ = array([ 0.917, 1.414, 1.759 ])
+    REQ = array([ 0.917, 1.418, 0.917 ])
 
     # Sato parameter
-    Delta = array([ 0.17, 0.05, 0.05 ])
+    Delta = array([ 0.0, -0.35, 0.0 ])
+
+#   # set potential parameters for F-D-Br
+#   # 0 = DF, 1 = DBr, 2 = FBr
+
+#   # dissociation energies
+#   D = array([ 590.7, 378.2, 249.1 ])
+
+#   # beta parameters
+#   beta = array([ 2.203, 1.797, 2.294 ])
+
+#   # equilibrium positions
+#   REQ = array([ 0.917, 1.414, 1.759 ])
+
+#   # Sato parameter
+#   Delta = array([ 0.17, 0.05, 0.05 ])
 
     # calculate integrals
     Q = empty(3)
