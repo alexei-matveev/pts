@@ -4,6 +4,22 @@
 
 from numpy import array, empty, sqrt, exp
 
+def pot(X, Y):
+
+#  m1, m2, m3 = 1.0079, 19., 19.
+
+#  m12 = m1 * m2 / (m1 + m2)
+#  m23 = m2 * m3 / (m2 + m3)
+#  m123 = m1 * (m2 + m3) / (m1 + m2 + m3)
+#
+#  d23 = Y
+#  d123 = sqrt(m12 / m123) * X
+#  d12 = d123 - m3 / (m2 + m3) * d23
+#  d13 = d12 + d23
+#
+#  return leps(d12, d23, d13)
+   return leps(X, Y, X + Y)
+
 def leps(ab, bc, ac):
     """
     leps
@@ -125,4 +141,64 @@ def test_leps(A1=0.2, A2=3.0, B1=0.2, B2=3.0, N1=50, N2=50):
 
         print
 
-test_leps()
+def show_chain(p=None, style="ro-", save=None, clear=False):
+    from pylab import hold, contour, plot, xlim, ylim, show, savefig, clf #, imshow
+    from numpy import linspace, empty, transpose
+
+    # intervals:
+    x_range = (1.5, 2.5)
+    y_range = (1.3, 1.6)
+
+    # create grid:
+    n = 100
+    xs = linspace(x_range[0], x_range[1], n)
+    ys = linspace(y_range[0], y_range[1], n)
+
+    zs = empty((n, n))
+    for i in range(n):
+        for j in range(n):
+            zs[i, j] = pot(xs[i], ys[j])
+
+    # when displayed, x and y are transposed:
+    zs = transpose(zs)
+
+    # dont know what it does:
+    # hold(True)
+    if clear: clf()
+
+#   # Plotting color map:
+#   imshow(zs, origin='lower', extent=[-1, 1, -1, 2])
+
+    # Plotting contour lines:
+    contour(zs, 100, origin='lower', extent=(x_range + y_range))
+
+    # ideal path:
+#   plot(_nodes[:, 0], _nodes[:, 1], "k--")
+
+    # three minima, and two TSs:
+#   points = array(CHAIN_OF_STATES)
+
+    # overlay positions of minima and stationary points
+    # onto coutour plot:
+#   plot(points[:, 0], points[:, 1], "ko")
+
+    # overlay a path onto coutour plot:
+    if p is not None:
+        p = asarray(p)
+        plot(p[:, 0], p[:, 1], style)
+
+    ylim(*y_range)
+    xlim(*x_range)
+
+    if save is None:
+        show()
+    else:
+        savefig(save)
+
+# python leps.py [-v]:
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
+    show_chain()
+
+# Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
