@@ -38,6 +38,19 @@ def leps(ab, bc, ac):
 
       [1]    :   Jonathan et al., Mol. Phys. vol. 24 (1972) 1143
       [2]    :   Jonathan et al., Mol. Phys. vol. 43 (1981) 215
+
+    Distances (in angstrom):
+
+      >>> hf, ff, inf = 0.917, 1.418, 1000.
+      >>> ehf = leps(hf, inf, hf + inf)
+      >>> eff = leps(inf, ff, inf + ff)
+
+    Energy in kJ/mol:
+
+      >>> leps(1.900, 1.440, 1.900 + 1.440) - eff
+      9.8528712996229899
+
+    FIXME: original paper seems to have used different units (kcals).
     """
 
     # set potential parameters for H-F-F
