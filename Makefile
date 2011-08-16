@@ -2,6 +2,11 @@
 # Type "make -k" to run all tests,
 # (without -k make will stop at first failure it encounters)
 #
+IO = ./io
+PES = ./pes
+COSOPT = ./cosopt
+TOOL = ./tools
+
 
 src =	\
 	common.py \
@@ -30,6 +35,10 @@ src =	\
 	metric.py \
         threepointmin.py \
 	cfunc.py \
+	srcio \
+	srcpes \
+	srccosopt \
+	srctools \
 
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.doctest)
@@ -37,3 +46,16 @@ test-all: $(src:.py=.doctest)
 # run a doctest on the module, return failure if any of the tests fail:
 %.doctest: %.py
 	python -c "import $*, doctest, sys; errs, _ = doctest.testmod($*); sys.exit(bool(errs))"
+
+srcio:
+	$(MAKE) -C $(IO)
+
+srcpes:
+	$(MAKE) -C $(PES)
+
+srccosopt:
+	$(MAKE) -C $(COSOPT)
+
+srctools:
+	$(MAKE) -C $(TOOL)
+
