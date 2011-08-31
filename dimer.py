@@ -1,7 +1,8 @@
 from numpy import dot, array, sqrt, arctan, sin, cos, pi, zeros
 from copy import deepcopy
-from pts.bfgs import LBFGS, BFGS
+from pts.bfgs import LBFGS, BFGS, SR1
 from scipy.linalg import eigh
+from pts.func import NumDiff
 """
 dimer method:
 
@@ -10,8 +11,239 @@ J. K\{a"}stner, P. Sherwood; J. Chem. Phys. 128 (2008), 014106
 A. Heyden, A. T. Bell, F. J. Keil; J. Chem. Phys. 123 (2005), 224101
 G. Henkelman, H. J\{o'}nsson; J. Chem. Phys. 111 (1999), 7010
 """
+class translate_cg():
+    def __init__(self, metric, trial_step):
+        """
+        use conjugate gradient to determine in which direction to do the next step
 
-def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_gradients = None, trans_converged = 0.00016, **params):
+        >>> from pts.pes.mueller_brown import MB
+        >>> from pts.metric import Default
+
+        >>> met = Default(None)
+        >>> trans = translate_cg(met, 0.5)
+
+        >>> start = array([-0.5, 0.5])
+        >>> mode = array([-1., 0.])
+
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> print step
+        [-0.78443852 -0.07155202]
+
+        >>> step, dict = trans(MB, start + step, MB.fprime(start + step), mode)
+        >>> print step
+        [ 0.64788906 -0.24663059]
+
+        >>> trans = translate_cg(met, 0.5)
+        >>> start = array([-0.25, 0.75])
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> print step
+        [-0.00316205 -0.31033489]
+        """
+        self.metric = metric
+        self.old_force = None
+        self.old_step = None
+        self.trial_step = trial_step
+        self.old_geo = None
+
+    def __call__(self, pes, start_geo, geo_grad, mode_vector):
+        """
+        the actual step
+        """
+        # translation "force"
+        force_raw = - geo_grad
+        shape = force_raw.shape
+        force_raw = force_raw.flatten()
+        mode_vec_down = self.metric.lower(mode_vector, start_geo).flatten()
+        force = force_raw - 2. * dot(force_raw, mode_vector.flatten()) * mode_vec_down
+
+        # find direction
+        step = self.metric.raises(force, start_geo)
+
+        if not self.old_force == None: # if not first iteration
+           # attention: here step is simply force with upper indice
+           old_norm = dot(self.old_force, self.metric.raises(self.old_force, self.old_geo))
+           if old_norm != 0.0:
+               gamma = max((dot(force - self.old_force, step) / old_norm), 0.0)
+               if gamma == 0.0: print "Reseted conjugate gradient"
+           else:
+               gamma = 0.0
+               print "Old Norm is zero"
+           step = step + gamma * self.old_step
+           #self.trial_step = self.trial_step * old_norm /  dot(force, step)
+        print "Direction", step
+
+        # store for the next iteration:
+        self.old_force = force
+        self.old_step = step
+        self.old_geo = start_geo
+
+        step /= self.metric.norm_down(step, start_geo)
+
+        # find how far to go
+        # line search, first trial
+        self.trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
+        step = self.trial_step * step
+
+
+        dict = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
+                "trans_gradient_calculations": grad_calc}
+
+        step.shape = shape
+
+        return step, dict
+
+def line_search( start_geo, direction, trial_step, pes, metric, mode_vector, force ):
+        """
+        Find the minimum in direction from strat_geo on, uses second point
+        makes quadratic approximation with the "forces" of these two points
+        """
+        print dot(force, direction)
+        grad_calc = 0
+        force_l = deepcopy(force)
+        i = 0
+        t_s = trial_step
+
+        geo = start_geo + direction * t_s
+        force_raw_trial = - pes.fprime(geo)
+        grad_calc += 1
+        mode_vec_down = metric.lower(mode_vector, start_geo).flatten()
+        force_r = force_raw_trial - 2. * dot(force_raw_trial, mode_vector) * mode_vec_down
+        print dot(force_r, direction)
+        f_mid = dot(force_r + force_l, direction) /2.
+        cr = dot(force_r - force_l, direction) / t_s
+        t_s = (-f_mid /cr + t_s / 2.0)
+
+        trial_step = t_s
+
+        return trial_step, grad_calc
+
+class translate_lbfgs():
+    def __init__(self, metric):
+        """
+        Calculates a translation step of the dimer (not scaled)
+        Uses an approximated hessian hess
+
+        step is Newton (Hessian) step for grads:
+
+        g = g_0 - 2 * (g_0, m) * m
+
+        Consider metric
+
+        >>> from pts.pes.mueller_brown import MB
+        >>> from pts.metric import Default
+
+        >>> met = Default(None)
+        >>> trans = translate_lbfgs(met)
+
+        >>> start = array([-0.5, 0.5])
+        >>> mode = array([-1., 0.])
+
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> print step
+        [-1.04187497 -0.0950339 ]
+        >>> step, dict = trans(MB, start + step, MB.fprime(start + step), mode)
+        >>> print step
+        [-4157.56285284  -445.26019983]
+
+        >>> trans = translate_lbfgs(met)
+        >>> start = array([-0.25, 0.75])
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> print step
+        [-0.03655155 -3.58730495]
+        """
+        self.hess = SR1()
+        self.old_force = None
+        self.old_geo = None
+        self.metric = metric
+
+    def __call__(self, pes, start_geo, geo_grad, mode_vector):
+        """
+        the actual step
+        """
+        force_raw = - geo_grad
+        shape = force_raw.shape
+        force_raw = force_raw.flatten()
+        mode_vec_down = self.metric.lower(mode_vector, start_geo).flatten()
+        force_para = dot(force_raw, mode_vector.flatten()) * mode_vec_down
+        force_perp = force_raw - force_para
+        force = force_perp - force_para
+        if not self.old_force == None:
+            self.hess.update(start_geo - self.old_geo, force - self.old_force)
+
+        step = self.hess.inv(force)
+        mat = self.hess.H
+        a, V = eigh(mat)
+        print a
+
+        self.old_force = force
+        self.old_geo = start_geo
+
+        dict = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
+                "trans_gradient_calculations": 0}
+
+        step.shape = shape
+
+        return step, dict
+
+class translate_sd():
+    def __init__(self, metric, trial_step):
+        """
+        use steepest decent to determine in which direction to do the next step
+
+        >>> from pts.pes.mueller_brown import MB
+        >>> from pts.metric import Default
+
+        >>> tr_step = 0.3
+        >>> met = Default(None)
+        >>> trans = translate_sd(met, tr_step)
+
+        >>> start = array([-0.5, 0.5])
+        >>> mode = array([-1., 0.])
+
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> print step
+        [-72.93124759  -6.65237324]
+
+        >>> trans = translate_sd(met, tr_step)
+        >>> start = array([-0.25, 0.75])
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> print step
+        [  -2.55860839 -251.11134643]
+        """
+        self.metric = metric
+        self.trial_step = trial_step
+
+    def __call__(self, pes, start_geo, geo_grad, mode_vector):
+        """
+        the actual step
+        """
+        force_raw = - geo_grad
+        shape = force_raw.shape
+        force_raw = force_raw.flatten()
+        mode_vec_down = self.metric.lower(mode_vector, start_geo).flatten()
+        force = force_raw -2. * dot(force_raw, mode_vector.flatten()) * mode_vec_down
+
+        # actual steepest decent step
+        step = self.metric.raises(force, start_geo)
+
+        self.trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
+        step = self.trial_step * step
+
+        step.shape = shape
+
+        dict = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
+                "trans_gradient_calculations": grad_calc}
+        return step, dict
+
+
+trans_dict = {
+               "conj_grad" : translate_cg,
+               "lbfgs"     : translate_lbfgs,
+               "steep_dec" : translate_sd
+             }
+
+def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_gradients = None, \
+       trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.7,   **params):
     """ The complete dimer algorithm
     Parameters for rotation and translation are handed over together. Each of the two
     grabs what it needs.
@@ -22,7 +254,9 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     metric     : might affect everything, as defines distances and angles, from pts.metric module
     """
     # for translation
-    trans = translate_lbfgs(metric)
+
+    trans = trans_dict[trans_method](metric, start_step_length)
+
     # do not change them
     geo = deepcopy(start_geo) # of dimer middle point
     mode = deepcopy(start_mode) # direction of dimer
@@ -55,18 +289,16 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          # calculate one step of the dimer, also update dimer direction
          # res is dictionary with additional results
          step, mode, res = _dimer_step(pes, geo, grad, mode, trans, metric, **params)
-         grad_calc += res["rot_gradient_calculations"]
+         grad_calc += res["rot_gradient_calculations"] + res["trans_gradient_calculations"]
          #print "iteration", i, error, metric.norm_down(step, geo)
          if i > 0 and error_old - error < 0:
              print "Error is growing"
-             if i > 100000:
-                break
          if i > 0:
              if dot(step, metric.lower(step_old, geo)) < 0:
                 print "Step changed direction"
          step_old = step
          geo = geo + step
-         print "Step",i , error, abs_force, res["trans_last_step_length"], res["rot_convergence"], res["rot_abs_forces"]
+         print "Step",i , pes(geo-step), abs_force, max(grad), res["trans_last_step_length"], res["curvature"], res["rot_gradient_calculations"]
          i += 1
          error_old = error
 
@@ -77,6 +309,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     # all gradient calculations makes sense
     # gradient calculations only of last rotation not so much
     del res["rot_gradient_calculations"]
+    del res["trans_gradient_calculations"]
     res["gradient_calculations"] = grad_calc
 
     # add some more results to give back
@@ -97,7 +330,6 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, metric, max_step = 
     mode_vec, dict = _rotate_dimer(pes, start_geo, geo_grad, start_mode, metric, **params)
 
     step_raw, dict_t = trans(pes, start_geo, geo_grad, mode_vec )
-    print dict["curvature"], mode_vec
 
     dict.update(dict_t)
 
@@ -110,68 +342,6 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, metric, max_step = 
 
     return step_raw * scale_step, mode_vec, dict
 
-class translate_lbfgs():
-    def __init__(self, metric):
-        """
-        Calculates a translation step of the dimer (not scaled)
-        Uses an approximated hessian hess
-
-        step is Newton (Hessian) step for grads:
-
-        g = g_0 - 2 * (g_0, m) * m
-
-        Consider metric
-
-        >>> from pts.pes.mueller_brown import MB
-        >>> from pts.metric import Default
-
-        >>> met = Default(None)
-        >>> trans = translate_lbfgs(met)
-
-        >>> start = array([-0.5, 0.5])
-        >>> mode = array([-1., 0.])
-
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
-        >>> print step
-        [-1.04187497 -0.0950339 ]
-
-        >>> trans = translate_lbfgs(met)
-        >>> start = array([-0.25, 0.75])
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
-        >>> print step
-        [-0.03655155 -3.58730495]
-        """
-        self.hess = BFGS()
-        self.old_force = None
-        self.old_geo = None
-        self.metric = metric
-
-    def __call__(self, pes, start_geo, geo_grad, mode_vector):
-        """
-        the actual step
-        """
-        force_raw = - geo_grad
-        shape = force_raw.shape
-        force_raw = force_raw.flatten()
-        mode_vec_down = self.metric.lower(mode_vector, start_geo).flatten()
-        force_para = dot(force_raw, mode_vector.flatten()) * mode_vec_down
-        force_perp = force_raw - force_para
-        force = force_perp - force_para
-        if not self.old_force == None:
-            self.hess.update(start_geo - self.old_geo, force - self.old_force)
-
-        step = self.hess.inv(force)
-        mat = self.hess.H
-        a, V = eigh(mat)
-        print a
-
-        self.old_force = force
-        self.old_geo = start_geo
-
-        dict = {"trans_abs_force" : self.metric.norm_down(force, start_geo)}
-        step.shape = shape
-
-        return step, dict
 
 def _rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance = 0.01, \
     max_rotations = 10, phi_tol = 0.001, rot_conj_gradient = True, **params):
@@ -350,9 +520,9 @@ def _rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distanc
         # do not rotate for a too small value, else the differences will be useless
         # better interpolate
         if phi1 < 0:
-            phi1 = min(-pi/4., phi1)
+            phi1 = -pi/4.
         else:
-            phi1 = max(pi/4., phi1)
+            phi1 = pi/4.
 
         # calculate values for dimer rotated for phi1
         x2, m2  = rotate_phi(mid_point, mode, dir, phi1, dimer_distance, metric)
@@ -397,6 +567,13 @@ def _rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distanc
 
     # this was the shape of the starting mode vector
     mode.shape = shape
+
+    grad = NumDiff(pes.fprime)
+    h = grad.fprime(mid_point)
+  # a, V = eigh(h)
+  # print a
+  # print l_curv
+  # print dot(V[0] - mode, V[0] - mode)
 
     res = { "rot_convergence" : conv, "rot_iteration" : i + 1,
             "curvature" : l_curv, "rot_abs_forces" : metric.norm_down(fr,mid_point),
