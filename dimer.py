@@ -15,6 +15,7 @@ class translate_cg():
     def __init__(self, metric, trial_step):
         """
         use conjugate gradient to determine in which direction to do the next step
+        conjugate gradient update as Polak Ribiere with reset for negative values
 
         >>> from pts.pes.mueller_brown import MB
         >>> from pts.metric import Default
@@ -50,11 +51,9 @@ class translate_cg():
         the actual step
         """
         # translation "force"
-        force_raw = - geo_grad
-        shape = force_raw.shape
-        force_raw = force_raw.flatten()
+        shape = geo_grad.shape
         mode_vec_down = self.metric.lower(mode_vector, start_geo).flatten()
-        force = force_raw - 2. * dot(force_raw, mode_vector.flatten()) * mode_vec_down
+        force = trans_force( -geo_grad.flatten(), mode_vector.flatten(), mode_vec_down)
 
         # find direction
         step = self.metric.raises(force, start_geo)
@@ -64,25 +63,25 @@ class translate_cg():
            old_norm = dot(self.old_force, self.metric.raises(self.old_force, self.old_geo))
            if old_norm != 0.0:
                gamma = max((dot(force - self.old_force, step) / old_norm), 0.0)
-               if gamma == 0.0: print "Reseted conjugate gradient"
+               #if gamma == 0.0: print "Reseted conjugate gradient"
            else:
                gamma = 0.0
-               print "Old Norm is zero"
+               #print "Old Norm is zero"
            step = step + gamma * self.old_step
            #self.trial_step = self.trial_step * old_norm /  dot(force, step)
-        print "Direction", step
+        #print "Direction", step
 
         # store for the next iteration:
         self.old_force = force
         self.old_step = step
         self.old_geo = start_geo
 
-        step /= self.metric.norm_down(step, start_geo)
+        step /= self.metric.norm_up(step, start_geo)
 
         # find how far to go
         # line search, first trial
-        self.trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
-        step = self.trial_step * step
+        trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
+        step = trial_step * step
 
 
         dict = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
@@ -97,25 +96,35 @@ def line_search( start_geo, direction, trial_step, pes, metric, mode_vector, for
         Find the minimum in direction from strat_geo on, uses second point
         makes quadratic approximation with the "forces" of these two points
         """
-        print dot(force, direction)
+        assert ( abs(metric.norm_up(direction, start_geo) -1.) < 1e-7)
+
         grad_calc = 0
         force_l = deepcopy(force)
         i = 0
-        t_s = trial_step
+        t_s = deepcopy(trial_step)
 
         geo = start_geo + direction * t_s
-        force_raw_trial = - pes.fprime(geo)
-        grad_calc += 1
         mode_vec_down = metric.lower(mode_vector, start_geo).flatten()
-        force_r = force_raw_trial - 2. * dot(force_raw_trial, mode_vector) * mode_vec_down
-        print dot(force_r, direction)
+        grad_calc += 1
+        force_r = trans_force( -pes.fprime(geo), mode_vector, mode_vec_down)
+        # interpolate force in middle between two steps
         f_mid = dot(force_r + force_l, direction) /2.
+        # estimate curvature in middle between two steps
         cr = dot(force_r - force_l, direction) / t_s
-        t_s = (-f_mid /cr + t_s / 2.0)
+        # search 0 = f_mid + t_s1 * cr (t_s1 starting from middle between two points)
+        t_s = (- f_mid / cr + t_s/ 2.0)
 
-        trial_step = t_s
+        return t_s, grad_calc
 
-        return trial_step, grad_calc
+def trans_force(force_raw_trial, mode_vector, mode_vector_down):
+    """
+    Force used for translation
+    F = F_perp - F_para
+    F_perp = F_old - F_para
+    F_para = (F_old, mode) * mode
+    """
+    return force_raw_trial - 2. * dot(force_raw_trial, mode_vector) * mode_vector_down
+
 
 class translate_lbfgs():
     def __init__(self, metric):
@@ -173,7 +182,6 @@ class translate_lbfgs():
         step = self.hess.inv(force)
         mat = self.hess.H
         a, V = eigh(mat)
-        print a
 
         self.old_force = force
         self.old_geo = start_geo
@@ -225,9 +233,10 @@ class translate_sd():
 
         # actual steepest decent step
         step = self.metric.raises(force, start_geo)
+        step /= sqrt(dot(step, force))
 
-        self.trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
-        step = self.trial_step * step
+        trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
+        step = trial_step * step
 
         step.shape = shape
 
@@ -298,7 +307,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
                 print "Step changed direction"
          step_old = step
          geo = geo + step
-         print "Step",i , pes(geo-step), abs_force, max(grad), res["trans_last_step_length"], res["curvature"], res["rot_gradient_calculations"]
+         #print "Step",i , pes(geo-step), abs_force, max(grad), res["trans_last_step_length"], res["curvature"], res["rot_gradient_calculations"]
          i += 1
          error_old = error
 
@@ -568,12 +577,12 @@ def _rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distanc
     # this was the shape of the starting mode vector
     mode.shape = shape
 
-    grad = NumDiff(pes.fprime)
-    h = grad.fprime(mid_point)
-  # a, V = eigh(h)
-  # print a
-  # print l_curv
-  # print dot(V[0] - mode, V[0] - mode)
+   #grad = NumDiff(pes.fprime)
+   #h = grad.fprime(mid_point)
+   #a, V = eigh(h)
+   #print "EIGENMODES", a
+   #print l_curv
+   #print "Difference to lowest mode", dot(V[0] - mode, V[0] - mode), a[0] - l_curv
 
     res = { "rot_convergence" : conv, "rot_iteration" : i + 1,
             "curvature" : l_curv, "rot_abs_forces" : metric.norm_down(fr,mid_point),
