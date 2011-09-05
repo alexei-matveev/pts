@@ -47,14 +47,17 @@ from ase.optimize import *  # to recognise the optimizers lateron
 import pts.tools.findlimitpath
 import pts.tools.jmol
 import pts.tools.makepath
-import pts.tools.path2plot
 import pts.tools.path2xyz
 import pts.tools.pp2tserr
-import pts.tools.tab2plot
 import pts.tools.tsestandmods
 import pts.tools.xyz2tabint
 import pts.vib
 import pts.path_searcher
+
+optic_methods = {
+   "tab2plot"        : True       ,
+   "path2plot"       : True       ,
+}
 
 methods = {
    "path_searcher"   : pts.path_searcher.main  ,
@@ -62,10 +65,8 @@ methods = {
    "find_limit_path" : pts.tools.findlimitpath.main  ,
    "jmol"            : pts.tools.jmol.main           ,
    "make_path"       : pts.tools.makepath.main       ,
-   "path2plot"       : pts.tools.path2plot.main      ,
    "path2xyz"        : pts.tools.path2xyz.main       ,
    "pp2ts_err"       : pts.tools.pp2tserr.main       ,
-   "tab2plot"        : pts.tools.tab2plot.main       ,
    "ts_and_mods"     : pts.tools.tsestandmods.main   ,
    "xyz2tab"         : pts.tools.xyz2tabint.main
 }
@@ -112,6 +113,13 @@ def main(argv):
     if cmd in methods.keys():
         valid_cmd = True
         cmd_main = methods[cmd]
+        cmd_main(argv[1:])
+
+    if cmd in optic_methods.keys():
+        from pts.tools.path2plot import main as path2plot
+        from pts.tools.tab2plot import main as tab2plot
+        valid_cmd = True
+        cmd_main = cmd
         cmd_main(argv[1:])
 
     if not valid_cmd:
