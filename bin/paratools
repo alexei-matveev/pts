@@ -18,19 +18,19 @@ where CMD is one of the following:
     string              String optimization, similar to NEB
     growingstring
     searchingstring
-    path_searcher       Is capable of doing all of the above
+    path-searcher       Is capable of doing all of the above
 
-    make_path           interpolate a path without optimizing it
+    make-path           interpolate a path without optimizing it
     jmol                show interpolated path with jmol
 
-    find_limit_path     Find first appearance where some limits are met
+    find-limit-path     Find first appearance where some limits are met
                         in the output logfile
     path2plot           internal coordinate plot for some path
     path2xyz            convert path to xyz file(s)
     xyz2tab             get internal coordinates from xyz-file(s)
     tab2plot            plots a tabular as given by xyz2tab
-    ts_and_mods         Shows TS estimates and mode vector for a path
-    pp2ts_err           see error of ts_estimates of path to real TS
+    ts-and-mods         Shows TS estimates and mode vector for a path
+    pp2ts-err           see error of ts_estimates of path to real TS
                         (given also as input)
 
 See subcommand specific help for syntax details.
@@ -60,13 +60,18 @@ optic_methods = {
 }
 
 methods = {
+   "path-searcher"   : pts.path_searcher.main  ,
    "path_searcher"   : pts.path_searcher.main  ,
    "frequencies"     : pts.vib.main                  ,
+   "find-limit-path" : pts.tools.findlimitpath.main  ,
    "find_limit_path" : pts.tools.findlimitpath.main  ,
    "jmol"            : pts.tools.jmol.main           ,
+   "make-path"       : pts.tools.makepath.main       ,
    "make_path"       : pts.tools.makepath.main       ,
    "path2xyz"        : pts.tools.path2xyz.main       ,
+   "pp2ts-err"       : pts.tools.pp2tserr.main       ,
    "pp2ts_err"       : pts.tools.pp2tserr.main       ,
+   "ts-and-mods"     : pts.tools.tsestandmods.main   ,
    "ts_and_mods"     : pts.tools.tsestandmods.main   ,
    "xyz2tab"         : pts.tools.xyz2tabint.main
 }
