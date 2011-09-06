@@ -532,8 +532,7 @@ def unpickle_path(file):
     symbols, int2cart = at_object
     return coord, pathps, energy, gradients, symbols, int2cart
 
-
-def read_path_fix( symbfile, zmatifiles = None, maskfile = None, maskedgeo = None ):
+def read_path_fix(symbfile, zmatifiles = None, maskfile = None, maskedgeo = None):
     """
     If not stored in a pickle.path it does not makes too much sense to give
     unchangeable things for every geoemtry, thus separate them
