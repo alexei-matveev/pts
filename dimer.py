@@ -72,9 +72,11 @@ class translate_cg():
         #print "Direction", step
 
         # store for the next iteration:
-        self.old_force = force
-        self.old_step = step
-        self.old_geo = start_geo
+        # FIXME: make copy else the next iteration will have for at least one of them wrong
+        # value and convert this to a steepest decent calculation
+        self.old_force = deepcopy(force)
+        self.old_step = deepcopy(step)
+        self.old_geo = deepcopy(start_geo)
 
         step /= self.metric.norm_up(step, start_geo)
 
