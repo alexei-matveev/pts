@@ -518,9 +518,9 @@ class PathTools:
 from copy import deepcopy, copy
 from pickle import load, dump
 
-def pickle_path(coord, pathps, energy, gradients, ch_symbols, int2cart, file):
+def pickle_path(coord, pathps, energy, gradients, symbols, int2cart, file):
     tuple = coord, pathps, energy, gradients
-    cs = (ch_symbols, int2cart)
+    cs = (symbols, int2cart)
     f = open(file, 'wb')
     dump((tuple, cs), f, protocol=2)
     f.close()
