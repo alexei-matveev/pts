@@ -115,12 +115,12 @@ def main(argv):
         # print "pts: call pathsearcher(", argv1, ")"
         pathsearcher(argv1)
 
-    if cmd in methods.keys():
+    if cmd in methods:
         valid_cmd = True
         cmd_main = methods[cmd]
         cmd_main(argv[1:])
 
-    if cmd in optic_methods.keys():
+    if cmd in optic_methods:
         from pts.tools.path2plot import main as path2plot
         from pts.tools.tab2plot import main as tab2plot
         valid_cmd = True
