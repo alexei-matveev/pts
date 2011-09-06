@@ -251,7 +251,18 @@ def find_path(pes, init_path
         #
         # Alternative optimizer:
         #
-        geometries, stats = soptimize(pes, init_path, maxiter=20, maxstep=0.1, callback=cb)
+
+        # FIXME: this "if" is ugly. Either assume len(init_path) is
+        #        equal to (then redundant) bead count. Or expect an
+        #        interpolation Path as input.
+        if len(init_path) != beads_count:
+            from pts.path import Path
+            from numpy import linspace
+            ypath = map(Path(init_path), linspace(0., 1., beads_count))
+        else:
+            ypath = array(init_path) # makes a copy
+
+        geometries, stats = soptimize(pes, ypath, maxiter=40, maxstep=0.1, callback=cb)
         _, converged, _, _ = stats
         abscissa  = None
         energies, gradients = zip(*map(pes.taylor, geometries))
