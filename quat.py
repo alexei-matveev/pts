@@ -742,7 +742,7 @@ def unit(v):
 def M(x):
     "M_ij = delta_ij - x_i * x_j / x**2"
     n = unit(x)
-    return eye(3) - outer(n, n)
+    return eye(len(n)) - outer(n, n)
 
 def E(x):
     """E_ij = epsilon_ijk * x_k (sum over k)
@@ -752,6 +752,9 @@ def E(x):
          [-3.  0.  1.]
          [ 2. -1.  0.]]
     """
+
+    assert(len(x) == 3)
+
     e = zeros((3,3))
 
     e[0, 1] = x[2]
