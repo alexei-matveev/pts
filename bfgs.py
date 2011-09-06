@@ -168,6 +168,16 @@ def _bfgsH(H, s, y, thresh=None):
     H += outer(s, s) * ((1.0 + dot(y, z)) / r) - outer(s, z) - outer(z, s)
 
 #
+# NOTE: DFP update formula for direct hessian B coincides with
+#       BFGS formula for inverse hessian H and vice versa:
+#
+#       _dfpB = _bfgsH
+#       _dfpH = _bfgsB
+#
+# In part for this reason DFP update is not implemented here.
+#
+
+#
 # Hessian models below should implement at least update() and inv() methods.
 #
 class LBFGS:
@@ -198,6 +208,14 @@ class LBFGS:
 
         B0:     Initial (diagonal) approximation of *direct* Hessian.
                 Note that this is never changed!
+
+                FIXME: maybe use
+
+                    H = (y' * s ) / (y' * y )
+                     0
+
+                as a diagonal approximation prior to first update?
+                See "Numerical Optimization", J. Nocedal.
 
         memory: int
                 Number of steps to be stored. Three numpy
@@ -479,9 +497,6 @@ class Hughs_Hessian:
             self.B = eye(len(s)) * self.B0
 
         return dot(self.B, s)
-
-
-
 
 class Array:
     """Array/List of hessians, e.g. for a string method.
