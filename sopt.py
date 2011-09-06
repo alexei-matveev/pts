@@ -245,7 +245,7 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
     G0 = None
 
     # initial value for the variable:
-    R = asarray(X).copy() # we are going to modify it!
+    R = array(X) # we are going to modify it!
 
     iteration = -1 # prefer to increment at the top of the loop
     converged = False
