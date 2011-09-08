@@ -18,6 +18,11 @@ would be 7
 if given more than two geometries, the path will go
 though all of them.
 
+if the format of the input cannot be guessed by ASE from the name
+of the geometry file (and it is not xyz) one can give the format
+specific by saying --format <format> using one of the short names defined
+by ASE, e.g. gx for gxfile and vasp for POSCAR.
+
 if interpolation is wanted in internal coordinates,
 add --zmat ZMAT
 where the zmatrix in ZMAT (can be generated in ag),
@@ -46,18 +51,26 @@ coordinates.
 some additional paramters contain the output:
 If none of them  is set the output will in xyz format to the
 stdout
-  --pos:      the output will be given as poscars in (direct)
-            style as POSCAR0 to POSCARN
-  --allcoord: This way all the coordinates in internal and
-            Cartesian will be given to the stdout
-            (in Cartesian interpolation they are the same)
+  --pos            : the output will be given as poscars in (direct)
+                     style as POSCAR0 to POSCARN
+  --formatout <out>: output will be given in files with format
+                     <out>, files will be named coords0 to coordsN
+  --allcoord       : This way all the coordinates in internal and
+                     Cartesian will be given to the stdout
+                     (in Cartesian interpolation they are the same)
+  --pickle         : The output will be put in a path.pickle file, as
+                     it is used for easier access to the functionalities
+                     of some of the other programs (path2plot ..) be aware
+                     that the energy and force informations are only given
+                     as None. The file is called make_path.path.pickle
 """
 
 import sys
 from ase.io import write
 from pts.io.read_inputs import get_geos, ensure_short_way
 from pts.path import Path
-from numpy import linspace
+from pts.tools.pathtools import pickle_path
+from numpy import linspace, array
 
 def main(args):
 
@@ -79,7 +92,10 @@ def main(args):
              break
         if args[0] == "--pos":
              output = 1
+             format = "vasp"
              #print "set POSCAR's as output!"
+             # using direct coordinates, for Cartesian coordinates
+             # use the normal foramtout
              args = args[1:]
         elif args[0] == "--allcoord":
              output = 2
@@ -100,6 +116,13 @@ def main(args):
              # The variables in the zmat may not be set yet
              #then do this as service
              zmts.append(zmts1)
+        elif args[0] == "--formatout":
+             format = args[1]
+             output = 3
+             args = args[2:]
+        elif args[0] == "--pickle":
+             output = 4
+             args = args[1:]
 
         #the two files for the minima
         else:
@@ -121,12 +144,16 @@ def main(args):
         else:
             print "Interpolation between M1 and M2 in internals:"
 
+    xs = []
+    ys = []
     for i, x in enumerate(linspace(0., 1., steps)):
         if output == 2:
             print "Path coordinate of step  =" , x
+        xs.append(x)
 
         # path object can be called with path coordinate as input:
         y = ipm1m2(x)
+        ys.append(y)
         if output == 2:
             print "Internal coordinates ="
             print y
@@ -141,9 +168,15 @@ def main(args):
         # coordinates are written out in xyz or poscar format
         # for the last make sure, that the cell is set in the inputs
         if output == 1:
-            write("POSCAR%i" % i, mol, format="vasp", direct = "True")
+            write("POSCAR%i" % i, mol, format = format, direct = "True")
+        elif output == 3:
+            write("coords%i" % i, mol, format = format)
         elif output == 0:
             write("-" , mol)
+
+    if output == 4:
+        pickle_path(array(ys), array(xs), None, None, \
+         mol.get_chemical_symbols(), funcart, "make_path.path.pickle")
 
 if __name__ == "__main__":
     main(sys.argv[1:])
