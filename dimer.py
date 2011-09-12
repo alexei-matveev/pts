@@ -254,7 +254,7 @@ trans_dict = {
              }
 
 def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_gradients = None, \
-       trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.7,   **params):
+       trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.001,   **params):
     """ The complete dimer algorithm
     Parameters for rotation and translation are handed over together. Each of the two
     grabs what it needs.
@@ -331,7 +331,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
 
     return geo, res
 
-def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, metric, max_step = 0.265, scale_step = 1.0, **params):
+def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, metric, max_step = 0.1, scale_step = 1.0, **params):
     """
     Calculates the step the dimer should take
     First improves the mode start_mode to mode_vec to identify the dimer direction
@@ -354,8 +354,8 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, metric, max_step = 
     return step_raw * scale_step, mode_vec, dict
 
 
-def _rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance = 0.01, \
-    max_rotations = 10, phi_tol = 0.001, rot_conj_gradient = True, **params):
+def _rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance = 0.0001, \
+    max_rotations = 10, phi_tol = 0.1, rot_conj_gradient = True, **params):
     """
     Rotate the dimer to the mode of lowest curvature
 
