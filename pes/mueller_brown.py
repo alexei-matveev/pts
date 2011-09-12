@@ -92,6 +92,24 @@ and PES saddle points:
 The true TS between b and c is at (0.212, 0.293)
 with the energy -72.249 according to MB79.
 
+Test also dimer:
+    >>> from pts.dimer import dimer
+    >>> from pts.metric import Default
+
+    >>> res, dict = dimer(MB, array([0.2, 0.3]), array([0.,1.]),
+    ... Default(), dimer_distance = 0.001, trial_step = 0.0003,
+    ... start_step_length = 0.01, max_step = 0.001 )
+
+    We got the positions:
+    >>> print res
+    [ 0.21248678  0.29298841]
+
+    But it has reached convergence
+    >>> dict["trans_convergence"]
+    True
+    >>> energy(res)
+    -72.248940112313363
+
 But for another TS approximation between minima a and b
 the guess is much worse:
 
@@ -214,6 +232,21 @@ This is not much different from the previous result, 0.30661623.
 
     >>> -e(0.30661623), -e1(0.30661623)
     (-12.676228284381487, -12.632359891279457)
+
+Test also dimer:
+    >>> res, dict = dimer(MB, array([-0.7, 0.5]), array([0.,1.]),
+    ... Default(), dimer_distance = 0.001,
+    ... start_step_length = 0.0003, max_step = 0.005 )
+
+    We got the positions:
+    >>> print res
+    [-0.82200157  0.62431284]
+
+    But it has reached convergence
+    >>> dict["trans_convergence"]
+    True
+    >>> energy(res)
+    -40.664843508657611
 """
 __all__ = ["energy", "gradient"] # "MuellerBrown"]
 
