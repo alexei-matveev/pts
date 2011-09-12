@@ -35,6 +35,7 @@ src =	\
 	metric.py \
         threepointmin.py \
 	cfunc.py \
+	dimer.py \
 	srcio \
 	srcpes \
 	srccosopt \

@@ -32,7 +32,7 @@ class translate_cg():
 
         >>> step, dict = trans(MB, start + step, MB.fprime(start + step), mode)
         >>> print step
-        [ 0.64788906 -0.24663059]
+        [ 2.67119938 -1.01683994]
 
         >>> trans = translate_cg(met, 0.5)
         >>> start = array([-0.25, 0.75])
@@ -154,7 +154,7 @@ class translate_lbfgs():
         [-1.04187497 -0.0950339 ]
         >>> step, dict = trans(MB, start + step, MB.fprime(start + step), mode)
         >>> print step
-        [-4157.56285284  -445.26019983]
+        [-1.64446852  0.58609414]
 
         >>> trans = translate_lbfgs(met)
         >>> start = array([-0.25, 0.75])
@@ -212,13 +212,13 @@ class translate_sd():
 
         >>> step, dict = trans(MB, start, MB.fprime(start), mode)
         >>> print step
-        [-72.93124759  -6.65237324]
+        [-1.64564686 -0.15010654]
 
         >>> trans = translate_sd(met, tr_step)
         >>> start = array([-0.25, 0.75])
         >>> step, dict = trans(MB, start, MB.fprime(start), mode)
         >>> print step
-        [  -2.55860839 -251.11134643]
+        [-0.00256136 -0.25138143]
         """
         self.metric = metric
         self.trial_step = trial_step
