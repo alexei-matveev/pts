@@ -1457,7 +1457,7 @@ class GrowingString(ReactionPathway):
 
         if new_i == self.beads_count - 2:
             moving_beads = [new_i-2, new_i-1, new_i]
-        elif new_i == 0:
+        elif new_i == 1:
             moving_beads = [new_i+1, new_i+2, new_i+3]
         else:
             moving_beads = [new_i-1, new_i, new_i+1]
