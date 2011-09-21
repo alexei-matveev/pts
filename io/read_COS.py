@@ -1,7 +1,66 @@
 #!/usr/bin/env python
+"""
+GEOMETRY
+
+Geometries can be provided as files, which can be interpreted by ASE. This
+includes xyz-, POSCAR, and gx-files. File format is in part determied from the
+file name or extension, e.g. POSCAR and gx-files by the presence of "POSCAR" or
+"gx" substrings. If the format is not extractable from the filename it can be
+given as an addtional parameter as --format <format> . The Values for <format>
+are gx or are in the list of short names in the ASE documentation.
+
+If the calculation should be done in internal (or mixed coordinate system) one gives
+the geometries in cartesians  and specifies additionally the zmatrix/zmatrices
+They will then be given by writing --zmatrix zmat_file. It is supposed that the first atom
+of each zmatrix is the uppermost not yet used atom of all atoms given.
+
+ZMATRIX
+
+A zmatrix may look something like:
+
+""
+C
+H 1 var1
+H 1 var2 2 var3
+H 1 var4 2 var5 3 var6
+H 1 var7 2 var8 4 var9
+""
+
+The first element of each line is supposed to be the name of the atom. Then
+follows the connectivity matrix, where for each appearing variable a name is
+given. The connectivities are given by the line number of the atom, starting
+with 1. First variable is always the length, second the angle and third the
+dihedral angle. If variable names appear more than once these variables are set
+to the same value. Giving a variable name as another variable name with a
+"-" in front of it, the values are always set to the negative of the other
+variable.
+
+ADDITIONAL GEOMETRY RELATED INFORMATIONS:
+
+Additional informations can be taken from the minima ASE inputs. The ASE atoms
+objects may contain more informations than only the chemical symbols and the
+geometries of the wanted object. For example if reading in POSCARs there are
+additional informations as about the cell (pbc would be also set automatically
+to true in all directions). This informations can also be read in,
+if they are available. Then they can be used for specifiying the quantum chemical
+calculator. So VASP for instance needs a proper cell.
+They are only used, if these variables are not provided another way (by direct
+setting them for instance).
+
+Additionally ASE can hold some constraints, which may be
+taken from a POSCAR or set directly. Some of them can be also used to generate
+a mask. This is only done if cartesian coordinates are used further on. They are
+not used if a mask is specified directely.
+"""
 from ase.io import read as read_ase
 from pts.common import file2str
 import re
+
+geo_params = ["format", "calculator", "mask", "pbc", "cell"]
+
+def info_geometries():
+    print __doc__
+
 
 def read_geos_from_file(geom_files, format):
     """

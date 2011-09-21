@@ -1,144 +1,45 @@
 #!/usr/bin/env python
 """
-This tool is the interface to the string and NEB methods.
+This tool is the interface to the string and NEB methods. As they all share
+the same interface there is only this one for all of them, thus
+  paratools string --help
+  paratools path-searcher --help
+
+and so on will all lead here
 
 Usage:
 
-  pathsearcher.py --calculator CALC GEOM1 GEOM2
+  paratools string --calculator CALC GEOM1 GEOM2
+  paratools neb --calculator CALC GEOM1 GEOM2
+  paratools searchingstring --calculator CALC GEOM1 GEOM2
+  paratools growingstring --calculator CALC GEOM1 GEOM2
 
 For either string or NEB methods one needs to specify at least two geometries
 and the calculator.
 
 GEOMETRY
 
-Geometries can be provided as files, which can be interpreted by ASE. This
-includes xyz-, POSCAR, and gx-files. File format is in part determied from the
-file name or extension, e.g. POSCAR and gx-files by the presence of "POSCAR" or
-"gx" substrings. If the format is not extractable from the filename it can be
-given as an addtional parameter as --format <format> . The Values for <format>
-are gx or are in the list of short names in the ASE documentation.
+Geometries can be provided as files, which can be interpreted by ASE.
+They can be given in Cartesian coordinates files. Additionally the coordinates
+used during the optimization can be set to internal or mixed ones.
 
-If the calculation should be done in internal (or mixed coordinate system) one gives
-the geometries in cartesians  and specifies additionally the zmatrix/zmatrices
-They will then be given by writing --zmatrix zmat_file. It is supposed that the first atom
-of each zmatrix is the uppermost not yet used atom of ones given.
+To learn more about the possible geometry input and about the zmatrices do:
 
-ZMATRIX
-
-A zmatrix may look something like:
-
-""
-C
-H 1 var1
-H 1 var2 2 var3
-H 1 var4 2 var5 3 var6
-H 1 var7 2 var8 4 var9
-""
-
-The first element of each line is supposed to be the name of the atom. Then
-follows the connectivity matrix, where for each appearing variable a name is
-given. The connectivities are given by the line number of the atom, starting
-with 1. First variable is always the length, second the angle and third the
-dihedral angle. If variable names appear more than once these variables are set
-to the same value. Giving a variable name as another variable name with a
-"-" in front of it, the values are always set to the negative of the other
-variable.
+  paratools path-searcher --help geometries
 
 SETTING PARAMETERS
 
-Many other parameters affect the program execution. To get a list of default
-parameters execute
+The calculator is a compulsory parameter. Next to the geometry parameter there
+are many others which affect the program execution. It is only required to set them
+if they should be changed from the default values.
 
-  pathsearcher.py --defaults
+To get a list and explaination how to use them do:
 
-Some parameters may be set in two ways: a) by specifying a
+  paratools path-searcher --help parameter
 
-  parameter = value
+To see a list of their default values do:
 
-pair in the so called "paramfile" at location specified in the command line
-
-  --paramfile location
-
-or b) from the command line by specifying a pair
-
-  --parameter value
-
-This latter works only for parameters which take a string, a float or an
-integer. The column "ch" in the table below tells you if the parameter could be
-set in the command line. For example
-
-  --paramfile params.py --method neb
-
-would set the parameter "method" to "neb". Command line options have higher
-precedence than the settings in "paramfile", so that setting
-
-  method = "string"
-
-in the file "params.py" located in the current directory would have no effect.
-
-There exists:
-Parameter    ch     short description
-------------------------------------------------
- "method"  yes      what calculation is really wanted, like neb, string,
-                    growingstring or searchingstring, if using paratools <method> this
-                    is set automatically
- "opt_type"  yes    what kind of optimizer is used for changing the geometries
-                    of the string, as default the new multiopt is used for the
-                    string methods, while neb is reset to ase_lbgfs
- "pmax"      yes    maximal number of CPUs per bead, with our workarounds normaly
-                    only indirect used
- "pmin"      yes    minimal number of CPUs per bead, with our workarounds normaly
-                    only indirect used
- "cpu_architecture" no  descriebes the computer architecture, which should be used,
-                    with our workaround only indirect used, pmax, pmin and
-                    cpu_architecture should be adapted to each other
- "name"      yes    the name of the calculation, appears as basis of the names
-                    for all the output, needn't be set, as a default it takes
-                    the cos_type as name
- "calculator" no    the quantum chemstry program to use, like Vasp or ParaGauss
- "placement"  no    executable function for placing processes on beads, only
-                    used for advanced calculations
- "cell"       no    the cell in which the molecule is situated
- "pbc"        no    which cell directions have periodic boundary conditions
- "mask"       no    which of the given geometry variables are supposed to be
-                    changed (True) and which should stay fix during the
-                    calculation (False), should be a string containing for each
-                    of the variables the given value. The default does not set
-                    this variable and then all of them
-                    are optimized
- "beads_count" yes  how many beads (with the two minima) are there at maximum
-                    (growingstring and searchingstring start with less)
- "ftol"       yes   the force convergence criteria, calculation stops if
-                    RMS(force) < ftol
- "xtol"       yes   the step convergence criteria, only used if force has at
-                    least ftol * 10
- "etol"       yes   energy convergence criteria, not really used
- "maxit"      yes   if the convergence criteria are still not met at maxit
-                    iterations, the calculation is stopped anyhow
- "maxstep"    yes   the maximum step a path can take
- "spring"  yes   the spring constant, only needed for neb
- "pre_calc_function"  no function for precalculations, for gaussian ect.
- "output_level" yes the amount of output is decided here
-                       0  minimal output, not recommended
-                          only logfile, geometries of the beads for the last
-                          iteration (named Bead?) and the output needed for
-                          the calculation to run
-                       1  recommended output level (default) additional the
-                          ResultDict.pickle (usable for rerunning or extending the
-                          calculation without having to repeat the quantum
-                          chemical calculations) and a path.pickle of the last
-                          path, may be used as input for some other tools,
-                          stores the "whole" path at it is in a special foramt
-                       2  additional a path.pickle for every path, good if
-                          development of path is
-                          wanted to be seen (with the additional tools)
-                       3  some more output in every iteration, for debugging ect.
-
- "output_path"   yes   place where most of the output is stored, thus the
-                       working directory is not filled up too much
- "output_geo_format" yes ASE format, to write the outputgeometries of the
-                       last iteration to is xyz as default, but can be changed
-                       for example to gx or vasp (POSCAR)
+  paratools path-searcher --defaults
 
 Additional informations can be taken from the minima ASE inputs. The ASE atoms
 objects may contain more informations than only the chemical symbols and the
@@ -209,19 +110,20 @@ EXAMPLES
 
 A minimal one:
 
-  pathsearcher.py --calculator default_lj left.xyz right.xyz
+  paratools searchingstring --calculator default_lj left.xyz right.xyz
 
 Having several POSCAR's for the inital path (from POSCAR0 to POSCAR11). A
 parameterfile (called params.py) should hold some parameters, so especially the
-calculator) but ftol is anyway 0.07
+calculator) but ftol is anyway 0.07.
 
-  pathsearcher.py --paramfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
+  paratools searchingstring --paramfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
 """
 import ase
 from copy import deepcopy
-from pts.defaults import default_params, are_floats, are_ints
+from pts.defaults import default_params, are_floats, are_ints, info_params
 from pts.common import file2str
-from pts.io.read_COS import read_geos_from_file, read_zmt_from_file
+from pts.io.read_COS import read_geos_from_file, read_zmt_from_file, geo_params
+from pts.io.read_COS import info_geometries
 from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
 from pts.zmat import ZMat
 from pts.quat import Quat, uquat, quat2vec
@@ -564,7 +466,12 @@ def interpret_sysargs(rest):
     """
 
     if "--help" in rest:
-        print __doc__
+        if "geometries" in rest:
+            info_geometries()
+        elif "parameter" in rest:
+            info_params()
+        else:
+            print __doc__
         exit()
 
     if "--defaults" in rest:
