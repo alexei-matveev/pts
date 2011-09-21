@@ -131,6 +131,7 @@ from numpy import array, pi, loadtxt
 from numpy.linalg import norm
 from pts.qfunc import constraints2mask
 from pts.io.cmdline import get_calculator, get_mask
+from pts.defaults import default_params
 
 def interprete_input(args):
     """
@@ -138,17 +139,17 @@ def interprete_input(args):
     interpretes it
     """
     # first read in geometries and sort parameter
-    geos, geo_dict, zmat, add_param, direct_path, paramfile = interpret_sysargs(args)
+    geos, geo_dict2, zmat, add_param, direct_path, paramfile = interpret_sysargs(args)
     # noverwrite by those given in parameter file
     if not paramfile == None:
-        params_dict = from_params_file( paramfile)
+        params_dict, geo_dict = from_params_file( paramfile, default_params)
     else:
         params_dict = {}
+        geo_dict = {}
 
     # this way dirct paramter have preferance (will overwrite the ones from the file)
     params_dict.update(add_param)
-    if "mask" in params_dict:
-        geo_dict["mask"] = params_dict["mask"]
+    geo_dict.update(geo_dict2)
     # geometries are given in Cartesian, here transform them to internals
     # calculator for forces, internal start path, function to transform internals to Cartesian coordinates,
     # the numbers where dihedrals are, which of the function parts have global positions, how many
@@ -233,6 +234,11 @@ def get_cartesian_geos(geos, dc):
     if "calculator" in dc:
           calculator = get_calculator(dc["calculator"])
           at.set_calculator(calculator)
+
+    if "cell" in dc:
+          at.set_cell(dc["cell"])
+    if "pbc" in dc:
+          at.set_pbc(dc["pbc"])
 
     return at, geo_carts
 
@@ -511,12 +517,17 @@ def interpret_sysargs(rest):
             elif o in ("init_path"):
                 # zmatrix if given separate to the geometries
                 direct_path = loadtxt(a)
-            elif o in ("format", "calculator"):
+            elif o in geo_params:
                 # only needed to build up the geometry
-                geo_dict[o] = a
-            elif o in ("mask"):
-                # needed to build up the geometry and wanted for params output
-                add_param[o] = get_mask(a)
+              if o in ("mask"):
+                   # needed to build up the geometry and wanted for params output
+                  geo_dict[o] = get_mask(a)
+              elif o in ("cell", "pbc"):
+                  geo_dict[o] = eval(a)
+              else:
+                  geo_dict[o] = a
+            elif o in ("pmap"):
+                add_param[o] = eval(a)
             else:
                 assert(o in default_params)
                 # suppose that the rest are setting parameters
@@ -547,7 +558,7 @@ def create_params_dict(new_params):
     for key in new_params:
         if key in params_dict:
             params_dict[key] = new_params[key]
-        elif key in ["workhere"]:
+        elif key in ["workhere", "pmap"]:
             params_dict[key] = new_params[key]
         else:
             print "ERROR: unrecognised variable in parameter"
@@ -576,7 +587,7 @@ def create_params_dict(new_params):
 
     return params_dict
 
-def from_params_file( lines):
+def from_params_file( lines, default_params):
     """
     overwrite params in the params dictionary with the params
     specified in the string lines (can be the string read from a params file
@@ -588,8 +599,8 @@ def from_params_file( lines):
     # so that the calculators from there can be used
 
     # execute the string, the variables should be set in the locals
-    from pts.defaults import default_params
     params_dict = {}
+    geo_dict = {}
 
     glob_olds = locals().copy()
     print glob_olds.keys()
@@ -602,7 +613,9 @@ def from_params_file( lines):
              if param == "glob_olds":
                  # There is one more new variable, which is not wanted to be taken into account
                  pass
-             elif param not in default_params:
+             elif param in geo_params:
+                 geo_dict[param] = glob[param]
+             elif param not in default_params or param == "pmap":
                  # this parameter are set during exec of the parameterfile, but they are not known
                  print "WARNING: unrecognised variable in parameter input file"
                  print "The variable", param," is unknown"
@@ -610,7 +623,7 @@ def from_params_file( lines):
                  # Parameters may be overwritten by the fileinput
                  params_dict[param] = glob[param]
 
-    return params_dict
+    return params_dict, geo_dict
 
 if __name__ == "__main__":
     import doctest
