@@ -157,7 +157,7 @@ def interprete_input(args):
     # dihedrals and quaternions have 2pi periodicity, adapt them if needed
     init_path = ensure_short_way(init_path, dih, quats, lengt)
     # if a mask has been provided, some variables are not optimized
-    funcart, init_path = get_masked(funcart, atoms, geo_dict, zmat == None, init_path)
+    funcart, init_path = get_masked(funcart, atoms, geo_dict, zmat == [], init_path)
     # if the path in interals is given directly, this should be respected:
     if direct_path is not None:
        init_path = direct_path
