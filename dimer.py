@@ -279,6 +279,8 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     grad_calc = 0
     error_old = 0
 
+    # Give some report during dimer optimization
+    print "Iteration  ABS. Force Max. Force    Step  Rot. Steps.  curvature  Rot. Conv."
     i = 0
     # main loop:
     while i < max_translation:
@@ -304,11 +306,14 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          step, mode, res = _dimer_step(pes, geo, grad, mode, trans, metric, **params)
          grad_calc += res["rot_gradient_calculations"] + res["trans_gradient_calculations"]
          #print "iteration", i, error, metric.norm_down(step, geo)
-         if i > 0 and error_old - error < 0:
-             print "Error is growing"
-         if i > 0:
-             if dot(step, metric.lower(step_old, geo)) < 0:
-                print "Step changed direction"
+         print "    %i        %5.3f       %5.3f      %5.3f    %i           %5.3f     " % \
+               (i, abs_force, error, metric.norm_up(step, geo), (res["rot_gradient_calculations"] + 1 ) / 2,\
+                     res["curvature"]), res["rot_convergence"]
+        #if i > 0 and error_old - error < 0:
+        #    print "Error is growing"
+        #if i > 0:
+        #    if dot(step, metric.lower(step_old, geo)) < 0:
+        #       print "Step changed direction"
          step_old = step
          geo = geo + step
          #print "Step",i , pes(geo-step), abs_force, max(grad), res["trans_last_step_length"], res["curvature"], res["rot_gradient_calculations"]
