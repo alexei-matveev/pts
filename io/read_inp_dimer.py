@@ -159,4 +159,4 @@ def read_dimer_input(rest):
     pes = compose(QFunc(atoms, calc = atoms.get_calculator()), funcart)
 
     #Attention inital mode need not be normed (and cannot as metric is not yet known)
-    return pes, start_geo, init_mode, params_dict
+    return pes, start_geo, init_mode, params_dict, atoms, funcart

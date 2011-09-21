@@ -5,6 +5,7 @@ from pts.bfgs import LBFGS, BFGS, SR1
 from scipy.linalg import eigh
 from pts.func import NumDiff
 from pts.metric import Default
+from ase.io import write
 """
 dimer method:
 
@@ -640,12 +641,26 @@ def curv(g0, g1, m, d, met, mid):
 
 def main(args):
     from pts.io.read_inp_dimer import read_dimer_input
-    pes, start_geo, start_mode, params = read_dimer_input(args[1:])
+    pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:])
     metric = Default()
     start_mode = start_mode / metric.norm_up(start_mode, start_geo)
     geo, res = dimer(pes, start_geo, start_mode, metric, **params)
+
+    print ""
+    print ""
+    print "Results as given back from dimer routine"
     print geo
     print res
+    print ""
+    print "Results DIMER calculation:"
+    print "Dimer converged: ", res["trans_convergence"]
+    print "Forces left (RMS):", res["abs_force"]
+    print "Number of gradient calculations:", res["gradient_calculations"]
+    print "Mode at last iteration:"
+    print res["mode"]
+    print "Final geometry:"
+    atoms.set_positions(funcart(geo))
+    write("-", atoms)
 
 # python dimer.py [-v]:
 if __name__ == "__main__":
