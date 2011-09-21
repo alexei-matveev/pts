@@ -1,8 +1,10 @@
+#!/usr/bin/python
 from numpy import dot, array, sqrt, arctan, sin, cos, pi, zeros
 from copy import deepcopy
 from pts.bfgs import LBFGS, BFGS, SR1
 from scipy.linalg import eigh
 from pts.func import NumDiff
+from pts.metric import Default
 """
 dimer method:
 
@@ -201,7 +203,6 @@ class translate_sd():
         use steepest decent to determine in which direction to do the next step
 
         >>> from pts.pes.mueller_brown import MB
-        >>> from pts.metric import Default
 
         >>> tr_step = 0.3
         >>> met = Default(None)
@@ -363,7 +364,7 @@ def _rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distanc
                                    014106
 
     >>> from pts.pes.mueller_brown import MB
-    >>> from pts.metric import Default, Metric
+    >>> from pts.metric import Metric
     >>> met = Default(None)
 
     Try at a point:
@@ -636,6 +637,15 @@ def curv(g0, g1, m, d, met, mid):
    """
    assert abs(met.norm_up(m, mid) - 1.) < 1e-7
    return dot((g1 - g0), m) / d
+
+def main(args):
+    from pts.io.read_inp_dimer import read_dimer_input
+    pes, start_geo, start_mode, params = read_dimer_input(args[1:])
+    metric = Default()
+    start_mode = start_mode / metric.norm_up(start_mode, start_geo)
+    geo, res = dimer(pes, start_geo, start_mode, metric, **params)
+    print geo
+    print res
 
 # python dimer.py [-v]:
 if __name__ == "__main__":

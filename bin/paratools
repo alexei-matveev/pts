@@ -13,6 +13,8 @@ where CMD is one of the following:
 
     minimize            minimizes the geometry, default is
                         by BFGS
+    dimer               transition state search
+
 
     neb                 Nudged Elastic Band calculation
     string              String optimization, similar to NEB
@@ -114,6 +116,15 @@ def main(argv):
         argv1 = ["--method"] + argv
         # print "pts: call pathsearcher(", argv1, ")"
         pathsearcher(argv1)
+
+    if cmd in ("dimer"):
+        valid_cmd = True
+
+        # import right here in order not to import everything,
+        # while using only one specific method:
+        from pts.dimer import main as dimer
+
+        dimer(argv)
 
     if cmd in methods:
         valid_cmd = True
