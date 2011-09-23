@@ -46,7 +46,7 @@ and a valid caluclator file calc.py do to start a 20 translation steps dimer opt
   paratools dimer --calculator calc.py  --max_translation 20 POSCAR.start MODE_START
 
 """
-from pts.io.read_inputs import get_geos, get_masked, from_params_file
+from pts.io.read_inputs import get_geos, get_masked
 from pts.io.read_COS import geo_params, info_geometries
 from numpy import loadtxt
 from pts.func import compose
@@ -114,15 +114,12 @@ def read_dimer_input(rest):
                 mode = rest[0]
             rest = rest[1:]
 
-    default_params = {}
 
     if paramfile == None:
         params_dict = add_param
         geo_dict_dim = geo_dict
     else:
-        # Use pathsearcher routine, it expects to get dictionary to check for
-        # default parameter
-        params_dict, geo_dict_dim = from_params_file(paramfile, default_params)
+        params_dict, geo_dict_dim = from_params_file_dimer(paramfile )
         params_dict.update(add_param)
         geo_dict_dim.update(geo_dict)
 
@@ -162,3 +159,37 @@ def read_dimer_input(rest):
 
     #Attention inital mode need not be normed (and cannot as metric is not yet known)
     return pes, start_geo, init_mode, params_dict, atoms, funcart
+
+def from_params_file_dimer( lines ):
+    """
+    overwrite params in the params dictionary with the params
+    specified in the string lines (can be the string read from a params file
+
+    checks if there are no additional params set
+    """
+    # the get the params out of the file is done by exec, this
+    # will also execute the calculator for example, we need ase here
+    # so that the calculators from there can be used
+
+    # execute the string, the variables should be set in the locals
+    params_dict = {}
+    geo_dict = {}
+
+    glob_olds = locals().copy()
+    print glob_olds.keys()
+    exec(lines)
+    glob = locals()
+    print glob.keys()
+
+    for param in glob:
+        if param not in glob_olds:
+             if param == "glob_olds":
+                 # There is one more new variable, which is not wanted to be taken into account
+                 pass
+             elif param in geo_params:
+                 geo_dict[param] = glob[param]
+             else:
+                 # Parameters may be overwritten by the fileinput
+                 params_dict[param] = glob[param]
+
+    return params_dict, geo_dict
