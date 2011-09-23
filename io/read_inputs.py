@@ -528,6 +528,8 @@ def interpret_sysargs(rest):
                   geo_dict[o] = a
             elif o in ("pmap"):
                 add_param[o] = eval(a)
+            elif o in ("workhere"):
+                add_param[o] = int(a)
             else:
                 assert(o in default_params)
                 # suppose that the rest are setting parameters
@@ -602,6 +604,13 @@ def from_params_file( lines, default_params):
     params_dict = {}
     geo_dict = {}
 
+    # This are the parameter (and the ones in geo_params) which
+    # are stored for further use. All others will give a warning
+    # and then are ignored
+    known_params = {"pmap": True,
+                    "workhere" : True}
+    known_params.update(default_params)
+
     glob_olds = locals().copy()
     print glob_olds.keys()
     exec(lines)
@@ -615,7 +624,7 @@ def from_params_file( lines, default_params):
                  pass
              elif param in geo_params:
                  geo_dict[param] = glob[param]
-             elif param not in default_params or param == "pmap":
+             elif param not in known_params:
                  # this parameter are set during exec of the parameterfile, but they are not known
                  print "WARNING: unrecognised variable in parameter input file"
                  print "The variable", param," is unknown"

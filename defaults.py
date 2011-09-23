@@ -107,6 +107,29 @@ Parameter       short description
                       last iteration to is xyz as default, but can be changed
                       for example to gx or vasp (POSCAR)
 
+There are some more parameter which should normally not be changed as they
+affect only some details of the implementation and should only changed from
+users which know what they are doing. They will not even show up in the
+default parameters.
+ "pmap"     The mapping strategy for parallel mapping could in principle be
+            any function from module paramap or any function with the same
+            interface
+ "workhere" Decides where to run the quantum chemistry calculations. Currently
+            there are three choices:
+            0    runs directly in workplace. Not even serial calculations can
+                 ensure that the calculations are thus separated from each other
+                 (as input will be crated for all calculations at once. Only if 
+                 the pmap is set accordingly or the quantum chemical calculator
+                 needs no files but handles all by direct input it might work.
+            1    (default case). The subdirectory to run the QC calculation in is
+                 choosen for all points, which have to be newly calculated, as
+                 the one nearest in geometry to the last iteration (which is not
+                 yet occupied).
+            2    For the i'th point of geometry request (independent if it is
+                 calculated or restored from cache) the i'th subdirectory is taken.
+                 Be aware that by calculations with changing number of beads this
+                 needs not to be the one where in the last iteration the same bead
+                 has fallen.
 """
 from ase.calculators.vasp import Vasp
 from ase.calculators.lj import LennardJones

@@ -150,7 +150,7 @@ class ReactionPathway(object):
             convergence_beads=3, 
             steps_cumm=3, 
             pmap=map,
-            workhere = False,
+            workhere = 1,
             freeze_beads=False, 
             output_level = 3,
             output_path = ".",
@@ -730,7 +730,7 @@ class NEB(ReactionPathway):
     
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
     >>> qc = pts.pes.GaussianPES()
-    >>> neb = NEB(path, qc, 1.0, None, beads_count = 4, workhere=True)
+    >>> neb = NEB(path, qc, 1.0, None, beads_count = 4, workhere= 0)
     >>> neb.state_vec
     array([[ 0. ,  0. ],
            [ 0.2,  0.2],
@@ -762,7 +762,7 @@ class NEB(ReactionPathway):
     2
 
     >>> neb = NEB([[0,0],[3,3]], pts.pes.GaussianPES(), 1., None, beads_count = 10,
-    ...             workhere= True)
+    ...             workhere= 0)
     >>> neb.angles
     array([ 180.,  180.,  180.,  180.,  180.,  180.,  180.,  180.])
     >>> neb.obj_func()
@@ -787,7 +787,7 @@ class NEB(ReactionPathway):
     array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
     >>> neb = NEB([[0,0],[1,1]], pts.pes.GaussianPES(), 1., None, beads_count = 3,
-    ...             workhere=True)
+    ...             workhere= 0)
     >>> neb.angles
     array([ 180.])
     >>> neb.state_vec = [[0,0],[0,1],[1,1]]
@@ -815,7 +815,7 @@ class NEB(ReactionPathway):
 
     growing = False
     def __init__(self, reagents, pes, base_spr_const, result_storage, beads_count=10, pmap = map,
-        parallel=False, workhere = False, reporting=None, output_level = 3, output_path = "."):
+        parallel=False, workhere = 1, reporting=None, output_level = 3, output_path = "."):
 
         ReactionPathway.__init__(self, reagents, beads_count, pes, parallel, result_storage, pmap = pmap,
             reporting=reporting, output_level = output_level, output_path = output_path, workhere = workhere)
@@ -1229,7 +1229,7 @@ class GrowingString(ReactionPathway):
 
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
     >>> qc = pts.pes.GaussianPES()
-    >>> s = GrowingString(path, qc,None, beads_count=4, growing=False, workhere=True)
+    >>> s = GrowingString(path, qc,None, beads_count=4, growing=False, workhere=1)
     >>> s.state_vec.round(1)
     array([[-0. , -0. ],
            [ 0.3,  0.3],
@@ -1282,7 +1282,7 @@ class GrowingString(ReactionPathway):
     def __init__(self, reagents, pes, result_storage, beads_count = 10, pmap = map,
         rho = lambda x: 1.0, growing=True, parallel=False, head_size=None, output_level = 3,
         max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False,
-        output_path = ".", workhere = False):
+        output_path = ".", workhere = 1):
 
         self.__final_beads_count = beads_count
 

@@ -561,7 +561,7 @@ class Elemental_memoize(Func):
 
         >>> s = Func(si, co)
 
-        >>> s1 = Elemental_memoize(s, workhere = True)
+        >>> s1 = Elemental_memoize(s, workhere = 0)
 
     First evaluation:
 
@@ -607,7 +607,7 @@ class Elemental_memoize(Func):
         >>> s1.fprime([0., 0.3, pi/8.])
         [1.0, 0.95533648912560598, 0.92387953251128674]
     """
-    def __init__(self, f, pmap = map, cache=None, workhere = True, format = "%02d" ):
+    def __init__(self, f, pmap = map, cache=None, workhere = 1, format = "%02d" ):
         # for each call to memoize, create a new cache
         # (unless provided by caller):
         if cache is None:
@@ -618,8 +618,9 @@ class Elemental_memoize(Func):
             self.cache = cache
 
         self.format = format
+        self.workhere = workhere
 
-        if workhere:
+        if self.workhere == 0:
             self.contex = Empty_contex
         else:
             self.contex = Single_contex
@@ -641,11 +642,14 @@ class Elemental_memoize(Func):
     def taylor(self, xs):
         # collect those to be computed:
         xs1 = []
+        wds = []
         for i, x in enumerate(xs):
             if x not in self.cache:
                 xs1.append(x)
+                wds.append(i)
 
-        wds = global_distribution(xs1, self.last_xs_is)
+        if self.workhere == 1:
+            wds = global_distribution(xs1, self.last_xs_is)
         # compute missing results:
         ys1 = self.pmap(self.memfun, zip(xs1,wds) )
 

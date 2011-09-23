@@ -112,7 +112,7 @@ def find_path(pes, init_path
                             , symbols = None     # Only needed if output needs them
                             , cache = None
                             , pmap = PMap()
-                            , workhere = False
+                            , workhere = 1
                             , **kwargs):
     """This one does the real work ...
 
