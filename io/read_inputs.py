@@ -232,7 +232,10 @@ def get_cartesian_geos(geos, dc):
     at, geo_carts = read_geos_from_file(geos, dc["format"])
 
     if "calculator" in dc:
-          calculator = get_calculator(dc["calculator"])
+          try:
+              calculator = get_calculator(dc["calculator"])
+          except TypeError:
+              calculator = dc["calculator"]
           at.set_calculator(calculator)
 
     if "cell" in dc:
