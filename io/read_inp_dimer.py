@@ -145,7 +145,9 @@ def read_dimer_input(rest):
         ma, mb = mode_cart.shape
         if mb == 3:
            # The functions build up so far, all provide this:
-           init_mode = funcart.pinv(mode_cart)
+           init_mode = (funcart.pinv(funcart(start_geo) * 0.0001 * mode_cart) - start_geo) / 0.0001
+           # init_mode will be normed correctly (after metric is set) lateron, here do
+           # only roughly
         else:
            print >> stderr, "Error: illegal format for mode vector."
            print >> stderr, "Needs either internal coordinates or Cartesian coordinates."
