@@ -35,6 +35,28 @@ to the same value. Giving a variable name as another variable name with a
 "-" in front of it, the values are always set to the negative of the other
 variable.
 
+ZMATRIX VIA GXFILE
+
+Additional it is possible to provide the zmatrix in a gxfile. Currently even if
+the connectivities are set in a gxfile as input for the geometries they are ignored.
+They have to be given separately. This is done by giving gxfile's of any name
+instead of the zmatrix files specified above and set the parameter:
+--zmt_format gx
+
+This is more supposed to be an option for ParaGauss user, which want to reuse
+their connectivities already specified in their gx input files, thus a description
+how to build up a gxfile is not given here. It is recommended to use rather the zmat
+format given above in case a new zmatrix has to be build.
+
+For those having gxfiles ParaTools will read in the connectivity matrix specified
+in them and also the variable names. They are used to find equal variables which
+use the same value (mind that ParaTools does not check if it makes sense to
+use the same value for these variables). If variables are specified with a 0 as fixed
+and there is exactly one gxfile for the parameter covering the complete system
+this is used to fix the special coordinates. In all the other cases it is not
+used. A direct mask given separately always overwrites any mask specified in the
+gxfile.
+
 ADDITIONAL GEOMETRY RELATED INFORMATIONS:
 
 Additional informations can be taken from the minima ASE inputs. The ASE atoms
@@ -59,7 +81,7 @@ from copy import deepcopy
 from cmdline import get_calculator
 import re
 
-geo_params = ["format", "calculator", "mask", "pbc", "cell"]
+geo_params = ["format", "calculator", "mask", "pbc", "cell", "zmt_format"]
 
 def info_geometries():
     print __doc__
@@ -203,10 +225,11 @@ def read_zmt_from_string(zmat_string):
     OUTPUT: [<Name of Atoms>], [Connectivity matrix, format see ZMat input from zmat.py],
             [<variable numbers, with possible repitions>], how often a variable was used more than once,
             [<dihedral angles variable numbers>],
-            (number of Cartesian coordinates covered with zmt, number of interal coordinates of zmt)
+            (number of Cartesian coordinates covered with zmt, number of interal coordinates of zmt),
+            None, (for consistency with gx zmatrix read in, where also a mask for fixing can be provided
 
     Thus for example:
-            (['Ar', 'Ar', 'Ar', 'Ar'], [(), (0,), (0, 1), (1, 0, 2)], [0, 0, 1, 0, -1, 2], 3, [2], (12, 6))
+            (['Ar', 'Ar', 'Ar', 'Ar'], [(), (0,), (0, 1), (1, 0, 2)], [0, 0, 1, 0, -1, 2], 3, [2], (12, 6), None)
 
     >>> str1 = "H\\nO 1 ho1\\nH 2 ho2 1 hoh\\n"
 
@@ -221,23 +244,23 @@ def read_zmt_from_string(zmat_string):
 
     # read in small H2O, no dihedrals in there
     >>> read_zmt_from_string(str1)
-    (['H', 'O', 'H'], [(), (0,), (1, 0)], [1, 2, 3], 0, [], (9, 3))
+    (['H', 'O', 'H'], [(), (0,), (1, 0)], [1, 2, 3], 0, [], (9, 3), None)
 
     # test with an extra blankline
     >>> read_zmt_from_string(str2)
-    (['H', 'O', 'H'], [(), (0,), (1, 0)], [1, 2, 3], 0, [], (9, 3))
+    (['H', 'O', 'H'], [(), (0,), (1, 0)], [1, 2, 3], 0, [], (9, 3), None)
 
     # A bit larger Argon Cluster
     >>> read_zmt_from_string(strAr2)
-    (['Ar', 'Ar', 'Ar', 'Ar'], [(), (0,), (0, 1), (1, 0, 2)], [1, 2, 3, 4, 5, 6], 0, [5], (12, 6))
+    (['Ar', 'Ar', 'Ar', 'Ar'], [(), (0,), (0, 1), (1, 0, 2)], [1, 2, 3, 4, 5, 6], 0, [5], (12, 6), None)
 
     # old format (with random set variables values to omit)
     >>> read_zmt_from_string(strAr)
-    (['Ar', 'Ar', 'Ar', 'Ar'], [(), (0,), (0, 1), (1, 0, 2)], [1, 2, 3, 4, 5, 6], 0, [5], (12, 6))
+    (['Ar', 'Ar', 'Ar', 'Ar'], [(), (0,), (0, 1), (1, 0, 2)], [1, 2, 3, 4, 5, 6], 0, [5], (12, 6), None)
 
     # reduce variables, set all length to the same value and have also the angles be their negative
     >>> read_zmt_from_string(strAr3)
-    (['Ar', 'Ar', 'Ar', 'Ar'], [(), (0,), (0, 1), (1, 0, 2)], [1, 1, 2, 1, -2, 3], 3, [2], (12, 3))
+    (['Ar', 'Ar', 'Ar', 'Ar'], [(), (0,), (0, 1), (1, 0, 2)], [1, 1, 2, 1, -2, 3], 3, [2], (12, 3), None)
     """
 
     lines = zmat_string.split("\n")
@@ -303,8 +326,7 @@ def read_zmt_from_string(zmat_string):
             # collect all variables but with numbers, not with the names
             var_numbers.append(num * (var_names[vname] + 1))
 
-    return names, matrix, var_numbers, multiplicity, dihedral_nums, (nums_atom*3, var_count + 1)
-
+    return names, matrix, var_numbers, multiplicity, dihedral_nums, (nums_atom*3, var_count + 1), None
 
 def set_atoms(at2, dc):
     """

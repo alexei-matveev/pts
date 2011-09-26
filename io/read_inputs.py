@@ -123,6 +123,7 @@ from copy import deepcopy
 from pts.defaults import default_params, are_floats, are_ints, info_params
 from pts.common import file2str
 from pts.io.read_COS import read_geos_from_file, read_zmt_from_file, geo_params
+from pts.io.read_COS import read_zmt_from_gx
 from pts.io.read_COS import info_geometries
 from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
 from pts.zmat import ZMat
@@ -155,11 +156,11 @@ def interprete_input(args):
     # calculator for forces, internal start path, function to transform internals to Cartesian coordinates,
     # the numbers where dihedrals are, which of the function parts have global positions, how many
     # variables belong to the function part
-    atoms, init_path, funcart, dih, quats, lengt = get_geos(geos, geo_dict, zmat)
+    atoms, init_path, funcart, dih, quats, lengt, mask1 = get_geos(geos, geo_dict, zmat)
     # dihedrals and quaternions have 2pi periodicity, adapt them if needed
     init_path = ensure_short_way(init_path, dih, quats, lengt)
     # if a mask has been provided, some variables are not optimized
-    funcart, init_path = get_masked(funcart, atoms, geo_dict, zmat == [], init_path)
+    funcart, init_path = get_masked(funcart, atoms, geo_dict, zmat == [], init_path, mask1)
     # if the path in interals is given directly, this should be respected:
     if direct_path is not None:
        init_path = direct_path
@@ -195,8 +196,9 @@ def restructure(dat):
     f = 0
     g = []
     h = []
+    m = []
     for da in dat:
-        a1, b1, c1, d1, e1, f1 = da
+        a1, b1, c1, d1, e1, f1, m1 = da
         a = a + a1
         b.append(b1)
         c.append(c1)
@@ -206,8 +208,9 @@ def restructure(dat):
         f = f + f2
         g.append(f3)
         h.append(f2)
+        m.append(m1)
 
-    return a, b, c, d, e, f, g, h
+    return a, b, c, d, e, f, g, h, m
 
 def get_geos(geos, dc, zmi):
     """
@@ -219,13 +222,13 @@ def get_geos(geos, dc, zmi):
     # RETURN POINT: only Cartesian geometry
     if zmi == []:
        geo_int = array([ge.flatten() for ge in geo_carts])
-       return at, geo_int, Justcarts(), [[]], [False], [len(geo_carts[0].flatten())]
+       return at, geo_int, Justcarts(), [[]], [False], [len(geo_carts[0].flatten())], None
 
-    func, d_nums, quats, size_nums = get_transformation(zmi, len(geo_carts[0].flatten()))
+    func, d_nums, quats, size_nums, mask1 = get_transformation(zmi, len(geo_carts[0].flatten()), dc["zmt_format"])
     # transform Cartesians to internals (all functions used
     # till know have pseudoinverse)
     geo_int = [func.pinv(geo) for geo in geo_carts]
-    return at, geo_int, func, d_nums, quats, size_nums
+    return at, geo_int, func, d_nums, quats, size_nums, mask1
 
 
 def get_cartesian_geos(geos, dc):
@@ -236,15 +239,25 @@ def get_cartesian_geos(geos, dc):
 
     return at, geo_carts
 
-def get_transformation(zmi, len_carts):
+def get_transformation(zmi, len_carts, zmt_format):
     # extract data from (several) zmatrices
-    datas = [read_zmt_from_file(zm) for zm in zmi]
-    names, zmat, var_nums, mult, d_nums, size_sys, size_nums, size_carts = restructure(datas)
+    if zmt_format == "gx":
+        datas = [read_zmt_from_gx(zm) for zm in zmi]
+    else:
+        datas = [read_zmt_from_file(zm) for zm in zmi]
+
+    names, zmat, var_nums, mult, d_nums, size_sys, size_nums, size_carts, mask1 = restructure(datas)
 
     # decide if global positioning is needed
     # it is needed if there are more than one option, first one checks for
     # if there are cartesian coordinates
     with_globs = (len_carts > size_sys) or len(zmat) > 1
+    # gx mask, only valid if gx's zmat is for complete system
+    if with_globs:
+        mask1 = None
+    else:
+        mask1 = mask1[0]
+
     # first only the zmatrix functions, allow multiple use of variables
     funcs = []
     quats = []
@@ -289,7 +302,7 @@ def get_transformation(zmi, len_carts):
         # no need to merge a single function
         func = funcs[0]
 
-    return func, d_nums, quats, size_nums
+    return func, d_nums, quats, size_nums, mask1
 
 
 def reduce(vec, mask):
@@ -300,7 +313,7 @@ def reduce(vec, mask):
     return array([vec[i] for i, flag in enumerate(mask) if flag])
 
 
-def get_masked(int2cart, at, geo_carts, zmat, geos):
+def get_masked(int2cart, at, geo_carts, zmat, geos, mask1):
     """
     There are different ways to provide a mask (fixes some
     of the variables), check for them and use a masked
@@ -312,6 +325,8 @@ def get_masked(int2cart, at, geo_carts, zmat, geos):
        mask = geo_carts["mask"]
     elif zmat:
        mask = constraints2mask(at)
+    elif mask1 is not None:
+       mask = mask1
 
     if not mask == None:
        int2cart = Masked(int2cart, mask, geos[0])
@@ -480,7 +495,7 @@ def interpret_sysargs(rest):
             print "    %s = %s" % (str(param), str(value))
         exit()
 
-    geo_dict = { "format": None}
+    geo_dict = { "format": None, "zmt_format" : "direct"}
     direct_path = None
     paramfile = None
     geos = []

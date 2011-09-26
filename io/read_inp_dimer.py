@@ -80,7 +80,7 @@ def read_dimer_input(rest):
     """
     #This variables will be needed afterwards anyway
     # independent of beeing given by user
-    geo_dict = {"format" : None}
+    geo_dict = {"format" : None, "zmt_format" : "direct"}
     add_param = {}
     paramfile = None
     zmatrix = []
@@ -213,9 +213,9 @@ def build_new(geo, geo_dict_dim, zmatrix, mode):
     # also pathsearcher routines to build atoms object and internal to Cartesian
     # handle, the variables not used here would be required to ensure
     # shortest way between some pictures
-    atoms, init_geo, funcart, __, __, __ = get_geos(geo, geo_dict_dim, zmatrix)
+    atoms, init_geo, funcart, __, __, __, mask1 = get_geos(geo, geo_dict_dim, zmatrix)
     # if a mask has been provided, some variables are not optimized
-    funcart, init_geo = get_masked(funcart, atoms, geo_dict_dim, zmatrix == None, init_geo)
+    funcart, init_geo = get_masked(funcart, atoms, geo_dict_dim, zmatrix == None, init_geo, mask1)
 
     # We have only one geometry here
     start_geo = init_geo[0]
