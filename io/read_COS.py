@@ -237,7 +237,7 @@ def read_zmt_from_string(zmat_string):
 
     # reduce variables, set all length to the same value and have also the angles be their negative
     >>> read_zmt_from_string(strAr3)
-    (['Ar', 'Ar', 'Ar', 'Ar'], [(), (0,), (0, 1), (1, 0, 2)], [1, 1, 2, 1, 0, 3], 3, [2], (12, 3))
+    (['Ar', 'Ar', 'Ar', 'Ar'], [(), (0,), (0, 1), (1, 0, 2)], [1, 1, 2, 1, -2, 3], 3, [2], (12, 3))
     """
 
     lines = zmat_string.split("\n")
@@ -300,9 +300,8 @@ def read_zmt_from_string(zmat_string):
                      dihedral_nums.append(var_count)
 
             # num takes care about inverse
-            num = num * var_names[vname]
             # collect all variables but with numbers, not with the names
-            var_numbers.append(num + 1)
+            var_numbers.append(num * (var_names[vname] + 1))
 
     return names, matrix, var_numbers, multiplicity, dihedral_nums, (nums_atom*3, var_count + 1)
 
