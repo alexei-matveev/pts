@@ -54,6 +54,9 @@ not used if a mask is specified directely.
 """
 from ase.io import read as read_ase
 from pts.common import file2str
+from numpy import loadtxt
+from copy import deepcopy
+from cmdline import get_calculator
 import re
 
 geo_params = ["format", "calculator", "mask", "pbc", "cell"]
@@ -213,6 +216,25 @@ def read_zmt_from_string(zmat_string):
 
     return names, matrix, var_numbers, multiplicity, dihedral_nums, (nums_atom*3, var_count + 1)
 
+
+def set_atoms(at2, dc):
+    """
+    Sets the parameter from dc in atoms object at
+    """
+    at = deepcopy(at2)
+    if "calculator" in dc:
+          try:
+              calculator = get_calculator(dc["calculator"])
+          except TypeError:
+              calculator = dc["calculator"]
+          at.set_calculator(calculator)
+
+    if "cell" in dc:
+          at.set_cell(dc["cell"])
+    if "pbc" in dc:
+          at.set_pbc(dc["pbc"])
+
+    return at
 
 if __name__ == "__main__":
     import doctest

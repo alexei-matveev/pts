@@ -130,8 +130,9 @@ from pts.quat import Quat, uquat, quat2vec
 from numpy import array, pi, loadtxt
 from numpy.linalg import norm
 from pts.qfunc import constraints2mask
-from pts.io.cmdline import get_calculator, get_mask
+from pts.io.cmdline import get_mask
 from pts.defaults import default_params
+from pts.io.read_COS import set_atoms
 
 def interprete_input(args):
     """
@@ -231,21 +232,9 @@ def get_cartesian_geos(geos, dc):
     # read cartesian data
     at, geo_carts = read_geos_from_file(geos, dc["format"])
 
-    if "calculator" in dc:
-          try:
-              calculator = get_calculator(dc["calculator"])
-          except TypeError:
-              calculator = dc["calculator"]
-          at.set_calculator(calculator)
-
-    if "cell" in dc:
-          at.set_cell(dc["cell"])
-    if "pbc" in dc:
-          at.set_pbc(dc["pbc"])
+    at = set_atoms(at, dc)
 
     return at, geo_carts
-
-
 
 def get_transformation(zmi, len_carts):
     # extract data from (several) zmatrices
@@ -253,6 +242,8 @@ def get_transformation(zmi, len_carts):
     names, zmat, var_nums, mult, d_nums, size_sys, size_nums, size_carts = restructure(datas)
 
     # decide if global positioning is needed
+    # it is needed if there are more than one option, first one checks for
+    # if there are cartesian coordinates
     with_globs = (len_carts > size_sys) or len(zmat) > 1
     # first only the zmatrix functions, allow multiple use of variables
     funcs = []

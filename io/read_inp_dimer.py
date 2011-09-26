@@ -16,6 +16,22 @@ It needs at least three input files:
    coordinates (than each entry needs a new line) or in Cartesian coordinates (where each atom has
    a line with three entries).
 
+ALTERNATE USAGE:
+This is supposed if the calculation just follows after any of the paratools pathsearcher runs
+Here a patch.pickle file of the pathsearcher calculation is used for starting the dimer:
+
+   paratools dimer --calculator <calculator_file> --pickle <ts estimate choice> <path.pickle file>
+
+Here the <ts estimate choice> is one of the possible choices of transition state estimate from
+a given path. So for example "cubic" for the spline and cubic method or "highest" for the
+highest bead.
+
+As inital mode the vector along the path at position of transition state estimate is taken.
+
+Be aware that here all the settings for the quantum chemical calculator (like cell) have to be
+given explicitely as there is no geometry file to read them from.
+
+
 GEOMETRIES AND COORDINATE SYSTEMS:
 
 There are more options to the coordinate system choice (for example using internal coordinates for
@@ -39,7 +55,9 @@ So for example to have only 100 of them:
   --max_translation 100
 
 Currently there are maximal 10 rotation steps per translation step allowed.
+
 EXAMPLES:
+
 Having in a directory the geometry file (POSCAR) POSCAR.start as well as the mode vector file MODE_START
 and a valid caluclator file calc.py do to start a 20 translation steps dimer optimization:
 
@@ -48,10 +66,13 @@ and a valid caluclator file calc.py do to start a 20 translation steps dimer opt
 """
 from pts.io.read_inputs import get_geos, get_masked
 from pts.io.read_COS import geo_params, info_geometries
+from pts.io.read_COS import set_atoms
 from numpy import loadtxt
 from pts.func import compose
 from pts.qfunc import QFunc
 from sys import exit, stderr
+from pts.tools.pathtools import unpickle_path, PathTools
+from ase.atoms import Atoms
 
 def read_dimer_input(rest):
     """
@@ -65,6 +86,8 @@ def read_dimer_input(rest):
     zmatrix = []
     geo = None
     mode = None
+    as_pickle = False
+    ts_estim = None
 
     if "--help" in rest:
         if "geometries" in rest:
@@ -90,6 +113,9 @@ def read_dimer_input(rest):
             elif o in ("zmatrix"):
                 # zmatrix if given separate to the geometries
                 zmatrix.append(a)
+            elif o in ("pickle"):
+                as_pickle = True
+                ts_estim  = a
             elif o in geo_params:
                 # only needed to build up the geometry
               if o in ("mask"):
@@ -123,7 +149,67 @@ def read_dimer_input(rest):
         params_dict.update(add_param)
         geo_dict_dim.update(geo_dict)
 
-    zmat = None
+    if as_pickle:
+        start_geo, init_mode, funcart, atoms = read_from_pickle(geo[0], ts_estim, geo_dict_dim)
+    else:
+        start_geo, init_mode, funcart, atoms = build_new(geo, geo_dict_dim, zmatrix, mode)
+
+    # Build up the qfunc, calculator is included in atoms already
+    pes = compose(QFunc(atoms, calc = atoms.get_calculator()), funcart)
+
+    #Attention inital mode need not be normed (and cannot as metric is not yet known)
+    return pes, start_geo, init_mode, params_dict, atoms, funcart
+
+def read_from_pickle(file, ts_est, geo_dict):
+
+    coord_b, posonstring, energy_b, gradients_b, symbols, funcart = unpickle_path(file)
+    pt2 = PathTools(coord_b, energy_b, gradients_b, posonstring)
+
+    if ts_est == "spline":
+        ts_int = pt2.ts_spl()
+        if len(ts_int) == 0:
+            print >> stderr, "Transition state estimate did not provide any results"
+	    print >> stderr, "Aborting!"
+	    exit()
+        est = ts_int[-1]
+    elif ts_est == "spl_avg":
+        ts_int = pt2.ts_splavg()
+        if len(ts_int) == 0:
+            print >> stderr, "Transition state estimate did not provide any results"
+	    print >> stderr, "Aborting!"
+	    exit()
+        est = ts_int[-1]
+    elif ts_est == "cubic":
+        ts_int = pt2.ts_splcub()
+        if len(ts_int) == 0:
+            print >> stderr, "Transition state estimate did not provide any results"
+	    print >> stderr, "Aborting!"
+	    exit()
+        est = ts_int[-1]
+    elif ts_est == "highest":
+        est = pt2.ts_highest()[-1]
+    elif ts_est == "bell":
+        ts_int = pt2.ts_bell()
+        if len(ts_int) == 0:
+            print >> stderr, "Transition state estimate did not provide any results"
+	    print >> stderr, "Aborting!"
+	    exit()
+        est = ts_int[-1]
+    else:
+        print >> stderr, "Transition state estimate not found", ts_est
+	print >> stderr, "Make sure that the name is written correctly"
+	exit()
+
+    energy, start_geo, __, __,s_ts,  __, __ = est
+    init_mode = pt2.xs.fprime(s_ts)
+
+    atoms = Atoms(symbols)
+    atoms.set_positions(funcart(start_geo))
+    atoms = set_atoms(atoms, geo_dict)
+
+    return start_geo, init_mode, funcart, atoms
+
+def build_new(geo, geo_dict_dim, zmatrix, mode):
     # also pathsearcher routines to build atoms object and internal to Cartesian
     # handle, the variables not used here would be required to ensure
     # shortest way between some pictures
@@ -154,11 +240,7 @@ def read_dimer_input(rest):
        assert (len(mode_cart) == len(start_geo))
        init_mode = mode_cart
 
-    # Build up the qfunc, calculator is included in atoms already
-    pes = compose(QFunc(atoms, calc = atoms.get_calculator()), funcart)
-
-    #Attention inital mode need not be normed (and cannot as metric is not yet known)
-    return pes, start_geo, init_mode, params_dict, atoms, funcart
+    return start_geo, init_mode, funcart, atoms
 
 def from_params_file_dimer( lines ):
     """
