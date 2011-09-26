@@ -218,6 +218,12 @@ def minimize(argv):
                             Note that in most of the other routines masks are used to fix the variables,
                             while in this context the atoms are fixed (Thus only one flag for each atom
                             despite 3 in the other case)
+        --restart <file>  : The optimizer (except GxOptimizer) have the option of a restart file in which
+                            they store data, like the Hessian. This data allows by a restart of the calculation
+                            to take this informations into consideration. Be aware that they will still start
+                            with the geometry given to them and use the restart file only for additional informations.
+                            As default no such file is build, setting the restart option they store the data
+                            there, if it exist already when they start their calculation they do a restart.
     """
     from pts.io.cmdline import get_options, get_calculator, get_mask
     from ase.io import read, write
@@ -228,7 +234,7 @@ def minimize(argv):
         sys.exit()
 
 
-    opts, args = get_options(argv, long_options=["calculator=","atomsmask=", "optimizer=", "maxit=", "fmax=", "format="])
+    opts, args = get_options(argv, long_options=["calculator=","atomsmask=", "optimizer=", "maxit=", "fmax=", "format=", "restart="])
 
     if len(args) != 1:
         print >> sys.stderr, "There is need of exactly one geometry file"
@@ -242,6 +248,7 @@ def minimize(argv):
     format = None
     optimizer = BFGS
     calculator = None
+    restart = None
 
     for opt, value in opts:
         if opt == "--calculator":
@@ -254,6 +261,8 @@ def minimize(argv):
             optimizer = eval("%s" % (value))
         elif opt == "--format":
             format = value
+        elif opt == "--restart":
+            restart = value
         elif opt == "--atomsmask":
             print "The following atoms were fixed"
             mask = get_mask(value)
@@ -281,7 +290,13 @@ def minimize(argv):
     atoms.set_calculator(calculator)
 
     # the optimizer, setup and run
-    dyn = optimizer(atoms)
+    # in case ASE changes its default for restart, use it only
+    # if it has not our default
+    if restart == None:
+        dyn = optimizer(atoms)
+    else:
+        dyn = optimizer(atoms, restart = restart)
+
     dyn.run(fmax = fmax, steps = maxit)
 
     # for format see as above, here the standard is to
