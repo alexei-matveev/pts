@@ -103,6 +103,96 @@ def read_zmt_from_file(zmat_file):
     zmat_string = file2str(zmat_file)
     return read_zmt_from_string(zmat_string)
 
+def read_zmt_from_gx(gx_file):
+    """
+    Read zmat out from a string, convert to easier to interprete results
+
+    give back more results than really needed, to have it easier to use
+    them later on
+
+    OUTPUT: [<Name of Atoms>], [Connectivity matrix, format see ZMat input from zmat.py],
+            [<variable numbers, with possible repitions>], how often a variable was used more than once,
+            [<dihedral angles variable numbers>],
+            (number of Cartesian coordinates covered with zmt, number of interal coordinates of zmt),
+            [<mask for fixed Atoms>]
+    """
+    from ase.gxfile import gxread
+    from ase.data import chemical_symbols
+
+    atnums, __, __, inums, iconns, ivars, __, __, __, __ = gxread(gx_file)
+    # For consistency with the rest, transform the numbers to symbols
+    symbols = [chemical_symbols[a] for a in atnums]
+    assert(list(inums) == range(1, len(atnums) + 1))
+
+
+    iconns2 = []
+    var_names = []
+    var_names_gx = {}
+    mult = 0
+    dih_names = []
+    fixed = []
+    j = 1
+
+    #Iconns should contain connectivities, ivars tell
+    # what to do with them
+    for ic, iv in zip(iconns, ivars):
+        a, b, c = ic
+        new_vars = []
+
+        # Three atoms are special, because they do not
+        # contain 3 variables
+        if a == 0:
+           t = ()
+        elif b == 0:
+           t = (a-1,)
+           new_vars = [iv[0]]
+        elif c == 0:
+           t = (a-1, b-1,)
+           new_vars = iv[:-1]
+        else:
+           t = (a-1, b-1, c-1)
+           new_vars = iv
+        # connectivities from gx also have the wrong basis
+        # change them and give back as our connectivity matrix
+        iconns2.append(t)
+
+        # Now find out what is to be done to the corresponding
+        # variables
+        for i, nv in enumerate(new_vars):
+
+             if nv in var_names_gx.keys():
+                 # They have appeared already once, thus
+                 # should go to With_equals
+                 var_names.append(var_names_gx[nv])
+                 mult = mult + 1
+             else:
+                 # New variable
+                 var_names.append(j)
+                 if i == 2:
+                     # For finding the shortest path
+                     # Attention here numbering starts with 0
+                     # not with 1 as for the var_names
+                     dih_names.append(j - 1)
+                 if nv == 0:
+                     # Normally masked ones are only
+                     # considered lateron, gx already
+                     # addresses them by giving a 0 to
+                     # as their variable number
+                     fixed.append(j)
+                 else:
+                     var_names_gx[nv] = j
+                 j = j + 1
+
+    iconns = iconns2
+
+    # create also a mask if there is something about it
+    if fixed == []:
+        mask = None
+    else:
+        mask = [ i not in fixed for i in var_names]
+
+    return symbols, iconns, var_names, mult, dih_names, (len(symbols) * 3, j), mask
+
 def read_zmt_from_string(zmat_string):
     """
     Read zmat out from a string, convert to easier to interprete results
