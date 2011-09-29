@@ -26,7 +26,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
     >>> mode = mode / met.norm_up(mode, start)
     >>> d = 0.0001
 
-    >>> n_mode, dict = rotate_dimer(MB, start, MB.fprime(start), mode, met, dimer_distance = d,
+    >>> curv, n_mode, dict = rotate_dimer(MB, start, MB.fprime(start), mode, met, dimer_distance = d,
     ...                             phi_tol = 1e-7, max_rotations = 100 )
     >>> dict["rot_convergence"]
     True
@@ -54,7 +54,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
     >>> mode = mode / met.norm_up(mode, start)
     >>> d = 0.0001
 
-    >>> n_mode1, dict = rotate_dimer(MB, start, MB.fprime(start), mode, met, dimer_distance = d)
+    >>> curv, n_mode1, dict = rotate_dimer(MB, start, MB.fprime(start), mode, met, dimer_distance = d)
     >>> dict["rot_convergence"]
     True
 
@@ -86,7 +86,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
     This is far of:
     >>> mode = array([-1., 5.])
 
-    >>> n_mode2, dict = rotate_dimer(p1, start, p1.fprime(start), mode, met1, dimer_distance = d*0.01,
+    >>> curv, n_mode2, dict = rotate_dimer(p1, start, p1.fprime(start), mode, met1, dimer_distance = d*0.01,
     ...                             phi_tol = 1e-7, max_rotations = 100 )
     >>> dict["rot_convergence"]
     True
@@ -113,7 +113,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
     >>> from numpy import zeros
     >>> mode = zeros(12)
     >>> mode[1] = 1
-    >>> n_mode, dict = rotate_dimer(pes, start, pes.fprime(start), mode, met,
+    >>> curv, n_mode, dict = rotate_dimer(pes, start, pes.fprime(start), mode, met,
     ...                             dimer_distance = d,
     ...                             phi_tol = 1e-7, max_rotations = 100 )
     >>> dict["rot_convergence"]
@@ -242,7 +242,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
             "curvature" : l_curv, "rot_abs_forces" : metric.norm_down(fr,mid_point),
             "rot_last_angle": l_ang, "rot_gradient_calculations": grad_calc}
 
-    return mode, res
+    return l_curv, mode, res
 
 def rot_force(g0, g1, m, metric, mid):
     """

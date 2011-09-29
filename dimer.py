@@ -30,17 +30,17 @@ class translate_cg():
         >>> start = array([-0.5, 0.5])
         >>> mode = array([-1., 0.])
 
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-0.78443852 -0.07155202]
 
-        >>> step, dict = trans(MB, start + step, MB.fprime(start + step), mode)
+        >>> step, dict = trans(MB, start + step, MB.fprime(start + step), mode, -1.)
         >>> print step
         [ 2.67119938 -1.01683994]
 
         >>> trans = translate_cg(met, 0.5)
         >>> start = array([-0.25, 0.75])
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-0.00316205 -0.31033489]
         """
@@ -50,14 +50,20 @@ class translate_cg():
         self.trial_step = trial_step
         self.old_geo = None
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv):
         """
         the actual step
         """
         # translation "force"
         shape = geo_grad.shape
         mode_vec_down = self.metric.lower(mode_vector, start_geo).flatten()
-        force = trans_force( -geo_grad.flatten(), mode_vector.flatten(), mode_vec_down)
+        #print "Forces raw PTS", dot(geo_grad.flatten(), geo_grad.flatten())
+
+        if curv > 0.0:
+            # No negative curvature found, go in direction of lowest mode then
+            force = negpara_force( -geo_grad.flatten(), mode_vector.flatten(), mode_vec_down)
+        else:
+            force = trans_force( -geo_grad.flatten(), mode_vector.flatten(), mode_vec_down)
 
         # find direction
         step = self.metric.raises(force, start_geo)
@@ -84,9 +90,16 @@ class translate_cg():
 
         step /= self.metric.norm_up(step, start_geo)
 
-        # find how far to go
-        # line search, first trial
-        trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
+        if curv > 0.0:
+            # We are (supposely) in complete wrong region
+            # Take maximal step out of here
+            trial_step = self.trial_step
+            grad_calc = 0
+        else:
+            # find how far to go
+            # line search, first trial
+            trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
+
         step = trial_step * step
 
 
@@ -131,6 +144,14 @@ def trans_force(force_raw_trial, mode_vector, mode_vector_down):
     """
     return force_raw_trial - 2. * dot(force_raw_trial, mode_vector) * mode_vector_down
 
+def negpara_force(force_raw_trial, mode_vector, mode_vector_down):
+    """
+    Force used for translation
+    F = F_perp - F_para
+    F_perp = F_old - F_para
+    F_para = (F_old, mode) * mode
+    """
+    return  - dot(force_raw_trial, mode_vector) * mode_vector_down
 
 class translate_lbfgs():
     def __init__(self, metric):
@@ -153,16 +174,16 @@ class translate_lbfgs():
         >>> start = array([-0.5, 0.5])
         >>> mode = array([-1., 0.])
 
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-1.04187497 -0.0950339 ]
-        >>> step, dict = trans(MB, start + step, MB.fprime(start + step), mode)
+        >>> step, dict = trans(MB, start + step, MB.fprime(start + step), mode, -1.)
         >>> print step
         [-1.64446852  0.58609414]
 
         >>> trans = translate_lbfgs(met)
         >>> start = array([-0.25, 0.75])
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-0.03655155 -3.58730495]
         """
@@ -171,7 +192,7 @@ class translate_lbfgs():
         self.old_geo = None
         self.metric = metric
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv):
         """
         the actual step
         """
@@ -213,20 +234,20 @@ class translate_sd():
         >>> start = array([-0.5, 0.5])
         >>> mode = array([-1., 0.])
 
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-1.64564686 -0.15010654]
 
         >>> trans = translate_sd(met, tr_step)
         >>> start = array([-0.25, 0.75])
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode)
+        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-0.00256136 -0.25138143]
         """
         self.metric = metric
         self.trial_step = trial_step
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv):
         """
         the actual step
         """
@@ -234,13 +255,25 @@ class translate_sd():
         shape = force_raw.shape
         force_raw = force_raw.flatten()
         mode_vec_down = self.metric.lower(mode_vector, start_geo).flatten()
-        force = force_raw -2. * dot(force_raw, mode_vector.flatten()) * mode_vec_down
+        if curv > 0.0:
+            # No negative curvature found, go in direction of lowest mode then
+            force = negpara_force( force_raw, mode_vector.flatten(), mode_vec_down)
+        else:
+            force = trans_force( force_raw, mode_vector.flatten(), mode_vec_down)
 
         # actual steepest decent step
         step = self.metric.raises(force, start_geo)
         step /= sqrt(dot(step, force))
 
-        trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
+        if curv > 0.0:
+            # We are (supposely) in complete wrong region
+            # Take maximal step out of here
+            trial_step = self.trial_step
+            grad_calc = 0
+        else:
+            # find how far to go
+            # line search, first trial
+            trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
         step = trial_step * step
 
         step.shape = shape
@@ -346,9 +379,9 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, metric, max_step = 
     Than calculates the step for the modified force
     Scales the step (if required)
     """
-    mode_vec, dict = rotate_dimer(pes, start_geo, geo_grad, start_mode, metric, **params)
+    curv, mode_vec, dict = rotate_dimer(pes, start_geo, geo_grad, start_mode, metric, **params)
 
-    step_raw, dict_t = trans(pes, start_geo, geo_grad, mode_vec )
+    step_raw, dict_t = trans(pes, start_geo, geo_grad, mode_vec, curv)
 
     dict.update(dict_t)
 
