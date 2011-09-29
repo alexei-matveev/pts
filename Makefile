@@ -2,11 +2,6 @@
 # Type "make -k" to run all tests,
 # (without -k make will stop at first failure it encounters)
 #
-IO = ./io
-PES = ./pes
-COSOPT = ./cosopt
-TOOL = ./tools
-
 
 src =	\
 	common.py \
@@ -43,6 +38,9 @@ src =	\
 
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.doctest)
+
+manual :
+	$(MAKE) -C ./doc
 
 # run a doctest on the module, return failure if any of the tests fail:
 %.doctest: %.py
