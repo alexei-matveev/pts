@@ -6,6 +6,227 @@ from scipy.linalg import eig, eigh
 from pts.func import NumDiff
 from pts.metric import Default
 
+def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distance = 0.0001, \
+    max_rotations = 10, phi_tol = 0.1, **params):
+    """
+    Rotates the dimer while keeping its old results in memory, therefore
+    building slowly a picture of how the second derivative matrix of the
+    potential energy surface at the point mid_point looks like
+    The code is inspired by the Lanczos emthod for finding eigenvalues (and eigenvectors)
+    but as the smallest eigenvalue rather than the one with largest absolute value is searched
+    for there have to be some changes in regard of new searching directions.
+    >>> from pts.pes.mueller_brown import MB
+    >>> from pts.metric import Metric
+    >>> met = Default(None)
+
+    Try at a point:
+    >>> start = array([-0.5, 0.5])
+
+    This is far of:
+    >>> mode = array([ 0., 1.])
+    >>> mode = mode / met.norm_up(mode, start)
+    >>> d = 0.0001
+
+    >>> curv, n_mode, dict = rotate_dimer_mem(MB, start, MB.fprime(start), mode, met, dimer_distance = d,
+    ...                             phi_tol = 1e-7, max_rotations = 100 )
+    >>> dict["rot_convergence"]
+    True
+
+    >>> from pts.func import NumDiff
+    >>> from scipy.linalg import eigh
+    >>> grad = NumDiff(MB.fprime, h = d)
+    >>> h = grad.fprime(start)
+    >>> a, V = eigh(h)
+    >>> min(a) - dict["curvature"] < 0.1
+    True
+
+    Here the minimal value of a is the first
+    >>> dot(V[0] - n_mode, V[0] - n_mode) < 1e-7
+    True
+
+    Thus only rough estimate for the curvature but the direction has
+    is quite near
+
+    Try another point:
+    >>> start = array([-1.0, 1.0])
+
+    This is far of:
+    >>> mode = array([-1., 0.])
+    >>> mode = mode / met.norm_up(mode, start)
+    >>> d = 0.0001
+
+    >>> curv, n_mode1, dict = rotate_dimer_mem(MB, start, MB.fprime(start), mode, met, dimer_distance = d)
+    >>> dict["rot_convergence"]
+    True
+
+    >>> h = grad.fprime(start)
+    >>> a, V = eigh(h)
+    >>> min(a) - dict["curvature"] < 0.1
+    True
+
+    Here the minimal value of a is the first
+    (and the direction of the mode vector is reversed)
+    >>> (dot(V[0] - n_mode1, V[0] - n_mode1) < 1e-7)
+    ...  or (dot(V[0] + n_mode1, V[0] + n_mode1) < 1e-7)
+    True
+
+    # test Metric and different funcs
+    >>> from pts.test.testfuns import mb1, mb2
+    >>> from pts.func import compose
+
+    For mb1:
+    Use the same start point as before
+    >>> start_c = array([-0.5, 0.5])
+    >>> fun = mb2()
+    >>> start = fun.pinv(start_c)
+    >>> p1 = compose(MB, fun)
+
+    Prepare Metric functions
+    >>> met1 = Metric(fun)
+
+    This is far of:
+    >>> mode = array([-1., 5.])
+
+    >>> curv, n_mode2, dict = rotate_dimer_mem(p1, start, p1.fprime(start), mode, met1, dimer_distance = d*0.01,
+    ...                             phi_tol = 1e-7, max_rotations = 100 )
+    >>> dict["rot_convergence"]
+    True
+
+    Result should be the same as before:
+    >>> n_c = (fun(start + d * n_mode2) - fun(start))
+    >>> n_c = n_c / met.norm_up(n_c, start)
+    >>> dot(n_c + n_mode, n_c + n_mode) < 1e-3 or dot(n_c - n_mode, n_c - n_mode) < 1e-3
+    True
+
+    A bigger example using Ar4
+    >>> from ase import Atoms
+    >>> ar4 = Atoms("Ar4")
+    >>> from pts.qfunc import QFunc
+    >>> from pts.cfunc import Justcarts
+    >>> pes = compose(QFunc(ar4), Justcarts())
+
+    >>> w=0.39685026
+    >>> C = array([[-w,  w,  w],
+    ...            [ w, -w,  w],
+    ...            [ w, -w, -w],
+    ...            [-w,  w, -w]])
+    >>> start = C.flatten()
+    >>> from numpy import zeros
+    >>> mode = zeros(12)
+    >>> mode[1] = 1
+    >>> curv, n_mode, dict = rotate_dimer_mem(pes, start, pes.fprime(start), mode, met,
+    ...                             dimer_distance = d,
+    ...                             phi_tol = 1e-7, max_rotations = 100 )
+    >>> dict["rot_convergence"]
+    True
+    """
+    shape = start_mode_vec.shape
+    # don't change start values, but use flat modes for easier handling
+    mode = deepcopy(start_mode_vec)
+    mode = mode.flatten()
+    mode = mode / met.norm_up(mode, mid_point)
+
+    g0 = deepcopy(grad_mp)
+
+    global grad_calc
+    grad_calc = 0
+    def grad( vm):
+        global grad_calc
+        grad_calc = grad_calc + 1
+        return pes.fprime(mid_point + dimer_distance * vm) - g0
+
+    # keep all the basis vectors and their forces
+    m_basis = [mode]
+    g_for_mb = [grad(mode)]
+
+    # Build up matrix for eigenvalues
+    H = array([[dot(m_basis[0], g_for_mb[0])]])
+    # No possibility of choosing a better start for the first iteration
+    new_mode = mode
+    new_g    = g_for_mb[0]
+
+    # ensure that the start value will not pass the test
+    old_mode = mode * 1000. * phi_tol
+
+    conv = False
+    i = 0
+    while i < max_rotations:
+       i = i + 1
+       # check if we are (approximately) in direction of eigenvector
+       g_perp = new_g - dot(new_g, new_mode) * met.lower(new_mode, mid_point)
+
+       # If the new gradient is parallel to its mode (= eigenmode)
+       # or if the new mode did not differ much from the one from the previous
+       # calculation convergence has been reached
+       if (met.norm_down(g_perp, mid_point) < phi_tol) or \
+          (abs(met.norm_up(new_mode - old_mode, mid_point)) < phi_tol) :
+           conv = True
+           break
+
+       # New basis vector from the interpolation of the last iteration:
+       #n_bas = orthogonalize(met.raises(new_g, mid_point), m_basis, met, mid_point)
+       n_bas = orthogonalize(met.raises(g_for_mb[-1], mid_point), m_basis, met, mid_point)
+       n_bas = n_bas / met.norm_up(n_bas, mid_point)
+
+       m_basis.append(n_bas)
+       g_for_mb.append(grad(n_bas))
+
+       # Build up new (larger) matrix
+       H_old = H
+       hl = len(H_old) + 1
+       H = zeros((hl, hl))
+       H[:hl-1,:hl-1] = H_old
+       H_old = None
+
+       for j, m, g in zip(range(hl), m_basis, g_for_mb):
+          # Hessian is symmetric, or should be, enforce it here:
+          if j > hl -3:
+              H[j, -1] = (dot(m, g_for_mb[-1]) + dot(m_basis[-1], g)) /2.
+              H[-1, j] = H[j, -1]
+
+       #FIXME: maybe we want to use a more specialized algorithm here?
+       a, V = eigh(H)
+
+       # We want them in the other order
+       V = V.T
+       # The vector of the minimal eigenvalue should be dimer direction
+       # Here vectors are in m_basis
+       min_j = a.argmin()
+       min_curv = a[min_j] / dimer_distance
+       v_min = V[min_j]
+       #print "Iteration", i, a / dimer_distance
+       old_mode = new_mode
+       new_mode = zeros(mode.shape)
+
+       # Vector in internal coordinate basis
+       for gamma, mb in zip(v_min, m_basis):
+           new_mode = new_mode + gamma * mb
+
+       new_mode = new_mode / met.norm_up(new_mode, mid_point)
+       new_g = grad(new_mode)
+
+    mode = new_mode
+    # this was the shape of the starting mode vector
+    mode.shape = shape
+
+   #grad2 = NumDiff(pes.fprime)
+   #h = grad2.fprime(mid_point)
+   #a2, V2 = eigh(h)
+   #print "EIGENMODES", a2
+   #print "own", a / dimer_distance
+   #print "Difference to lowest mode", dot(V2[0] - mode, V2[0] - mode), a2.min() - min_curv
+
+    # some more statistics (to compare to other version)
+    fr = rot_force(g0, pes.fprime(mid_point + dimer_distance * mode), mode, met, mid_point)
+
+    res = { "rot_convergence" : conv, "rot_iteration" : i + 1,
+            "curvature" : min_curv,"rot_abs_forces" : met.norm_down(fr,mid_point),
+            "all_curvs" : a / dimer_distance,
+            "rot_gradient_calculations": grad_calc}
+
+    return min_curv, mode, res
+
+
 def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance = 0.0001, \
     max_rotations = 10, phi_tol = 0.1, rot_conj_gradient = True, **params):
     """
@@ -288,6 +509,22 @@ def curv(g0, g1, m, d, met, mid):
    """
    assert abs(met.norm_up(m, mid) - 1.) < 1e-7
    return dot((g1 - g0), m) / d
+
+def orthogonalize(v_new, vs, met, geo):
+    """
+    Given a vector (with upper indice) v_new
+    and a list of vectors vs (also upper indice)
+    returns a vector of v_new where the parallel
+    parts to the other vectors are removed
+    """
+    s = deepcopy(v_new)
+    s_down = met.lower(s, geo)
+    sum = zeros(s.shape)
+    for v in vs:
+        sum = sum + dot(v,s_down) * v
+    s = s - sum
+    s = s / met.norm_up(s, geo)
+    return s
 
 # python dimer_rotate.py [-v]:
 if __name__ == "__main__":
