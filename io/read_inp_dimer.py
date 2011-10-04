@@ -128,7 +128,10 @@ def read_dimer_input(rest):
             else:
                 # suppose that the rest are setting parameters
                 # currently we do not have a complet list of them
-                add_param[o] = eval(a)
+                if o in ["trajectory", "trans_method", "rot_method"]:
+                    add_param[o] = a
+                else:
+                    add_param[o] = eval(a)
             rest = rest[2:]
         else:
             # This two files are needed any way: one geometry file and one
