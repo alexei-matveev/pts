@@ -7,7 +7,7 @@ from pts.func import NumDiff
 from pts.metric import Default
 
 def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distance = 0.0001, \
-    max_rotations = 10, phi_tol = 0.1, interpolate_grad = True, **params):
+    max_rotations = 10, phi_tol = 0.1, interpolate_grad = True, restart = None, **params):
     """
     Rotates the dimer while keeping its old results in memory, therefore
     building slowly a picture of how the second derivative matrix of the
@@ -224,6 +224,8 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
           new_g = grad(new_mode)
           #print "Differences in grads", dot(new_g - new_gi, new_g - new_gi)
 
+       if need_restart(restart, i):
+           m_basis, g_for_mb, H = start_setting(new_mode, grad)
 
     mode = new_mode
     # this was the shape of the starting mode vector
@@ -246,6 +248,24 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
 
     return min_curv, mode, res
 
+def start_setting(mode, grad):
+    m_basis = [mode]
+    g_for_mb = [grad(mode)]
+
+    # Build up matrix for eigenvalues
+    H = array([[dot(m_basis[0], g_for_mb[0])]])
+
+    return m_basis, g_for_mb, H
+
+def need_restart(restart, i):
+    """
+    Test if the restart option has been set and if yes
+    if in the current iteration a restart is wanted
+    """
+    res = not (restart == None)
+    if res:
+       res = (i % restart == 0)
+    return res
 
 def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance = 0.0001, \
     max_rotations = 10, phi_tol = 0.1, rot_conj_gradient = True, **params):
