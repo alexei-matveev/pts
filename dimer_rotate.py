@@ -145,6 +145,10 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     new_mode = mode
     new_g    = g_for_mb[0]
 
+    # If we are already converged
+    a = array([H[0,0]])
+    min_curv = a[0] / dimer_distance
+
     # ensure that the start value will not pass the test
     old_mode = mode * 1000. * phi_tol
 
