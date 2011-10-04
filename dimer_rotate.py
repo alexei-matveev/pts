@@ -7,7 +7,7 @@ from pts.func import NumDiff
 from pts.metric import Default
 
 def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distance = 0.0001, \
-    max_rotations = 10, phi_tol = 0.1, **params):
+    max_rotations = 10, phi_tol = 0.1, interpolate_grad = True, **params):
     """
     Rotates the dimer while keeping its old results in memory, therefore
     building slowly a picture of how the second derivative matrix of the
@@ -205,13 +205,25 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
        #print "Iteration", i, a / dimer_distance
        old_mode = new_mode
        new_mode = zeros(mode.shape)
+       new_gi   = zeros(new_g.shape)
 
        # Vector in internal coordinate basis
-       for gamma, mb in zip(v_min, m_basis):
+       for gamma, mb, gm in zip(v_min, m_basis, g_for_mb):
            new_mode = new_mode + gamma * mb
+           new_gi = new_gi + gamma * gm
 
-       new_mode = new_mode / met.norm_up(new_mode, mid_point)
-       new_g = grad(new_mode)
+       mode_len = met.norm_up(new_mode, mid_point)
+       new_mode = new_mode / mode_len
+       new_gi = new_gi / mode_len
+
+       if interpolate_grad or need_restart(restart, i):
+          # need restarts means: we have only one vector in
+          # g_for_mb, no use to recalculate it again
+          new_g = new_gi
+       else:
+          new_g = grad(new_mode)
+          #print "Differences in grads", dot(new_g - new_gi, new_g - new_gi)
+
 
     mode = new_mode
     # this was the shape of the starting mode vector
