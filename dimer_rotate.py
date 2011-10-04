@@ -158,8 +158,12 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
        # If the new gradient is parallel to its mode (= eigenmode)
        # or if the new mode did not differ much from the one from the previous
        # calculation convergence has been reached
-       if (met.norm_down(g_perp, mid_point) < phi_tol) or \
-          (abs(met.norm_up(new_mode - old_mode, mid_point)) < phi_tol) :
+       conv1 = met.norm_down(g_perp, mid_point)
+       conv2 = min(met.norm_up(new_mode - old_mode, mid_point), met.norm_up(new_mode + old_mode, mid_point))
+       if (conv1 < phi_tol) or \
+          (conv2 < phi_tol) :
+           #print "Convergence criteria 1", conv1
+           #print "Convergence criteria 2", conv2
            conv = True
            break
 
