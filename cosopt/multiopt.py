@@ -119,8 +119,6 @@ class MiniBFGS(ObjLog):
                 # Reset also Scaling factor
                 self._step_scale = self._init_step_scale
             else:
-                dr = pos - self._pos0
-                df = grad - self._grad0
                 self.H.update(dr, df)
 
         self._its += 1
