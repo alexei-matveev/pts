@@ -7,6 +7,7 @@ from pts.func import NumDiff
 from pts.metric import Default
 from ase.io import write
 from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
+from numpy import savetxt
 """
 dimer method:
 
@@ -15,6 +16,70 @@ J. K\{a"}stner, P. Sherwood; J. Chem. Phys. 128 (2008), 014106
 A. Heyden, A. T. Bell, F. J. Keil; J. Chem. Phys. 123 (2005), 224101
 G. Henkelman, H. J\{o'}nsson; J. Chem. Phys. 111 (1999), 7010
 """
+def empty_traj(geo, mode, step, iter, error):
+    """
+    Do nothing
+    """
+    pass
+
+class traj_every:
+    """
+    Writes to every iteration iter a geometry file geo<iter>
+    and a mode vector file (in internal coordinates) mode<iter>
+    """
+    def __init__(self, atoms, funcart):
+        self.atoms = atoms
+        self.fun = funcart
+
+    def __call__(self, geo, mode, step, iter, error):
+        self.atoms.set_positions(self.fun(geo))
+        write(("geo" + str(iter)), self.atoms, format = "xyz")
+        savetxt("mode" + str(iter), mode)
+
+class traj_last:
+    """
+    After each iteration it updates geometry file actual_geo
+    with the geometry of the system and actual_mode with
+    the current mode vector
+    """
+    def __init__(self, atoms, funcart):
+        self.atoms = atoms
+        self.fun = funcart
+
+    def __call__(self, geo, mode, step, iter, error):
+        self.atoms.set_positions(self.fun(geo))
+        write("actual_geo", self.atoms, format = "xyz")
+        savetxt("actual_mode", mode)
+
+class traj_long:
+    """
+    After each iteration it updates geometry file actual_geo
+    with the geometry of the system and actual_mode with
+    the current mode vector
+    """
+    def __init__(self, atoms, funcart):
+        self.atoms = atoms
+        self.fun = funcart
+
+    def __call__(self, geo, mode, step, iter, error):
+        self.atoms.set_positions(self.fun(geo))
+        write("actual_geo", self.atoms, format = "xyz")
+        savetxt("actual_mode", mode)
+        f_in = open("actual_geo", "r")
+        gs = f_in.read()
+        f_in.close()
+        f_out = open("all_geos", "a")
+        f_out.write(gs)
+        f_out.close()
+        f_in = open("actual_mode", "r")
+        gs = f_in.read()
+        f_in.close()
+        f_out = open("all_modes", "a")
+        line = "Mode of iteration " + str(iter) + "\n"
+        f_out.write(line)
+        f_out.write(gs)
+        f_out.close()
+
 class translate_cg():
     def __init__(self, metric, trial_step):
         """
@@ -297,7 +362,7 @@ rot_dict = {
 
 def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_gradients = None, \
        trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.001, \
-       rot_method = "conj_grad", **params):
+       rot_method = "mem_krylov", trajectory = empty_traj, **params):
     """ The complete dimer algorithm
     Parameters for rotation and translation are handed over together. Each of the two
     grabs what it needs.
@@ -361,6 +426,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          #print "Step",i , pes(geo-step), abs_force, max(grad), res["trans_last_step_length"], res["curvature"], res["rot_gradient_calculations"]
          i += 1
          error_old = error
+         trajectory(geo, mode, step, i, error)
 
          if not max_gradients == None and max_gradients <= grad_calc:
               # Breakpoint 2: for counting gradient calculations instead of translation steps
@@ -406,6 +472,16 @@ def main(args):
     from pts.io.read_inp_dimer import read_dimer_input
     pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:])
     metric = Default()
+    if "trajectory" in params.keys():
+        if params["trajectory"] in ["empty", "None", "False"]:
+            params["trajectory"] = empty_traj
+        elif params["trajectory"] == "every":
+            params["trajectory"] = traj_every(atoms, funcart)
+        elif params["trajectory"] == "one_file":
+            params["trajectory"] = traj_long(atoms, funcart)
+        else:
+            params["trajectory"] = traj_last(atoms, funcart)
+
     start_mode = start_mode / metric.norm_up(start_mode, start_geo)
     geo, res = dimer(pes, start_geo, start_mode, metric, **params)
 
