@@ -6,7 +6,7 @@ from scipy.linalg import eigh
 from pts.func import NumDiff
 from pts.metric import Default
 from ase.io import write
-from pts.dimer_rotate import rotate_dimer
+from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 """
 dimer method:
 
@@ -289,8 +289,15 @@ trans_dict = {
                "steep_dec" : translate_sd
              }
 
+rot_dict = {
+           "conj_grad" : rotate_dimer,
+           "mem_krylov": rotate_dimer_mem
+           }
+
+
 def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_gradients = None, \
-       trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.001,   **params):
+       trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.001, \
+       rot_method = "conj_grad", **params):
     """ The complete dimer algorithm
     Parameters for rotation and translation are handed over together. Each of the two
     grabs what it needs.
@@ -303,6 +310,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     # for translation
 
     trans = trans_dict[trans_method](metric, start_step_length)
+    rot = rot_dict[rot_method]
 
     # do not change them
     geo = deepcopy(start_geo) # of dimer middle point
@@ -337,7 +345,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
 
          # calculate one step of the dimer, also update dimer direction
          # res is dictionary with additional results
-         step, mode, res = _dimer_step(pes, geo, grad, mode, trans, metric, **params)
+         step, mode, res = _dimer_step(pes, geo, grad, mode, trans, rot, metric, **params)
          grad_calc += res["rot_gradient_calculations"] + res["trans_gradient_calculations"]
          #print "iteration", i, error, metric.norm_down(step, geo)
          print "    %i        %5.3f       %5.3f      %5.3f    %i           %5.3f     " % \
@@ -372,14 +380,14 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
 
     return geo, res
 
-def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, metric, max_step = 0.1, scale_step = 1.0, **params):
+def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, max_step = 0.1, scale_step = 1.0, **params):
     """
     Calculates the step the dimer should take
     First improves the mode start_mode to mode_vec to identify the dimer direction
     Than calculates the step for the modified force
     Scales the step (if required)
     """
-    curv, mode_vec, dict = rotate_dimer(pes, start_geo, geo_grad, start_mode, metric, **params)
+    curv, mode_vec, dict = rot(pes, start_geo, geo_grad, start_mode, metric, **params)
 
     step_raw, dict_t = trans(pes, start_geo, geo_grad, mode_vec, curv)
 
