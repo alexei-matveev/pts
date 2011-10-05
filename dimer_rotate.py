@@ -216,7 +216,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
        new_mode = new_mode / mode_len
        new_gi = new_gi / mode_len
 
-       if interpolate_grad or need_restart(restart, i):
+       if interpolate_grad:
           # need restarts means: we have only one vector in
           # g_for_mb, no use to recalculate it again
           new_g = new_gi
