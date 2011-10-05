@@ -95,17 +95,17 @@ class translate_cg():
         >>> start = array([-0.5, 0.5])
         >>> mode = array([-1., 0.])
 
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-0.78443852 -0.07155202]
 
-        >>> step, dict = trans(MB, start + step, MB.fprime(start + step), mode, -1.)
+        >>> step, info = trans(MB, start + step, MB.fprime(start + step), mode, -1.)
         >>> print step
         [ 2.67119938 -1.01683994]
 
         >>> trans = translate_cg(met, 0.5)
         >>> start = array([-0.25, 0.75])
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-0.00316205 -0.31033489]
         """
@@ -168,12 +168,12 @@ class translate_cg():
         step = trial_step * step
 
 
-        dict = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
+        info = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
                 "trans_gradient_calculations": grad_calc}
 
         step.shape = shape
 
-        return step, dict
+        return step, info
 
 def line_search( start_geo, direction, trial_step, pes, metric, mode_vector, force ):
         """
@@ -239,16 +239,16 @@ class translate_lbfgs():
         >>> start = array([-0.5, 0.5])
         >>> mode = array([-1., 0.])
 
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-1.04187497 -0.0950339 ]
-        >>> step, dict = trans(MB, start + step, MB.fprime(start + step), mode, -1.)
+        >>> step, info = trans(MB, start + step, MB.fprime(start + step), mode, -1.)
         >>> print step
         [-1.64446852  0.58609414]
 
         >>> trans = translate_lbfgs(met)
         >>> start = array([-0.25, 0.75])
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-0.03655155 -3.58730495]
         """
@@ -278,12 +278,12 @@ class translate_lbfgs():
         self.old_force = force
         self.old_geo = start_geo
 
-        dict = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
+        info = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
                 "trans_gradient_calculations": 0}
 
         step.shape = shape
 
-        return step, dict
+        return step, info
 
 class translate_sd():
     def __init__(self, metric, trial_step):
@@ -299,13 +299,13 @@ class translate_sd():
         >>> start = array([-0.5, 0.5])
         >>> mode = array([-1., 0.])
 
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-1.64564686 -0.15010654]
 
         >>> trans = translate_sd(met, tr_step)
         >>> start = array([-0.25, 0.75])
-        >>> step, dict = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
         >>> print step
         [-0.00256136 -0.25138143]
         """
@@ -343,9 +343,9 @@ class translate_sd():
 
         step.shape = shape
 
-        dict = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
+        info = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
                 "trans_gradient_calculations": grad_calc}
-        return step, dict
+        return step, info
 
 
 trans_dict = {
@@ -453,20 +453,21 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, max_st
     Than calculates the step for the modified force
     Scales the step (if required)
     """
-    curv, mode_vec, dict = rot(pes, start_geo, geo_grad, start_mode, metric, **params)
+    curv, mode_vec, info = rot(pes, start_geo, geo_grad, start_mode, metric, **params)
 
-    step_raw, dict_t = trans(pes, start_geo, geo_grad, mode_vec, curv)
+    step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv)
 
-    dict.update(dict_t)
+    info.update(info_t)
 
     st_sq = metric.norm_down(step_raw, start_geo)
     if st_sq > max_step:
         step_raw *= max_step / st_sq
         st_sq = max_step
 
-    dict["trans_last_step_length"] = st_sq
+    info["trans_last_step_length"] = st_sq
 
-    return step_raw * scale_step, mode_vec, dict
+    return step_raw * scale_step, mode_vec, info
+
 
 def main(args):
     from pts.io.read_inp_dimer import read_dimer_input
