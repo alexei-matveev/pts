@@ -25,7 +25,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     This is far of:
     >>> mode = array([ 0., 1.])
     >>> mode = mode / met.norm_up(mode, start)
-    >>> d = 0.0001
+    >>> d = 0.000001
 
     >>> curv, n_mode, info = rotate_dimer_mem(MB, start, MB.fprime(start), mode, met, dimer_distance = d,
     ...                       restart = 1, phi_tol = 1e-7, max_rotations = 10 )
@@ -53,7 +53,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     This is far of:
     >>> mode = array([-1., 0.])
     >>> mode = mode / met.norm_up(mode, start)
-    >>> d = 0.0001
+    >>> d = 0.000001
 
     >>> curv, n_mode1, info = rotate_dimer_mem(MB, start, MB.fprime(start), mode, met, dimer_distance = d,
     ...                       restart = 1, phi_tol = 1e-7, max_rotations = 10 )
