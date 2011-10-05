@@ -28,7 +28,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     >>> d = 0.0001
 
     >>> curv, n_mode, info = rotate_dimer_mem(MB, start, MB.fprime(start), mode, met, dimer_distance = d,
-    ...                             phi_tol = 1e-7, max_rotations = 100 )
+    ...                       restart = 1, phi_tol = 1e-7, max_rotations = 10 )
     >>> info["rot_convergence"]
     True
 
@@ -55,7 +55,8 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     >>> mode = mode / met.norm_up(mode, start)
     >>> d = 0.0001
 
-    >>> curv, n_mode1, info = rotate_dimer_mem(MB, start, MB.fprime(start), mode, met, dimer_distance = d)
+    >>> curv, n_mode1, info = rotate_dimer_mem(MB, start, MB.fprime(start), mode, met, dimer_distance = d,
+    ...                       restart = 1, phi_tol = 1e-7, max_rotations = 10 )
     >>> info["rot_convergence"]
     True
 
@@ -88,7 +89,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     >>> mode = array([-1., 5.])
 
     >>> curv, n_mode2, info = rotate_dimer_mem(p1, start, p1.fprime(start), mode, met1, dimer_distance = d*0.01,
-    ...                             phi_tol = 1e-7, max_rotations = 100 )
+    ...                       restart = 1, phi_tol = 1e-7, max_rotations = 10 )
     >>> info["rot_convergence"]
     True
 
@@ -116,7 +117,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     >>> mode[1] = 1
     >>> curv, n_mode, info = rotate_dimer_mem(pes, start, pes.fprime(start), mode, met,
     ...                             dimer_distance = d,
-    ...                             phi_tol = 1e-7, max_rotations = 100 )
+    ...                       restart = 11, phi_tol = 1e-7, max_rotations = 100 )
     >>> info["rot_convergence"]
     True
     """
