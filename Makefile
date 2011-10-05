@@ -38,6 +38,7 @@ src =	\
         threepointmin.py \
 	cfunc.py \
 	dimer.py \
+	dimer_rotate.py \
 	srcio \
 	srcpes \
 	srccosopt \
