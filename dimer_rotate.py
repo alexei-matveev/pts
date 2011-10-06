@@ -12,9 +12,9 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     Rotates the dimer while keeping its old results in memory, therefore
     building slowly a picture of how the second derivative matrix of the
     potential energy surface at the point mid_point looks like
-    The code is inspired by the Lanczos emthod for finding eigenvalues (and eigenvectors)
+    The code is inspired by the Lanczos method for finding eigenvalues (and eigenvectors)
     but as the smallest eigenvalue rather than the one with largest absolute value is searched
-    for there have to be some changes in regard of new searching directions.
+    for there could not be used MINRES directly.
     >>> from pts.pes.mueller_brown import MB
     >>> from pts.metric import Metric
     >>> met = Default(None)
@@ -41,7 +41,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     True
 
     Here the minimal value of a is the first
-    >>> dot(V[0] - n_mode, V[0] - n_mode) < 1e-7
+    >>> dot(V[0] + n_mode, V[0] + n_mode) < 1e-7
     True
 
     Thus only rough estimate for the curvature but the direction has
@@ -53,7 +53,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     This is far of:
     >>> mode = array([-1., 0.])
     >>> mode = mode / met.norm_up(mode, start)
-    >>> d = 0.000001
+    >>> d = 0.0000001
 
     >>> curv, n_mode1, info = rotate_dimer_mem(MB, start, MB.fprime(start), mode, met, dimer_distance = d,
     ...                       restart = 1, phi_tol = 1e-7, max_rotations = 10 )
@@ -67,8 +67,8 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
 
     Here the minimal value of a is the first
     (and the direction of the mode vector is reversed)
-    >>> (dot(V[0] - n_mode1, V[0] - n_mode1) < 1e-7)
-    ...  or (dot(V[0] + n_mode1, V[0] + n_mode1) < 1e-7)
+    >>> ((dot(V[0] - n_mode1, V[0] - n_mode1) < 1e-7) or
+    ...   (dot(V[0] + n_mode1, V[0] + n_mode1) < 1e-7))
     True
 
     # test Metric and different funcs
