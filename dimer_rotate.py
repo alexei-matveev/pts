@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from numpy import dot, array, sqrt, arctan, sin, cos, pi, zeros
+from numpy import tan, arccos
 from copy import deepcopy
 from scipy.linalg import eig, eigh
 from pts.func import NumDiff
@@ -150,24 +151,28 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     min_curv = a[0] / dimer_distance
 
     # ensure that the start value will not pass the test
-    old_mode = mode * 1000. * phi_tol
+    old_mode = zeros(new_mode.shape)
 
     conv = False
     i = 0
     while i < max_rotations:
        i = i + 1
        # check if we are (approximately) in direction of eigenvector
-       g_perp = new_g - dot(new_g, new_mode) * met.lower(new_mode, mid_point)
+       n_mode_down = met.lower(new_mode, mid_point)
 
        # If the new gradient is parallel to its mode (= eigenmode)
        # or if the new mode did not differ much from the one from the previous
        # calculation convergence has been reached
-       conv1 = met.norm_down(g_perp, mid_point)
-       conv2 = min(met.norm_up(new_mode - old_mode, mid_point), met.norm_up(new_mode + old_mode, mid_point))
-       if (conv1 < phi_tol) or \
-          (conv2 < phi_tol) :
-           #print "Convergence criteria 1", conv1
-           #print "Convergence criteria 2", conv2
+       f_phi = dot(new_mode, new_g) / met.norm_down(new_g, mid_point)
+       conv1 = abs(f_phi)
+       c_phi1 = dot(n_mode_down, old_mode)
+       conv2 = abs(c_phi1)
+       if (conv1 > cos(phi_tol)) or \
+          (conv2 > cos(phi_tol)) :
+           # not arccos(conv2) < phi_tol to allow rounding errors like
+           # conv2 = 1.0000000000001
+           #print "Convergence criteria 1", 1.0 - conv1, arccos(conv1)
+           #print "Convergence criteria 2", 1.0 - conv2, arccos(conv2)
            conv = True
            break
 
