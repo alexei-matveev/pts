@@ -1,7 +1,6 @@
 #!/usr/bin/python
 from numpy import dot, array, sqrt, arctan, sin, cos, pi, zeros
 from copy import deepcopy
-from pts.bfgs import LBFGS, BFGS, SR1
 from scipy.linalg import eig, eigh
 from pts.func import NumDiff
 from pts.metric import Default
