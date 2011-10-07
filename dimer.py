@@ -363,7 +363,7 @@ rot_dict = {
 
 def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_gradients = None, \
        trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.001, \
-       rot_method = "mem_krylov", trajectory = empty_traj, **params):
+       rot_method = "conj_grad", trajectory = empty_traj, **params):
     """ The complete dimer algorithm
     Parameters for rotation and translation are handed over together. Each of the two
     grabs what it needs.
