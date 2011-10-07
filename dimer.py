@@ -8,6 +8,7 @@ from pts.metric import Default
 from ase.io import write
 from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 from numpy import savetxt
+from numpy import arccos
 """
 dimer method:
 
@@ -386,8 +387,6 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     grad_calc = 0
     error_old = 0
 
-    # Give some report during dimer optimization
-    print "Iteration  ABS. Force Max. Force    Step  Rot. Steps.  curvature  Rot. Conv."
     i = 0
     # main loop:
     while i < max_translation:
@@ -397,7 +396,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          #        additional break point
          #        it is only checked for only maximum number of gradient calls
          #        if max_translation > maximum number of gradient calls
-         grad = pes.fprime(geo)
+         energy, grad = pes.taylor(geo)
          grad_calc += 1
 
          # Test for convergence, converged if saddle point is reached
@@ -413,9 +412,18 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          step, mode, res = _dimer_step(pes, geo, grad, mode, trans, rot, metric, **params)
          grad_calc += res["rot_gradient_calculations"] + res["trans_gradient_calculations"]
          #print "iteration", i, error, metric.norm_down(step, geo)
-         print "    %i        %5.3f       %5.3f      %5.3f    %i           %5.3f     " % \
-               (i, abs_force, error, metric.norm_up(step, geo), (res["rot_gradient_calculations"] + 1 ) / 2,\
-                     res["curvature"]), res["rot_convergence"]
+         step_len = metric.norm_up(step, geo)
+         angle = abs(dot(step,mode) / step_len)
+         if angle > 1.0: #will be a rounding error
+            angle = 1.0
+
+         # Give some report during dimer optimization
+         print "Iteration    Trans. Infos:   Energy    ABS. Force   Max. Force    Step    Angle(step,mode)"
+         print "  %5i      Trans. Infos:   %5.3f       %5.3f       %5.3f      %5.3f      %5.3f     " % \
+               (i, energy, abs_force, error, step_len, arccos(angle))
+         print "Grad. calcs.   Rot. Infos:   Rot. Steps.   curvature   Rot. Conv."
+         print "  %5i        Rot. Infos:    %5i          %5.3f   " % \
+               ( grad_calc, res["rot_iteration"] , res["curvature"]), res["rot_convergence"]
         #if i > 0 and error_old - error < 0:
         #    print "Error is growing"
         #if i > 0:
