@@ -135,7 +135,7 @@ def main(argv):
         from pts.tools.path2plot import main as path2plot
         from pts.tools.tab2plot import main as tab2plot
         valid_cmd = True
-        cmd_main = cmd
+        cmd_main = eval(cmd)
         cmd_main(argv[1:])
 
     if not valid_cmd:
