@@ -50,6 +50,7 @@ import pts.tools.findlimitpath
 import pts.tools.jmol
 import pts.tools.makepath
 import pts.tools.path2xyz
+import pts.tools.path2tab
 import pts.tools.pp2tserr
 import pts.tools.tsestandmods
 import pts.tools.xyz2tabint
@@ -71,6 +72,7 @@ methods = {
    "make-path"       : pts.tools.makepath.main       ,
    "make_path"       : pts.tools.makepath.main       ,
    "path2xyz"        : pts.tools.path2xyz.main       ,
+   "path2tab"        : pts.tools.path2tab.main       ,
    "pp2ts-err"       : pts.tools.pp2tserr.main       ,
    "pp2ts_err"       : pts.tools.pp2tserr.main       ,
    "ts-and-mods"     : pts.tools.tsestandmods.main   ,
