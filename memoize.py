@@ -574,9 +574,6 @@ class Elemental_memoize(Func):
         co( 1.57079632679 )
         [0.0, 0.29552020666133955, 1.0]
 
-        >>> [round(r,3) for r in s1.last_xs_is]
-        [0.0, 0.29999999999999999, 1.571]
-
     Second evaluation:
 
         >>> s1([ 0., pi/2.0])
@@ -587,9 +584,6 @@ class Elemental_memoize(Func):
         co( 0.392699081699 )
         [0.0, 0.38268343236508978, 0.29552020666133955]
 
-        >>> [round(r,3) for r in s1.last_xs_is]
-        [0.0, 0.39300000000000002, 1.571]
-
         >>> s1([0.0, 0.1, pi/8.+ 0.0001, pi/8., 0.3, 0.4])
         si( 0.1 )
         co( 0.1 )
@@ -598,9 +592,6 @@ class Elemental_memoize(Func):
         si( 0.4 )
         co( 0.4 )
         [0.0, 0.099833416646828155, 0.38277581840476976, 0.38268343236508978, 0.29552020666133955, 0.38941834230865052]
-
-        >>> [round(r,3) for r in s1.last_xs_is]
-        [0.10000000000000001, 0.39300000000000002, 1.571, 0.40000000000000002]
 
     Same for derivative:
 
@@ -657,14 +648,15 @@ class Elemental_memoize(Func):
         for x, i, y in zip(xs1, wds, ys1):
             # store only with value of x
             self.cache[x] = y
-            # store last values
-            if i < len(self.last_xs_is):
-                self.last_xs_is[i] = x
-            elif i == len(self.last_xs_is):
-                self.last_xs_is.append(x)
-            else:
-                print "ERROR: invalid number to calculate in"
-                abort()
+            # store last values if global distribution should be used
+            if self.workhere == 1:
+                if i < len(self.last_xs_is):
+                    self.last_xs_is[i] = x
+                elif i == len(self.last_xs_is):
+                    self.last_xs_is.append(x)
+                else:
+                    print >> sys.stderr, "ERROR: invalid number to calculate in"
+                    exit()
 
         # return copies from the dictionary:
         ys = []
