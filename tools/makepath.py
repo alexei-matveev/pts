@@ -132,7 +132,7 @@ def main(args):
     assert len(mis) > 1
 
     # mol is the ase-atom object to create the ase output
-    mol, mi, funcart, dih, quats, lengt = get_geos(mis, dc, zmts)
+    mol, mi, funcart, dih, quats, lengt,__  = get_geos(mis, dc, zmts)
     mi = ensure_short_way(mi, dih, quats, lengt)
 
     # path between two minima (linear in coordinates):
