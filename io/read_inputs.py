@@ -183,10 +183,11 @@ def restructure(dat):
     f: how many Cartesian coordinates are covered
     g: how many variables (internals)
     h: how many variables (Cartesians)
+    m: mask from ase objects (if availabe, else None)
 
-    >>> print restructure(((["N"], 2., 3., 4., 5., (6., 7.)),(["N"],2.,3.,4.,5.,(6., 7.))
-    ...     ,(["N"], 2.,3.,4.,5.,(6., 7.))))
-    (['N', 'N', 'N'], [2.0, 2.0, 2.0], [3.0, 3.0, 3.0], [4.0, 4.0, 4.0], [5.0, 5.0, 5.0], 18.0, [7.0, 7.0, 7.0], [6.0, 6.0, 6.0])
+    >>> print restructure(((["N"], 2., 3., 4., 5., (6., 7.),[True]),(["N"],2.,3.,4.,5.,(6., 7.),[False, True])
+    ...     ,(["N"], 2.,3.,4.,5.,(6., 7.),[False])))
+    (['N', 'N', 'N'], [2.0, 2.0, 2.0], [3.0, 3.0, 3.0], [4.0, 4.0, 4.0], [5.0, 5.0, 5.0], 18.0, [7.0, 7.0, 7.0], [6.0, 6.0, 6.0], [[True], [False, True], [False]])
     """
     a = []
     b = []
