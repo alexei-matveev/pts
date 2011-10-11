@@ -468,7 +468,7 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, max_st
     info.update(info_t)
 
     st_sq = metric.norm_down(step_raw, start_geo)
-    if st_sq > max_step:
+    if st_sq > max_step or curv > 0:
         step_raw *= max_step / st_sq
         st_sq = max_step
 
