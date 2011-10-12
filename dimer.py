@@ -386,6 +386,13 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     conv = False
     grad_calc = 0
     error_old = 0
+    mode_old = deepcopy(mode)
+
+    print "Intermediate steps for translation and rotation informations"
+    print "Values are in eV, Angstrom, degrees or combinations of them"
+    print "Trans. Infos:       Energy            ABS. Force          Max. Force        Step:",\
+    "          Perp\Para           Angle to mode"
+    print "Rot. Infos:  Conv.   Steps.       curvature        Angle to last"
 
     i = 0
     # main loop:
@@ -412,24 +419,36 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          step, mode, res = _dimer_step(pes, geo, grad, mode, trans, rot, metric, **params)
          grad_calc += res["rot_gradient_calculations"] + res["trans_gradient_calculations"]
          #print "iteration", i, error, metric.norm_down(step, geo)
+
+         #collect things for output
          step_len = metric.norm_up(step, geo)
+         step_para = dot(step, metric.lower(mode, geo))
+         step_perp = metric.norm_up(step - step_para * mode, geo)
          angle = abs(dot(step,mode) / step_len)
          if angle > 1.0: #will be a rounding error
             angle = 1.0
+         angle2 = abs(dot(mode, mode_old))
+         if angle2 > 1.0: #will be a rounding error
+            angle2 = 1.0
+
+         if res["rot_convergence"]:
+             r_conv = "True "
+         else:
+             r_conv = "False"
 
          # Give some report during dimer optimization
-         print "Iteration    Trans. Infos:   Energy    ABS. Force   Max. Force    Step    Angle(step,mode)"
-         print "  %5i      Trans. Infos:   %5.3f       %5.3f       %5.3f      %5.3f      %5.3f     " % \
-               (i, energy, abs_force, error, step_len, arccos(angle))
-         print "Grad. calcs.   Rot. Infos:   Rot. Steps.   curvature   Rot. Conv."
-         print "  %5i        Rot. Infos:    %5i          %5.3f   " % \
-               ( grad_calc, res["rot_iteration"] , res["curvature"]), res["rot_convergence"]
+         print "Step %5i with sum of Grad. calcs. %7i" % (i, grad_calc)
+         print "Trans. Infos:   %12.5f       %12.5f       %12.5f       %9.5f    %9.5f \%9.5f      %9.5f   " % \
+               (energy, abs_force, error, step_len,step_perp, step_para, arccos(angle) * 180 /pi)
+         print "Rot. Infos: ", r_conv, " %5i     %12.5f       %12.5f         " % \
+               ( res["rot_iteration"] , res["curvature"], arccos(angle2) * 180 /pi)
         #if i > 0 and error_old - error < 0:
         #    print "Error is growing"
         #if i > 0:
         #    if dot(step, metric.lower(step_old, geo)) < 0:
         #       print "Step changed direction"
          step_old = step
+         mode_old = mode
          geo = geo + step
          #print "Step",i , pes(geo-step), abs_force, max(grad), res["trans_last_step_length"], res["curvature"], res["rot_gradient_calculations"]
          i += 1
