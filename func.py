@@ -784,7 +784,6 @@ class Integral(Func):
                 warn("Exit because of too large integration error")
                 exit()
 
-        assert abs(err) <= abs(s) * 1.0e-3, "%f > %f" % (abs(err), abs(s) * 1.0e-7) # was 1e7, then 1e-7
 
         # f(x) = f(x0) + integral from x0 to x:
         fx = fs[x0] + s
