@@ -1229,7 +1229,7 @@ class GrowingString(ReactionPathway):
 
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
     >>> qc = pts.pes.GaussianPES()
-    >>> s = GrowingString(path, qc,None, beads_count=4, growing=False, workhere=1)
+    >>> s = GrowingString(path, qc,None, beads_count=4, growing=False, workhere=0)
     >>> s.state_vec.round(1)
     array([[-0. , -0. ],
            [ 0.3,  0.3],
