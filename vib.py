@@ -110,8 +110,13 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> n2.set_calculator( EMT())
     >>> freqs, modes = vibmodes(n2, workhere=True)
 
-    >>> r_freqs = array([ 2048.94  +0.j,     0.00  +0.j,     0.00  +0.j,      0.00  +0.j,
-    ...     0.00+321.63j,     0.00+321.63j])
+    >>> r_freqs = array([  9.93941862e+02 +0.00000000e+00j,
+    ...      3.38851377e+02 +0.00000000e+00j,
+    ...      3.38851377e+02 +0.00000000e+00j,
+    ...      7.50802183e-06 +0.00000000e+00j,
+    ...      0.00000000e+00 +0.00000000e+00j,
+    ...      0.00000000e+00 +1.88069678e-06j])
+
     >>> max(abs(cm(freqs) - r_freqs)) < 1e-2
     True
 
@@ -119,8 +124,9 @@ Ar4 Cluster as first simple atomic/molecule test system with
     ...                   [  0.0, 0.0, 1.130]])
 
     >>> freqs, modes = vibmodes(n2, workhere=True)
-    >>> r_freqs = array([ 1874.96+0.j,    37.51+0.j,    37.51+0.j,     0.00+0.j,     0.00+0.j,
-    ...     0.00+0.j])
+    >>> r_freqs = array([  9.28113298e+02+0.j,   3.69163533e+02+0.j,   3.69163533e+02+0.j,
+    ...       2.74729403e-06+0.j,   0.00000000e+00+0.j,   0.00000000e+00+0.j])
+
     >>> max(abs(cm(freqs) - r_freqs)) < 1e-2
     True
 
@@ -131,9 +137,9 @@ Ar4 Cluster as first simple atomic/molecule test system with
     ====================================================
      Number  imag.   Energy in eV      Energy in cm^-1
     ----------------------------------------------------
-      1       no          0.2325          1874.96
-      2       no          0.0047            37.51
-      3       no          0.0047            37.51
+      1       no          0.1151           928.11
+      2       no          0.0458           369.16
+      3       no          0.0458           369.16
       4       no          0.0000             0.00
       5       no          0.0000             0.00
       6       no          0.0000             0.00
