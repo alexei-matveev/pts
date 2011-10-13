@@ -155,14 +155,14 @@ class MiniBFGS(ObjLog):
 
 def calc_step(dir, H, grad):
     """
-    >>> np.round(100*calc_step(np.array([-1.]), Hughs_Hessian(B0 = 2.), np.array([2.])))
+    >>> print np.round(100*calc_step(np.array([-1.]), Hughs_Hessian(B0 = 2.), np.array([2.])))
     100.0
 
-    >>> np.round(100*calc_step((-1,1), Hughs_Hessian(B0 = 2.), (2.,2)))
-    0.0
+    >>> print np.round(100*calc_step((-1,1), Hughs_Hessian(B0 = 2.), (2.,2)))
+    -0.0
 
-    >>> np.round(100*calc_step((-1,-1), Hughs_Hessian(B0 = 2.), (2.,2)))
-    141.0
+    >>> print np.round(100*calc_step((-1,-1), Hughs_Hessian(B0 = 2.), (2.,2)))
+    100.0
 
 
 
