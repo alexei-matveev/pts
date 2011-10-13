@@ -98,17 +98,20 @@ Test also dimer:
 
     >>> res, dict = dimer(MB, array([0.2, 0.3]), array([0.,1.]),
     ... Default(), dimer_distance = 0.001, trial_step = 0.0003,
-    ... start_step_length = 0.01, max_step = 0.001 )
+    ... start_step_length = 0.01, max_step = 0.001 ) #doctest:+ELLIPSIS
+    Intermediate steps ...
+    ...
+    Calculation is converged
 
     We got the positions:
-    >>> print res
-    [ 0.21248678  0.29298841]
+    >>> print "%5.4f %5.4f" % (res[0], res[1])
+    0.2125 0.2930
 
     But it has reached convergence
     >>> dict["trans_convergence"]
     True
-    >>> energy(res)
-    -72.248940112313363
+    >>> print round(energy(res), 6)
+    -72.24894
 
 But for another TS approximation between minima a and b
 the guess is much worse:
@@ -236,17 +239,20 @@ This is not much different from the previous result, 0.30661623.
 Test also dimer:
     >>> res, dict = dimer(MB, array([-0.7, 0.5]), array([0.,1.]),
     ... Default(), dimer_distance = 0.001,
-    ... start_step_length = 0.0003, max_step = 0.005 )
+    ... start_step_length = 0.0003, max_step = 0.005 ) #doctest:+ELLIPSIS
+    Intermediate steps ...
+    ...
+    Calculation is converged
 
     We got the positions:
-    >>> print res
-    [-0.82200157  0.62431284]
+    >>> print "%5.4f %5.4f" % (res[0], res[1])
+    -0.8220 0.6243
 
     But it has reached convergence
     >>> dict["trans_convergence"]
     True
-    >>> energy(res)
-    -40.664843508657611
+    >>> print round(energy(res), 6)
+    -40.664844
 """
 __all__ = ["energy", "gradient"] # "MuellerBrown"]
 
