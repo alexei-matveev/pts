@@ -459,6 +459,11 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
               # Breakpoint 2: for counting gradient calculations instead of translation steps
               break
 
+    if conv:
+        print "Calculation is converged"
+    else:
+        print "No convergence reached"
+
     # all gradient calculations makes sense
     # gradient calculations only of last rotation not so much
     del res["rot_gradient_calculations"]
