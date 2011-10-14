@@ -777,7 +777,7 @@ class Integral(Func):
 
         # f(x0) is cached, compute the integral from x0 to x:
         (s, err) = quad(self.fprime, x0, x, **self.kwargs)
-        if abs(err) >= abs(s) * 1.0e-3:
+        if abs(err) > abs(s) * 1.0e-3:
             from warnings import warn
             warn("integration error suspiciously big %e of %e" % (err, s))
             if abs(err) > 1.0e-6:
