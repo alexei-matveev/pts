@@ -174,11 +174,13 @@ def calc_step(dir, H, grad):
     # E(s) = s*np.dot(grad, dir) + 0.5*s*s*np.dot(dir, H.app(dir))
     # FIXME: is restriction of steplength alrady here needed?
     #        Multiopt will scale down later a second time
-    s_min = min(- np.dot(grad, dir) / np.dot(dir, H.app(dir)), 2.)
+    g = np.dot(grad, dir)
+    b = np.dot(dir, H.app(dir))
+    s_min = min((- g / b), 2.)
 
     # found an undesired maximum (dir is already orientated in right direction)
     # thus make maximal step in the other direction
-    if s_min < 0.: s_min = 2.
+    if s_min < 0. or b < 0. : s_min = 2.
 
     return s_min
 
