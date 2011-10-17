@@ -186,12 +186,12 @@ def calc_step(dir, H, grad, interval):
     # Find extremun via first derivative
     g = np.dot(grad, dir)
     b = np.dot(dir, H.app(dir))
-    s_min = min((- g / b), 2.)
+    s_min = - g / b
 
     # This would be a maximum
     if b < 0.:
         #Take the border with smaller energy (the one farer away from the maximum)
-        if abs(interval[0] - s_min) < abs(interval[1] - s_min):
+        if abs(interval[0] - s_min) > abs(interval[1] - s_min):
             s_min = interval[0]
         else:
             s_min = interval[1]
