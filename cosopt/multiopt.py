@@ -145,7 +145,16 @@ class MiniBFGS(ObjLog):
             step = np.zeros(self._dims)
         else:
             dir = dir / norm
-            step = dir * calc_step(dir, self.H, grad)
+            #FIXME: magical 2: why another border of minimization here?
+            step_len = calc_step(dir, self.H, grad, [0.,2.])
+            if step_len == 0.:
+                # would mean either converged (should be detected before)
+                # or wrong curvature, with 0. being the lowest endpoint. Anyhow
+                # in this case the calculation is in a completely wrong area,
+                # Thus make a maxstep instead
+                step_len = 2.
+
+            step = dir * step_len
             self.slog("Recomended non-scaled step dist:", step, when='always')
 
         self._pos0 = pos
@@ -153,34 +162,45 @@ class MiniBFGS(ObjLog):
         self._E0 = energy
         return step
 
-def calc_step(dir, H, grad):
+def calc_step(dir, H, grad, interval):
     """
-    >>> print np.round(100*calc_step(np.array([-1.]), Hughs_Hessian(B0 = 2.), np.array([2.])))
+    >>> print np.round(100*calc_step(np.array([-1.]), Hughs_Hessian(B0 = 2.), np.array([2.]), [0.,2.]))
     100.0
 
-    >>> print np.round(100*calc_step((-1,1), Hughs_Hessian(B0 = 2.), (2.,2)))
+    >>> print np.round(100*calc_step((-1,1), Hughs_Hessian(B0 = 2.), (2.,2), [0.,2.]))
     -0.0
 
-    >>> print np.round(100*calc_step((-1,-1), Hughs_Hessian(B0 = 2.), (2.,2)))
+    >>> print np.round(100*calc_step((-1,-1), Hughs_Hessian(B0 = 2.), (2.,2), [0.,2.]))
     100.0
 
 
+    Finds minimum of lambda *dir*H*dir*lambda + lambda*grad*dir
+    dir is a direction, H the second derivative matrix and grad the first derivatives
 
+    The interval, in which the minimum is searcher, is given relative to vector dir, thus
+    it is searched in between interval[0] * dir and interval[1] * dir
     """
     dir = np.asarray(dir)
     grad = np.asarray(grad)
 
-    # minimize on energy approximation (quadratic energy):
-    # E(s) = s*np.dot(grad, dir) + 0.5*s*s*np.dot(dir, H.app(dir))
-    # FIXME: is restriction of steplength alrady here needed?
-    #        Multiopt will scale down later a second time
+    # Find extremun via first derivative
     g = np.dot(grad, dir)
     b = np.dot(dir, H.app(dir))
     s_min = min((- g / b), 2.)
 
-    # found an undesired maximum (dir is already orientated in right direction)
-    # thus make maximal step in the other direction
-    if s_min < 0. or b < 0. : s_min = 2.
+    # This would be a maximum
+    if b < 0.:
+        #Take the border with smaller energy (the one farer away from the maximum)
+        if abs(interval[0] - s_min) < abs(interval[1] - s_min):
+            s_min = interval[0]
+        else:
+            s_min = interval[1]
+
+    # Now restrict search on interval
+    if s_min < interval[0]:
+        s_min = interval[0]
+    if s_min > interval[1]:
+        s_min = interval[1]
 
     return s_min
 
