@@ -246,9 +246,13 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     # some more statistics (to compare to other version)
     fr = rot_force(g0, pes.fprime(mid_point + dimer_distance * mode), mode, met, mid_point)
 
+    # Have them in the right norm
+    m_basis = [ m_bas * dimer_distance for m_bas in m_basis]
+
     res = { "rot_convergence" : conv, "rot_iteration" : i + 1,
             "curvature" : min_curv,"rot_abs_forces" : met.norm_down(fr,mid_point),
             "all_curvs" : a / dimer_distance,
+            "rot_updates" : zip(m_basis, g_for_mb),
             "rot_gradient_calculations": grad_calc}
 
     return min_curv, mode, res
