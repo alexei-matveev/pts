@@ -154,7 +154,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     old_mode = zeros(new_mode.shape)
 
     conv = False
-    i = 0
+    i = 1
     while i < max_rotations:
        i = i + 1
        # check if we are (approximately) in direction of eigenvector
@@ -249,7 +249,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     # Have them in the right norm
     m_basis = [ m_bas * dimer_distance for m_bas in m_basis]
 
-    res = { "rot_convergence" : conv, "rot_iteration" : i + 1,
+    res = { "rot_convergence" : conv, "rot_iteration" : i,
             "curvature" : min_curv,"rot_abs_forces" : met.norm_down(fr,mid_point),
             "all_curvs" : a / dimer_distance,
             "rot_updates" : zip(m_basis, g_for_mb),
@@ -508,7 +508,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
    #print l_curv
    #print "Difference to lowest mode", dot(V[0] - mode, V[0] - mode), a[0] - l_curv
 
-    res = { "rot_convergence" : conv, "rot_iteration" : i + 1,
+    res = { "rot_convergence" : conv, "rot_iteration" : i,
             "curvature" : l_curv, "rot_abs_forces" : metric.norm_down(fr,mid_point),
             "rot_last_angle": l_ang, "rot_gradient_calculations": grad_calc}
 
