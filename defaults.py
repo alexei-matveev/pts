@@ -194,3 +194,93 @@ default_vasp = Vasp( ismear = 1
     , lwave  = False
     , kpts   = (5,5,1)
     )
+
+dimer_info = """
+The metods dimer and lanczos share the same interface, therefore they have
+the same set of parameters.
+
+Parameter can be set as:
+ --<parameter name> <new parameter value>
+
+So for example:
+  --max_translation 100
+This would set the maximal number of translation steps to 100
+
+Additionally all parameters can be specified in a parameter file, given as:
+--paramfile <name of parameter file>
+
+So for example with paramfile params.py containin
+cat params.py
+   max_translation = 100
+
+--paramfile params.py
+
+The same result as in the example above would be archived. It is also
+possible to specify the calculator in the paramfile or include
+parameter belonging to the geometry reading in there. It is
+however illegal to specify geometries or mode vectors in there.
+
+To find out the default values for the parameter do:
+paratools dimer --defaults
+
+There exists:
+Parameter          short description
+------------------------------------------------
+max_translation    maximal number of translation steps
+max_rotations      maximal number of rotation steps per translation step
+                   For lanczos method it is illegal to have here a parameter larger
+                   than the degrees of freedom in the system (which should be sufficient
+                   in general cases). Only whith a special option set (restart, should have
+                   then a value smaller or equal the border) it might work but is not
+                   recommended anyway
+max_gradients      maximal number of gradient calls, checked at translation level only,
+                   thus max_gradients n means that at most n + max_rotations steps are
+                   performed
+
+trans_converged    If the maximum of abs gradient values is below this value the
+                   calculation is supposed to be converged
+phi_tol            rotation step stops when the rotation angle is smaller than this
+
+max_step           the translation step will never exceed this maximal step_length
+
+trajectory         defines how much of the geometries/modes will be given as output
+                   geometries will be in xyz format modes are given as matrix of floats
+                   newest  : only the newest geometries and mode files will be kept as
+                             actual_geometry and actual_mode
+                   empty   : No geometries will be stored
+                   every   : For every iteration n there will be a file called geo<n>
+                             and a file called mode<n> containing the geometries/mode
+                             for the said iteration
+                   one_file: Besides the actual geometries of newest case all the
+                             geometries will be given in all_geos just put after one
+                             another (allows for example jmol to understand this file)
+                             modes are given as "Mode of iteration <n>" in all_modes
+
+The dimer/lanczos methods contain some additional parameters, which are not directly
+accessible for usage. They are mainly about details of the implementation. To access
+them anyway put as your FIRST parameter --accept_all. This way all parameters can be
+set. Be aware that here the method does not check if the parameters are valid or are
+making sense. They will be handed on as they are.
+
+Example:
+   paratools dimer --max_iteration 100 --max_step 0.13 start.xyz start_mode
+   paratools lanczos --trajectory every --max_gradients 120 --phi_tol 1.7e-7 start.xyz start_mode
+
+"""
+
+di_default_params = {
+    "max_translation" : 100000000, # Maximal number of translation steps
+    "max_gradients" : None, # Alternative maximal number of gradient calls
+            # But only checked in translation step
+    "trans_converged" : 0.00016, # converged if max(abs(gradients)) < than it
+    "trans_method" : "conj_grad", # How the translation method is done
+    "trajectory" :  "newest", # Update method
+    "max_step"   : 0.1, # maximal allowed step lenght (translation)
+    "max_rotations" : 10, # Maximal number of rotation steps per translation step
+    "phi_tol"  : 0.1 # Rotation stops if rotation angle would be smaller
+}
+
+di_are_strings = ["trajectory", "trans_method", "rot_method"]
+
+def info_di_params():
+    print dimer_info
