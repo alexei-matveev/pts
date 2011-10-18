@@ -98,7 +98,6 @@ def runopt_inner(name, CoS, ftol, maxit, callback, maxstep=0.2, **kwargs):
         opt.string = CoS.string
         opt.attach(lambda: callback(None), interval=1)
         opt.run()
-        x_opt = CoS.state_vec
         return None      
     elif name[0:4] == 'ase_':
 
@@ -123,7 +122,6 @@ def runopt_inner(name, CoS, ftol, maxit, callback, maxstep=0.2, **kwargs):
         # attach optimiser to print out each step in
         opt.attach(lambda: callback(None), interval=1)
         opt.run(fmax=ftol)
-        x_opt = CoS.state_vec
         return None
 
     elif name == 'quadratic_string':
