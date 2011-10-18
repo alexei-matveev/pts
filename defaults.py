@@ -136,10 +136,10 @@ from ase.calculators.lj import LennardJones
 import pts.config as config
 
 
-def info_params():
+def info_ps_params():
     print __doc__
 
-default_params = {
+ps_default_params = {
     "method" : "string",     # what way, e.g. NEB, string, growingstring, searchingstring
     "opt_type" : "multiopt",  # the optimizer
     "pmax" : config.DEFAULT_PMAX,
@@ -170,8 +170,8 @@ default_calcs = {
     "default_lj" : True
     }
 
-are_floats = ["ftol", "xtol", "etol", "maxstep", "spring"]
-are_ints = ["maxit", "beads_count", "output_level", "pmin", "pmax"]
+ps_are_floats = ["ftol", "xtol", "etol", "maxstep", "spring"]
+ps_are_ints = ["maxit", "beads_count", "output_level", "pmin", "pmax"]
 
 default_lj  = LennardJones(
   epsilon = 1.0,

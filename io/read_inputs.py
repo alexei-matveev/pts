@@ -120,7 +120,7 @@ calculator) but ftol is anyway 0.07.
 """
 import ase
 from copy import deepcopy
-from pts.defaults import default_params, are_floats, are_ints, info_params
+from pts.defaults import ps_default_params, ps_are_floats, ps_are_ints, info_ps_params
 from pts.common import file2str
 from pts.io.read_COS import read_geos_from_file, read_zmt_from_file, geo_params
 from pts.io.read_COS import read_zmt_from_gx
@@ -132,7 +132,6 @@ from numpy import array, pi, loadtxt
 from numpy.linalg import norm
 from pts.qfunc import constraints2mask
 from pts.io.cmdline import get_mask
-from pts.defaults import default_params
 from pts.io.read_COS import set_atoms
 
 def interprete_input(args):
@@ -144,7 +143,7 @@ def interprete_input(args):
     geos, geo_dict2, zmat, add_param, direct_path, paramfile = interpret_sysargs(args)
     # noverwrite by those given in parameter file
     if not paramfile == None:
-        params_dict, geo_dict = from_params_file( paramfile, default_params)
+        params_dict, geo_dict = from_params_file( paramfile, ps_default_params)
     else:
         params_dict = {}
         geo_dict = {}
@@ -485,14 +484,14 @@ def interpret_sysargs(rest):
         if "geometries" in rest:
             info_geometries()
         elif "parameter" in rest:
-            info_params()
+            info_ps_params()
         else:
             print __doc__
         exit()
 
     if "--defaults" in rest:
         print "The default parameters for the path searching algorithm are:"
-        for param, value in default_params.iteritems():
+        for param, value in ps_default_params.iteritems():
             print "    %s = %s" % (str(param), str(value))
         exit()
 
@@ -541,12 +540,12 @@ def interpret_sysargs(rest):
             elif o in ("workhere"):
                 add_param[o] = int(a)
             else:
-                assert(o in default_params)
+                assert(o in ps_default_params)
                 # suppose that the rest are setting parameters
                 # compare the default_params
-                if o in are_floats:
+                if o in ps_are_floats:
                     add_param[o] = float(a)
-                elif o in are_ints:
+                elif o in ps_are_ints:
                     add_param[o] = int(a)
                 else:
                     add_param[o] = a
@@ -564,7 +563,7 @@ def create_params_dict(new_params):
     create the parameter dictionary for the pathsearcher routine
     """
     # set up parameters (fill them in a dictionary)
-    params_dict = default_params.copy()
+    params_dict = ps_default_params.copy()
 
     # ovewrite all of them by those given directly into the input
     for key in new_params:

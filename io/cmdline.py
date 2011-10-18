@@ -9,7 +9,7 @@ import getopt
 from ase.calculators import *
 from pts.gaussian import Gaussian
 from pts.common import file2str
-from pts.defaults import default_params, default_calcs, default_lj, default_vasp
+from pts.defaults import ps_default_params, default_calcs, default_lj, default_vasp
 
 LONG_OPTIONS = ["calculator="]
 
@@ -23,7 +23,7 @@ def get_defaults():
     """
     Returns a copy of the parameter dictionary with default settings
     """
-    return default_params.copy()
+    return ps_default_params.copy()
 
 def get_calculator(file_name):
 
