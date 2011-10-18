@@ -211,8 +211,6 @@ class ReactionPathway(object):
         self.perp_bead_forces = zeros(shape)
         self.para_bead_forces = zeros(beads_count)
 
-        self.tangents = zeros(shape)
-
         # energies / gradients of beads, excluding any spring forces / projections
         self.bead_pes_energies = zeros(beads_count)
         self.bead_pes_gradients = zeros(shape)
@@ -948,8 +946,6 @@ class PathRepresentation(Path):
         # NOTE: here we assume that state_vec[i] is a 1D array:
         self.__dimension = len(state_vec[0])
 
-        self.__path_tangents = []
-
         # generate initial paramaterisation density
         # TODO: Linear at present, perhaps change eventually
         self.__normalised_positions = linspace(0.0, 1.0, len(self.__state_vec))
@@ -972,7 +968,12 @@ class PathRepresentation(Path):
 
     @property
     def path_tangents(self):
-        return self.__path_tangents
+        assert not self._funcs_stale
+        ts = []
+        for i in self.__normalised_positions:
+             ts.append(self.fprime(i))
+
+        return array(ts)
 
     def positions_on_string(self):
         return self.__normalised_positions
@@ -1072,23 +1073,8 @@ class PathRepresentation(Path):
         # OLD: self.state_vec = bead_vectors
         self.state_vec = masked_assign(update_mask, self.state_vec, bead_vectors)
 
-        # FIXME: this appears suspicious, changing a single node, or a single
-        # abscissa invalidates all tangents as one has to assume a different
-        # path parametrization. A "masked update" of tangents may seem
-        # unjustified! Is it done on purpose?
-        # OLD: self.__path_tangents = bead_tangents
-        self.__path_tangents = masked_assign(update_mask, self.__path_tangents, bead_tangents)
-
         return bead_vectors
 
-    def update_tangents(self):
-        assert not self._funcs_stale
-        ts = []
-        for i in self.__normalised_positions:
-             ts.append(self.fprime(i))
- 
-        self.__path_tangents = array(ts)
-        
     def dump_rho(self):
         res = 0.02
         print "rho: ",
@@ -1671,7 +1657,7 @@ class GrowingString(ReactionPathway):
 
         # TODO: this must eventually be done somewhere behind the scenes.
         # I.e. Why would one ever want to update the path but not the tangents?
-        self._path_rep.update_tangents()
+        #self._path_rep.update_tangents()
 
     def update_path(self, state_vec):
         """
@@ -1691,10 +1677,6 @@ class GrowingString(ReactionPathway):
 
         # rebuild line, parabola or spline representation of path
         self._path_rep.regen_path_func()
-
-        # TODO: this must eventually be done somewhere behind the scenes.
-        # I.e. Why would one ever want to update the path but not the tangents?
-        self._path_rep.update_tangents()
 
 
 # Testing the examples in __doc__strings, execute
