@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 """
-This function performs a transition state search with the "dimer method"
+This function performs a transition state search with the "dimer method" or the "lanczos method"
+They represent different strategies for obtaining the lowest eigenmode of the hessian. 
+As the usage is the same for both methods in the following all the commands are explained only
+for the dimer method, the lanczos method can be used the same way. Only in DIFFERENCES BETWEEN
+DIMER AND LANCZOS the laczos method will be addressed explicitely again.
 
 USAGE:
    paratools dimer --calculator <calculator_file> <geometry file> <start mode_vector file>
+   paratools lanczos --calculator <calculator_file> <geometry file> <start mode_vector file>
 
 It needs at least three input files:
  * one containing the quantum chemical calculator
@@ -40,21 +45,35 @@ optimization). To find more about them do:
 
 FURTHER OPTIONS:
 
-There are some more variables specifying the way the dimer method run. Currently they are just handed over
-to the dimer main program, so one could use them but the interface to them is not yet finished as
-is the set of them. The defaults are currently similar to the ones given by ASE dimer, which follows a
-very similar strategy. If it is wanted to change there something find out the name of the variable to change
-in dimer module and add to your command:
+There are some more variables specifying the way the dimer method run.
+To find out more about them do:
+   paratools dimer --help parameter
+
+For getting a list with all their defaults do:
+   paratools dimer --defaults
+
+If it is wanted to change there something find out the name of the variable to change
+ and add to your command:
   --<variable name> <new value>
 
-Just to mention one: the maximum number of translation step defaults to a very large number. to reduce it
+Just to mention one: the maximum number of translation step defaults to a very large number. To reduce it
 add to the paratools command:
   --max_translation <number of translation iterations>
 
 So for example to have only 100 of them:
   --max_translation 100
 
-Currently there are maximal 10 rotation steps per translation step allowed.
+DIFFERENCES BETWEEN DIMER AND LANCZOS METHOD:
+
+Each of the methods represent a different way of getting the lowest eigenmode of an second derivative
+Hessian approximation at the current point. The methods themselves are described elsewhere, here only their
+differences in performance and recommendations which one too choose are given.
+
+The translation method uses the special mode to find its best step. Both methods
+will try to update the result from the last iteration. As this is usually not changing much in most cases
+there is not much to gain. For rough rotational convergence criteria and a good starting mode the results
+should be more or less equivalent. But if the mode should be gotten with a high accuracy the lanczos method
+is supposed to be better.
 
 EXAMPLES:
 
@@ -64,7 +83,7 @@ and a valid caluclator file calc.py do to start a 20 translation steps dimer opt
   paratools dimer --calculator calc.py  --max_translation 20 POSCAR.start MODE_START
 
 """
-from pts.io.read_inputs import get_geos, get_masked
+from pts.io.read_inputs import get_geos, get_masked, from_params_file
 from pts.io.read_COS import geo_params, info_geometries
 from pts.io.read_COS import set_atoms
 from numpy import loadtxt
@@ -73,6 +92,8 @@ from pts.qfunc import QFunc
 from sys import exit, stderr
 from pts.tools.pathtools import unpickle_path, PathTools
 from ase.atoms import Atoms
+from pts.defaults import di_default_params, di_are_strings, info_di_params
+from pts.common import file2str
 
 def read_dimer_input(rest):
     """
@@ -88,15 +109,27 @@ def read_dimer_input(rest):
     mode = None
     as_pickle = False
     ts_estim = None
+    accept_all = False
 
     if "--help" in rest:
         if "geometries" in rest:
            info_geometries()
+        elif "parameter" in rest:
+           info_di_params()
         else:
            print __doc__
 
         exit()
 
+    if "--defaults" in rest:
+        print "The default parameters for the dimer/lanczos algorithm are:"
+        for param, value in di_default_params.iteritems():
+            print "    %s = %s" % (str(param), str(value))
+        exit()
+
+    if rest[0] == "--accept_all":
+        rest = rest[1:]
+        accept_all = True
 
     for i in range(len(rest)):
         if rest == []:
@@ -127,8 +160,11 @@ def read_dimer_input(rest):
                   geo_dict[o] = a
             else:
                 # suppose that the rest are setting parameters
-                # currently we do not have a complet list of them
-                if o in ["trajectory", "trans_method", "rot_method"]:
+                # we do not have a complet list of them
+                if not accept_all:
+                    assert o in di_default_params or o == "rot_method", "Parameter %s" % (o)
+
+                if o in di_are_strings:
                     add_param[o] = a
                 else:
                     add_param[o] = eval(a)
@@ -148,7 +184,10 @@ def read_dimer_input(rest):
         params_dict = add_param
         geo_dict_dim = geo_dict
     else:
-        params_dict, geo_dict_dim = from_params_file_dimer(paramfile )
+        if accept_all:
+            params_dict, geo_dict_dim = from_params_file_dimer(paramfile )
+        else:
+            params_dict, geo_dict_dim = from_params_file(paramfile, di_default_params )
         params_dict.update(add_param)
         geo_dict_dim.update(geo_dict)
 
