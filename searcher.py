@@ -63,67 +63,47 @@ def _functionId(nFramesUp):
 
 def masked_assign(mask, dst, src):
     """Assigns y to x if mask allows it.
+       There are three different cases for each element possible:
+       m = 0: keep the old value of dst
+       m = 1: use new value of src
+       m = 2: only represented in src (not in dst)
+              thus of course not keep it and
+              make sure it is not counted in dst
 
-    >>> m = [True, True]
+    >>> m = [1, 1]
     >>> orig = arange(4).reshape(2,-1)
     >>> x = orig.copy()
     >>> y = array([5,4,3,2]).reshape(2,-1)
     >>> x = masked_assign(m, x, y)
     >>> (x == y).all()
     True
-    >>> m = [False, False]
+    >>> m = [0, 0]
     >>> x = orig.copy()
     >>> (x != masked_assign(m, x, y)).all()
     False
     """
+    dstc = src.copy()
+    print mask
+    print len(dstc)
+    assert len(mask) == len(dstc)
 
-    if len(dst) != len(src):
-        return src.copy()
-
-    dstc = dst.copy()
-    assert len(dstc) == len(src), "%d != %d" % (len(dstc), len(src))
-    assert mask is None or len(mask) == len(dstc)
-
-
-    for i, src_ in enumerate(src):
-        if mask is None or mask[i]:
-            dstc[i] = src_
+    j = 0
+    for i, m in enumerate(mask):
+        if mask[i] == 1:
+            j = j + 1
+        elif mask[i] == 0:
+            dstc[i] = dst[j]
+            j = j + 1
 
     return dstc
 
-
-def minimal_update(new, old, new_ixs):
-    """
-    Replaces vectors in |new| with corresponding ones in |old|, where 
-    they do not correspond to the indices in new_ixs.
-
-    >>> new = array([1,1,1,1,1])
-    >>> old = array([0,0,0])
-    >>> new_ixs = (2,3)
-
-    >>> minimal_update(new, old, new_ixs)
-    >>> new
-    array([0, 0, 1, 1, 0])
-
-    """
-    assert len(new) == len(old) + len(new_ixs)
-
-    new_ixs = list(new_ixs)
-    new_ixs.sort()
-
-    for i in range(len(new)):
-        if i < new_ixs[0]:
-#            print "yes",i
-            new[i] = old[i]
-        elif i > new_ixs[-1]:
-#            print "yes",i
-            new[i] = old[i-len(new_ixs)]
-        else:
-#            print "no",i
-            pass
-
 def freeze_ends(bc):
-    return [False] + [True for i in range(bc-2)] + [False]
+    """
+    Generates a mask for masked_assign function which fixes
+    the two termination beads (with 0 ) and updates the rest
+    of them (1)
+    """
+    return [0] + [1 for i in range(bc-2)] + [0]
 
 class ReactionPathway(object):
     """Abstract object for chain-of-state reaction pathway."""
@@ -576,7 +556,8 @@ class ReactionPathway(object):
             tmp = array(x).reshape(self.beads_count, -1)
 
             for i in range(self.beads_count):
-                if self.bead_update_mask[i]:
+            # Update mask: 1 update, 0 stay fixed, 2 new bead
+                if self.bead_update_mask[i] == 1:
                     self._state_vec[i] = tmp[i]
 
     state_vec = property(get_state_vec, set_state_vec)
@@ -832,7 +813,8 @@ class NEB(ReactionPathway):
         else:
             pr = PathRepresentation(reagents, beads_count, lambda x: 1)
             pr.regen_path_func()
-            pr.generate_beads(mt.metric)
+            #Space beads along the path, as it is for start set all of them anew: mask = 1
+            pr.generate_beads(mt.metric, [1 for i in range(beads_count)])
             self._state_vec = pr.state_vec.copy()
 
     def update_tangents(self):
@@ -902,7 +884,8 @@ class NEB(ReactionPathway):
         result_bead_forces = zeros((self.beads_count, self.dimension))
 #        print "pbf", self.perp_bead_forces.reshape((-1,2))
         for i in range(self.beads_count):
-            if not self.bead_update_mask[i]:
+            # Update mask: 1 update, 0 stay fixed, 2 new bead
+            if not self.bead_update_mask[i] == 1:
                 continue
 
             spring_force_mag = 0
@@ -1039,10 +1022,23 @@ class PathRepresentation(Path):
 
         return self.seps
 
-    def generate_beads(self, metric, update_mask=None):
-        """Returns an array of the self.__beads_count vectors of the coordinates 
-        of beads along a reaction path, according to the established path 
-        (line, parabola or spline) and the parameterisation density."""
+    def generate_beads(self, metric, update_mask ):
+        """
+        Updated the bead informations of the path by setting
+        self.__normalised_positions and self.state_vec
+        self.state_vec will contain all the coordinates
+        of beads along a reaction path, according to the established path
+        (line, parabola or spline) and the parameterisation density in
+        self.__normalised_positions.
+
+        Not all beads will be updated, only those which have a value > 0
+        in update_mask, thus allowing for example the termination beads
+        to stay exactly the same during the complete run.
+
+        __beads_count might be different to the length of the self.state_vec
+        before applying generate_beads. It is assumed that the new beads are
+        indices as 2 in the update_mask.
+        """
 
         assert not self._funcs_stale
 
@@ -1070,10 +1066,8 @@ class PathRepresentation(Path):
         bead_vectors = asarray(bead_vectors)
         bead_tangents = asarray(bead_tangents)
 
-        # OLD: self.state_vec = bead_vectors
         self.state_vec = masked_assign(update_mask, self.state_vec, bead_vectors)
-
-        return bead_vectors
+        self.regen_path_func()
 
     def dump_rho(self):
         res = 0.02
@@ -1309,9 +1303,8 @@ class GrowingString(ReactionPathway):
         # Build path function based on reagents
         self._path_rep.regen_path_func()
 
-        # Space beads along the path
-        self._path_rep.generate_beads(mt.metric)
-        self._path_rep.regen_path_func()
+        # Space beads along the path, as it is for start set all of them anew: mask = 1
+        self._path_rep.generate_beads(mt.metric, [1 for i in range(initial_beads_count)])
 
         self.parallel = parallel
 
@@ -1439,7 +1432,6 @@ class GrowingString(ReactionPathway):
             self.bead_positions, new_i = get_bead_positions(path, self.bead_positions)
         else:
             self.bead_positions, new_i = get_bead_positions_grad(self.bead_pes_energies, self.bead_pes_gradients, self.tangents, self.bead_positions)
-        new_ixs = (new_i,)
 
         if new_i == self.beads_count - 2:
             moving_beads = [new_i-2, new_i-1, new_i]
@@ -1456,26 +1448,30 @@ class GrowingString(ReactionPathway):
         # newly added one stay in exactly the same position. Otherwise, 
         # numerical inaccuraties cause them to move and additional beads
         # to have their energies calculated.
-        old = self.state_vec.copy()
-        new = self._path_rep.generate_beads(mt.metric)
-        minimal_update(new, old, new_ixs) # only updates new_ixs
+
+        mask = [0 for i in range(self.beads_count)]
+        mask[new_i] = 2
+
+        # Mask tells which beads a new (2), stay fixed (0) or should be updated(1)
+        self._path_rep.generate_beads(mt.metric, mask)
+
         self.bead_update_mask = freeze_ends(self.beads_count)
-        self.state_vec = new
-        print "old", old
-        print "new", new
-        print "state_vec", self.state_vec
 
         # Mask of beads to freeze, includes only end beads at present
+        # 0 for fix, 1 for updated (as number of beads now fixed, no 2 any more needed)
+        self.bead_update_mask = [0 for i in range(self.beads_count)]
         if self.freeze_beads:
-            self.bead_update_mask = [i in moving_beads for i in range(self.beads_count)]
+            for i in moving_beads:
+                self.bead_update_mask[i] = 1
         else:
             e = 1
             m = self.beads_count - 2 * e
-            self.bead_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
+            for i in range(m):
+                self.bead_update_mask[e+i] = 1
 
         # HCM 26/05/10: following line now done by self.state_vec assignment
         #self._path_rep.regen_path_func() #TODO: for grow class as well
-
+        # AN 18/10/11: Now it is included in generate_beads
 
         # HCM 06/05/10: the following line does nothing, see definition of setter for self.beads_count
         # self._path_rep.beads_count = self.beads_count
@@ -1514,16 +1510,17 @@ class GrowingString(ReactionPathway):
 
         # build new bead density function based on updated number of beads
         self.update_rho()
-        old = self.state_vec.copy()
-        new = self._path_rep.generate_beads(mt.metric)
-        minimal_update(new, old, new_ixs)
+
+        # All beads are fixed, the newly ones need their data anyhow from the new set of beads
+        # As the path is build on them the other should anyhow only get rounding errors here
+        mask = [0 for i in range(self.beads_count)]
+        for i in new_ixs:
+            mask[i] = 2
+
+        self._path_rep.generate_beads(mt.metric, mask)
 
         # create a new bead_update_mask that permits us to set the state to what we want
         self.bead_update_mask = freeze_ends(self.beads_count)
-        self.state_vec = new
-        print "old", old
-        print "new", new
-        print "state_vec", self.state_vec
 
         self.initialise()
 
@@ -1531,12 +1528,16 @@ class GrowingString(ReactionPathway):
 
         # Build mask of beads to calculate, effectively freezing some if 
         # head_size, i.e. the size of the growing heads, is specified.
+        # 0 means fix, 1 means update, (bead number fix: no 2 needed)
         if self.freeze_beads:
             e = self.beads_count / 2 - self.head_size + self.beads_count % 2
         else:
             e = 1
         m = self.beads_count - 2 * e
-        self.bead_update_mask = [False for i in range(e)] + [True for i in range(m)] + [False for i in range(e)]
+        self.bead_update_mask = [0 for i in range(self.beads_count)]
+        for i in range(m):
+            self.bead_update_mask[e+i] = 1
+
         lg.info("Bead Freezing MASK: " + str(self.bead_update_mask))
 
         print "******** String Grown to %d beads ********" % self.beads_count
@@ -1625,7 +1626,7 @@ class GrowingString(ReactionPathway):
             from_array = -self.perp_bead_forces
 
         for i in range(self.beads_count):
-            if self.bead_update_mask[i]:
+            if self.bead_update_mask[i] == 1:
                 result_bead_forces[i] = from_array[i]
 
 #       print "result_bead_forces", result_bead_forces
@@ -1646,12 +1647,8 @@ class GrowingString(ReactionPathway):
             new_abscissa /= new_abscissa[-1]
             self._path_rep.regen_path_func(normalised_positions=new_abscissa)
 
-        self._path_rep.generate_beads(metric, update_mask=self.bead_update_mask)
-
-        # The following line ensure that the path used for the next
-        # step is the same as the one that is generated, at a later date,
-        # based on an outputted path pickle.
-        self._path_rep.regen_path_func()
+        # Mask tells which beads a new (2), stay fixed (0) or should be updated(1)
+        self._path_rep.generate_beads(metric, self.bead_update_mask)
 
         self.respaces += 1
 
@@ -1671,7 +1668,8 @@ class GrowingString(ReactionPathway):
         tmp = self._path_rep.state_vec.copy()
 
         for i in range(self.beads_count):
-            if self.bead_update_mask[i]:
+            # Update mask: 1 update, 0 stay fixed, 2 new bead
+            if self.bead_update_mask[i] == 1:
                 tmp[i] = new[i]
         self._path_rep.state_vec = tmp # was '= new' until 07/05/10
 
