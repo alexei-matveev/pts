@@ -121,6 +121,7 @@ calculator) but ftol is anyway 0.07.
 import ase
 from copy import deepcopy
 from pts.defaults import ps_default_params, ps_are_floats, ps_are_ints, info_ps_params
+from pts.defaults import ps_are_complex
 from pts.common import file2str
 from pts.io.read_COS import read_geos_from_file, read_zmt_from_file, geo_params
 from pts.io.read_COS import read_zmt_from_gx
@@ -547,6 +548,8 @@ def interpret_sysargs(rest):
                     add_param[o] = float(a)
                 elif o in ps_are_ints:
                     add_param[o] = int(a)
+                elif o in ps_are_complex:
+                    add_param[o] = eval(a)
                 else:
                     add_param[o] = a
 

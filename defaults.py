@@ -172,6 +172,7 @@ default_calcs = {
 
 ps_are_floats = ["ftol", "xtol", "etol", "maxstep", "spring"]
 ps_are_ints = ["maxit", "beads_count", "output_level", "pmin", "pmax"]
+ps_are_complex = ["cpu_architecture"]
 
 default_lj  = LennardJones(
   epsilon = 1.0,
