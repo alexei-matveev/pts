@@ -801,6 +801,8 @@ class NEB(ReactionPathway):
 
         self.base_spr_const = base_spr_const
 
+        self.tangents = zeros((beads_count,len(reagents[0])))
+
         # Make list of spring constants for every inter-bead separation
         # For the time being, these are uniform
         self.spr_const_vec = array([self.base_spr_const for x in range(beads_count - 1)])
