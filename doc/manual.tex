@@ -15,7 +15,7 @@
 \usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{amssymb}
-\usepackage{babel}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LyX specific LaTeX commands.
 %% Because html converters don't know tabularnewline
@@ -25,18 +25,18 @@
   \def\labelitemiii{\(\triangleright\)}
 }
 
-
+\usepackage{babel}
 
 \begin{document}
 
 \title{\textcolor{black}{ParaTools} Manual}
 
 
-\date{24.11.2010}
+\date{2011}
 
 \maketitle
 \noindent \begin{center}
-Version 1.0
+Version 2.0
 \par\end{center}
 
 \pagebreak{}
@@ -44,6 +44,54 @@ Version 1.0
 \tableofcontents{}
 
 \pagebreak{}
+
+
+\part{New in Version 2}
+
+This manual is in update process from version 1 to version 2. All
+chapters, whose chapter titles are given in red color are still of
+version 1 (and all their sub-chapters). All chapters with chapter
+titles in black should at least be about ParaTools version 2, even
+if they might not yet be completely finished. 
+
+
+\section{New features}
+
+It is now possible to introduce a user defined coordinate description
+of any kind, as long as it fulfills some requirements. This works
+only with direct function call of the routines.
+
+New routines for finding transition states have been included: they
+are eigenmode routines of dimer and Lanczos type.
+
+New routines for interpreting path searching output further.
+
+
+\section{Change in the routines}
+
+All routines can now be accessed via the general command {}``paratools''
+making it obsolent to have tools directory with many separate files
+in PATH set.
+
+Attention: some of the additional routines have been different names
+in the command line, which should be more convinient. The direct usage
+of the tools from subdirectory is also still possible but it is recommended
+to use them all via the command line to reduce the complete number
+of available routines.
+
+Some of the parameternames in path searcher have been adapted. 
+
+The storing of reusable results in path searcher is now handled differently,
+parameters about it have to be adapted and renamed.
+
+The final path in path searching routines is now also provided in
+user readable files.
+
+The routine path2plot can now also extract force and energy information
+from the path.pickle files and interpolate/plot them.
+
+Several routines, which required explicitely a path.pickle as input,
+can now read in their informations in user readable way.
 
 
 \part{General Overview}
@@ -108,8 +156,6 @@ ParaTools will provide a great help for at least the first tasks.
 (All the shown calculations for the picture were done with help of
 ParaTools)}}
 
-
-
 \end{figure}
 
 
@@ -151,10 +197,9 @@ and
 processes scheduled from the python program on its own)
 
 All the functionalities of ParaTools can be used both interactively
-and direct in a small python program. Some of the most important ones
-are collected in the central command. These command is situated in
-\textit{\$PYTHONPATH/pts/bin/} and is called paratools. The usage
-is the following:
+and direct in a small python program. For the first way they are collected
+in the central command. These command is situated in \textit{\$PYTHONPATH/pts/bin/}
+and is called paratools. The usage is the following:
 
 \textit{paratools CMD {[}--help| ...]}
 
@@ -195,19 +240,19 @@ file> <minimum 1>}
 \textit{paratools forces \nobreakdash-\nobreakdash-calculator <calculator
 file> <minimum 1>}
 
-There are some other tools situated in \$PYTHONPATH/pts/tools. Most
-of them are working on the output of a calculation to search a path
-like on a string or neb calculation. But there are also some more
-working independent of it. They are in separate files. Calling
+There are many other tools of which quite a lot is about helping to
+interprete the output of paratools pathsearcher routines or visualize
+parts of it. They might require the output of a preceeding neb or
+string calculation. But others are independant of it or allow another
+kind of usage. To see a list of all available commands for paratools
+call
 
-\textit{<programfile> --help}
+\textit{paratools --help}
 
-should always give a description of usage and options for each of
-the tools. Here one can find:
+Here one can find for example the tool ts\_and\_mods, for which the
+simplest kind of usage looks like: 
 
-\textit{tsestandmods.py <path.picke file>} 
-
-for example.
+\textit{paratools ts\_and\_mods <path.picke file>} 
 
 \pagebreak{}
 
@@ -216,16 +261,15 @@ for example.
 
 This is the somewhat central feature of the toolbox. After initialization
 of ParaTools (as described in part \ref{par:Setting-up-the}) \textcolor{black}{it
-}is ready to start. Please be aware that some of the tools are situated
-in the /bin subdirectory, while others are in the /tools subdirectory.
+}is ready to start. 
 \begin{itemize}
-\item This setting should be setting three environment variables, thus for
-a batch shell:
+\item The required setting should be changing some environment variables,
+thus for a batch shell:
 
 
 \textit{export PYTHONPATH=/users/alexei/PYTHON:\$\{PYTHONPATH\}}
 
-\textit{export PATH=/users/alexei/PYTHON/pts/bin/:users/alexei/PYTHON/pts/tools/:\$\{PATH\}}
+\textit{export PATH=/users/alexei/PYTHON/pts/bin/:\$\{PATH\}}
 
 \textit{export VASP\_PP\_PATH=/users/alexei/devel/vasp/ase-vasp/mypps}
 
@@ -237,7 +281,7 @@ a batch shell:
 
 \textit{setenv PYTHONPATH /users/alexei/PYTHON:\$\{PYTHONPATH\}}
 
-\textit{setenv PATH /users/alexei/PYTHON/pts/bin/:users/alexei/PYTHON/pts/tools/:\$\{PATH\}}
+\textit{setenv PATH /users/alexei/PYTHON/pts/bin/:\$\{PATH\}}
 
 \textit{setenv VASP\_PP\_PATH /users/alexei/devel/vasp/ase-vasp/mypps}
 
@@ -266,11 +310,13 @@ are in POSCAR format, where the comment line is filled with the names
 of the atoms involved. This format is easy to handle for the toolbox.
 Others, like xyz formats, can be also used. But they would require
 additional input for the cell, which is needed by VASP. The POSCARs
-already contain the cell in a way, the toolbox can understand. The
-toolbox can also understand the selective dynamics of the VASP POSCARs,
-at least as long as all the calculations with the toolbox are performed
-in Cartesian coordinates. Thus in our example the surface will be
-fixed all the time, when the geometry is changed.
+already contain the cell in a way, that the toolbox can understand.
+VASP POSCARs can also contain informations about the fixing of some
+(Cartesian) coordinates, if selective dynamics is set. The toolbox
+can also understand this, at least as long as all the calculations
+with the toolbox are performed in Cartesian coordinates. Thus in our
+example, where this option is used, the surface will be fixed all
+the time, when the geometry is changed.
 \item The toolbox should also use the same VASP settings for calculating
 the transition state. For this a small input file (figure \ref{fig:Example-file-for})
 can do the job. This file may be named vasp.py for example. More about
@@ -306,18 +352,18 @@ with the two minima. But if already the initial path is completely
 nonsense, the rest will hardly get better. For example VASP makes
 use of the periodicity and one can find atoms shifted to the next
 cell. Thus it is highly recommended to test the initial path the pathsearcher
-would use. The tool makepath.py (chapter \ref{sub:Makepath.py}) calculates
+would use. The tool make\_path (chapter \ref{sub:Makepath.py}) calculates
 only the geometries, and thus is rather quick. As output it gives
 (in xyz format) the geometries of all the beads on a possible path.
 The output may be redirected from the standard output. This can be
 done by:
 
 
-\textit{makepath.py \nobreakdash-\nobreakdash-num 7 POSCAR.left
+\textit{paratools make\_path \nobreakdash-\nobreakdash-num 7 POSCAR.left
 POSCAR.right > initpath.xyz}
 
-The so gotten file can be used to check the geometries with for example
-jmol. In our case this will give figure \ref{fig:Path-of-linear}.
+The file initpath.xyz can now be visualized for example with jmol.
+In our case this will give figure \ref{fig:Path-of-linear}.
 
 After some rearranging of the right geometry file, the initial path
 may look something like figure \ref{fig:Inital-path.}. That is much
@@ -346,8 +392,6 @@ fail to converge the resulting path. }\label{fig:Path-of-linear}}
 is done between the two minima carfully avoiding to have atoms shift
 the cells between them. }\label{fig:Inital-path.}}
 
-
-
 \end{figure}
 
 \begin{itemize}
@@ -362,31 +406,35 @@ variants can be found in chapter \ref{sec:The-Path-Searching}.
 POSCAR.left POSCAR.right}
 
 The chapter mentioned above shows also all the parameter, which may
-be chosen additionally. With this tool there will have to be done
-a lot of calculations with the quantum chemistry program. There are
-several geometries (of all the beads) known the same time. Thus it
-makes sense to consider a parallel calculations. How parallel calculations
-are done and what is special about the serial ones is described in
-part \ref{par:Parallel-Calculations}. 
+be chosen additionally. This tool will have to do many calculations
+with the quantum chemistry program. There are several geometries (of
+all the beads) known at the same time. Thus it makes sense to consider
+a parallel calculations of them. How parallel calculations are done
+and what is special about the serial ones is described in part \ref{par:Parallel-Calculations}.
+Especially as most quantum chemistry programs have only a limited
+scalability to large processor numbers having several instances of
+them run at the same time with fewer processor numbers each is often
+much more effective than doing all the calculations serial with the
+sum of all the processors. 
 
 \item This calculation may finished because it hit the maximum iteration,
-rather than because it converged. The convergence criteria will be
-too high in this context. Still one can try to extract the best of
-the results. For the last path there are some geometry files present,
+rather than because it converged. The convergence criteria will have
+been chosen too high. Still one can try to extract the best of the
+results. For the last path there are some geometry files present,
 called BEAD\_n and at least one approximation for the transition state
 TSESTIMATE\_1, together with the corresponding MODEVEC\_1. More about
 the output of the pathsearcher calculations can be found in \ref{sub:Interpreting-the-Output}.
 But the last path may not be the best one. There is the chance of
-finding one even better fitting for our purpose: The tool findlimitpath.py
+finding one even better fitting for our purpose: The tool find\_limit\_path
 (chapter \ref{sub:Findlimitaof.py}) can be used to search for the
 best iteration. The .log file contains a lot of data to each iteration,
-findlimitpath.py searches automatically for the iteration where special
+find\_limit\_path searches automatically for the iteration where special
 relations are met. So to find out when the variable {}``RMS Perp
 Forces'' were below 0.1 (eV/Angstrom), just do:
 
 
-\textit{findlimitpath.py string.log \textquotedbl{}RMS Perp Forces\textquotedbl{}
-0.1}
+\textit{paratools find\_limit\_path string.log \textquotedbl{}RMS
+Perp Forces\textquotedbl{} 0.1}
 
 One can also search for more complicated relations, but here this
 may be sufficient as the RMS perpendicular forces to the bead are
@@ -399,7 +447,7 @@ iteration 30 is most certainly the best one.
 \begin{figure}[H]
 \includegraphics[scale=0.7]{Pictures/findlimitaofoutputethanoxid}
 
-\caption{\textbf{Example output of tool findlimitpath.py (chapter \ref{sub:Findlimitaof.py}).
+\caption{\textbf{Example output of tool find\_limit\_path (chapter \ref{sub:Findlimitaof.py}).
 As one can see from the output the last iteration is indeed not the
 best: the line stayed below, means that for all further iterations
 the limit was never overstepped again. As it gave an argument larger
@@ -416,33 +464,32 @@ than the one of the last iteration.} \label{fig:Example-findlimitaof}}
 \end{figure}
 
 \begin{itemize}
-\item All informations of interest are stored int the path.pickle files.
-For each iteration there is one called string.debug?.path.pickle.
-So the interesting one is string.debug30.path.pickle. First there
-is a chance to get the path in xyz-format, for direct inspection,
-even if there had not been any files generated yet. This can be done
-by the tool path2xyz.py (chapter \ref{sub:Path2xyz.py}).
+\item On default all informations of interest are stored in the path.pickle
+files. For each iteration there is one called string.debug?.path.pickle.
+So the interesting one in our example is string.debug30.path.pickle.
+First there is a chance to get the path in xyz-format, for direct
+inspection. This can be done by the tool path2xyz (chapter \ref{sub:Path2xyz.py}).
 
 
-\textit{path2xyz.py string.debug30.path.pickle -b }
+\textit{paratools path2xyz string.debug30.path.pickle -b }
 
-The outcome can be redirected to a file and shown with jmol for example
-(figure \ref{fig:Path-30}).
+The outcome can be redirected to a file and visualized with jmol for
+example (figure \ref{fig:Path-30}).
 
-\item To extract now the transition state, the tool tsestandmods.py (chapter
-\ref{sub:Tsestandmods.py}) comes in handy. The following command
-extracts the highest bead approximation and for two different path
-descriptions (part \ref{sec:Approximations-for-the}) the spline and
-cubic variant. The spine and cubic variant with with given distance
-by string should be the best one. But in many cases the highest bead
-is just sufficient.
+\item To extract now the transition state approximations on this path, the
+tool ts\_and\_mods (chapter \ref{sub:Tsestandmods.py}) comes in handy.
+The following command extracts the highest bead approximation and
+for two different path descriptions (part \ref{sec:Approximations-for-the})
+the spline and cubic variant. The spine and cubic variant with given
+distance by string should in general gives the best result. But in
+many cases the highest bead is just sufficient.
 
 
-\textit{tsestandmods.py string.debug30.path.pickle 1 4}
+\textit{paratools ts\_and\_mods.py string.debug30.path.pickle 1 4}
 
 The result is also a xyz format output, which could be further used.
-(If called with option --m, tsestandmods.py will also produce some
-modevector, the one called frompath is especially for the spline and
+(If called with option --m, ts\_and\_mods will also produce some modevector
+variants, the one called frompath is especially for the spline and
 cubic case well suited).
 
 \end{itemize}
@@ -452,7 +499,7 @@ cubic case well suited).
 
 \caption{\textbf{Path of the 30th iteration of the pathseracher. The geometries
 in xyz format were extracted from the string.debug30.path.pickle file
-with the tool path2xyz.py.}\label{fig:Path-30}}
+with the tool path2xyz.}\label{fig:Path-30}}
 
 
 
@@ -465,9 +512,7 @@ with the tool path2xyz.py.}\label{fig:Path-30}}
 
 \caption{\textbf{Transition state estimate. This one is produced with the variant
 spine and cubic from the path of the 30th iteration of our minimal
-energy path search.}\label{fig:Transition-state-estimate.}}
-
-
+energy path search with help of the tool ts\_and\_mods .}\label{fig:Transition-state-estimate.}}
 
 \end{figure}
 
@@ -495,14 +540,20 @@ calc.py POSCAR.left}
 Here the cell and fixed coordinates will be considered, too. This
 is because they are stored in the POSCAR.
 
-\item To watch the development of the path in special chosen internal coordinate
+\item To watch the development of the path in special chosen internal coordinates
 (independent of the coordinate system used for the path), there is
-the tool path2plot.py (chapter \ref{sub:path2plot.py}). 
+the tool path2plot (chapter \ref{sub:path2plot.py}). 
 
 
-\textit{path2plot.py --dp 2 8 7 10 --dis 2 5 string.debug0.path.pickle}
+\textit{paratools path2plot --dp 2 8 7 10 --dis 2 5 string.debug0.path.pickle}
 
 \textit{string.debug10.path.pickle string.debug20.path.pickle string.debug30.path.pickle}
+
+The tool path2plot needs matplotlib to be installed. This might not
+be available everywhere or the exact numbers are wanted. In this case
+the tool path2tab can be used. It would give only the output for the
+beads if not explicitly asked for an iterpolated path but in all other
+things it should follow the same interface as path2plot.
 
 \end{itemize}
 %
@@ -513,9 +564,9 @@ the tool path2plot.py (chapter \ref{sub:path2plot.py}).
 approximated {}``reaction'' coordinate there is the distance of
 the second C atom to the Pt plane (the C which goes up), the y-coordinate
 is the distance of the H atom to be dehydrated and the C atom bound
-to. The tool shows the path and the beads as points on it.} \label{fig:path2plot C-Ptpl H-C}}
-
-
+to. The tool shows the path and the beads as points on it. The picture
+has been generated with the tool path2plot (see chapter \ref{sub:path2plot.py}).}
+\label{fig:path2plot C-Ptpl H-C}}
 
 \end{figure}
 
@@ -535,13 +586,16 @@ for \textcolor{black}{ParaTools:}
 
 \subsection{The Atoms Object}
 
-The atoms objects, as described in the ASE framework, are also the
-way to store molecules and atoms in ParaTools. They contain all kind
-of data, like atom numbers, coordinates, forces, energies, ...
+The atoms objects, as described in the ASE framework, are also used
+to store molecules and atoms in ParaTools. Especially their interfaces
+to the different quantum chemistry programs, called within ASE and
+ParaTools as calculators, are important for ParaTools also. The atoms
+contain all kind of data, like atom numbers, coordinates, forces,
+energies, ...
 
 The unit cell and the periodicity can also be found/set there.
 
-Most of these data can be set or read all the time. But of course
+Most of these data can be set or read in all the time. But of course
 some kinds like atom numbers and atom symbols are connected and will
 change also one another. 
 
@@ -549,7 +603,7 @@ The energies and forces are stored in the atoms object after one calculation
 with any of the calculators. The coordinates are always updated after
 they have been changed, by for example a minimization algorithm.
 
-One way of defining atoms is for example by:
+One way of defining atoms is:
 
 \textit{co = Atoms('CO', positions={[}(0, 0, 0), (0, 0, 1.1)])}
 
@@ -570,11 +624,12 @@ atoms object from a POSCAR:
 
 \textit{min2 = read(\textquotedbl{}POSCAR2\textquotedbl{})}
 
-Our own versions can also interpret gxfiles (needs gx in the name).
+Our own versions can also interpret gxfiles (needs gx in the name
+or {}``format = 'gx''').
 
 Most \textcolor{black}{ParaTools c}odes reading in geometries in one
-way or another make use of this read function. Thus they can be accessed
-with all formats valid for ASE.
+way or another make use of this read function. Thus said codes can
+be accessed with all formats valid for ASE.
 
 
 \subsection{The Calculators\label{sub:The-calculators}}
@@ -582,13 +637,13 @@ with all formats valid for ASE.
 One big advantage of having ASE in ParaTools is the amount of calculators,
 which could be used. There exist wrapper around several important
 quantum chemistry codes. So the geometry operations wanted can be
-done on them. To learn more about the way the calculators have to
+done with them. To learn more about the way the calculators have to
 be used in ASE read the ASE manual. Here only the case of VASP will
 be explained a bit further. ParaGauss (chapter \ref{sub:The-ParaGauss-Calculator})
 and an extended VASP calculator (chapter \ref{sub:VASP-DFT-D-Calculators}),
-as none of the standard calculators, will be explained more in detail
-separately. The extended one adds also some DFT-D energies to the
-VASP results. They cannot be found in the ASE documentations. 
+as both are none of the standard calculators, will be explained more
+in detail separately. The extended one adds also some DFT-D energies
+to the VASP results. They cannot be found in the ASE documentations. 
 
 \bigskip{}
 
@@ -631,8 +686,10 @@ something like (with min1 an atoms object as above):
 
 \textit{dyn1.run(fmax=0.01, steps=100)}
 
-Which would start a minimization on the min1 geometry till the forces
-are below 0.01 or 100 optimization steps is exceeded.
+Which would start a minimization with BFGS method on the min1 geometry
+till the forces are below 0.01 or 100 optimization steps is exceeded.
+ParaTools provides also a wrapper to this methods in its central commaned
+as {}``minimize''.
 
 
 \section{Additional Calculators}
@@ -644,7 +701,8 @@ So far there exist only the possibility of using ParaGauss in the
 ASE framework with help of the usual ParaGauss input file. But there
 have to be made some adaptions to it, in order to run correctly:
 
-The TASK is set to GeoOpt and the MAX\_GEO\_ITERATION to zero: 
+The TASK is set to GeoOpt and the MAX\_GEO\_ITERATION (in the convergence
+section) to zero: 
 
 \textit{\&task}
 
@@ -721,6 +779,30 @@ has also to be changed if parallel execution is wanted.
 to standard output (False) or is stored in a separate file (True).
 Be aware that the separate file will be overwritten if ParaGauss is
 called several times in the same folder.
+\item copy\_input: ParaGauss needs the input file and sometimes even some
+other files in the subdirectory it will ultimately run. These subdirectory
+might be different from the one in wich the calculator is created
+and therefore the input file has been picked up. Furthermore several
+instances of ParaGauss might be running in parallel, started from
+the same calculator but with different input files (for example different
+occupations set), which will somehow join their results lateron. Normally
+ParaGauss would write the input file anew each time it starts a calculation
+(copy\_input = {}``always''). Alternatively one can forbid him to
+write input files (copy\_input = {}``never'') or allow only to write
+them if they are not already there (copy\_input = {}``inexistent'').
+Be aware that in the last case there can be a race condition if the
+input is generated by another program while ParaGauss wrapper is running.
+\item optimizer: Some ParaGauss single point calculations might want some
+specifications of {}``optimizer.input'' like about the environment
+ParaGauss should run in. As ParaGauss might be running in a different
+subdirectory (as already mentioned) it might be convinient to ask
+the Program to create this file also. If this is wanted ParaGauss
+expects the optimizer parameter to specify the file, which should
+be provided as optimizer input. The file itself needn't be called
+optimizer.input but if it is not in the directory the ParaGauss wrapper
+will be created in, the path to it has to be included also. Optimizer.input
+will be created, if specified, in any case, thus independent of copy\_input
+variable.
 \end{itemize}
 
 \subsection{VASP DFT-D Calculators\label{sub:VASP-DFT-D-Calculators}}
@@ -807,16 +889,22 @@ one would have to write in the script:
 
 \subsection{Main Tool for Path Searching Calculations}
 
-The tool pathsearcher.py is the general interface to the string and
-NEB methods.
+The tool pathsearcher is the general interface to the string and NEB
+methods. It can be accessed via the paratools command, either with
+directly selecting the method (like NEB, string, searchingstring)
+or by the general command path-searcher. Then one can specify the
+method in the parameter settings as method.
 
 Usage:
 
-\textit{pathsearcher.py \nobreakdash-\nobreakdash-calculator <calculator
-filename> GEOM1 GEOM2}
+\textit{paratools path-searcher \nobreakdash-\nobreakdash-calculator
+<calculator filename> GEOM1 GEOM2}
 
 For either string or NEB methods one needs to specify at least two
 geometries and the calculator. 
+
+\textit{paratools searchingstring \nobreakdash-\nobreakdash-calculator
+<calculator filename> GEOM1 GEOM2}
 
 
 \subsubsection{Geometry}
@@ -830,19 +918,11 @@ and gx-files. File format is in part determined from the file name
 or extension, e.g. POSCAR and gx-files by the presence of \textquotedbl{}POSCAR\textquotedbl{}
 or \textquotedbl{}gx\textquotedbl{} substrings. 
 
-The file may also be in a format directly usable by ParaTools, thus
-for example a zmatrix with all the initial values set correctly. Also
-an mixed coordinate system specified as ccsspec object in a small
-script is possible. There one can select by hand, which part is in
-internal and which one is in Cartesian, with the possibility of giving
-the initial values for the internal part also indirect over Cartesian
-coordinates for the corresponding atoms. 
-
 \bigskip{}
 
 
-Another method of getting an internal (or mixed coordinate system)
-is by giving the geometries in Cartesian (or as ase-files) and specifying
+A method of getting an internal (or mixed coordinate system) is by
+giving the geometries in Cartesian (or as ase-files) and specifying
 only the zmatrix or zmatrices once. Each of them will then be set
 by writing\textit{ \nobreakdash-\nobreakdash-zmatrix <zmatrix file}>.
 It will then be read in from there and used to generate zmatrix or
@@ -868,36 +948,9 @@ $ $
 
 $ $
 
-\textit{var1 = 1.0 }
-
-\textit{var2 = 1.0 }
-
-\textit{var3 = 1.0 }
-
-\textit{var4 = 1.0 }
-
-\textit{var5 = 1.0 }
-
-\textit{var6 = 1.0 }
-
-\textit{var7 = 1.0 }
-
-\textit{var8 = 1.0 }
-
-\textit{var9 = 1.0 }
-
-$ $
-
-The angles are in degree. If only arbitrary values are set for being
-overwritten by the Cartesian input make sure that no distance is set
-to 0. This would lead to a crash. The values can be listed, but they
-do not need to have a value given. If the zmatrix is only given additional
-to Cartesian starting geometries the starting values would be replaced
-anyhow. The last part of initialization the zmatrix values need not
-even be there in this case.
-
 The chapter \ref{sub:coordinateSystems} gives some more information
-on coordinates and zmatrices.
+on coordinates and zmatrices. It is also possible to have several
+coordinates set to the same value by reusing the variable name.
 
 
 \subsubsection{Setting Variables}
@@ -905,7 +958,7 @@ on coordinates and zmatrices.
 There are some other parameters specified, which decide on how the
 program will run. There is a list of default parameters.
 
-\textit{pathsearcher.py \nobreakdash-\nobreakdash-defaults}
+\textit{paratools path-searcher \nobreakdash-\nobreakdash-defaults}
 
 shows all of them. They can be changed in two different ways:
 \begin{itemize}
@@ -916,19 +969,21 @@ shows all of them. They can be changed in two different ways:
 
 All the variables could be set in the file filename. 
 
-\item Or by giving directly for parameter\_to\_change:
+\item Or by giving them directly as options to the paratools call:
 
 
 \textit{\nobreakdash-\nobreakdash-<parameter to change> <new value>}
 
-This only works for parameters which take a string, a float or a integer
-(always a single number, or a name) as value. In the list of parameters
-given below ch tells if they could changed by giving the parameter
-values directly.
+So for example:
+
+\textit{\nobreakdash-\nobreakdash-ftol 0.01}
+
+This does not work for all variables but most of them can be also
+provided thus.
 
 \end{itemize}
 If the same variable is set in both the paramfile and directly, the
-value from the direct set is taken.
+directly set value is taken.
 
 An example: 
 
@@ -939,90 +994,102 @@ would set the name to NewName in the parameters.
 \bigskip{}
 
 
-There exists: (Parameter (ch): short description directly)
+There exists: (Parameter: short description directly)
 \begin{itemize}
-\item cos\_type (yes):	 what calculation is really wanted, like NEB, string,
-growingstring or searchingstring 
-\item opt\_type (yes):	what kind of optimizer is used for changing the geometries
+\item method:	 what calculation is really wanted, like NEB, string, growingstring
+or searchingstring, only needed if the path-searcher is started, \textit{paratools
+string} and so on will set it on their own.
+\item opt\_type:	what kind of optimizer is used for changing the geometries
 of the path, as default the new multiopt is used for the string methods,
 while for NEB it is reset to ase\_lbgfs
-\item pmax (yes):	maximal number of CPUs per bead, with our workarounds
-normally only indirect used
-\item pmin (yes):	minimal number of CPUs per bead, with our workarounds
-normally only indirect used 
-\item cpu\_architecture (no):	 describes the computer architecture, which
-should be used; with our workaround only indirect used
-\item name (yes):	the name of the calculation, appears as basis of the names
-for all the output; needn't be set: as a default it takes the cos\_type
-as name
-\item calculator (yes):	the quantum chemistry program to use, like Vasp
-or ParaGauss; for direct use a separate calculator file, in which
-the calculator os set, is demanded
-\item placement (no):	executable function for placing processes on beads,
-only used for advanced calculations
-\item cell (no):	the cell in which the molecule is situated
-\item pbc (no):	which cell directions have periodic boundary conditions 
-\item mask (no): which of the given geometry variables are supposed to be
-changed (True) and which should stay fix during the calculation (False),
-should be a string containing for each of the variables the given
-value. The default does not set this variable and then all variables
-are optimized
-\item beads\_count (yes): 	how many beads (with the two minima) should be
-used; growingstring and searchingstring start with less, for them
-it is the maximum bead\_count
-\item ftol (yes): 	the force convergence criteria, calculation stops if
-RMS(force) < ftol 
-\item xtol (yes): 	the step convergence criteria, only used if force has
-at least ftol {*} 10 
-\item etol (yes): 	energy convergence criteria, not really used 
-\item maxit (yes): 	if the convergence criteria are still not met at maxit
-iterations, the calculation is stopped anyhow
-\item maxstep (yes): 	 the maximum step a path can take
-\item spring (yes): 	the spring constant, only needed for NEB
-\item pre\_calc\_function (no):	function for precalculations, for calculator
-Gaussian etc.
-\item output\_path (yes): 	place where most of the output is stored. The
-working directory is not filled up too much, as all output goes there.
-Default is subdirectory {}``workplace''
-\item output\_geo\_format (yes): ASE format, in which the output-geometries
-of the last iteration are written; it is xyz as default, but can be
-changed for example to gx or vasp (POSCAR)
-\item output\_level (yes):	the amount of output is decided here, for more
-information see list below
+\item pmax:	maximal number of CPUs per bead
+\item pmin:	minimal number of CPUs per bead
+\item cpu\_architecture:	 describes the computer architecture, which should
+be used; normally contains the number of processors the calculation
+should run as a python string (so for example \textit{cpu\_architecture
+= {[}8]} for 8 processors)
+\item name:	the name of the calculation, appears as basis of the names for
+all the output; needn't be set: as a default it takes the method as
+name
+\item calculator:	the quantum chemistry program to use, like Vasp or ParaGauss;
+Only indirect in the command line usable, as here it should name a
+separate calculator file, in which the calculator is set
+\item cell:	the cell in which the molecule is situated, needed for example
+by Vasp
+\item pbc:	which cell directions have periodic boundary conditions 
+\item mask: which of the given geometry variables are supposed to be changed
+(True) and which should stay fix during the calculation (False). It
+should be a string containing for each of the internal variables the
+given value. As the default all variables are optimized (this is indicated
+by mask = None)
+\item beads\_count: 	how many beads (with the two minima) should be used;
+growingstring and searchingstring start with less, for them it is
+the maximum number of beads. The two beads representing the minima
+(which are not optimized) are also calculated here, thus \textit{beads\_count
+= 4 }means two beads will be optimized.
+\item ftol: 	the force convergence criteria, calculation stops if RMS(force)
+< ftol 
+\item xtol: 	the step convergence criteria, only used if force has at least
+ftol {*} 10 
+\item etol: 	energy convergence criteria, not really used 
+\item maxit: 	if the convergence criteria are still not met after maxit
+(maximum iteration) iterations, the calculation is stopped anyhow
+\item maxstep: 	 the maximum step a bead can take during optimization
+\item spring: 	the spring constant, only needed for NEB
+\item output\_path: 	place where most of the output is stored. The working
+directory is not filled up too much, as all output goes there. Default
+is subdirectory {}``\textit{workplace}''
+\item output\_geo\_format: ASE format, in which the output-geometries of
+the last iteration are written; it is xyz as default, but can be changed
+for example to gx or vasp (POSCAR)
+\item output\_level:	the amount of output is decided here, for more information
+see list below
 \end{itemize}
 Pmax, pmin and cpu\_architecture should be adapted to each other.
 
+The following parameters can only be specified in the parameter file.
+But they are not much used anyhow.
+\begin{itemize}
+\item placement:	executable function for placing processes on beads, only
+used for advanced calculations
+\item pre\_calc\_function:	function for precalculations, for calculator
+Gaussian etc.
+\end{itemize}
 \bigskip{}
 
 
 The output\_level has the following valid values:
 \begin{itemize}
-\item 0: minimal output; not recommended; only logfile, geometries of the
-beads for the last iteration (named BEAD?) and the output needed for
-the calculation to run.
-\item 1: recommended output level (default); additional to output of 0 there
-are the ResultDict.pickle (usable for rerunning or extending the calculation
-without having to repeat the quantum chemical calculations) and a
-path.pickle of the last path; the path.pickle may be used as input
-for some other tools, it stores the \textquotedbl{}whole\textquotedbl{}
-path at it is in a special format. 
-\item 2: additional a path.pickle for every path is created; good if development
-of path is wanted to be seen (with the additional tools) 
+\item 0: minimal output; not recommended; provides only logfile, geometries
+of the beads for the last iteration (named BEAD?) and the output needed
+for the calculation to run.
+\item 1: reduced output; additional to output of 0 there are the ResultDict.pickle
+(usable for rerunning or extending the calculation without having
+to repeat the quantum chemical calculations) and a path.pickle of
+the last path; the path.pickle may be used as input for some other
+tools, it stores the \textquotedbl{}whole\textquotedbl{} path at it
+is in a special format. 
+\item 2: recommended output level (default): additional a path.pickle for
+every path is created; these path.pickle files can be easily accessed
+by several of paratools other tools and allow to quicker get informations
+of the path they represent. If not only the last result of the calculation
+is of interest but also the development these files make it much easier
+to access all the data.
 \item 3: some more output in every iteration, for debugging etc. 
 \end{itemize}
 \bigskip{}
 
 
 The ASE atoms objects may contain more information than only the chemical
-symbols and the geometries of the wanted object. For example if reading
-in POSCARs there are additional information about the cell (pbc would
-be also set automatically to true in all directions). This information
-can also be read in by this tool. If they are available, they are
-only used, if these variables still contain the default parameters
-after setting all other parameter. Additionally ASE can hold some
-constraints, which may be taken from a POSCAR or can be set directly.
-Some of them can be also used to generate a mask. This is only done
-if Cartesian coordinates are used. 
+symbols and the geometries of the wanted object. For example in POSCARs
+there are additional information about the cell (pbc would be also
+set automatically to true in all directions) which ASE could understand.
+This information can also be accessed by paratools tools. If they
+are available, they are only used, if these variables still contain
+the default parameters after setting all other parameter. Additionally
+ASE can access some constraints, which may be taken from a POSCAR
+or can be set directly. Some of them can be also used to generate
+a mask. This is only done if Cartesian coordinates are used. 
 
 
 \subsubsection{Calculator\label{sub:Calculator}}
@@ -1037,17 +1104,17 @@ by for example:
 
 \textit{\nobreakdash-\nobreakdash-calculator default\_vasp}
 
-The calculators can be set up the same as described in chapter \ref{sub:The-calculators}.
-There is no need to connect the calculator with anything. But therefore
-it is absolutely needed, that the name of the calculator is calculator,
-even if in general cases, as in chapter \ref{sub:The-calculators},
-where it is used directly it could have been given any valid unused
-name.
+The calculators can be set up the same way as described in chapter
+\ref{sub:The-calculators}. There is no need to connect the calculator
+with anything. But therefore it is absolutely needed, that the name
+of the calculator is calculator, even if in general cases, as in chapter
+\ref{sub:The-calculators}, where it is used directly it could have
+been given any valid unused name.
 
 
 \subsubsection{Fixed Coordinates\label{sub:Fixed-Coordinates}}
 
-There is the possibility to fix variables with the mask option. Then
+There is the possibility to fix variables with the mask option. Here
 one has to say explicitly which coordinates should be fixed. This
 is done by giving a list, containing an entry for every variable.
 The entry would be {}``False'' for a fixed variable or {}``True''
@@ -1059,13 +1126,12 @@ But despite the chance of giving them directly there is also another
 option in case of Cartesian coordinates: there may be already some
 information in the atoms object, which stores the geometry information
 of the minima. It could be set there directly, but it is more common
-to expect it to come from the input file. In POSCARs for example one
-may use {}``selective dynamics'', which fix some of the coordinates.
-This informations can be interpreted from ASE as constraints, which
-then can be interpreted from ParaTools to fix some coordinates. For
-general usage with the constraints (via python code): ParaTools can
-interpret the {}``FixScaled'' and the {}``FixAtoms'' constraints
-of ASE.
+to expect it to comes from the input file. In POSCARs for example
+one may use {}``selective dynamics'', which fixes some of the coordinates.
+These informations can be interpreted from ASE as constraints, which
+then can be used from ParaTools to fix some coordinates. For general
+usage with the constraints (via python code): ParaTools can interpret
+the {}``FixScaled'' and the {}``FixAtoms'' constraints of ASE.
 
 
 \subsubsection{Reuse Results from Previous Calculations }
@@ -1074,37 +1140,54 @@ It is possible to store the results of the quantum chemical calculations
 (which are the computational most expensive part of the calculation)
 in a ResultDict.pickle file. It is done by default for an output level
 with at least 1. If a calculation with the same system should be done,
-or the calculation should be repeated, this results can be reused
-(the QC- program mustn't be changed, as well as the geometries of
-the two minima). To reuse this results the parameters old-results
-is used:
+or the calculation should be repeated, these results can be reused
+(the QC- program mustn't be changed, as well as atoms used). To reuse
+this results the parameters cache is used:
 
-\textit{\nobreakdash-\nobreakdash-old\_results <filename>}
+\textit{\nobreakdash-\nobreakdash-cache <filename>}
 
 filename should be directed on the file (with location) where the
-Results are stored, thus the old ResultDict.pickle file.
+Results are stored, thus the old ResultDict.pickle file. 
+
+ParaTools will then append the given ResultDict.pickle file instead
+of creating a new one. It is also possible to give ParaTools a non-existing
+ResultDict.pickle as input for \textit{cache}. This will then created
+at the specified location with the given name instead of using the
+default values here. If the \textit{cache} variable is not given but
+ParaTools finds a ResultDict.pickle at the location where it wants
+to create its storage it will delete this file first, expecting it
+to be not valid.
 
 
 \subsubsection{Initial Path\label{sub:Initial-Path}}
 
-As a default the pathsearcher.py codes will have as initial path an
-linear interpolation in all the variables of the two minima. But this
-path may be totally off. First in calculations with periodic boundary
-conditions one has to ensure that none of the atoms is in different
-cells in the two geometries. But this may not be sufficient. in this
-cases there is the chance on giving some additional geometries, which
-should also be on the initial path. This may be due to the fact, that
-not all internal variables are unique. For dihedral angles and the
-objects describing the rotation of the complete internal system have
-a $2\pi$ periodicity. The pathsearcher.py will take as a default
-the shortest possible path. But if the longer one (with the norm of
-dihdral angles larger than $\pi$ between the minima) are wanted there
-is need for giving some more informations on the inital path. Note
-that the reduction on angles smaller than $\pi$ is only done between
-succeeding geometries, thus the comlete path may go over bigger angles.
-This reduction is only done at the beginning before the first path
-is generated. During the optimization the affected angles may of course
-grow over $\pi$. 
+The minimal input required for generating an initial path are the
+two minima, which should be anywhere there. Then the path-searcher
+codes wil use as initial path an linear interpolation in all the variables
+of the two minima. But this path may be totally off. First in calculations
+with periodic boundary conditions one has to ensure that none of the
+atoms is in different cells in the two geometries. But this may not
+be sufficient. Linear interpolated atoms might show completly unchemical
+behavior as tunneling through a surface instead of moving around its
+edge. This might make it unusal hard or even impossible for the path-searcher
+routines to converge towards the real path.
+
+In this cases there is the chance of giving some additional geometries,
+which should be on a better initial path. 
+
+In internal coordinates there might apppear another problem: Not all
+internal variables are unique. Dihedral angles and the objects describing
+the rotation of the complete internal system have a $2\pi$ periodicity.
+The path-searcher will take as a default the shortest possible path
+in them. But if the longer one (with the norm of dihdral angles larger
+than $\pi$ between the minima) are wanted there is need for giving
+some more informations on the inital path. Note that the reduction
+on angles smaller than $\pi$ is only done between succeeding geometries,
+thus the comlete path may go over bigger angles. This reduction is
+only done at the beginning before the first path is generated. During
+the optimization the affected angles may of course grow over $\pi$.
+But it is not very likely that the system will converge to the path
+rotating the other direction than has been chosen as inital path. 
 
 \bigskip{}
 
@@ -1114,20 +1197,22 @@ files generated with output level 3 is a state\_vector, which can
 be given directly as input for\textit{ \nobreakdash-\nobreakdash-init\_path
 state\_vec.} This would than in the next calculation let it start
 with the path described by this. Such an state vector may be also
-generated by hand.
+generated by hand. It is a file containing for all the points on the
+path (might be different bead number than in the wanted calculation)
+the values for all internal coordinates.
 
 If such a state\_vec is not available one can also provide the initial
 path by giving the additional geometries directly in the same format
 as the two minima. In this case the call of the method would be something
 like:
 
-\textit{pathsearcher.py \nobreakdash-\nobreakdash-paramfile <filename>
-minima1 bead2 bead3 bead4 minima2}
+\textit{paratools path-searcher \nobreakdash-\nobreakdash-paramfile
+<filename> minima1 bead2 bead3 bead4 minima2}
 
-or for example:
+or for a minimal example:
 
-\textit{pathsearcher.py \nobreakdash-\nobreakdash-calculator calc.py
-POSCAR? POSCAR??}
+\textit{paratools searchingstring \nobreakdash-\nobreakdash-calculator
+calc.py POSCAR? POSCAR??}
 
 The number of initial points and beads need not be the same.
 
@@ -1136,13 +1221,13 @@ The number of initial points and beads need not be the same.
 
 A minimal one would be:
 
-\textit{pathsearcher.py \nobreakdash-\nobreakdash-calculator default\_lj
-left.xyz right.xyz}
+\textit{paratools searchingstring \nobreakdash-\nobreakdash-calculator
+default\_lj left.xyz right.xyz}
 
 A more advanced one:
 
-\textit{pathsearcher.py \nobreakdash-\nobreakdash-paramfile params.py
-\nobreakdash-\nobreakdash-ftol 0.07 \nobreakdash-\nobreakdash-name
+\textit{paratools path-searcher --method string \nobreakdash-\nobreakdash-paramfile
+params.py \nobreakdash-\nobreakdash-ftol 0.07 \nobreakdash-\nobreakdash-name
 Hydration POSCAR? POSCAR??}
 
 Here one needs several POSCARs for the initial path. A parameter file
@@ -1160,12 +1245,12 @@ The commands
 
 and so on are just shortcuts for 
 
-\textit{paratools pathsearcher \nobreakdash-\nobreakdash-cos\_type
+\textit{paratools pathsearcher \nobreakdash-\nobreakdash-method
 neb ...}
 
 and
 
-\textit{paratools pathsearcher \nobreakdash-\nobreakdash-cos\_type
+\textit{paratools pathsearcher \nobreakdash-\nobreakdash-method
 searchingstring ...}
 
 
@@ -1192,9 +1277,10 @@ path2plot.py, chapter \ref{sub:path2plot.py} )\label{fig:Some-internal-coordinat
 There are three different kinds of valid coordinate systems: Cartesians,
 internals and mixed ones, where mixed ones refer to a system where
 parts are Cartesians and parts are internal. It really depends, which
-is to be preferred. But in some cases (see figure \ref{fig:Some-internal-coordinates})
-using other than Cartesian make the starting interpolation much smother,
-giving better changes for a fast and correct convergence.
+is to be preferred for a given calculation. But in some cases (see
+figure \ref{fig:Some-internal-coordinates}) using other than Cartesian
+make the starting interpolation much smother, giving better changes
+for a fast and correct convergence.
 
 
 \subsubsection{Cartesian Coordinates}
@@ -1210,11 +1296,7 @@ The coordinates are described as distances, angles and dihedral angles
 to other atoms. Of course this way the first atoms will not get as
 many values as the others, as there are not enough other atoms to
 create all the coordinates. Thus for n atoms there will be 3n-6 coordinates
-(1 for n=2). For the complete description there is also the need for
-some additional coordinates, related to the orientation of all the
-atoms in space. This is done by a RotAndTrans object, which holds
-3 variables for translation and 2 to 3 for rotation (2 if there are
-only 2 atoms). The rotation of the object is described with quaternions. 
+(1 for n=2). 
 
 \bigskip{}
 
@@ -1235,62 +1317,76 @@ $ $
 
 $ $
 
-var1 = 1.1225 
+It defines the connectivities between the atoms. The first element
+in a line is the atom symbol. The numbers of the atoms are given by
+their line number, starting with 1. A line may be already finished
+after the atom symbol. If not up to three variables follow, which
+connect it to the atoms already defined. 
 
-var2 = 1.1225 
+Thus a full line holds the informations: number of atom 1 (the new
+defined one, through the line number), symbol for atom 1, number of
+atom 2, name of variable for distance, number of atom 3, name of variable
+for angle, number of atom 4 and name of variable for dihedral angle.
+For the variables all the atom numbers specified before are used,
+thus distance is between atom 1 and atom 2. 
 
-var3 = 1.0472 
-
-var4 = 1.1225 
-
-var5 = 1.0472 
-
-var6 = 1.2310
+The variable names in the zmatrix have in real only one purpose: they
+show if some variables should be set to the same values. This they
+can see by these variables have the same variable name. Be aware that
+ParaTools does not try to find out if it makes sense to have the same
+variables reused, at it will neither test if they belong to the same
+categorie (distances, angles, etc.) or if they start with a similar
+value. It is also possible to have a value of a variable (most certainly
+an angle or dihedral angle) set to the negative of another variable.
+In this case the second one should have the same variable name precceeded
+by a minus symbol. The following example shows this: here all distances
+are the same, while the two angles are the same absolute value but
+with opposite signs:
 
 $ $
 
-The first part gives the connectivities, the second part the initial
-values for them. There has to be a blank line between the connectivity
-tree and the initialization of the variables. 
+\textit{Ar }
 
-In the connectivities the first thing in a line is the atom symbol.
-The numbers of the atoms are given by their line number, starting
-with 1. A line may be already finished after the atom symbol. If not
-up to three variables follow, which connect it to the atoms already
-defined. All the numbers given in a line before a variable name together
-with the number of the current atom are used to generate the internal
-coordinate of that variable name. Thus the first variable corresponds
-to a distance of the new atom to the one belonging to the first number.
-The second variable is about the angle (new atom with the ones of
-the first two numbers). The third and last one is about the dihedral. 
+\textit{Ar 1 d1 }
 
-The zmatrix does not allow several variables to have the same name,
-even if they have the same value all the time.
+\textit{Ar 2 d1 1 a1 }
+
+\textit{Ar 3 d1 2 -a1 1 da1 }
+
+$ $
 
 
 \subsubsection{Mixed Coordinates}
 
-This allows to separate all given atoms in several groups, respectively
-several internal groups and one Cartesian one. This is only a limitation
-of the pathsearcher.py wrapper. If the coordinate system is build
-directly, there may be also several Cartesian blocks in between, and
-the internal coordinates may be already initialized and all kind of
-query things can be there. But even with the limitations of the pathsearcher.py
-the mixed coordinates allow some more choice:
+It is not needed to construct a zmatrix for all atoms if some internal
+coordinates are wanted. The mixed coordinates allow to separate the
+atoms in several groups, respectively several internal groups and
+one Cartesian one. That there is only one Cartesian block at the end
+is only a limitation of the path-searcher wrapper. Here each of the
+internal coordinates block will also need some additional coordinates
+for a complete description (remember that they specify for n atoms
+only 3n-6 coordinates, while Cartesians would 3n). They are about
+the orientation of all the atoms in space, which is not given by the
+zmatrix. There are three variables for translation and three for rotation
+(normally there would be only two rotation variables for 2 atoms,
+but in order to have the code as simplified as possible there will
+be used also three of them for a two atom system. The rotation of
+the object is described with quaternions. The additional parameters
+have to be considered if some of them should be fixed. After the internal
+variables of an internal coordinate block the global orientation ones
+follow directly in the order translation and then rotation variables.
 
-Anyhow this allows to group some atoms in their own internal coordinate
-system, which will then be connected by its own RotAndTrans object
-with the rest of the system. In the pathsearcher.py case all the atoms
-have to be given also with their Cartesian coordinates, while the
-zmatrices are given separately. If the zmatrices are initialized,
-this will be overwritten. The program now takes as many atoms as needed
-for the first zmatrix and generates the values for the internal coordinates,
-with the coordinates of the RotAndTrans object such, that the atoms
-are situated in space as they had been before. Then it repeats this
-for all the other zmatrices. If there are still some atoms left, they
-will be forwarded to the mixed coordinate system as Cartesians. The
-variables of this system will then be all the internal and rest Cartesian
-coordinates together.
+ParaTools expect the order of the zmatrices and the atoms in the geometry
+file to be connected with each other. If the first zmatrix defines
+the coordinates for 4 atoms it will expect the first 4 atoms of the
+geometry file to be the ones for the first internal coordinate block.
+The global orientation variables of the atom group will position it
+in the space exactly at the same position/orientation than was in
+the geometry file. If after the atoms have been distributed on the
+zmatrix-files there will be still some of them left, they will be
+forwarded to the mixed coordinate system as Cartesians. The variables
+of this system will then be all the internal with their global positioning
+variables and rest Cartesian coordinates together.
 
 There is no possibility of getting a mask from the atoms object for
 mixed coordinates, even not for the ones left in Cartesian.
@@ -1298,19 +1394,29 @@ mixed coordinates, even not for the ones left in Cartesian.
 
 \subsection{Interpreting the Output of a Path Searching Calculation\label{sub:Interpreting-the-Output}}
 
-With a simple vasp string calculation as example the output is explained.
-The output described here is just the same for the other cases, only
-that the number of beads for the growing\_string and the searchingstring
-method will be less at the beginning and grow later on.
+The output consists of several files, which will be explained in the
+current chapter. The standart output is more or less debug informations,
+the only interesting part of it is, if it anouces at the end {}``Optimization
+converged'' or {}``Optimisation STOPPED (maximum iterations)\textquotedbl{}.
+The output for string, growingstring , searchingstring and even neb
+is in principle the same. Note only that the names of the files normally
+resemble the name of the calculation, thus {}``string'' for a string
+calculation and {}``growingstring'' for a growingstring calculation.
+The differences are mainly a varying bead number for growingstring
+and searchingstring against a fixed one for string and neb. In the
+following the output will be explained for a string calculation (with
+Vasp were informations about the calculator are needed). 
 
 
 \subsubsection{The Logfile}
 
-\noindent The main information can be found in the .log file, here
-named string.log. There the information of the string after n gradient/energy
-calculations is summaries. This is the section between the \nobreakdash-\nobreakdash-\nobreakdash-\nobreakdash-\nobreakdash-\nobreakdash-\nobreakdash-
-and ====== separators. The first section therein is for the whole
-string:
+\noindent The main information can be found in the .log file, in the
+example named string.log. It summaries the information of the string
+in the i'th iteration. One of these iteration can be found between
+the \nobreakdash-\nobreakdash-\nobreakdash-\nobreakdash-\nobreakdash-\nobreakdash-\nobreakdash-
+and ====== separators. For each iteration there are several sections.
+The first section therein contains informations about the whole string,
+summarized or averaged over all the beads:
 
 \noindent \textit{VALUES FOR WHOLE STRING}
 
@@ -1328,7 +1434,7 @@ string:
 
 The total Energy is the sum of the energies of all beads, RMS Forces
 is the RMS over the forces of the moving beads. The Step size is calculated
-from the step of all beads. 
+from the step of all beads as well. 
 
 \bigskip{}
 
@@ -1354,14 +1460,18 @@ beads, as there is in general no path over the energies obtained.\label{fig:Ener
 
 The RMS Perp Forces are perpendicular to the path, the RMS Para Forces
 are parallel to the path. The first ones should vanish at convergence.
-The Step Size in the first iteration is of course everywhere zero,
-it should vanish again to the end. The Bead Angles are calculated
-between the different beads. When starting with a linear interpolation
-they are always 180, but later on they change a lot. If they become
-too small, there may be a problem with 'kinks' in the path. The Raw
-State Vector gives the value for all Coordinates changing during the
-calculation. So if there are some atoms fixed (for example a surface)
-they would not appear here.
+Thus a reduction in said forces indicates that the string methods
+is working fine. The Step Size in the first iteration is of course
+everywhere zero, it should vanish also towards the end. The Bead Angles
+are calculated between the different beads. When starting with a linear
+interpolation they are always 180, but later on they change a lot.
+If they become too small, there may be a problem with 'kinks' in the
+path. The Raw State Vector gives the value for all variable Coordinates
+changing during the calculation. It uses here its 'internal coordinates',
+which can be Z-Matrix coordinates, flattended Cartesian coordinates
+or mixed coordinates. Be aware that it only gives values for Variables,
+so if in the complete description of the system some variables are
+fixed they do not appear here. 
 
 \textit{VALUES FOR SINGLE BEADS }
 
@@ -1401,11 +1511,13 @@ they would not appear here.
 \bigskip{}
 
 
-The third section holds general information:
+The third section holds general information of the calculation:
 
 \textit{GENERAL STATS }
 
 \textit{Callbacks : 1 }
+
+\textit{Number of respaces : 0}
 
 \textit{Beads Count : 7 }
 
@@ -1419,47 +1531,100 @@ The third section holds general information:
 \textit{Barriers (Fwd|Rev) : 2.9481 | 2.7617 }
 
 Here one finds how often there has been an iteration accepted (Callbacks)
-and how many beads there are (currently).
+and how many beads there are (currently). It will also tell how often
+since start the beads have been respaced. The rest are some less important
+informations about the bead, which were put apart from the first sections.
 
 
-\subsubsection{Geometries}
+\subsubsection{Files after finished calculation\label{sub:Files-after-finished}}
 
-The geometry files BEAD\_n and TSESTIMATE\_m contain the geometries
-of the last iteration, hopefully of the converged path. The TSESTIMATE
-files contain the geometry of approximated transition states (the
-MODEVEC\_M should contain a modevector as needed for a dimer calculation
-for it, it uses the {}``frompath'' approximation for it). Compare
-chapter \ref{sub:Available-Methods-TS} for the different available
-methods, here the Spline and Cubic method is invoked. The output format
-is xyz format unless output\_geo\_format does not say anything else.
-The output\_geo\_format variable can be set to any of the formats
-valid for the write command of ASE. The geometries will than be in
-this output format instead of xyz. The BEAD\_n is the nth bead on
-the last path.
+After the string calculation has finished it generates some files
+about the last path, considering it somehow as its result (at least
+for output level > 0). These files can be both understood by humans,
+but also read in again by some tool. As in this context they are mostly
+containing only numbers the name of the file should say everything
+about the contenst already. There is {}``internal\_coordinates'',
+containing the last bead coordinates. Here the same coordinates, which
+are shown in {}``Raw State Vector'' of the logfile are given (in
+Angstroms or radients). Another one, {}``abscissa'', contains their
+positions on the path for path parameterizing, thus the first value
+should there always be 0 and the last one 1. As the beads needn't
+be equal spaced in the path varialbe, not even (completely) for a
+plain spline interpolation this information might be valuable for
+further observations of the path. As these values do not exist for
+neb calculations where the spacing is done by the spring forces, a
+neb calculation will not create this file. The file {}``energies''
+contains as it says the energies of the beads (in eV) and {}``forces''
+the corresponding first derivatives (in eV/Angstrom) to Cartesian
+coordinates.
+
+The Cartesian coordinates of the beads are used to generate xyz-files,
+which could be easily read in by jmol or other visualization tools.
+They are named bead<i> for the i'th bead. If wanted they could contain
+also the information in one of the other geometry formats ASE could
+understand. This can be archived by accordingly setting the parameter
+{}``output\_geo\_format'' to the ASE shrotcut for the wanted format. 
+
+The ts\_estimate<i> files contain the geometry of approximated transition
+states. As ParaTools expects that the search with the string methods
+was done as a step for getting the transition state. The approximation
+used here is the {}``spline and cubic'' method, compare chapter
+\ref{sub:Available-Methods-TS}. Only if it fails the highest bead
+method is used. The output is the same as for the bead<i>. The internal
+coordinates (as in logfile given) are printed to the corresponding
+ts\_internals<i>.
 
 
 \subsubsection{The Path.pickle File}
 
 The string.path.pickle file contains all informations of the last
-path in an toolbox readable format (not human readable through). Thus
-it can not used directly, but the toolbox provides a lot of other
-nice tools, which uses this as an input. So for example the other
-transition state estimate methods can be extracted from it.
+path in an ParaTools readable format (not human readable through).
+Thus it can not be used directly, but the toolbox provides a lot of
+other nice tools, which uses this as an input. So for example the
+other transition state estimate methods can be extracted from it.
+The tools should accept also other formats of the input, like the
+files in \ref{sub:Files-after-finished}, but then in general more
+than one file is needed and it has to make clear to the method which
+file is which. The path.pickle file is an elegant way to move the
+information in a simple form. On the other hand path.pickle files
+are more sensible. They are not longer readable any more if the format
+changes or the python code changes its pickling methods too much.
+Thus they are more something for the direct following observations,
+not for long time savings of the results.
 
 
 \subsubsection{Other Output }
 
 If the output\_level is raised, more output appear: for output\_level
-= 2 for each iteration a path.pickle file is generated, some of the
-other tools can make use of that very nicely. For output\_level =
-3 there will be the state\_vec files for each iteration (as mentioned
-in the initial path chapter \ref{sub:Initial-Path}). There will be
-also some CoS.log's (for each iteration) which contains the path in
-an ASE readable format. For this level there will also appear some
-archive in the logfile.
+= 2 each path iteration generates a path.pickle file. They are situated
+in the working directory and are called string.debug<i>.path.pickle.
+If after the finished calculation the development of it should be
+observed or of a crashed calculation a path should be recreated they
+are quite useful. For output\_level = 3 there will be the state\_vec
+files for each iteration (as mentioned in the initial path chapter
+\ref{sub:Initial-Path}). There will be also some CoS.log's (for each
+iteration) which contains the path in an ASE readable format. For
+this level there will also appear some archive in the logfile.
 
 
-\section{Additional Tools for the Path Searching (on Output Files)}
+\section{\textcolor{red}{Local transition state searcher: the Dimer/Lanczos
+method}}
+
+
+\subsection{The required input for a Dimer/Lanczos method}
+
+
+\subsection{Differences between Dimer/Lanczos method}
+
+
+\subsection{The parameters of the Dimer/Lanczos method}
+
+
+\subsection{Interpreting the output of a Dimer/Lanczos method}
+
+
+\section{\textcolor{red}{Additional Tools for the Path Searching (on Output
+Files)}}
 
 The following tools expect a finished path searching with one of the
 pathsearcher.py functions. They are working on some output of it.
@@ -2089,8 +2254,8 @@ Here the Nones say that there was not found anything. -1 is the default
 value for not fallen above afterwards.
 
 
-\section{Additional Tools for the Path Searching (Without Previous Pathsearcher
-Calculation)}
+\section{\textcolor{red}{Additional Tools for the Path Searching (Without
+Previous Pathsearcher Calculation)}}
 
 
 \subsection{Generating Interpolated Geometries for a Path\label{sub:Makepath.py}}
@@ -2231,7 +2396,7 @@ as geometry input for pathsearcher.py, which then does not need the
 xyz files at all.
 
 
-\section{Parallel Numerical Frequency Calculation\label{sec:Parallel-Numerical-Frequency}}
+\section{\textcolor{red}{Parallel Numerical Frequency Calculation}\label{sec:Parallel-Numerical-Frequency}}
 
 ParaTools includes a routine to calculate the frequencies of a given
 molecule structure. This will be done by first calculating a numerical
@@ -2295,7 +2460,7 @@ which have to be done to the quantum chemistry calculators in order
 to run them parallel are described in paragraph \ref{par:Parallel-Calculations}.
 
 
-\section{Randomized Functions}
+\section{\textcolor{red}{Randomized Functions}}
 
 
 \subsection{Single Point Energy or Forces\label{sub:Single-Point-Energy}}
@@ -2344,7 +2509,7 @@ by a path through the original images)
 \pagebreak{}
 
 
-\part{Setting up the system to run\label{par:Setting-up-the}}
+\part{\textcolor{red}{Setting up the system to run}\label{par:Setting-up-the}}
 
 In principle it is possible to use some versions of the toolbox, already
 around. The stable ones, assigned to production, will be only updated
@@ -2369,7 +2534,7 @@ would also need special variables called VASP\_COMMAND or VASP\_SCRIPT
 and VASP\_PP\_PATH.
 
 
-\section{Using Existing Versions of the Toolbox}
+\section{\textcolor{red}{Using Existing Versions of the Toolbox}}
 
 On our local cluster the ASE and the ParaTools repository can be found
 at \textit{/users/alexei/PYTHON.}
@@ -2408,7 +2573,7 @@ value:
 \textit{PYTHONPATH=/home/hlrb2/h0351/lu43wen/PYTHON}
 
 
-\section{Getting an Own Version of the Toolbox}
+\section{\textcolor{red}{Getting an Own Version of the Toolbox}}
 
 
 \subsection{Getting ASE}
@@ -2441,7 +2606,7 @@ To get a relatively stable version of the code:
 In this case also the PYTHONPATH variable has to be adapted accordingly.
 
 
-\section{How to Run on Different Computers}
+\section{\textcolor{red}{How to Run on Different Computers}}
 
 Not only the PYTHONPATH has to be set correctly on each computer,
 there are also some other things to make sure that everything runs,
@@ -2546,7 +2711,7 @@ The first one loads some standard modules, which may be used also.
 The second one loads ParaTools and ASE settings.
 
 
-\section{How to Run in Different Ways}
+\section{\textcolor{red}{How to Run in Different Ways}}
 
 
 \subsection{Running ParaTools Interactively}
@@ -2606,7 +2771,7 @@ in using the ParaTools modules by accessing them with python.
 \pagebreak{}
 
 
-\part{Parallel Calculations of Several Geometries\label{par:Parallel-Calculations}}
+\part{\textcolor{red}{Parallel Calculations of Several Geometries}\label{par:Parallel-Calculations}}
 
 There are two of the described tools above, where parallel calculation
 of the geometries makes sense: the pathsearcher.py tool for finding
@@ -2621,7 +2786,7 @@ it. It is always invoked when running a pathsearcher.py tool but for
 frequency calculations not.
 
 
-\section{Serial Calculations}
+\section{\textcolor{red}{Serial Calculations}}
 
 \textbf{With Pathsearcher.py}
 
@@ -2649,7 +2814,8 @@ Call the frequency calculator with the option \textit{\nobreakdash-\nobreakdash-
 This should do the trick.
 
 
-\section{Parallel Calculations with Fixed Processor Number Per Job}
+\section{\textcolor{red}{Parallel Calculations with Fixed Processor Number
+Per Job}}
 
 
 \subsection{Running in Parallel on Our Local Cluster}
@@ -2764,7 +2930,8 @@ is an integer. If you calculate for pathsearcher.py do not consider
 the two minima, they will be only calculated once. 
 
 
-\section{Parallel Calculation with Flexible Processor Number Per Job}
+\section{\textcolor{red}{Parallel Calculation with Flexible Processor Number
+Per Job}}
 
 This carries best the intention of the scheduler module, but needs
 also most of the adaptions. As it also needs an adaption in the code,
@@ -2815,10 +2982,10 @@ the complete system) for the actual execution of runpg.
 \pagebreak{}
 
 
-\part{Appendix}
+\part{\textcolor{red}{Appendix}}
 
 
-\section{Approximations for the Transition State\label{sec:Approximations-for-the}}
+\section{\textcolor{red}{Approximations for the Transition State}\label{sec:Approximations-for-the}}
 
 
 \subsection{Path Used as Basis for the Transition State Approximation}
@@ -3006,10 +3173,10 @@ at the approximated transition state as modevector.
 \pagebreak{}
 
 
-\part{Versions and References}
+\part{\textcolor{red}{Versions and References}}
 
 
-\section*{Versions}
+\section*{\textcolor{red}{Versions}}
 
 This manual refers to the first completly released version of the
 toolbox. Infromations to the most recent version may be found in the
@@ -3022,7 +3189,7 @@ a try.
 
 \bibitem{tutorial}http://intranet.theochem.tu-muenchen.de/wiki/index.php\slash{}Tutorial\_on\_features\_of\_the\_toolbox
 
-\bibitem{key-6}http://intranet.theochem.tu-muenchen.de/wiki/index.php/Interfacing\_ASE\_and\_ParaGauss
+\bibitem{key-1}http://intranet.theochem.tu-muenchen.de/wiki/index.php/Interfacing\_ASE\_and\_ParaGauss
 
 \bibitem{key-5}https://wiki.fysik.dtu.dk/ase/overview.html; https://wiki.fysik.dtu.dk/ase/ase-manual.pdf
 (printable manual)
@@ -3036,7 +3203,7 @@ path based on multiobjective optimization, Steven K. Burger and Weitao
 Yang, JCP, 124, 054109
 
 \bibitem{key-3}Location of Saddle Points and Minimum Energy Paths
-by a Constrained Simplex Optimization Procedure, Klaus Mï¿½ller and
+by a Constrained Simplex Optimization Procedure, Klaus Müller and
 Leo D. Brown, Theoret. Chim. Acta (Berl.) 53, 75-93 (1979)
 
 \bibitem{key-4}String method for the study of rare events, Weinan
