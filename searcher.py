@@ -1661,10 +1661,6 @@ class GrowingString(ReactionPathway):
 
         self.respaces += 1
 
-        # TODO: this must eventually be done somewhere behind the scenes.
-        # I.e. Why would one ever want to update the path but not the tangents?
-        #self._path_rep.update_tangents()
-
     def update_path(self, state_vec):
         """
         After each iteration of the optimiser this function must be called.
