@@ -96,17 +96,17 @@ class translate_cg():
         >>> start = array([-0.5, 0.5])
         >>> mode = array([-1., 0.])
 
-        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1., {})
         >>> print step
         [-0.78443852 -0.07155202]
 
-        >>> step, info = trans(MB, start + step, MB.fprime(start + step), mode, -1.)
+        >>> step, info = trans(MB, start + step, MB.fprime(start + step), mode, -1., {})
         >>> print step
         [ 2.67119938 -1.01683994]
 
         >>> trans = translate_cg(met, 0.5)
         >>> start = array([-0.25, 0.75])
-        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1., {})
         >>> print step
         [-0.00316205 -0.31033489]
         """
@@ -116,7 +116,7 @@ class translate_cg():
         self.trial_step = trial_step
         self.old_geo = None
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused):
         """
         the actual step
         """
@@ -220,7 +220,7 @@ def negpara_force(force_raw_trial, mode_vector, mode_vector_down):
     return  - dot(force_raw_trial, mode_vector) * mode_vector_down
 
 class translate_lbfgs():
-    def __init__(self, metric):
+    def __init__(self, metric, unused):
         """
         Calculates a translation step of the dimer (not scaled)
         Uses an approximated hessian hess
@@ -235,30 +235,30 @@ class translate_lbfgs():
         >>> from pts.metric import Default
 
         >>> met = Default(None)
-        >>> trans = translate_lbfgs(met)
+        >>> trans = translate_lbfgs(met, None)
 
         >>> start = array([-0.5, 0.5])
         >>> mode = array([-1., 0.])
 
-        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1000., {})
         >>> print step
-        [-1.04187497 -0.0950339 ]
-        >>> step, info = trans(MB, start + step, MB.fprime(start + step), mode, -1.)
+        [-0.07293125 -0.0950339 ]
+        >>> step, info = trans(MB, start + step, MB.fprime(start + step), mode, -1000., {})
         >>> print step
-        [-1.64446852  0.58609414]
+        [-0.07935383  0.0896875 ]
 
-        >>> trans = translate_lbfgs(met)
+        >>> trans = translate_lbfgs(met, None)
         >>> start = array([-0.25, 0.75])
-        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -100., {})
         >>> print step
-        [-0.03655155 -3.58730495]
+        [-0.02558608 -3.58730495]
         """
-        self.hess = SR1()
-        self.old_force = None
+        self.hess = LBFGS( positive = False)
+        self.old_grad = None
         self.old_geo = None
         self.metric = metric
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, info):
         """
         the actual step
         """
@@ -268,23 +268,44 @@ class translate_lbfgs():
         mode_vec_down = self.metric.lower(mode_vector, start_geo).flatten()
         force_para = dot(force_raw, mode_vector.flatten()) * mode_vec_down
         force_perp = force_raw - force_para
-        force = force_perp - force_para
-        if not self.old_force == None:
-            self.hess.update(start_geo - self.old_geo, force - self.old_force)
 
-        step = self.hess.inv(force)
-        mat = self.hess.H
-        a, V = eigh(mat)
+        if not self.old_grad == None:
+            #self.h_old = deepcopy(self.hess.H)
+            dr = start_geo - self.old_geo
+            dg = geo_grad - self.old_grad
+            dr = dr - dot(dr, mode_vec_down) * mode_vector.flatten()
+            dg = dg - dot(dg, mode_vector.flatten()) * mode_vec_down
+            self.hess.update(dr, dg)
 
-        self.old_force = force
+        if "rot_updates" in info:
+            for dr, dg in info["rot_updates"]:
+                self.hess.update(dr, dg)
+
+        if curv > 0:
+            step = -1. * force_para / curv
+            step_perp = 0
+            step_para = 0
+        else:
+            step_para = force_para / curv
+            step_perp = self.hess.inv(force_perp)
+
+            #if abs(dot(step_perp, mode_vector.flatten())) > 0.01 * self.metric.norm_up(step_perp, start_geo):
+            #    print >> stderr, "WARNING: Hessian approximation produces large step in unwanted direction ", \
+            #             dot(step_perp, mode_vector.flatten())
+            step = step_perp + step_para
+
+        self.old_grad = geo_grad
         self.old_geo = start_geo
+        #print "Forces BFGS",self.metric.norm_down(force_raw, start_geo) , self.metric.norm_down(force_perp, start_geo), self.metric.norm_down(force_para, start_geo)
+        #print "Steps BFGS", self.metric.norm_down(step, start_geo) ,self.metric.norm_down(step_perp, start_geo), self.metric.norm_down(step_para, start_geo)
 
-        info = {"trans_abs_force" : self.metric.norm_down(force, start_geo),
+        info_out = {"trans_perp_force" : self.metric.norm_down(force_perp, start_geo),
+                "trans_para_force": self.metric.norm_down(force_para, start_geo),
                 "trans_gradient_calculations": 0}
 
         step.shape = shape
 
-        return step, info
+        return step, info_out
 
 class translate_sd():
     def __init__(self, metric, trial_step):
@@ -300,20 +321,20 @@ class translate_sd():
         >>> start = array([-0.5, 0.5])
         >>> mode = array([-1., 0.])
 
-        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1., {})
         >>> print step
         [-1.64564686 -0.15010654]
 
         >>> trans = translate_sd(met, tr_step)
         >>> start = array([-0.25, 0.75])
-        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1.)
+        >>> step, info = trans(MB, start, MB.fprime(start), mode, -1., {})
         >>> print step
         [-0.00256136 -0.25138143]
         """
         self.metric = metric
         self.trial_step = trial_step
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused):
         """
         the actual step
         """
@@ -487,7 +508,7 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, max_st
     """
     curv, mode_vec, info = rot(pes, start_geo, geo_grad, start_mode, metric, **params)
 
-    step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv)
+    step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv, info)
 
     info.update(info_t)
 
