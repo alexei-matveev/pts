@@ -113,6 +113,7 @@ def find_path(pes, init_path
                             , cache = None
                             , pmap = PMap()
                             , workhere = 1
+                            , max_sep_ratio = 0.1
                             , **kwargs):
     """This one does the real work ...
 
@@ -164,7 +165,7 @@ def find_path(pes, init_path
                output_level=output_level,
                output_path=output_path,
                pmap = pmap,
-               max_sep_ratio=0.3)
+               max_sep_ratio = max_sep_ratio)
     elif method == 'growingstring':
         CoS = GrowingString(init_path,
                pes,
@@ -179,7 +180,7 @@ def find_path(pes, init_path
                pmap = pmap,
                output_path=output_path,
                output_level=output_level,
-               max_sep_ratio=0.3)
+               max_sep_ratio = max_sep_ratio)
     elif method == 'searchingstring':
         CoS = GrowingString(init_path,
                pes,
@@ -192,7 +193,7 @@ def find_path(pes, init_path
                workhere=workhere,
                output_path=output_path,
                output_level=output_level,
-               max_sep_ratio=0.3,
+               max_sep_ratio = max_sep_ratio,
                freeze_beads=True,
                head_size=None, # has no meaning for searching string
                growth_mode='search')

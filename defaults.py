@@ -84,6 +84,9 @@ Parameter       short description
                iterations, the calculation is stopped anyhow
  "maxstep"     the maximum step a path can take
  "spring"      the spring constant, only needed for neb
+ "max_sep_ratio" Only valid for string calculation, tells the string when to respace:
+                 This is done if the maximal difference between real and wanted bead position
+                 is larger than max_sep_ratio
  "pre_calc_function"  function for precalculations, for gaussian ect.
  "output_level" the amount of output is decided here
                    0  minimal output, not recommended
@@ -161,6 +164,7 @@ ps_default_params = {
     "pre_calc_function" : None,
     "output_level" : 2,
     "output_path" : "workplace",
+    "max_sep_ratio"  : 0.01,
     "output_geo_format" : "xyz",
     "cache" : None          # where the results of the single point calculations will be stored
     }
@@ -170,7 +174,7 @@ default_calcs = {
     "default_lj" : True
     }
 
-ps_are_floats = ["ftol", "xtol", "etol", "maxstep", "spring"]
+ps_are_floats = ["ftol", "xtol", "etol", "maxstep", "spring", "max_sep_ratio"]
 ps_are_ints = ["maxit", "beads_count", "output_level", "pmin", "pmax"]
 ps_are_complex = ["cpu_architecture"]
 

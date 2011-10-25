@@ -445,6 +445,7 @@ class ReactionPathway(object):
              all_coordinates,
              "GENERAL STATS",
              "%-24s : %10d" % ("Callbacks", self.callbacks),
+             "%-24s : %10d" % ("Number of respaces", self.respaces),
              "%-24s : %10d" % ("Beads Count", self.beads_count),
              "%-24s : %.4f %.4f" % ("Total Length (Pythag|Spline)", total_len_pythag, total_len_spline),
              "%-24s : %10s" % ("State Summary (total)", state_sum),
@@ -1605,7 +1606,7 @@ class GrowingString(ReactionPathway):
             seps_[i] = seps[i] + seps_[i-1]
 
         assert len(seps_) == len(self.bead_positions) - 1, "%s\n%s" % (seps_, self.bead_positions)
-        diffs = (self.bead_positions[1:] - seps_/seps.sum())
+        diffs = abs(self.bead_positions[1:] - seps_/seps.sum())
 
         return diffs.max() > self.__max_sep_ratio
 
@@ -1636,6 +1637,12 @@ class GrowingString(ReactionPathway):
         return g
 
     def respace(self, metric, smart_abscissa=True):
+        if not self.lengths_disparate():
+            # Only do respace if it is necessary
+            # This test seems to be done separately for most optimizer but not at all
+            # for multiopt, this way it should work for all
+            return
+
         # respace the beads along the path
         if smart_abscissa:
             pythag_seps = common.pythag_seps(self.state_vec, metric)
