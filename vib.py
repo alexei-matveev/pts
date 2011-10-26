@@ -512,7 +512,7 @@ def main(argv):
         frequencies --calculator <calculator file> <geometry file>
 
         accepts also the options:
-           --num_procs  <n> : number of processors available
+           --num-procs  <n> : number of processors available
            --alosvec    <True/False> : the eigenvector is also given back as output
            --mask  string : string should contain the mask, which Cartesian coordinates should
                             be fixed
@@ -530,6 +530,7 @@ def main(argv):
 
     # and one geometry:
     if len(args) != 1:
+        print >> sys.stderr, "Error: Need exactly one geometry file to process!"
         print >> sys.stderr, main.__doc__
         sys.exit(1)
 
