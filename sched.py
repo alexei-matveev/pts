@@ -13,7 +13,6 @@ from config import DEFAULT_TOPOLOGY, DEFAULT_PMIN, DEFAULT_PMAX
 from sys import exit
 
 
-from pts.common import Job, QCDriverException, Result, is_same_e, is_same_v, ERROR_STR
 import pts
 
 # setup logging
