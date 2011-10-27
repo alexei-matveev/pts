@@ -460,7 +460,7 @@ class ObjLog:
         elif when == 'now':
             self.logfile.write(s + '\n')
         elif when == 'later':
-            self._logs += ' '.join([str(i) for i in args]) + '\n'
+            self._logs += s + '\n'
         elif when == 'never':
             return
         else:
