@@ -97,7 +97,7 @@ def runopt_inner(name, CoS, ftol, maxit, callback, maxstep=0.2, **kwargs):
         opt = pts.cosopt.MultiOpt(CoS, maxstep=maxstep, **kwargs)
         opt.string = CoS.string
         opt.attach(lambda: callback(None), interval=1)
-        opt.run()
+        opt.run() # convergence handled by callback
         return None      
     elif name[0:4] == 'ase_':
 

@@ -276,7 +276,7 @@ class MultiOpt(ObjLog):
 
         step_scales = np.array([self.bead_opts[i]._step_scale for i in range(bs)])
 
-        dr = self.scale_step(dr, step_scales)
+        dr = self._scale_step(dr, step_scales)
 
        #NNNN: change norm description in output?
         self.slog("DB: Lengths of steps of each bead:", ['%.5f' % np.linalg.norm(dr_bead) for dr_bead in dr], when='always')
@@ -293,7 +293,7 @@ class MultiOpt(ObjLog):
 
         #dr_total.shape = (bs, -1)
 
-    def scale_step(self, dr, step_scales):
+    def _scale_step(self, dr, step_scales):
         """Determine step to take according to the given trust radius
 
         Normalize all steps as the largest step. This way
@@ -317,20 +317,19 @@ class MultiOpt(ObjLog):
 
         self.observers.append((function, interval, args, kwargs))
 
-    def run(self, steps=100000000):
+    def run(self):
         """Run structure optimization algorithm.
 
         This method will return  when the number of steps exceeds
         *steps*."""
 
-        step = 0
-        while step < steps:
+        while True: # will be finished by the call_observers, which
+                    # include a convergence check
             f = self.atoms.obj_func_grad(raw=True)
             self.slog(f) # ObjLog method
             self.call_observers()
             self.step(f)
             self.nsteps += 1
-            step += 1
 
     def call_observers(self):
         for function, interval, args, kwargs in self.observers:
