@@ -11,7 +11,7 @@ from ase.io import write
 from sys import argv, exit
 from re import findall
 from os import path, mkdir, remove
-from numpy import savetxt
+from numpy import savetxt, array
 from warnings import warn
 from pts.qfunc import QFunc, QMap
 from pts.func import compose
