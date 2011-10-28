@@ -246,7 +246,7 @@ if test_what == "contraforce":
 elif test_what == "pathsearcher":
     # Let pathseracher optimize the path
     pathsearcher(ar4, init_path, funcart = func, ftol = 0.01, maxit = 40, beads_count = 7, \
-    workhere = True, output_level = 0, output_path = ".")
+    workhere = 0, output_level = 0, output_path = ".")
 
 
 

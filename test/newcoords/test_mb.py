@@ -39,12 +39,12 @@ if beads_count != len(init_path):
 #
 # Search by default method:
 #
-conv1, res1 = find_path(MB, init_path, ftol = 0.001, maxit = 100, workhere = True, output_level = 0)
+conv1, res1 = find_path(MB, init_path, ftol = 0.001, maxit = 100, workhere = 0, output_level = 0)
 
 #
 # Search by an alternative method:
 #
-conv2, res2 = find_path(MB, init_path, ftol = 0.001, maxit = 100, method="sopt", workhere = True, output_level = 0)
+conv2, res2 = find_path(MB, init_path, ftol = 0.001, maxit = 100, method="sopt", workhere = 0, output_level = 0)
 
 print "\n"
 print "result 1=\n", conv1, "\n", res1[0], "\n", res1[1], "\n", res1[2], "\n", res1[3]
