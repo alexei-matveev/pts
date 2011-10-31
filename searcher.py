@@ -880,6 +880,10 @@ class NEB(ReactionPathway):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
         return self.obj_func()
 
+    def respace(self, metric):
+        # For NEB: nothing to be done
+        pass
+
 
     def obj_func_grad(self):
         ReactionPathway.obj_func(self, grad=True)
