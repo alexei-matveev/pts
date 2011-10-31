@@ -451,13 +451,15 @@ class Empty_contex(object):
    For the cases when there is no contex needed
    """
    def __init__(self, wd, format = None):
-      pass
+       self.wd = wd
 
    def __enter__(self):
-      pass
+       #print "Start Calculation, have id", self.wd
+       pass
 
    def __exit__(self, exc_type, exc_val, exc_tb):
        assert (exc_type == None)
+       #print "End Calculation with id", self.wd
        return True
 
 def global_distribution(xs, xlast_i ):
@@ -536,10 +538,12 @@ class Single_contex(object):
         if not path.exists(self.__wd):
             mkdir(self.__wd)
         chdir(self.__wd)
+        print "Starting Calculation in", self.__wd
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         assert (exc_type == None)
         chdir(self.__cwd)
+        print "Finished Calculation in", self.__wd
         return True
 
 class Elemental_memoize(Func):
