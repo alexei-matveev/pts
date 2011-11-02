@@ -13,7 +13,7 @@ from pts.common import important
 
 __all__ = ["opt"]
 
-names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line', 'multiopt', 'ase_bfgs', 'conj_grad', 'steep_des']
+names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line', 'multiopt', 'ase_bfgs', 'conj_grad', 'steep_des', 'fire']
 
 
 def record_event(cos, s):
@@ -108,6 +108,12 @@ def runopt_inner(name, CoS, ftol, maxit, callback, maxstep=0.2, **kwargs):
     elif name == 'steep_des':
         from pts.cosopt.conj_grad import conj_grad_opt
         opt = conj_grad_opt(CoS, maxstep=maxstep, reduce_to_steepest_decent = True, **kwargs)
+        opt.attach(lambda: callback(None), interval=1)
+        opt.run() # convergence handled by callback
+        return None
+    elif name == 'fire':
+        from pts.cosopt.fire import fire_opt
+        opt = fire_opt(CoS, maxstep=maxstep, **kwargs)
         opt.attach(lambda: callback(None), interval=1)
         opt.run() # convergence handled by callback
         return None
