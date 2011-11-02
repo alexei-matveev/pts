@@ -40,15 +40,22 @@ if beads_count != len(init_path):
 # Search by default method:
 #
 conv1, res1 = find_path(MB, init_path, ftol = 0.001, maxit = 100, workhere = 0, output_level = 0, method="string"\
+                            , max_sep_ratio = 0.00001
                             , opt_type = "multiopt"
                                    )
 
-conv3, res3 = find_path(MB, init_path, ftol = 0.001, maxit = 100, workhere = 0, output_level = 0, method="string"\
+conv3, res3 = find_path(MB, init_path, ftol = 0.001, maxit = 200, workhere = 0, output_level = 0, method="string"\
+                            , max_sep_ratio = 0.00001
                             , opt_type = "steep_des", trial_step = 0.0003
                                    )
 
-conv4, res4 = find_path(MB, init_path, ftol = 0.001, maxit = 100, workhere = 0, output_level = 0, method="string"\
+conv4, res4 = find_path(MB, init_path, ftol = 0.001, maxit = 200, workhere = 0, output_level = 0, method="string"\
+                            , max_sep_ratio = 0.00001
                             , opt_type = "conj_grad", trial_step = 0.0003, orthogonalize = True
+                                   )
+conv5, res5 = find_path(MB, init_path, ftol = 0.001, maxit = 100, workhere = 0, output_level = 0, method="string"\
+                            , max_sep_ratio = 0.00001
+                            , opt_type = "fire", dt = 0.01, orthogonalize = True
                                    )
 #
 # Search by an alternative method:
@@ -63,3 +70,5 @@ print "\n"
 print "result 3=\n", conv3, "\n", res3[0], "\n", res3[1], "\n", res3[2], "\n", res3[3]
 print "\n"
 print "result 4=\n", conv4, "\n", res4[0], "\n", res4[1], "\n", res4[2], "\n", res4[3]
+print "\n"
+print "result 5=\n", conv5, "\n", res5[0], "\n", res5[1], "\n", res5[2], "\n", res5[3]
