@@ -13,7 +13,7 @@ from pts.common import important
 
 __all__ = ["opt"]
 
-names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'quadratic_string', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line', 'multiopt', 'ase_bfgs', 'conj_grad', 'steep_des', 'fire']
+names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line', 'multiopt', 'ase_bfgs', 'conj_grad', 'steep_des', 'fire']
 
 
 def record_event(cos, s):
@@ -142,9 +142,6 @@ def runopt_inner(name, CoS, ftol, maxit, callback, maxstep=0.2, **kwargs):
         opt.run(fmax=ftol)
         return None
 
-    elif name == 'quadratic_string':
-        gqs = pts.searcher.QuadraticStringMethod(CoS, callback=callback, update_trust_rads = True)
-        opt = gqs.opt()
     else:
         assert False, ' '.join(["Unrecognised algorithm", name, "not in"] + names)
 

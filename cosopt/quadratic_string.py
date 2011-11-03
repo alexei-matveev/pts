@@ -98,7 +98,13 @@ class QuadraticStringMethod():
 
     The functions in this class are described in the reference:
 
-    [QSM] Burger and Yang, J Chem Phys 2006 vol 124 054109."""
+    [QSM] Burger and Yang, J Chem Phys 2006 vol 124 054109.
+
+    This was the way the Method was intended to be used in optwrap.py (before it started rotting):
+    elif name == 'quadratic_string':
+        gqs = pts.searcher.QuadraticStringMethod(CoS, callback=callback, update_trust_rads = True)
+        opt = gqs.opt()
+    """
 
     def __init__(self, string = None, callback = None, gtol = 0.05, update_trust_rads = False):
         self.__string = string
