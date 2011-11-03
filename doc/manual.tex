@@ -1081,7 +1081,7 @@ geometries and the calculator.
 <calculator filename> GEOM1 GEOM2}
 
 
-\subsubsection{Geometry}
+\subsubsection{Geometry\label{sub:Geometry_path}}
 
 There are three different kinds of coordinate systems valid in ParaTools,
 they are described in more detail in chapter \ref{sub:coordinateSystems}. 
@@ -1090,7 +1090,8 @@ The geometries should be provided as files. Valid file formats are
 all those, that can be interpreted by ASE. This includes xyz-, POSCAR-,
 and gx-files. File format is in part determined from the file name
 or extension, e.g. POSCAR and gx-files by the presence of \textquotedbl{}POSCAR\textquotedbl{}
-or \textquotedbl{}gx\textquotedbl{} substrings. 
+or \textquotedbl{}gx\textquotedbl{} substrings. See \ref{sub:Geometry-Parameter}
+for more details.
 
 \bigskip{}
 
@@ -1103,8 +1104,8 @@ It will then be read in from there and used to generate zmatrix or
 mixed coordinate object. The function can recognize by its own, that
 there are fewer variables than needed and fill up with Cartesian ones. 
 
+\bigskip{}
 
-\subsubsection{Zmatrix\label{sub:Zmatrix-pathseracher}}
 
 A zmatrix may look something like:
 
@@ -1127,14 +1128,112 @@ on coordinates and zmatrices. It is also possible to have several
 coordinates set to the same value by reusing the variable name.
 
 
-\subsubsection{Setting Parameter}
+\subsubsection{Geometry Parameter\label{sub:Geometry-Parameter}}
+
+Some special parameter handle the interpreting of the geometries.
+They can be set exactly the same way as the other parameters. The
+calculator is also formally one of them, as it decides what energy
+and forces belong to a given program. Others might be required by
+periodic programs.
+\begin{itemize}
+\item cell:	the cell in which the molecule is situated, needed for example
+by Vasp
+\item pbc:	which cell directions have periodic boundary conditions
+\item format: ParaTools (throught ASE) know several formats for geometry
+files. If some of them a provided it tries to identify them. But this
+is done only by the name of the geometry. If it for example is POSCAR.1
+it will recognise the POSCAR in it and interprete it as Vasp POSCAR
+file; if it finds gx in the name it expects gxfile and so on. If it
+does not find anything in the name it still process the files, expecting
+xyz files. However if one wants to choose its name free from any limits
+of ASE interpreting one can provide the format directly here and be
+fine with any names (expect if they start with --). The format {}``xyz''
+would enforce for example also POSCAR.1 to be read as xyz-file, {}``vasp''
+will accept everything as POSCAR and {}``gx'' will expect a gxfile.
+Check the ASE manual for a complete list of available formats and
+their names.
+\item mask: which of the given geometry variables are supposed to be changed
+(True) and which should stay fix during the calculation (False). It
+should be a string containing for each of the internal variables the
+given value. As the default all variables are optimized (this is indicated
+by mask = None). Will be explained more in detail in \ref{sub:Fixed-Coordinates}
+\item calculator:	the quantum chemistry program to use, like Vasp or ParaGauss;
+Only indirect in the command line usable, as here it should name a
+separate calculator file, in which the calculator is set, it will
+be explained in \ref{sub:Calculator}
+\item zmatrix: Uses the n first not already used atoms for generating the
+internal coordinates for n atoms as specified in the zmatrix. More
+details in \ref{sub:Geometry_path} , \ref{sub:Internal-Coordinates/zmatrix}
+and \ref{sub:Mixed-Coordinates}. 
+\end{itemize}
+For some of this set of parameter there is a second way of obtaining
+a new value for them: The ASE atoms objects may contain more information
+than only the chemical symbols and the geometries of the wanted object.
+For example in POSCARs there are additional information about the
+cell (pbc would be also set automatically to true in all directions)
+which ASE could understand. This information can also be accessed
+by ParaTools. If they are available, they are only used, if these
+variables still contain the default parameters after setting all other
+parameters. Additionally ASE can access some constraints, which may
+be taken from a POSCAR or can be set directly. Some of them can be
+also used to generate a mask. This is only done if Cartesian coordinates
+are used. 
+
+
+\subsubsection{Calculator\label{sub:Calculator}}
+
+The calculator can be given in ASE format. It can be set in the paramfile
+or in an own file (for example calc-file) via.
+
+\textit{\nobreakdash-\nobreakdash-calculator <calculator file>}
+
+Additionally one can use some of the default specified calculators
+by for example: 
+
+\textit{\nobreakdash-\nobreakdash-calculator default\_vasp}
+
+The calculators can be set up the same way as described in chapter
+\ref{sub:The-calculators}. There is no need to connect the calculator
+with anything. But therefore it is absolutely needed, that the name
+of the calculator is calculator, even if in general cases, as in chapter
+\ref{sub:The-calculators}, where it is used directly it could have
+been given any valid unused name.
+
+
+\subsubsection{Fixed Coordinates\label{sub:Fixed-Coordinates}}
+
+There is the possibility to fix variables with the mask option. Here
+one has to say explicitly which coordinates should be fixed. This
+is done by giving a list, containing an entry for every variable.
+The entry would be {}``False'' for a fixed variable or {}``True''
+otherwise.
+
+As a default no coordinates are fixed. 
+
+But despite the chance of giving them directly there is also another
+option in case of Cartesian coordinates: there may be already some
+information in the atoms object, which stores the geometry information
+of the minima. It could be set there directly, but it is more common
+to expect it to comes from the input file. In POSCARs for example
+one may use {}``selective dynamics'', which fixes some of the coordinates.
+These informations can be interpreted from ASE as constraints, which
+then can be used from ParaTools to fix some coordinates. For general
+usage with the constraints (via python code): ParaTools can interpret
+the {}``FixScaled'' and the {}``FixAtoms'' constraints of ASE.
+ParaTools only fixes coordinates this way if they are the only mask
+available and if only Cartesian coordinates are used.
+
+
+\subsubsection{Parameter Defining Pathsearcher Behavior}
 
 There are some other parameters specified, which decide on how the
-program will run. There is a list of default parameters.
+program will run. There is a list of default parameters, which also
+includes some parameters for the geometries (see subsection \ref{sub:Geometry-Parameter}).
+These defaults can be accessed by:
 
 \textit{paratools path-searcher \nobreakdash-\nobreakdash-defaults}
 
-shows all of them. They can be changed in two different ways:
+They can be changed in two different ways:
 \begin{itemize}
 \item By including in the parameters of the calculation the following:
 
@@ -1185,17 +1284,6 @@ should run as a python string (so for example \textit{cpu\_architecture
 \item name:	the name of the calculation, appears as basis of the names for
 all the output; needn't be set: as a default it takes the method as
 name
-\item calculator:	the quantum chemistry program to use, like Vasp or ParaGauss;
-Only indirect in the command line usable, as here it should name a
-separate calculator file, in which the calculator is set
-\item cell:	the cell in which the molecule is situated, needed for example
-by Vasp
-\item pbc:	which cell directions have periodic boundary conditions 
-\item mask: which of the given geometry variables are supposed to be changed
-(True) and which should stay fix during the calculation (False). It
-should be a string containing for each of the internal variables the
-given value. As the default all variables are optimized (this is indicated
-by mask = None)
 \item beads\_count: 	how many beads (with the two minima) should be used;
 growingstring and searchingstring start with less, for them it is
 the maximum number of beads. The two beads representing the minima
@@ -1251,62 +1339,6 @@ is of interest but also the development these files make it much easier
 to access all the data.
 \item 3: some more output in every iteration, for debugging etc. 
 \end{itemize}
-\bigskip{}
-
-
-The ASE atoms objects may contain more information than only the chemical
-symbols and the geometries of the wanted object. For example in POSCARs
-there are additional information about the cell (pbc would be also
-set automatically to true in all directions) which ASE could understand.
-This information can also be accessed by paratools tools. If they
-are available, they are only used, if these variables still contain
-the default parameters after setting all other parameter. Additionally
-ASE can access some constraints, which may be taken from a POSCAR
-or can be set directly. Some of them can be also used to generate
-a mask. This is only done if Cartesian coordinates are used. 
-
-
-\subsubsection{Calculator\label{sub:Calculator}}
-
-The calculator can be given in ASE format. It can be set in the paramfile
-or in an own file (for example calc-file) via.
-
-\textit{\nobreakdash-\nobreakdash-calculator <calculator file>}
-
-Additionally one can use some of the default specified calculators
-by for example: 
-
-\textit{\nobreakdash-\nobreakdash-calculator default\_vasp}
-
-The calculators can be set up the same way as described in chapter
-\ref{sub:The-calculators}. There is no need to connect the calculator
-with anything. But therefore it is absolutely needed, that the name
-of the calculator is calculator, even if in general cases, as in chapter
-\ref{sub:The-calculators}, where it is used directly it could have
-been given any valid unused name.
-
-
-\subsubsection{Fixed Coordinates\label{sub:Fixed-Coordinates}}
-
-There is the possibility to fix variables with the mask option. Here
-one has to say explicitly which coordinates should be fixed. This
-is done by giving a list, containing an entry for every variable.
-The entry would be {}``False'' for a fixed variable or {}``True''
-otherwise.
-
-As a default no coordinates are fixed. 
-
-But despite the chance of giving them directly there is also another
-option in case of Cartesian coordinates: there may be already some
-information in the atoms object, which stores the geometry information
-of the minima. It could be set there directly, but it is more common
-to expect it to comes from the input file. In POSCARs for example
-one may use {}``selective dynamics'', which fixes some of the coordinates.
-These informations can be interpreted from ASE as constraints, which
-then can be used from ParaTools to fix some coordinates. For general
-usage with the constraints (via python code): ParaTools can interpret
-the {}``FixScaled'' and the {}``FixAtoms'' constraints of ASE.
-
 
 \subsubsection{Reuse Results from Previous Calculations }
 
@@ -1647,20 +1679,344 @@ iteration) which contains the path in an ASE readable format. For
 this level there will also appear some archive in the logfile.
 
 
-\section{\textcolor{red}{Local transition state searcher: the Dimer/Lanczos
-method\label{sec:Dimer_Lanczos}}}
+\section{Local transition state searcher: the Dimer/Lanczos method\textcolor{red}{\label{sec:Dimer_Lanczos}}}
+
+These methods belong to the class of eigenmode following methods.
+To be a bit more exact, first they try to determine the eigenvector
+corresponding to the lowest eigenmode of the Hessian matrix, than
+they perform a step uphill this direction and downhill in all others.
+They update their idea of the eigenvector after each step on the energy
+surface. The steps on the energy surfaces are normally called translation
+steps, while for dimer the update steps are normally called rotation
+steps. In the following we will use these notations also for the Lanczos
+method, even when here the term {}``rotation'' is not really fitting.
+The difference between Dimer and Lanczos is merely the way how this
+eigenvector is calculated. In all other respects they are the same,
+using the same interface. Except when differences are explicitely
+mentioned as in \ref{sub:Differences-between-Dimer/Lanczos} the explanations
+are holding for both methods, even when they are only mentioning Dimer.
 
 
 \subsection{The required input for a Dimer/Lanczos method}
 
+A minimal usage would look something like:
 
-\subsection{Differences between Dimer/Lanczos method}
+\textit{paratools dimer --calculator <calculator file> <geometry file>
+<start mode vector file>}
+
+Other than the reaction path search there is only one input geometry
+\textit{<geometry file>} required. The file and all geometry relevant
+parameters to interprete it are interpreted exactly the same way as
+it described for the pathsearcher routine in \ref{sub:Geometry_path},
+\ref{sub:Geometry-Parameter} and \ref{sub:Fixed-Coordinates}, with
+the only limitation that for dimer we have only one of those files.
+Also the calculator, which defines the quantum chemical program to
+use is interpreted over the same interface as for the path searcher
+routines in \ref{sub:Calculator}.
+
+But additionally a direction is needed as \textit{<start mode vector
+file>} (some kind of mode vector). This direction is the start value
+for the eigenvector search. Here one should note that the methods
+are not supposed to calculate all eigenvalues for the Hessian matrix.
+Thus they have no possibility to check if the eigenvector they have
+found really belongs to the minimal eigenvalue or is a higher one.
+Therefore one should avoid giving them a start mode vector which points
+in a eigenvector direction, which is not the smallest one. The mode
+itself is given as a file, containing a value for either every internal
+geometry variable (also Cartesians are interpreted as internal geometry
+if they are the only specified system, but do not forget that fixed
+coordinates are not appearing here) or a Cartesian block of $N_{\textrm{Atoms}}\times3$,
+which then has to contain a value for all Atoms (also if all their
+coordinates are fixed).
 
 
-\subsection{The parameters of the Dimer/Lanczos method}
+\subsection{Differences between Dimer/Lanczos method\label{sub:Differences-between-Dimer/Lanczos}}
+
+Both methods are about finding a special mode, the one belonging to
+the smallest eigenvalue of the approximated Hessian. For this the
+dimer method sets up two images around its current geometry (one at
++ mode\_vector {*} dimer\_distance and the other at - mode\_vector
+{*} dimer\_distance) then it rotates them around their midpoint till
+the convergence criteria are met (Implemention details prefer to use
+one such image and the midpoint, only approximating the second image).
+The Lanczos method is a direct method for eigenvalue determining.
+Here the quantum chemical calculations are done to build up a basis
+in a subspace. In this subspace eigenvalues and eigenvectors of the
+reduced Hessian are calculated. If the smallest one of them has a
+direction which (up to a convergence criteria) is also an eigenvector
+in the complete space it is supposed to be the mode vector.
+
+Both methods use a start vector for their iterations and both will
+converge rather fast if the start vector is very near the wanted result.
+Especially with the more rouher convergence criteria they should perform
+very similar. However if a very exact result is needed Lanczos usually
+outperforms Dimer. Lanczos needs at least the number of degrees of
+freedom, as in this case the subspace would collapse to the complete
+space. Thus if it is not converged after this amount of times, this
+should be a problem of rounding errors and the not ideal quantum chemical
+calculations, as it is supposed that the Hessian is exactly represented
+by differences in the gradients regarding the midpoint. If more than
+the number of degrees of freedom are used the Lanczos method might
+get severe problems generating a new basis vector (which should be
+orthogonal to all the others) and thus might crash.
+
+
+\subsection{The parameters of the Dimer/Lanczos method\label{sub:parameter_Dimer}}
+
+Like for the pathsearcher routine there are two different ways of
+setting variables, directly in the command line or specified in ap
+parameterfile, which is then given as:
+
+\textit{--paramfile <name of paramfile>}
+
+In this file the parameters are given as <name> = <value>, where strings
+(consisting of letters have to given with {}``''). Thus in such
+a file one could find the line:
+
+\textit{trajectory = {}``every''}
+
+All the parameter to set can be seen with
+
+\textit{paratools dimer --defaults}
+
+However there are some more parameters to stear the dimer method with.
+They are about implementation details and thus normally not required
+to be changed. If they should be accessed anyway one can set as first
+parameter of the dimer method \textit{--accept\_all}. This will remove
+the restriction on only known parameters for dimer. Be aware that
+this way there will be no checking of any of the parameter really
+exists. The dimer method accepts any parameter and just ignores everything
+it does not understand.
+
+Parameter which are explicitely free for adaption are:
+\begin{itemize}
+\item max\_translation: Maximal number of translation steps (be aware that
+before each translation there will be the rotation step, thus this
+is not the number of gradient calculations.
+\item max\_rotations: How many rotation steps for each translation step
+are allowed. Be aware that for the Lanczos method it only makes sense
+to have here at maximum the number of degrees of freedom of the system,
+as here a subspace of that order is build. If more are used (during
+run time) the system might crash.
+\item max\_gradients: Another way of setting a limit to the general steps
+of the system. The gradient calls of rotation and translation step
+are called and sumed up and used as abortion criteria. Be aware that
+said criteria is checked in the translation steps only, thus it is
+possible to have up to max\_gradients + max\_rotations steps before
+the system terminates.
+\item trans\_converged: The criteria for translation step and thus for the
+complete algorithm. The absolute maximum of the gradients is tested. 
+\item phi\_tol: Convergence criteria for the rotation step. It is tested
+as an angle in radiens: for Dimer the angle the system would rotate
+in the next step (or an early approximation); for Lanczos the angle
+between current and last mode approximation or the angle between mode
+vector and its approximated gradient (means mode vector is eigenvector)
+can stop {}``rotation''
+\item max\_step: Maximal step length for the translation step.
+\item trajectory: While the calculation proceeds the geometry and the modevector
+will be changed continuously. This parameter is now about how much
+of this can be found lateron in the subfolder the calculation runs
+in. All geometry files given for the trajectory are in xyz-format,
+the modes contain a matrix of floats. All the files are human readable.
+There are different leves given as a string:
+
+\begin{itemize}
+\item newest: only the actual geometry and the actual mode\_vector are given
+in the files actual\_geometry and actual\_mode. This is also the default.
+\item empty: No geometry or modes will be stored.
+\item every: for each iteration n the geometry and the mode are stored to
+geo<n> and mode<n>
+\item one\_file: the actual geometry is given as for newest. Additionally
+all the geometries and modes are stored in two big files, all\_geos
+and all\_modes. All\_geos just contains the geometries one after another
+as this way some programs can read it in as a path; the modes in all\_modes
+are separated by a line {}``Mode of iteration <n> {}``
+\end{itemize}
+\end{itemize}
+It is strongly recommended to set at least the max\_translation or
+the max\_gradients as the default is very near running forever.
 
 
 \subsection{Interpreting the output of a Dimer/Lanczos method}
+
+There is only few output of the dimer method. The parameter trajectory,
+explained in \ref{sub:parameter_Dimer} is already responsible on
+how many files will be created. All the other output goes to the standard
+output. Here one gets a per (translation) step information and a result
+information, after the method has finished. The start of such output
+might be something like this:
+
+\textit{Intermediate steps for translation and rotation informations }
+
+\textit{Values are in eV, Angstrom, degrees or combinations of them }
+
+\textit{Trans. Infos: Energy ABS. Force Max. Force Step: Perp\textbackslash{}Para
+Angle to mode }
+
+\textit{Rot. Infos: Conv. Steps. curvature Angle to last }
+
+\textit{Step 0 with sum of Grad. calcs. 5 }
+
+\textit{Trans. Infos: -5353.12736 8.63831 5.67751 0.10000 0.09052
+\textbackslash{} 0.04251 64.84407 }
+
+\textit{Rot. Infos: True 1 -51.91102 59.85055 }
+
+\textit{Step 1 with sum of Grad. calcs. 10 }
+
+\textit{Trans. Infos: -5399.74253 6.90785 4.04526 0.10000 0.09389
+\textbackslash{} 0.03443 69.86065 }
+
+\textit{Rot. Infos: True 1 -86.99553 17.38904 }
+
+\textit{Step 2 with sum of Grad. calcs. 15 }
+
+\textit{Trans. Infos: -5401.94974 5.48020 3.55572 0.10000 0.09962
+\textbackslash{} -0.00871 85.00543 }
+
+\textit{Rot. Infos: True 1 -62.44341 10.41689 }
+
+\textit{Step 3 with sum of Grad. calcs. 20 }
+
+\textit{Trans. Infos: -5381.29876 5.43350 3.82003 0.10000 0.09993
+\textbackslash{} -0.00379 87.83059 }
+
+\textit{Rot. Infos: True 1 -38.45217 10.78196 }
+
+\textit{Step 4 with sum of Grad. calcs. 24 }
+
+\textit{Trans. Infos: -5405.85113 2.63210 1.52607 0.10000 0.09967
+\textbackslash{} 0.00813 85.33809 }
+
+\textit{Rot. Infos: True 0 -33.00477 0.00000 }
+
+\textit{Step 5 with sum of Grad. calcs. 29 }
+
+\textit{Trans. Infos: -5426.61526 4.22819 2.80965 0.09195 0.09165
+\textbackslash{} 0.00750 85.32368 }
+
+\textit{Rot. Infos: True 1 -36.71423 8.33504 }
+
+The first four lines are there for explaining the step information.
+The step information consists of three lines, which are repeatet for
+each step. The first saying {}``Step 4 with sum of Grad. calcs. 24''
+gives the current translation step number and the sum of all gradient
+calculations done till this step. The other two lines starting with
+{}``Trans. Infos:'' and {}``Rot. Infos:'' belong to the corresponding
+lines in the start input. They give the informations named there.
+Thus about the translation we have the informations: 
+
+\textit{Trans. Infos: Energy ABS. Force Max. Force Step: Perp\textbackslash{}Para
+Angle to mode }
+
+\textit{Trans. Infos: -5353.12736 8.63831 5.67751 0.10000 0.09052
+\textbackslash{} 0.04251 64.84407 }
+
+\textit{Trans. Infos: -5399.74253 6.90785 4.04526 0.10000 0.09389
+\textbackslash{} 0.03443 69.86065 }
+
+\textit{Trans. Infos: -5401.94974 5.48020 3.55572 0.10000 0.09962
+\textbackslash{} -0.00871 85.00543 }
+
+\textit{Trans. Infos: -5381.29876 5.43350 3.82003 0.10000 0.09993
+\textbackslash{} -0.00379 87.83059 }
+
+\textit{Trans. Infos: -5405.85113 2.63210 1.52607 0.10000 0.09967
+\textbackslash{} 0.00813 85.33809 }
+
+\textit{Trans. Infos: -5426.61526 4.22819 2.80965 0.09195 0.09165
+\textbackslash{} 0.00750 85.32368 }
+
+\textit{Trans. Infos: -5412.94735 3.23080 2.30023 0.10000 0.09982
+\textbackslash{} 0.00598 86.57346}
+
+Thus the first entry in the lines is the energy of the current image,
+the second the absolute Force followed by the maximum (absolute) force.
+The length of the step is followed by the length of the step compontents
+perpendicular and parallel to the current mode vector. Angle to mode
+describes the angle between step and mode vector. The max force compontent
+is used for determining convergence, it should be vanish by a successful
+calculation at the end. The different step components and the angle
+to the modevector allow to see which part of the step belongs to the
+minimization and which to the steps in direction of curvature. The
+same can be done for the rotation informations:
+
+\textit{Rot. Infos: Conv. Steps. curvature Angle to last }
+
+\textit{Rot. Infos: True 1 -51.91102 59.85055 }
+
+\textit{Rot. Infos: True 1 -86.99553 17.38904 }
+
+\textit{Rot. Infos: True 1 -62.44341 10.41689 }
+
+\textit{Rot. Infos: True 1 -38.45217 10.78196 }
+
+\textit{Rot. Infos: True 0 -33.00477 0.00000 }
+
+\textit{Rot. Infos: True 1 -36.71423 8.33504 }
+
+\textit{Rot. Infos: True 0 -30.41641 0.00000 }
+
+\textit{Rot. Infos: True 1 -31.35842 5.92447} 
+
+First it is told if the rotation is converged, followed by the number
+of steps used for it. The curvature of the eigenmode should become
+negative soon and stay thus. Be aware that the method does a step
+against the mode direction if the curvature is positive (in this case
+the corresponding Trans. Infos should show only a parallel step).
+This should help by leading the system faster away from a minimum.
+The angle is to the mode vector of the last iteration.
+
+\bigskip{}
+
+
+After the calculation has terminated, the first line will tell if
+it has converged or not. Then follows a section:
+
+Results as given back from dimer routine
+
+This section gives all informations which the dimer method has stored
+(many only about the last iteration). As it is not yet clear if the
+dimer output will be sufficient in the future, this section might
+help to recover additionally needed informations. 
+
+The real Result is given in the section {}``Results DIMER calculation'':
+
+\textit{Results DIMER calculation: }
+
+\textit{Dimer converged: True }
+
+\textit{Forces left (RMS): 0.000182624417635 }
+
+\textit{Number of gradient calculations: 539 }
+
+\textit{Mode at last iteration: }
+
+\textit{{[} -5.76549663e-02 -1.41683844e-04 -7.38774329e-01 -3.48719225e-02
+-1.36373646e-05 1.64732136e-01 3.39781235e-01 1.26865209e-04 6.45620463e-02
+-2.19727913e-01 -3.40441112e-04 5.04614323e-01]}
+
+\textit{Final geometry: }
+
+\textit{4}
+
+\textit{\smallskip{}
+}
+
+\textit{C 0.086343848074545 -0.000236223361009 -0.023510946078905 }
+
+\textit{O 1.254608644091847 -0.000218171587174 0.001129852669768 }
+
+\textit{H -0.522219646394556 -0.000226903373099 -1.608140932787113 }
+
+\textit{H -0.965375148654632 -0.000249550524969 -0.362765373052858}
+
+This section starts again with the information if the calculation
+has finished. Especially if this is not the case the gradients left
+on the last image might be of interest. It tells how many gradient
+calculation has been done during the complete run. Additionally it
+gives the last mode and of course the last geometry. This in a xyz
+style independant of the internal coordinates used.
 
 
 \section{Additional Tools for the Path Searching (on Output Files)}
@@ -2378,24 +2734,28 @@ Here the Nones say that there was not found anything. -1 is the default
 value for not fallen above afterwards.
 
 
-\section{\textcolor{red}{Parallel Numerical Frequency Calculation}\label{sec:Parallel-Numerical-Frequency}}
+\section{Randomized Functions}
 
-ParaTools includes a routine to calculate the frequencies of a given
-molecule structure. This will be done by first calculating a numerical
-Hessian matrix (second derivatives of the energy), by calculating
-the forces of the molecule with a displacement in every valid geometry
-direction (in Cartesian). Then the Hessian matrix and a mass-matrix
-will be put into an eigensolver of the scipy module. The specialty
-of this function is, that the calculations of all the displaced geometries
-can be performed in absolute parallel. The way this parallel performing
-is done is by using a {}``map''- function. If the tool is not used
-interactively via the central command, this map-function can be chosen
-directly and changed easily, as all the geometries are given to a
-\textquotedbl{}map\textquotedbl{}-function. The map function could
-be the simple (and non-parallel ) map function of python or one of
-the map functions described in the pts.paramap module. In the central
-command case there are two map-functions preselected, which can be
-changed by an option.
+
+\subsection{Parallel Numerical Frequency Calculation\label{sec:Parallel-Numerical-Frequency}}
+
+ParaTools includes a routine for calculating the frequencies of a
+given molecule structure. This will be done with help of a numerical
+Hessian matrix (the second derivatives of the energy). To get this
+matrix (or rather an approximation for it) the forces of the molecule
+with a displacement in every valid geometry direction (in Cartesian)
+is needed. Then the Hessian matrix and a mass-matrix will be put into
+an eigensolver of the scipy module. The speciality of this function
+is, that the calculations of all the displaced geometries can be performed
+in absolute parallel. The way this parallel performing is done is
+by using a {}``map''- function. If the tool is not used interactively
+via the central command, this map-function can be chosen directly
+and changed easily to any available \textquotedbl{}map\textquotedbl{}-function.
+The map function could be the simple (and non-parallel ) map function
+of python, one of the map functions described in the pts.paramap module
+or any other function sharing the same interface. In the central command
+case there are two map-functions preselected, which can be changed
+by one of the options.
 
 The central command usage of the frequency tool is:
 
@@ -2403,36 +2763,38 @@ The central command usage of the frequency tool is:
 <calculator file> geo1}
 
 The file geo1 should hold the geometry, at which the frequencies are
-wanted.
+wanted, as usual in an ASE readable format. As the frequency tool
+works in Cartesian coordinates only there is this time no option of
+creating internal or mixed coordinates.
 
 The calculator is an option which has to be set in any case, it can
 be done as in chapter \ref{sub:Calculator}, but here no default calculators
 can be chosen.
 
-There are other options possible right now:
+There are other options possible:
 \begin{itemize}
-\item \textit{\nobreakdash-\nobreakdash-alsovec True }: would tell to
-the function, that the eigenvectors of the system are also wanted.
-The output is enlarged by them.
+\item \textit{\nobreakdash-\nobreakdash-alsovec True }: would tell the
+function, that the eigenvectors of the system are also wanted. The
+output is enlarged by them.
 \item \textit{\nobreakdash-\nobreakdash-mask <string}>: string, start
 and ended marked with {}``, should be a list containing for each
 Cartesian geometry coordinate either the value True (this coordinate
 should be used) or False (this coordinate is fixed and thus can be
 left away). If it is not given all coordinates are taken as True,
 except when the geometry file (like a POSCAR) contains some constraints,
-which could be read in by ASE (compare chapter \prettyref{sub:Fixed-Coordinates}).
+which could be understand by ASE (compare chapter \prettyref{sub:Fixed-Coordinates}).
 ASE can't read in gxfile constraints. Attention: even if the eigenvectors,
 if given, are ordered three in a line, they are not connected to any
 atoms but give only all the non fixed coordinates one after another. 
 \item \textit{\nobreakdash-\nobreakdash-num-procs <n}>: So far there are
-two different parallel mapping functions, which can be chosen in this
-interactively manner. One of them does not need the knowledge about
-the computer structure as it starts all single point force calculations
-at the same time. The second uses the scheduler strategy, which is
-also used in the pathsearcher. This one needs knowing how many processors
-are there. They should be given to the function as n. Then the n processors
-will be distributed in a fashion, which should allow the fastest calculation
-of all the wanted points. This will be described further, as it is
+two different parallel mapping functions, which can be chosen interactively.
+One of them does not need the knowledge about the computer structure
+as it starts all single point force calculations at the same time.
+The second uses the scheduler strategy, which is also used in the
+pathsearcher. This one needs knowing how many processors are there.
+They should be given to the function as n. Then the n processors will
+be distributed in a fashion, which should allow the fastest calculation
+for all the wanted points. This will be described further, as it is
 also needed to tell the quantum chemistry calculators about it. This
 second strategy is recommended on hlrb2, where one has to make sure,
 that n is really exactly the number of requested processors.
@@ -2440,9 +2802,6 @@ that n is really exactly the number of requested processors.
 More information on parallel calculations, especially the changes,
 which have to be done to the quantum chemistry calculators in order
 to run them parallel are described in paragraph \ref{par:Parallel-Calculations}.
-
-
-\section{Randomized Functions}
 
 
 \subsection{Generating Interpolated Geometries for a Path\label{sub:Makepath.py}}
@@ -2523,7 +2882,7 @@ The tool will give back the requested variable in eV (energy) or eV/Angstrom
 (forces).
 
 
-\subsection{Visulazing an Linear Interpolation with Jmol}
+\subsection{Visualizing an Linear Interpolation with Jmol}
 
 Run
 
