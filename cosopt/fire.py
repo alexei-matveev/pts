@@ -60,7 +60,9 @@ class fire_opt():
 
         self.v = None
         self.n_pp = 0
-        self.dt = dt
+        # in first iteration (self.v = None -> P = 0 -> decrease of dt
+        # To start with the right value, work here in opposite direction
+        self.dt = dt / self.f_dec
 
     def step(self, g):
         """
@@ -101,11 +103,12 @@ class fire_opt():
 
         if P > 0:
              # Go further in the same direction, if it was stable long enough
-             # increase the step size
-             self.n_pp = self.n_pp + 1
              if self.n_pp > self.n_min:
                  self.dt = min(self.dt * self.f_inc, self.dt_max)
                  self.alpha = self.alpha * self.f_alpha
+
+             # increase the step size
+             self.n_pp = self.n_pp + 1
 
         else:
             # We run into an energy minimum (in this direction)
@@ -127,12 +130,13 @@ class fire_opt():
             norm_dx = norm_dx + mt.metric.norm_up(dxi, xi)**2
         norm_dx = sqrt(norm_dx)
 
-        if norm_dx > self.ms:
-           dx = dx / norm_dx * self.ms
-
         # For putting them back
         x = x.flatten()
         dx = dx.flatten()
+
+        if norm_dx > self.ms:
+           dx = dx / norm_dx * self.ms
+
 
         self.atoms.state_vec = x + dx
 
