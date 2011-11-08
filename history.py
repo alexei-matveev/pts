@@ -17,7 +17,7 @@ class Record():
     array([0, 1])
 
     """
-    def __init__(self, es, state, perp_forces, para_forces, ts_estim):
+    def __init__(self, es, state, perp_forces, para_forces):
 
         assert len(es) == len(state) == len(perp_forces) == len(para_forces)
 
@@ -33,7 +33,7 @@ class Record():
 
         self.maxixs = self.es.argsort()
 
-        self.ts_estim = ts_estim
+        #self.ts_estim = ts_estim
 
     def highest(self, n):
         return self.state.take(self.maxixs[:-n])
@@ -110,19 +110,15 @@ class History():
             return np.array([0])
 
         tmp = []
-        if n == 0:
-            for r in self.list[-recs:]:
-                tmp.append(r.ts_estim[1])
-        else:
-            # use max bead ix's from most recent record
-            ixs = self.list[-1].maxixs[-n:]
-            reference_len = len(self.list[-1].state)
+        # use max bead ix's from most recent record
+        ixs = self.list[-1].maxixs[-n:]
+        reference_len = len(self.list[-1].state)
 
-            for r in self.list[-recs:]:
-                if len(r.state) < reference_len:
-                    tmp.append(np.zeros(self.list[-1].state.shape).take(ixs, axis=0))
-                else:
-                    tmp.append(r.state.take(ixs, axis=0))
+        for r in self.list[-recs:]:
+            if len(r.state) < reference_len:
+                tmp.append(np.zeros(self.list[-1].state.shape).take(ixs, axis=0))
+            else:
+                tmp.append(r.state.take(ixs, axis=0))
 
         tmp = np.array(tmp)
 

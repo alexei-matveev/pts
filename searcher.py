@@ -666,10 +666,10 @@ class ReactionPathway(object):
         perp_forces = self.perp_bead_forces.copy()
         para_forces = self.para_bead_forces.copy()
 
-        # FIXME: wrong place? 
-        ts_estim = ts_estims(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)[-1]
+        # FIXME: wrong place? Yes, do now only after last iteration
+        #ts_estim = ts_estims(self.state_vec, self.bead_pes_energies, self.bead_pes_gradients)[-1]
 
-        a = [es, state, perp_forces, para_forces, ts_estim]
+        a = [es, state, perp_forces, para_forces]
 
         self.history.rec(a)
         
