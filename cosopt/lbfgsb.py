@@ -45,6 +45,9 @@ import scipy.linalg
 
 approx_fprime = optimize.approx_fprime
 
+global n_function_evals
+n_function_evals = 0
+
 def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
                   approx_grad=0,
                   bounds=None, m=10, factr=1e7, pgtol=1e-5,
@@ -205,6 +208,7 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
 
     task[:] = 'START'
 
+    global n_function_evals
     n_function_evals = 0
     while 1:
         prevx = x.copy()

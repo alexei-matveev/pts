@@ -317,14 +317,14 @@ class MultiOpt(ObjLog):
 
         self.observers.append((function, interval, args, kwargs))
 
-    def run(self):
+    def run(self, steps = 1000000000):
         """Run structure optimization algorithm.
 
         This method will return  when the number of steps exceeds
         *steps*."""
 
-        while True: # will be finished by the call_observers, which
-                    # include a convergence check
+        while self.nsteps < steps: # convergence will be checked by call_observers
+                   # Test here only if maximum allowed steps are exceeded
             f = self.atoms.obj_func_grad(raw=True)
             self.slog(f) # ObjLog method
             self.call_observers()
@@ -335,6 +335,9 @@ class MultiOpt(ObjLog):
         for function, interval, args, kwargs in self.observers:
             if self.nsteps % interval == 0:
                 function(*args, **kwargs)
+
+    def get_number_of_steps(self):
+        return self.nsteps
 
 # python path_representation.py [-v]:
 if __name__ == "__main__":

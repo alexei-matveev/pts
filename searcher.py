@@ -570,8 +570,11 @@ class ReactionPathway(object):
 #        self.reporting.write("self.prev_state updated")
 #        self.prev_state = self.state_vec.copy()
 
-        if self.eg_calls >= self.maxit:
-            raise pts.MaxIterations
+        # This is now done by the optimizers themselves, as there were
+        # problems with not knowing which obj_func calls to count and
+        # which not
+#       if self.eg_calls >= self.maxit:
+#           raise pts.MaxIterations
 
 #       print "Objective function call: gradient = %s" % grad
 #       # tests whether this has already been requested

@@ -115,13 +115,12 @@ class conj_grad_opt():
 
         self.nsteps = self.nsteps + 1
 
-    def run(self):
+    def run(self, steps = 10000000):
         #FIXME: do we really need this function here? convergence and
         #        maximal steps are done with the call observers
         #        only the step is really from here
-        while True:
-            # it is okay to have a endless loop here, call_observers
-            # will terminate it at some time
+        while self.nsteps < steps: # convergence will be checked by call_observers
+                   # Test here only if maximum allowed steps are exceeded
             f = self.atoms.obj_func_grad() # Like the gradients, but more specialized
             # string methods will give only the perpendicular direction of all beads
             # neb will already have added the spring forces
@@ -146,6 +145,8 @@ class conj_grad_opt():
             if self.nsteps % interval == 0:
                 function(*args, **kwargs)
 
+    def get_number_of_steps(self):
+        return self.nsteps
 
 def line_search(r, dir, g, atoms, trial_step, default_step):
     """
