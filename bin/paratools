@@ -36,6 +36,7 @@ where CMD is one of the following:
     ts-and-mods         Shows TS estimates and mode vector for a path
     pp2ts-err           see error of ts_estimates of path to real TS
                         (given also as input)
+    min-iter            Gives iteration with minimal value from logfile
 
 See subcommand specific help for syntax details.
 
@@ -51,6 +52,7 @@ from ase.optimize import *  # to recognise the optimizers lateron
 import pts.tools.findlimitpath
 import pts.tools.jmol
 import pts.tools.makepath
+import pts.tools.pathmin
 import pts.tools.path2xyz
 import pts.tools.path2tab
 import pts.tools.pp2tserr
@@ -79,6 +81,8 @@ methods = {
    "pp2ts_err"       : pts.tools.pp2tserr.main       ,
    "ts-and-mods"     : pts.tools.tsestandmods.main   ,
    "ts_and_mods"     : pts.tools.tsestandmods.main   ,
+   "min_iter"        : pts.tools.pathmin.main   ,
+   "min-iter"        : pts.tools.pathmin.main   ,
    "xyz2tab"         : pts.tools.xyz2tabint.main
 }
 
