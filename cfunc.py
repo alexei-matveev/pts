@@ -295,7 +295,7 @@ class Masked(Func):
         self._fun_raw = fun_raw
         self._mask = mask
         self._x0 = for_fix
-        assert len(for_fix) == len(mask)
+        assert len(for_fix) == len(mask), "%i != %i" % (len(for_fix), len(mask))
 
     def taylor(self, x):
 

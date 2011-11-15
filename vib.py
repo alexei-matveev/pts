@@ -531,6 +531,7 @@ def main(argv):
     # and one geometry:
     if len(args) != 1:
         print >> sys.stderr, "Error: Need exactly one geometry file to process!"
+        print >> sys.stderr, "Error: found instead:", args
         print >> sys.stderr, main.__doc__
         sys.exit(1)
 

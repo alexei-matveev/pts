@@ -541,7 +541,7 @@ def interpret_sysargs(rest):
             elif o in ("workhere"):
                 add_param[o] = int(a)
             else:
-                assert(o in ps_default_params)
+                assert(o in ps_default_params), o
                 # suppose that the rest are setting parameters
                 # compare the default_params
                 if o in ps_are_floats:
