@@ -919,10 +919,7 @@ class NEB(ReactionPathway):
 
         ReactionPathway.obj_func(self)
 
-        spring_energies = self.base_spr_const * self.bead_separations**2
-        spring_energies = 0.5 * numpy.sum (spring_energies)
-        lg.info("Spring energies %s" % spring_energies)
-        return self.bead_pes_energies.sum()# + spring_energies
+        return self.bead_pes_energies.sum()
 
 class PathRepresentation(Path):
     """Supports operations on a path represented by a line, parabola, or a 
