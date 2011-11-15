@@ -522,7 +522,9 @@ class Single_contex(object):
     For a single calculation:
     >>> with prep:
     ...     print getcwd()
+    Starting Calculation in 02
     /tmp/02
+    Finished Calculation in 02
 
     Clean up
     >>> from os import system
