@@ -156,6 +156,7 @@ class ReactionPathway(object):
         self.convergence_beads = convergence_beads
         self.steps_cumm = steps_cumm
         self.freeze_beads = freeze_beads
+        self.opt_iter = 0
 
         self.__dimension = len(reagents[0])
         #TODO: check that all reagents are same length
@@ -215,6 +216,7 @@ class ReactionPathway(object):
 
     def test_convergence(self, etol, ftol, xtol):
         
+        self.opt_iter = self.opt_iter + 1
         if self.conv_mode == 'gradstep':
             return self.test_convergence_GS(ftol, xtol)
 
@@ -444,6 +446,7 @@ class ReactionPathway(object):
              "%-24s :" % ("Raw State Vector"),
              all_coordinates,
              "GENERAL STATS",
+             "%-24s : %10d" % ("Number of iteration", self.opt_iter),
              "%-24s : %10d" % ("Callbacks", self.callbacks),
              "%-24s : %10d" % ("Number of respaces", self.respaces),
              "%-24s : %10d" % ("Beads Count", self.beads_count),
