@@ -513,7 +513,7 @@ def main(argv):
 
         accepts also the options:
            --num-procs  <n> : number of processors available
-           --alosvec    <True/False> : the eigenvector is also given back as output
+           --alsovec    <True/False> : the eigenvector is also given back as output
            --mask  string : string should contain the mask, which Cartesian coordinates should
                             be fixed
     """
