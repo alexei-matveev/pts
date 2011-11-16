@@ -590,7 +590,8 @@ def create_params_dict(new_params):
     if type(params_dict["calculator"]) == str:
         params_dict["calculator"] = eval_calc(params_dict["calculator"])
 
-    if params_dict["method"].lower() == "neb":
+    if params_dict["method"].lower() == "neb" or \
+       params_dict["method"].lower() == "ci-neb":
         if params_dict["opt_type"] == "multiopt":
             print ""
             print "The optimizer %s is not designed for working with the method neb" % (params_dict["opt_type"])

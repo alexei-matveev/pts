@@ -208,6 +208,20 @@ def find_path(pes, init_path
                workhere=workhere,
                output_path=output_path,
                output_level=output_level,
+               climb_image = False,
+               reporting=logfile)
+    elif method == 'ci-neb':
+        CoS = NEB(init_path,
+               pes,
+               spring,
+               disk_result_cache,
+               beads_count=beads_count,
+               parallel=True,
+               pmap = pmap,
+               workhere=workhere,
+               output_path=output_path,
+               output_level=output_level,
+               climb_image = True,
                reporting=logfile)
     elif method == 'sopt':
         CoS = None

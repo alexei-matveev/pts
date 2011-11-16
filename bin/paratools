@@ -19,6 +19,7 @@ where CMD is one of the following:
                         using lanczos algorithm to find lowest eigenmode
 
     neb                 Nudged Elastic Band calculation
+    ci-neb              Nudged Elastic Band with climbing image
     string              String optimization, similar to NEB
     growingstring
     searchingstring
@@ -113,7 +114,7 @@ def main(argv):
         valid_cmd = True
         minimize(argv[1:])
 
-    if cmd in ("string", "neb", "growingstring", "searchingstring"):
+    if cmd in ("string", "neb", "ci-neb", "growingstring", "searchingstring"):
         valid_cmd = True
 
         # import right here in order not to import everything,

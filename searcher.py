@@ -15,6 +15,7 @@ from os import path, mkdir, chdir, getcwd
 # TODO: change to import numpy as np???
 from numpy import linalg, array, asarray, ceil, abs, sqrt, dot, size
 from numpy import empty, zeros, ones, linspace, arange
+from numpy import argmax
 
 from path import Path, Arc, scatter, scatter1
 from func import RhoInterval
@@ -134,6 +135,8 @@ class ReactionPathway(object):
             freeze_beads=False, 
             output_level = 3,
             output_path = ".",
+            climb_image = False,
+            start_climb = 5,
             conv_mode='gradstep'):
         """
         convergence_beads:
@@ -183,6 +186,10 @@ class ReactionPathway(object):
 
         self.allvals = Elemental_memoize(self.pes, pmap=pmap, cache = result_storage, workhere = workhere, format = "bead%02d")
 
+        self.climb_image = climb_image
+        self.start_climb = start_climb
+        self.ci_num = None
+
     def initialise(self):
         beads_count = self.beads_count
 
@@ -217,6 +224,13 @@ class ReactionPathway(object):
     def test_convergence(self, etol, ftol, xtol):
         
         self.opt_iter = self.opt_iter + 1
+
+        if self.climb_image:
+            if self.opt_iter >= self.start_climb and self.ci_num == None:
+                clim = self.try_set_ci_num()
+                if clim:
+                    print "Turned image", self.ci_num, " into climbing image"
+
         if self.conv_mode == 'gradstep':
             return self.test_convergence_GS(ftol, xtol)
 
@@ -327,6 +341,20 @@ class ReactionPathway(object):
             lg.info("Testing Non-Growing Convergence to f: %f / %f (max), x: %f / %f" % (f, f_tol, max_step, x_tol))
             if f < f_tol or (self.eg_calls > self.steps_cumm and max_step < x_tol):
                 raise pts.Converged
+
+    def try_set_ci_num(self):
+        """
+        The bead with the maximal energy will become the climbing image
+        But if it would be one of the termination beads this does not make
+        much sense, then tell wrong and maybe retry another time
+        """
+        assert self.climb_image
+        i = argmax(self.bead_pes_energies)
+        if i > 0 and i < len(self.bead_pes_energies) - 1:
+            self.ci_num = i
+            return True
+
+        return False
 
     @property
     def rmsf_perp(self):
@@ -449,8 +477,15 @@ class ReactionPathway(object):
              "%-24s : %10d" % ("Number of iteration", self.opt_iter),
              "%-24s : %10d" % ("Callbacks", self.callbacks),
              "%-24s : %10d" % ("Number of respaces", self.respaces),
-             "%-24s : %10d" % ("Beads Count", self.beads_count),
-             "%-24s : %.4f %.4f" % ("Total Length (Pythag|Spline)", total_len_pythag, total_len_spline),
+             "%-24s : %10d" % ("Beads Count", self.beads_count)]
+
+        if self.climb_image:
+             if self.ci_num == None:
+                 s += ["%-24s : %10s" % ("Climbing image", "None")]
+             else:
+                 s += ["%-24s : %10d" % ("Climbing image", self.ci_num)]
+
+        s += ["%-24s : %.4f %.4f" % ("Total Length (Pythag|Spline)", total_len_pythag, total_len_spline),
              "%-24s : %10s" % ("State Summary (total)", state_sum),
              "%-24s : %s" % ("State Summary (beads)", format('%10s', beads_sum)),
              "%-24s : %10.4f | %10.4f " % ("Barriers (Fwd|Rev)", barrier_fwd, barrier_rev)]
@@ -801,10 +836,13 @@ class NEB(ReactionPathway):
 
     growing = False
     def __init__(self, reagents, pes, base_spr_const, result_storage, beads_count=10, pmap = map,
-        parallel=False, workhere = 1, reporting=None, output_level = 3, output_path = "."):
+        parallel=False, workhere = 1, reporting=None, output_level = 3, output_path = ".",
+        climb_image = False, start_climb = 5
+        ):
 
         ReactionPathway.__init__(self, reagents, beads_count, pes, parallel, result_storage, pmap = pmap,
-            reporting=reporting, output_level = output_level, output_path = output_path, workhere = workhere)
+            reporting=reporting, output_level = output_level, output_path = output_path, workhere = workhere,
+            climb_image = climb_image, start_climb = start_climb)
 
         self.base_spr_const = base_spr_const
 
@@ -901,16 +939,21 @@ class NEB(ReactionPathway):
             if not self.bead_update_mask[i] == 1:
                 continue
 
-            spring_force_mag = 0
+            total = self.perp_bead_forces[i]
+
+            # Climbing image is special case
+            if self.climb_image and i == self.ci_num:
+                t = mt.metric.lower(self.tangents[i], self.state_vec[i])
+                total = total - self.para_bead_forces[i] * t
             # no spring force for end beads
-            if i > 0 and i < self.beads_count - 1:
+            elif i > 0 and i < self.beads_count - 1:
                 dx1 = self.bead_separations[i]
                 dx0 = self.bead_separations[i-1]
                 spring_force_mag = self.base_spr_const * (dx1 - dx0)
 
-            spring_force = spring_force_mag * self.tangents[i]
+                spring_force = spring_force_mag * self.tangents[i]
+                total = total + spring_force
 
-            total = self.perp_bead_forces[i] + spring_force
 #            print "spring", spring_force
 
             result_bead_forces[i] = total
@@ -1272,7 +1315,8 @@ class GrowingString(ReactionPathway):
     def __init__(self, reagents, pes, result_storage, beads_count = 10, pmap = map,
         rho = lambda x: 1.0, growing=True, parallel=False, head_size=None, output_level = 3,
         max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False,
-        output_path = ".", workhere = 1):
+        output_path = ".", workhere = 1, climb_image = False, start_climb = 5
+        ):
 
         self.__final_beads_count = beads_count
 
@@ -1285,7 +1329,7 @@ class GrowingString(ReactionPathway):
         # create PathRepresentation object
         self._path_rep = PathRepresentation(reagents, initial_beads_count, rho)
         ReactionPathway.__init__(self, reagents, initial_beads_count, pes, parallel, result_storage,
-                 reporting=reporting, output_level = output_level,
+                 reporting=reporting, output_level = output_level, climb_image = False, start_climb = 5,
                  pmap = pmap, output_path = output_path, workhere = workhere)
 
         # final bead spacing density function for grown string
