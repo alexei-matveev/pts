@@ -70,7 +70,7 @@ def read_in_path(filename):
         print __doc__
         exit()
 
-    return pathps, coord, (symbols, int2cart)
+    return pathps, coord, (symbols, int2cart), (energy, gradients)
 
 def read_in_path_raw(coordfile, symbfile, zmatifiles = None, pathpsfile = None, \
         maskfile = None, maskedgeo = None ):
@@ -232,7 +232,7 @@ def main(argv):
                 exit()
 
     if symbfile == None:
-        x, y, obj = read_in_path(filename)
+        x, y, obj, __ = read_in_path(filename)
     else:
         x, y, obj = read_in_path_raw(filename, symbfile, zmats, abcis, \
         mask, maskgeo )
