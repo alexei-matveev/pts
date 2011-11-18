@@ -5,12 +5,12 @@ The default argument is RMS Perp Forces
 Also it needes that all the single beads are below some barier, say 1.0.
 
 usage:
-  pathmin.py <logfile>
+  paratools min-iter <logfile>
 
 <logfile> should be file in the pathsearcher output file format. *.log
 
 also possible:
-  pathmin.py --limit <min> --argument <argument> <logfile>
+  paratools min-iter --limit <min> --argument <argument> <logfile>
 
 Here --limit sets the barrier for the single bead values to <min>
 and --argument changes the argument to check from RMS Perp Forces
