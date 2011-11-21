@@ -123,18 +123,16 @@ class MiniBFGS(ObjLog):
 
         self._its += 1
 
-    def step(self, energy, grad, pos, t, remove_neg_modes=True):
+    def step(self, energy, grad, grad_raw, pos, t, remove_neg_modes=True):
         """Returns a step direction by updating the Hessian (BFGS) calculating a Quas-Newton step."""
 
-        self._update(energy, grad, pos)
+        self._update(energy, grad_raw, pos)
 
 
         # If tangent is available, minimise energy by stepping only along
         # the force. I.e. this is kind of a line search on a quadratic
         # model of the surface.
-        grad_co = mt.metric.raises(grad, pos)
-        t_co = mt.metric.lower(t, pos)
-        dir = -(grad_co - np.dot(grad, t)*t /np.dot(t_co, t))
+        dir = -mt.metric.lower(grad, pos)
         dir = np.asarray(dir)
         # NNNN: This norm only scales the vector, it will be scaled later, so
         # it is only needed to change it here if the scaling here has some importance
@@ -146,7 +144,7 @@ class MiniBFGS(ObjLog):
         else:
             dir = dir / norm
             #FIXME: magical 2: why another border of minimization here?
-            step_len = calc_step(dir, self.H, grad, [0.,2.])
+            step_len = calc_step(dir, self.H, grad_raw, [0.,2.])
             if step_len == 0.:
                 # would mean either converged (should be detected before)
                 # or wrong curvature, with 0. being the lowest endpoint. Anyhow
@@ -158,7 +156,7 @@ class MiniBFGS(ObjLog):
             self.slog("Recomended non-scaled step dist:", step, when='always')
 
         self._pos0 = pos
-        self._grad0 = grad
+        self._grad0 = grad_raw
         self._E0 = energy
         return step
 
@@ -265,10 +263,12 @@ class MultiOpt(ObjLog):
         r = self.atoms.state_vec.reshape(bs, -1)
         e = self.atoms.obj_func(individual=True)
         ts = self.atoms.tangents.copy()
+        g_raw = self.atoms.obj_func_grad(raw=True)
         g.shape = (bs, -1)
+        g_raw.shape = (bs, -1)
 
         # get initial direction from per-bead optimisers
-        dr = np.array([self.bead_opts[i].step(e[i], g[i], r[i], t=ts[i]) for i in range(bs)])
+        dr = np.array([self.bead_opts[i].step(e[i], g[i], g_raw[i], r[i], t=ts[i]) for i in range(bs)])
 
 
         self.slog("DR", dr.reshape((bs,-1)))
@@ -325,7 +325,7 @@ class MultiOpt(ObjLog):
 
         while self.nsteps < steps: # convergence will be checked by call_observers
                    # Test here only if maximum allowed steps are exceeded
-            f = self.atoms.obj_func_grad(raw=True)
+            f = self.atoms.obj_func_grad()
             self.slog(f) # ObjLog method
             self.call_observers()
             self.step(f)
