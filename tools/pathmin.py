@@ -30,12 +30,13 @@ def main(argv):
     barrier = 10000000000000000.0
     argument = "RMS Perp Forces"
     method = "sum"
+    output = "full"
 
     if '--help' in argv:
         print __doc__
         exit()
 
-    opts, args = get_options(argv, long_options=["limit=", "argument=", "method="])
+    opts, args = get_options(argv, long_options=["limit=", "argument=", "method=", "output="])
 
     if len(args) < 1:
         print "ERROR, there is need for at least one input file!"
@@ -49,12 +50,14 @@ def main(argv):
             argument = val
         if opt == "--method":
             method = val
+        if opt == "--output":
+            output = val
 
     for file in args:
-        searchmin(file, barrier, argument, method)
+        searchmin(file, barrier, argument, method, output)
 
 
-def searchmin(file, bar, arg, meth):
+def searchmin(file, bar, arg, meth, out):
     """
     Expect to get files containing lines with arg: v1 | v2 | v3 | ...
     where vi refers to the value of arg vor the i'th bead. as v1 and v-1 should
@@ -62,7 +65,7 @@ def searchmin(file, bar, arg, meth):
     """
     fields = arg.split()
     len_start = len(fields)
-    min = -1
+    mini = -1
     min_line = None
     min_value = None
     j = 1
@@ -88,18 +91,21 @@ def searchmin(file, bar, arg, meth):
             if max(dataline) < bar:
                 if min_value == None:
                     # First iteration is always minimal
-                    min = j
+                    mini = j
                     min_line = dataline
                     min_value = fun(dataline)
                 else:
                     if min_value > fun(dataline):
-                        min = j
+                        mini = j
                         min_line = dataline
                         min_value = fun(dataline)
             j += 1
 
-   #print  min, max(min_line), min_value/len(min_line)
-    print "The line with minimum", meth, " was", min, "with value", min_value
+    if out == "quick":
+        print  mini, min_value, max(min_line), sum(min_line)
+        return None
+
+    print "The line with minimum", meth, " was", mini, "with value", min_value
     print "sum ", sum(min_line), "max", max(min_line), "average", sum(min_line)/len(min_line)
     print "Here the values could be found:"
     print min_line
