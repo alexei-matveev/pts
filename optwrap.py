@@ -27,7 +27,7 @@ def runopt(name, CoS, ftol=0.1, xtol=0.03, etol=0.03, maxit=35, maxstep=0.2
                             , callback=None
                             , clean_after_grow=False
                             , **kwargs):
-    assert name in names
+    assert name in names, names
 
     global opt
     opt = None
