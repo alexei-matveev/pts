@@ -245,6 +245,22 @@ import pts.metric as mt
 class Path(Func):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points.
+
+    Do not abuse the fact that a path can be mutated by setting its nodes to
+    different values, it requires the same computational effort as constructing
+    a new Path but may easily become confusing. You will probably not like a
+    Path parametrization to suddenly change just because a function you called
+    with this parametrization choses to mutate the its state rather than
+    building a fresh one for personal use.
+
+    Instead of
+
+      p.nodes = xs, ys
+
+    consider
+
+      p = Path(ys, xs)
+
     """
 
     def __init__(self, ys, xs=None):
@@ -304,7 +320,9 @@ class Path(Func):
 
         return fprimes
 
-#   self.__call__() equivalent to self.f() is inherited form Func()
+    #
+    #   self.__call__() equivalent to self.f() is inherited form Func()
+    #
 
     def get_nodes(self):
         """Property handler, returns a tuple of arrays (xs, ys)
