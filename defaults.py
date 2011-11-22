@@ -52,6 +52,8 @@ Parameter       short description
  "opt_type"    what kind of optimizer is used for changing the geometries
                of the string, as default the new multiopt is used for the
                string methods, while neb is reset to ase_lbgfs
+               other valid methods are conj_grad (conjugate gradient method)
+               and fire (FIRE: Fast inertial relaxation engine)
  "pmax"        maximal number of CPUs per bead, with our workarounds normaly
                only indirect used
  "pmin"        minimal number of CPUs per bead, with our workarounds normaly
