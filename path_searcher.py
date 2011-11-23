@@ -144,6 +144,11 @@ def find_path(pes, init_path
     # decide which method is actually to be used
     method = method.lower()
 
+    climb_image = False
+    if method.startswith("ci-"):
+        method = method[3:]
+        climb_image = True
+
     mt.setup_metric(int2cart)
     #
     # NOTE: most of the parameters to optimizers might be passed
@@ -164,6 +169,7 @@ def find_path(pes, init_path
                head_size=None,
                output_level=output_level,
                output_path=output_path,
+               climb_image = climb_image,
                pmap = pmap,
                max_sep_ratio = max_sep_ratio)
     elif method == 'growingstring':
@@ -180,6 +186,7 @@ def find_path(pes, init_path
                pmap = pmap,
                output_path=output_path,
                output_level=output_level,
+               climb_image = climb_image,
                max_sep_ratio = max_sep_ratio)
     elif method == 'searchingstring':
         CoS = GrowingString(init_path,
@@ -195,6 +202,7 @@ def find_path(pes, init_path
                output_level=output_level,
                max_sep_ratio = max_sep_ratio,
                freeze_beads=True,
+               climb_image = climb_image,
                head_size=None, # has no meaning for searching string
                growth_mode='search')
     elif method == 'neb':
@@ -208,20 +216,7 @@ def find_path(pes, init_path
                workhere=workhere,
                output_path=output_path,
                output_level=output_level,
-               climb_image = False,
-               reporting=logfile)
-    elif method == 'ci-neb':
-        CoS = NEB(init_path,
-               pes,
-               spring,
-               disk_result_cache,
-               beads_count=beads_count,
-               parallel=True,
-               pmap = pmap,
-               workhere=workhere,
-               output_path=output_path,
-               output_level=output_level,
-               climb_image = True,
+               climb_image = climb_image,
                reporting=logfile)
     elif method == 'sopt':
         CoS = None

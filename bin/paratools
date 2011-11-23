@@ -23,7 +23,10 @@ where CMD is one of the following:
     string              String optimization, similar to NEB
     growingstring
     searchingstring
+    ci-string, ...      climbing image additional to string, works also with
+                        growingstring and searchingstring
     path-searcher       Is capable of doing all of the above
+
 
     make-path           interpolate a path without optimizing it
     jmol                show interpolated path with jmol
@@ -114,7 +117,8 @@ def main(argv):
         valid_cmd = True
         minimize(argv[1:])
 
-    if cmd in ("string", "neb", "ci-neb", "growingstring", "searchingstring"):
+    if cmd in ("string", "neb", "ci-neb", "growingstring", "searchingstring" ,\
+                "ci-string", "ci-growingstring", "ci-searchingstring"):
         valid_cmd = True
 
         # import right here in order not to import everything,
