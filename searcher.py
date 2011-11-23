@@ -1036,6 +1036,7 @@ class NEB(ReactionPathway):
         return g
 
     def obj_func(self, grad=False):
+        assert not grad
 
         ReactionPathway.obj_func(self)
 
