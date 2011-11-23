@@ -1130,7 +1130,7 @@ class PathRepresentation(Path):
         raw_input("that was rho...")
 
     def pathpos(self):
-        return self.__normalised_positions
+        return deepcopy(self.__normalised_positions)
 
     def set_rho(self, new_rho):
         """Set new bead density function, ensuring that it is normalised."""
