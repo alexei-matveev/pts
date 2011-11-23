@@ -84,8 +84,6 @@ def masked_assign(mask, dst, src):
     False
     """
     dstc = src.copy()
-    print mask
-    print len(dstc)
     assert len(mask) == len(dstc)
 
     j = 0
