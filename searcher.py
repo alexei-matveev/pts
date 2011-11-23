@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+from sys import stderr
 import inspect
 
 import scipy.integrate
@@ -103,6 +104,73 @@ def freeze_ends(bc):
     of them (1)
     """
     return [0] + [1 for i in range(bc-2)] + [0]
+
+def new_bead_positions(new_abscissa, unchanged_abscissa, ci_num):
+    """
+    gives a new abcissa, calculated from the original and the new values as followes:
+    the abscissa from ci_num (climbing image) will be taken. The other
+    abscissa are thus distributed on the remaining space, that their relation to
+    the climbing image is kept
+
+    >>> xo = [0., 0.2, 0.25, 0.4, 0.5, 0.75, 1.]
+    >>> xn = [0., 0.3, 0.25, 0.45, 0.4, 0.12, 1.]
+
+    >>> out = new_bead_positions(xn, xo, 3)
+    >>> print " %4.3f"* 7 %( tuple(out))
+     0.000 0.225 0.281 0.450 0.542 0.771 1.000
+
+    The number at 1 should be still have as big as 3:
+    >>> 0.5 * out[3] - out[1] < 1e-7
+    True
+
+    >>> out = new_bead_positions(xn, xo, 4)
+    >>> print " %4.3f"* 7 %( tuple(out))
+     0.000 0.160 0.200 0.320 0.400 0.700 1.000
+
+    Image 2 should be halve as big:
+    >>> 0.5 * out[4] - out[2] < 1e-7
+    True
+
+    Image 5 should be exactly in the middle between image 4 and
+    1.
+    >>> 1. - out[5] - (out[5] - out[4]) < 1e-7
+    True
+
+    Squeeze everything into small area:
+    >>> out = new_bead_positions(xn, xo, 5)
+    >>> print " %4.3f"* 7 %( tuple(out))
+     0.000 0.032 0.040 0.064 0.080 0.120 1.000
+
+    If the postion of it is unchanged, so are all:
+    >>> out = new_bead_positions(xn, xo, 2)
+    >>> print " %4.3f"* 7 %( tuple(out))
+     0.000 0.200 0.250 0.400 0.500 0.750 1.000
+    """
+    assert new_abscissa[-1] == unchanged_abscissa[-1]
+    assert new_abscissa[0] == unchanged_abscissa[0]
+
+    abscissa = deepcopy(new_abscissa)
+    ab_ci_n = abscissa[ci_num]
+    ab_ci_ref = unchanged_abscissa[ci_num]
+    end = abscissa[-1]
+
+    def new_absc(old):
+        if old < ab_ci_ref:
+            # Scale from the left
+            return old * ab_ci_n / ab_ci_ref
+        else:
+            #Start from the other end:
+            return end - (end - old) * (end - ab_ci_n) / (end - ab_ci_ref)
+
+    for i in range(len(abscissa)):
+        if i == ci_num:
+            # This is the climbing image, it will stay fixed
+            continue
+
+        abscissa[i] = new_absc(unchanged_abscissa[i])
+
+    return abscissa
+
 
 class ReactionPathway(object):
     """Abstract object for chain-of-state reaction pathway."""
@@ -223,7 +291,14 @@ class ReactionPathway(object):
         
         self.opt_iter = self.opt_iter + 1
 
-        if self.climb_image:
+        t_clim = self.climb_image
+        if self.growing and self.climb_image:
+             # If used together with string let it work only on complete strings
+             t_clim = self.grown()
+
+        if t_clim:
+            # If climbing image is used on NEB or a completely grown string
+            # try to find the image, which should actually climb
             if self.opt_iter >= self.start_climb and self.ci_num == None:
                 clim = self.try_set_ci_num()
                 if clim:
@@ -859,7 +934,8 @@ class NEB(ReactionPathway):
             pr = PathRepresentation(reagents, beads_count, lambda x: 1)
             pr.regen_path_func()
             #Space beads along the path, as it is for start set all of them anew: mask = 1
-            pr.generate_beads(mt.metric, [1 for i in range(beads_count)])
+            pos = pr.generate_normd_positions(mt.metric)
+            pr.generate_beads( [1 for i in range(beads_count)], pos)
             self._state_vec = pr.state_vec.copy()
 
     def update_tangents(self):
@@ -1073,7 +1149,8 @@ class PathRepresentation(Path):
 
         return self.seps
 
-    def generate_beads(self, metric, update_mask ):
+
+    def generate_beads(self, update_mask, positions):
         """
         Updated the bead informations of the path by setting
         self.__normalised_positions and self.state_vec
@@ -1093,20 +1170,8 @@ class PathRepresentation(Path):
 
         assert not self._funcs_stale
 
-        # For the desired distances along the string, find the values of the
-        # normalised coordinate that achive those distances.
-        moving = self.__generate_normd_positions(metric)
-
-        # FIXME: for historical reasons self.__generate_normd_positions does
-        # not return abscissas for terminal beads:
         self.__old_normalised_positions = self.__normalised_positions
-        self.__normalised_positions = empty(len(moving) + 2)
-        self.__normalised_positions[0] = 0.0
-        self.__normalised_positions[1:-1] = moving
-        self.__normalised_positions[-1] = 1.0
-
-        # NOTE: Dont use list concatenation as in [reactant] + beads +
-        # [product] this is going to break with numpy arrays.
+        self.__normalised_positions = positions
 
         # use Path functionality:
         pairs = map(self.taylor, self.__normalised_positions)
@@ -1139,8 +1204,8 @@ class PathRepresentation(Path):
 
         self.__rho = lambda x: new_rho(x) / integral
 
-    def __generate_normd_positions(self, metric):
-        """Returns a list of distances along the string in terms of the normalised 
+    def generate_normd_positions(self, metric):
+        """Returns a list of distances along the string in terms of the normalised
         coordinate, based on desired fractional distances along string."""
 
         # Get fractional positions along string, based on bead density function
@@ -1159,7 +1224,13 @@ class PathRepresentation(Path):
         # over the tangent lenght, see also scatter(), scatter2():
         args = scatter1(arc.fprime, arcs)
 
-        return args
+        # now set the variables
+        normalised_positions = empty(len(args) + 2)
+        normalised_positions[0] = 0.0
+        normalised_positions[1:-1] = args
+        normalised_positions[-1] = 1.0
+        return normalised_positions
+
 
 class PiecewiseRho:
     """Supports the creation of piecewise functions as used by the GrowingString
@@ -1327,7 +1398,7 @@ class GrowingString(ReactionPathway):
         # create PathRepresentation object
         self._path_rep = PathRepresentation(reagents, initial_beads_count, rho)
         ReactionPathway.__init__(self, reagents, initial_beads_count, pes, parallel, result_storage,
-                 reporting=reporting, output_level = output_level, climb_image = False, start_climb = 5,
+                 reporting=reporting, output_level = output_level, climb_image = climb_image, start_climb = 5,
                  pmap = pmap, output_path = output_path, workhere = workhere)
 
         # final bead spacing density function for grown string
@@ -1358,7 +1429,8 @@ class GrowingString(ReactionPathway):
         self._path_rep.regen_path_func()
 
         # Space beads along the path, as it is for start set all of them anew: mask = 1
-        self._path_rep.generate_beads(mt.metric, [1 for i in range(initial_beads_count)])
+        pos = self._path_rep.generate_normd_positions(mt.metric)
+        self._path_rep.generate_beads([1 for i in range(initial_beads_count)], pos)
 
         self.parallel = parallel
 
@@ -1513,8 +1585,9 @@ class GrowingString(ReactionPathway):
         mask = [0 for i in range(self.beads_count)]
         mask[new_i] = 2
 
+        pos = self._path_rep.generate_normd_positions(mt.metric)
         # Mask tells which beads a new (2), stay fixed (0) or should be updated(1)
-        self._path_rep.generate_beads(mt.metric, mask)
+        self._path_rep.generate_beads( mask, pos)
 
         self.bead_update_mask = freeze_ends(self.beads_count)
 
@@ -1578,7 +1651,8 @@ class GrowingString(ReactionPathway):
         for i in new_ixs:
             mask[i] = 2
 
-        self._path_rep.generate_beads(mt.metric, mask)
+        pos = self._path_rep.generate_normd_positions(mt.metric)
+        self._path_rep.generate_beads( mask, pos)
 
         # create a new bead_update_mask that permits us to set the state to what we want
         self.bead_update_mask = freeze_ends(self.beads_count)
@@ -1686,6 +1760,12 @@ class GrowingString(ReactionPathway):
         else:
             from_array = -self.perp_bead_forces
 
+            if self.climb_image and not self.ci_num == None:
+                assert self.bead_update_mask[self.ci_num] > 0
+                t = mt.metric.lower(self.tangents[self.ci_num], self.state_vec[self.ci_num])
+                from_array[self.ci_num] = from_array[self.ci_num] + self.para_bead_forces[self.ci_num] * t \
+                  / sqrt(dot(t, self.tangents[self.ci_num]))
+
         for i in range(self.beads_count):
             if self.bead_update_mask[i] == 1:
                 result_bead_forces[i] = from_array[i]
@@ -1703,6 +1783,9 @@ class GrowingString(ReactionPathway):
 
         # respace the beads along the path
         if smart_abscissa:
+            # Reuse old abscissa, if CI does not tell others
+            bd_pos = self._path_rep.pathpos()
+
             pythag_seps = common.pythag_seps(self.state_vec, metric)
 
             if len(self.state_vec) > 4:
@@ -1714,8 +1797,16 @@ class GrowingString(ReactionPathway):
             new_abscissa /= new_abscissa[-1]
             self._path_rep.regen_path_func(normalised_positions=new_abscissa)
 
+            if self.climb_image and not self.ci_num == None:
+                #Scale the bead positions, strings have been fully grown
+                # Thus no fear to interact with their changing rhos
+                bd_pos = new_bead_positions(new_abscissa, self.bead_positions, self.ci_num)
+
+        mask = deepcopy(self.bead_update_mask)
+        if self.climb_image and not self.ci_num == None:
+            mask[self.ci_num] = 0
         # Mask tells which beads a new (2), stay fixed (0) or should be updated(1)
-        self._path_rep.generate_beads(metric, self.bead_update_mask)
+        self._path_rep.generate_beads( mask, bd_pos)
 
         self.respaces += 1
 
@@ -1724,9 +1815,18 @@ class GrowingString(ReactionPathway):
         After each iteration of the optimiser this function must be called.
         It rebuilds a new (spline) representation of the path
         """
+        new_abscissa = self._path_rep.pathpos()
+
 
         new = array(state_vec).reshape(self.beads_count, -1)
         assert new.size == self.state_vec.size
+
+        if self.climb_image and not self.ci_num == None:
+            #Allow the climbing image to change its path position:
+            assert self.bead_update_mask[self.ci_num] == 1, "%i for bead %i" % ( \
+                  self.bead_update_mask[self.ci_num], self.ci_num)
+            s_ci = self.ci_abscissa( new, mt.metric)
+            new_abscissa[self.ci_num] = s_ci
 
         tmp = self._path_rep.state_vec.copy()
 
@@ -1737,8 +1837,48 @@ class GrowingString(ReactionPathway):
         self._path_rep.state_vec = tmp # was '= new' until 07/05/10
 
         # rebuild line, parabola or spline representation of path
-        self._path_rep.regen_path_func()
+        self._path_rep.regen_path_func(normalised_positions=new_abscissa)
 
+
+    def ci_abscissa(self, x, metric):
+        """
+        Find a new abscissa for the climbing image, by thinking that its
+        step consists of a component perpendicular to the path and one
+        parallel to the path (here shortly in direction of parallel
+        tangent)
+        Find the component for the position of the old path, where this
+        parallel step is nearest to.
+
+        The paths defined in the PathRepresentation objects are not
+        metric invariant as they do not consider our metric. Thus 
+        to find out approximated path length it does not make
+        sense to have it considered here
+        """
+        from scipy.optimize import fmin
+        assert self.climb_image and not self.ci_num == None
+
+        x0 = x[self.ci_num]
+
+        s_old = self._path_rep.pathpos()[self.ci_num]
+        x_old = self.get_state_vec()[self.ci_num]
+
+        s_l = self._path_rep.pathpos()[self.ci_num - 1]
+        s_r = self._path_rep.pathpos()[self.ci_num + 1]
+
+        d_s_all = s_r - s_l
+        dx_l = x0 -  self.get_state_vec()[self.ci_num - 1]
+        dx_r = -x0 +  self.get_state_vec()[self.ci_num + 1]
+        fact = metric.norm_up(dx_l, x0) / (metric.norm_up(dx_l, x0) + metric.norm_up(dx_r, x0))
+
+        s_new = s_l + d_s_all * fact
+
+        if s_new >= 1. or s_new <= 0. \
+           or s_new <= s_l or s_new >= s_r:
+           print >> stderr, "WARNING: Got suspitious result for new climbing image abcissa"
+           print >> stderr, "         Reusing result from last iteration", s_old, "instead of ", s_new
+           s_new = s_old
+
+        return s_new
 
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
