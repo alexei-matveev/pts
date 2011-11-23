@@ -34,6 +34,7 @@ where CMD is one of the following:
     find-limit-path     Find first appearance where some limits are met
                         in the output logfile
     path2plot           internal coordinate plot for some path
+    path2tab            internal coordinates from path
     path2xyz            convert path to xyz file(s)
     xyz2tab             get internal coordinates from xyz-file(s)
     tab2plot            plots a tabular as given by xyz2tab
