@@ -1352,6 +1352,8 @@ class GrowingString(ReactionPathway):
         (self.grow_string, init) = self.growth_funcs[growth_mode]
         init()
 
+        self.growth_mode = growth_mode
+
         # Build path function based on reagents
         self._path_rep.regen_path_func()
 
@@ -1461,10 +1463,17 @@ class GrowingString(ReactionPathway):
         """
 
         ps = self.bead_positions
-        diffs = [ps[i+1] - ps[i] for i in range(self.beads_count-1)]
-        print "grown(): Difference in bead spacings:", diffs
-        min_diff = min(diffs)
-        too_closely_spaced = min_diff < 1.0 / (max_beads_equiv - 1.0)
+
+        # This additional "finish growing" test makes only sense for
+        # Searching string, where the beads are set to refine the string
+        # Do not use it for growing string
+        if self.growth_mode == "search":
+            diffs = [ps[i+1] - ps[i] for i in range(self.beads_count-1)]
+            print "grown(): Difference in bead spacings:", diffs
+            min_diff = min(diffs)
+            too_closely_spaced = min_diff < 1.0 / (max_beads_equiv - 1.0)
+        else:
+            too_closely_spaced = False
 
         return self.beads_count == self.__final_beads_count or too_closely_spaced
 
