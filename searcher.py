@@ -1783,9 +1783,8 @@ class GrowingString(ReactionPathway):
             return
 
         # respace the beads along the path
+        # Reuse old abscissa, if CI does not tell others
         if smart_abscissa:
-            # Reuse old abscissa, if CI does not tell others
-            bd_pos = self._path_rep.pathpos()
 
             pythag_seps = common.pythag_seps(self.state_vec, metric)
 
@@ -1802,6 +1801,10 @@ class GrowingString(ReactionPathway):
                 #Scale the bead positions, strings have been fully grown
                 # Thus no fear to interact with their changing rhos
                 bd_pos = new_bead_positions(new_abscissa, self.bead_positions, self.ci_num)
+            else:
+                bd_pos = pr.generate_normd_positions(mt.metric)
+        else:
+             bd_pos = pr.generate_normd_positions(mt.metric)
 
         mask = deepcopy(self.bead_update_mask)
         if self.climb_image and not self.ci_num == None:
