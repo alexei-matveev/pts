@@ -1802,9 +1802,9 @@ class GrowingString(ReactionPathway):
                 # Thus no fear to interact with their changing rhos
                 bd_pos = new_bead_positions(new_abscissa, self.bead_positions, self.ci_num)
             else:
-                bd_pos = pr.generate_normd_positions(mt.metric)
+                bd_pos = self._path_rep.generate_normd_positions(mt.metric)
         else:
-             bd_pos = pr.generate_normd_positions(mt.metric)
+             bd_pos = self._path_rep.generate_normd_positions(mt.metric)
 
         mask = deepcopy(self.bead_update_mask)
         if self.climb_image and not self.ci_num == None:
