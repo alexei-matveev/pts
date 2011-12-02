@@ -460,9 +460,6 @@ def main(argv):
         next.append(len(filenames)+1)
         filenames = reorder_files(filenames, next)
 
-    # extract which options to take
-    opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, symm, symshift)
-
     if symbfile is not None:
         symb, i2c = read_path_fix( symbfile, zmats, mask, maskgeo )
         obj = symb, i2c
@@ -594,46 +591,6 @@ def get_expansion(celldat, expand):
             howmove.append([float(fields[1]), float(fields[2]), float(fields[3])])
 
      return cell, tomove, howmove
-
-def makeoption(num_i, diff, symm, symshift):
-     """
-     All coordinates generated are used
-     For all pairs given by diff the difference
-     is taken, all other values are taken as they are
-     """
-     opt = ""
-     optx = []
-     second = False
-     # store some information about how many values considerd
-     many = 0
-     xmany = 0
-     count = 0
-     for i in range(1, num_i):
-          if i in symm:
-              opt += " s"
-              for k, m in symshift:
-                  if k == i:
-                      opt += " %f" % (m)
-              opt += optx
-          if i in diff:
-              opt += " d %i" % (i)
-              second = True
-          elif second:
-              opt += " %i" % (i)
-              second = False
-              many += 1
-              count += 2
-          else:
-              opt += " t %i" % (i)
-              many += 1
-              count += 1
-          if many == 1 and xmany == 0:
-              xmany = count
-              optx = opt
-     # return: all options, how many lines in the plot, how many options belong
-     #          to x, (as some like symm or difference use more than one)
-     #          what are the options only for the xfunction
-     return opt, many, xmany, optx
 
 def read_line_from_log(filename, whichline, num):
     """
