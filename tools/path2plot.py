@@ -19,6 +19,18 @@ on the kind choosen. There are the possiblilities:
  distance to  plane      dp       4 (the first is the atom, the others define the plane;
                                      the plane atoms must not be on a line)
 
+Another set of coordinates refers to energy and gradients stored in path.pickle files.
+For the gradients are several different options of interest possible. 
+The values on the path will be interpolated from the beads, else the ones from the beads are taken.
+
+The energy/gradient informations are always given after the geometry informations:
+   --energy \ --en              : energies
+   --gradients \ --gr \ --grabs : gives the absolute value of the gradients at the required positions
+   --grmax                      : gives maximal value of (internal) gradients
+   --grpara                     : length of gradient component parallel to the path
+   --gperp                      : length of gradient component perpendicular to the path
+   --grangle                    : angle (in degree) between path and gradients, should be 90 for convergence
+
 easiest input is by path.pickle files which can be given directly without need of
 any option.
 
@@ -73,70 +85,16 @@ from sys import exit
 from sys import argv as sargv
 from pickle import load
 from pts.tools.path2xyz import read_in_path
+from pts.tools.path2tab import energy_from_path, grads_from_path, grads_from_beads
 from pts.tools.pathtools import read_path_fix, read_path_coords
 from pts.tools.xyz2tabint import returnall, interestingvalue, expandlist
+from pts.tools.path2tab import path_to_int, beads_to_int, reorder_files, get_expansion
+from pts.tools.path2tab import read_line_from_log
 from pts.tools.tab2plot import plot_tabs
 from pts.cfunc import Pass_through
 from pts.io.read_COS import read_geos_from_file_more
 import numpy as np
 
-
-def path_to_int(x, y, cs, num, allval, cell, tomove, howmove):
-    """
-    Gives back the internal values for allval
-    which appear on num equally spaced (in x-direction) on
-    the path
-    """
-    path1 = Path(y, x)
-    path = []
-
-    __, int2cart = cs
-    # to decide how long x is, namely what
-    # coordinate does the end x have
-    # if there is no x at all, the path has
-    # distributed the beads equally from 0 to 1
-    # thus in this case the end of x is 1
-    if x is None:
-        endx = 1.0
-    else:
-        endx = float(x[-1])
-
-    for i in range(num):
-         # this is one of the frames,
-         # the internal coordinates are converted
-         # to Cartesian by the cs fake-Atoms object
-         coord = path1((endx / (num -1) * i))
-         cart =  int2cart(coord)
-         if cell != None:
-             cart2 = list(cart)
-             expandlist(cart2, cell, tomove, howmove)
-             cart = np.array(cart2)
-         path.append(returnall(allval, cart, True, i))
-
-    return path
-
-
-def beads_to_int(ys, cs, allval, cell, tomove, howmove):
-    """
-    This does exactly the same as above, but
-    without the calculation of the path, this
-    ensures that not only exactly the number of
-    bead positions is taken but also that it's
-    exactly the beads which are used to create
-    the frames
-    """
-    beads = []
-    syms, int2cart = cs
-
-    for i,y in enumerate(ys):
-         cart = int2cart(y)
-         if cell != None:
-             cart2 = list(cart)
-             expandlist(cart2, cell, tomove, howmove)
-             cart = np.array(cart2)
-         beads.append(returnall(allval, cart, True, i))
-
-    return beads
 
 def main(argv):
     """
@@ -172,6 +130,7 @@ def main(argv):
     symshift = []
     logscale = []
     allval = []
+    special_vals = []
     cell = None
     tomove = None
     howmove = None
@@ -239,6 +198,13 @@ def main(argv):
                  # count up, to know how many and more important for
                  # let diff easily know what is the next
                  num_i += 1
+             elif option in ["en", "energy", "grabs", "grmax" \
+                                  ,"grpara", "grperp", "grangle" ]:
+                 special_vals.append(option)
+                 argv = argv[1:]
+             elif option in ["gr", "gradients"]:
+                 special_vals.append("grabs")
+                 argv = argv[1:]
              elif option in ["fromlog", "log"]:
                  logs.append(argv[1])
                  logs_find.append(argv[2])
@@ -345,12 +311,13 @@ def main(argv):
     # For each file prepare the plot
     for i, filename in enumerate(filenames):
         # read in the path
+	e_a_gr = None
         if ase:
             atoms, y = read_geos_from_file_more(filename, format=format)
             obj =  atoms.get_chemical_symbols(), Pass_through()
 
         elif symbfile is None:
-            x, y, obj = read_in_path(filename)
+            x, y, obj, e_a_gr = read_in_path(filename)
         else:
             patf = None
             if len(abcis) > 0:
@@ -383,6 +350,41 @@ def main(argv):
         # if some data has been extracted from a logfile, after this file i has been used
         # it has to be plotted here, as here the x values of the files are valid
         # the log_points should be at the beads
+	if special_vals != []:
+            assert (e_a_gr is not None)
+            for s_val in special_vals:
+                 # use the options for x and plot the data gotten from the file directly
+                 optlog = optx + " t %i" % (xnum_opts + 1)
+                 log_points = beads
+                 log_points = log_points[:xnum_opts + 1,:]
+                 log_points = log_points.tolist()
+                 # till here the x-data should be copied and ready, now add also
+                 # the logdata
+		 en, gr = e_a_gr
+                 if s_val.startswith("en"):
+                    log_points.append(en)
+                 elif s_val.startswith("gr"):
+                    val = s_val[2:]
+                    log_points.append(grads_from_beads(x, y, gr, val))
+
+                 log_points = np.asarray(log_points)
+
+                 if path is not None:
+                    log_path = path
+                    log_path = log_path[:xnum_opts + 1,:]
+                    log_path = log_path.tolist()
+                    if s_val.startswith("en"):
+                        log_path.append(energy_from_path(x, en, num ))
+                    elif s_val.startswith("gr"):
+                        val = s_val[2:]
+                        log_path.append(grads_from_path(x, y, gr, num, val))
+                 if ase:
+                    pl.prepare_plot( None, None, None, "_nolegend_", log_points,
+                               s_val + " %i" % (i + 1), optlog)
+                 else:
+                    pl.prepare_plot( log_path, s_val + " %i" % (i + 1),
+                               log_points, "_nolegend_", None, None, optlog)
+
         if logs != []:
             for j, log in enumerate(logs):
                 if log_x_num[j] == i:
@@ -401,50 +403,6 @@ def main(argv):
 
     # now plot
     pl.plot_data(xrange = xran, yrange = yran )
-
-def reorder_files(files, next):
-    new_order = []
-    line = []
-    n = next[1]
-    k = 2
-    for i, file in enumerate(files):
-        if i > n:
-           n = next[k]
-           k = k+1
-           new_order.append(line)
-           line = []
-        line.append(file)
-    new_order.append(line)
-    return new_order
-
-def get_expansion(celldat, expand):
-     """
-     Expand the atoms by some, which are shifted
-     cellvectors in each direction
-     Needs the cell put into a file
-     and a list of atoms to expand, also put into a file
-     """
-     filecell = open(celldat, "r" )
-     cell = np.zeros((3,3))
-     # fill cell with data from celldat
-     for  num, line  in enumerate(filecell):
-            fields = line.split()
-            cell[num,0] = float(fields[0])
-            cell[num,1] = float(fields[1])
-            cell[num,2] = float(fields[2])
-
-     # get the expanded atoms
-     filemove = open(expand,"r" )
-     tomove = []
-     howmove = []
-     # tomove[i] = number of source atom for atom (i + all_in_original_cell)
-     # howmove[i] = how to get the new atom
-     for  num, line  in enumerate(filemove):
-            fields = line.split()
-            tomove.append( int(fields[0]))
-            howmove.append([float(fields[1]), float(fields[2]), float(fields[3])])
-
-     return cell, tomove, howmove
 
 def makeoption(num_i, diff, symm, symshift):
      """
@@ -485,32 +443,6 @@ def makeoption(num_i, diff, symm, symshift):
      #          to x, (as some like symm or difference use more than one)
      #          what are the options only for the xfunction
      return opt, many, xmany, optx
-
-def read_line_from_log(filename, whichline, num):
-    """
-    Reads in a log file (output format of .log file in string/neb
-    calculations) and extracts a dataline of the coordinates whichline
-    in the num's iteration
-    """
-    file = open(filename, "r")
-    uninteresting = len(whichline.split())
-    rightnum = False
-    for line in file:
-        if line.startswith('Chain of States Summary'):
-            fields = line.split()
-            if str(num) in fields:
-                rightnum = True
-            else:
-                rightnum = False
-        if rightnum:
-              if line.startswith(whichline):
-                  fields = line.split()
-                  dataline = []
-                  datapoints = (len(fields) - uninteresting) / 2
-                  for i in range(datapoints):
-                      dataline.append(float(fields[uninteresting +1 +2 * i]))
-    return dataline
-
 
 if __name__ == "__main__":
     import doctest
