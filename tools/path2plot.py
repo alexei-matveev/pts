@@ -19,6 +19,9 @@ on the kind choosen. There are the possiblilities:
  distance to  plane      dp       4 (the first is the atom, the others define the plane;
                                      the plane atoms must not be on a line)
 
+Normally the first internal coordinate will be the x-value of the plot. Alternatly one might
+use the path abscissa instead. For this one has to set the option --t.
+
 Another set of coordinates refers to energy and gradients stored in path.pickle files.
 For the gradients are several different options of interest possible. 
 The values on the path will be interpolated from the beads, else the ones from the beads are taken.
@@ -79,7 +82,6 @@ der are other options which may be set:
                                    if midx is not given, 0 is used, symmetry is calculated by:
                                    0.5 * (f(midx + x) - f(midx - x))
 """
-
 from pts.path import Path
 from sys import exit
 from sys import argv as sargv
@@ -134,6 +136,7 @@ def main(argv):
     cell = None
     tomove = None
     howmove = None
+    withs = False
 
     # axes and title need not be given for plot
     title = None
@@ -198,6 +201,9 @@ def main(argv):
                  # count up, to know how many and more important for
                  # let diff easily know what is the next
                  num_i += 1
+             elif option in ["s", "t"]:
+                 withs = True
+                 argv = argv[1:]
              elif option in ["en", "energy", "grabs", "grmax" \
                                   ,"grpara", "grperp", "grangle" ]:
                  special_vals.append(option)
@@ -297,7 +303,7 @@ def main(argv):
     pl = plot_tabs(title = title, x_label = xlab, y_label = ylab, log = logscale)
 
     # extract which options to take
-    opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, symm, symshift)
+    opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, symm, symshift, withs)
 
     for i in range(len(filenames)):
         # ensure that there will be no error message if calling
@@ -325,13 +331,13 @@ def main(argv):
             y, x, __, __ = read_path_coords(filename, patf, None, None)
 
         # extract the internal coordiantes, for path and beads
-        beads = beads_to_int(y, obj, allval, cell, tomove, howmove)
+        beads = beads_to_int(y, x, obj, allval, cell, tomove, howmove, withs)
         beads = np.asarray(beads)
         beads = beads.T
         if ase:
             path = None
         else:
-            path = path_to_int(x, y, obj, num, allval, cell, tomove, howmove)
+            path = path_to_int(x, y, obj, num, allval, cell, tomove, howmove, withs)
             # they are wanted as arrays and the other way round
             path = np.asarray(path)
             path = path.T
@@ -404,7 +410,7 @@ def main(argv):
     # now plot
     pl.plot_data(xrange = xran, yrange = yran )
 
-def makeoption(num_i, diff, symm, symshift):
+def makeoption(num_i, diff, symm, symshift, withs):
      """
      All coordinates generated are used
      For all pairs given by diff the difference
@@ -417,6 +423,15 @@ def makeoption(num_i, diff, symm, symshift):
      many = 0
      xmany = 0
      count = 0
+
+     v = 0
+     if withs:
+         v = 1
+         many += 1
+         xmany = 1
+         optx = " t %i" % (1)
+         opt = optx
+
      for i in range(1, num_i):
           if i in symm:
               opt += " s"
@@ -425,15 +440,15 @@ def makeoption(num_i, diff, symm, symshift):
                       opt += " %f" % (m)
               opt += optx
           if i in diff:
-              opt += " d %i" % (i)
+              opt += " d %i" % (i + v)
               second = True
           elif second:
-              opt += " %i" % (i)
+              opt += " %i" % (i + v)
               second = False
               many += 1
               count += 2
           else:
-              opt += " t %i" % (i)
+              opt += " t %i" % (i + v)
               many += 1
               count += 1
           if many == 1 and xmany == 0:

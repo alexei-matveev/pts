@@ -286,9 +286,12 @@ class plot_tabs:
              x = funx(tab)
              for i, fun in enumerate(funcs):
                  y = fun(tab)
-                 lab = '%i' % (i+1)
+                 lab = '%i' % (i)
                  if name is not None:
-                     lab = name + ' ' + lab
+                     if i > 0:
+                         lab = name + ' ' + lab
+                     else:
+                         lab = name
 
                  # use style for the line or the one given directly
                  if option is None:

@@ -19,6 +19,8 @@ on the kind choosen. There are the possiblilities:
  distance to  plane      dp       4 (the first is the atom, the others define the plane;
                                      the plane atoms must not be on a line)
 
+It is also possible to ask for the abscissas of the path (would be given as first element). This is done
+by --t.
 
 Another set of coordinates refers to energy and gradients stored in path.pickle files.
 For the gradients are several different options of interest possible. If pathes are used (see --num
@@ -95,7 +97,7 @@ import numpy as np
 from sys import stdout
 
 
-def path_to_int(x, y, cs, num, allval, cell, tomove, howmove):
+def path_to_int(x, y, cs, num, allval, cell, tomove, howmove, withs):
     """
     Gives back the internal values for allval
     which appear on num equally spaced (in x-direction) on
@@ -125,7 +127,12 @@ def path_to_int(x, y, cs, num, allval, cell, tomove, howmove):
              cart2 = list(cart)
              expandlist(cart2, cell, tomove, howmove)
              cart = np.array(cart2)
-         path.append(returnall(allval, cart, True, i))
+
+         new_val = returnall(allval, cart, True, i)
+         if withs:
+             path.append( [new_val[0]] + [endx / (num - 1) * i] + new_val[1:])
+         else:
+             path.append(new_val)
 
     return path
 
@@ -273,7 +280,7 @@ def grads_from_beads(x, y, gr, allval ):
             exit()
     return grs
 
-def beads_to_int(ys, cs, allval, cell, tomove, howmove):
+def beads_to_int(ys, xs, cs, allval, cell, tomove, howmove, withs):
     """
     This does exactly the same as above, but
     without the calculation of the path, this
@@ -291,7 +298,12 @@ def beads_to_int(ys, cs, allval, cell, tomove, howmove):
              cart2 = list(cart)
              expandlist(cart2, cell, tomove, howmove)
              cart = np.array(cart2)
-         beads.append(returnall(allval, cart, True, i))
+
+         new_val = returnall(allval, cart, True, i)
+         if withs:
+             beads.append([new_val[0]] + [xs[i]] + new_val[1:])
+         else:
+             beads.append(new_val)
 
     return beads
 
@@ -333,6 +345,7 @@ def main(argv):
     cell = None
     tomove = None
     howmove = None
+    withs = False
 
     # count up to know which coordinates are special
     num_i = 1
@@ -389,6 +402,9 @@ def main(argv):
                  # count up, to know how many and more important for
                  # let diff easily know what is the next
                  num_i += 1
+             elif option in ["s", "t"]:
+                 withs = True
+                 argv = argv[1:]
              elif option in ["en", "energy", "grabs", "grmax" \
                                   ,"grpara", "grperp", "grangle" ]:
                  special_vals.append(option)
@@ -482,10 +498,10 @@ def main(argv):
 
         # extract the internal coordinates, for path and beads
         if num < 0:
-            coords = beads_to_int(y, obj, allval, cell, tomove, howmove)
+            coords = beads_to_int(y, x, obj, allval, cell, tomove, howmove, withs)
         else:
             assert(logs == [])
-            coords = path_to_int(x, y, obj, num, allval, cell, tomove, howmove)
+            coords = path_to_int(x, y, obj, num, allval, cell, tomove, howmove, withs)
         coords = np.asarray(coords)
         coords = coords.T
         coords = list(coords)
