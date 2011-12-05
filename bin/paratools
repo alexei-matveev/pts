@@ -18,6 +18,11 @@ where CMD is one of the following:
     lanczos             transition state search with eigenmode
                         using lanczos algorithm to find lowest eigenmode
 
+    dimer-rotate        using dimer rotation for finding lowest eigenmode
+                        (no update steps for geometry)
+    lanczos-rotate      using lanczos algorithm to find lowest eigenmode
+                        (as dimer-rotate)
+
     neb                 Nudged Elastic Band calculation
     ci-neb              Nudged Elastic Band with climbing image
     string              String optimization, similar to NEB
@@ -143,6 +148,20 @@ def main(argv):
         argv1 = argv + ["--rot_method"] + [argv[0]]
 
         ts_search(argv1)
+
+    if cmd in ("dimer-rotate", "lanczos-rotate"):
+        valid_cmd = True
+
+        # import right here in order not to import everything,
+        # while using only one specific method:
+        from pts.dimer_rotate import main as rotate
+
+        rot = cmd.split("-")
+        # First relevant argument might be special
+        # Main expects that the very first element is only about itself
+        argv1 = argv + ["--rot_method"] + [rot[0]]
+
+        rotate(argv1)
 
     if cmd in methods:
         valid_cmd = True

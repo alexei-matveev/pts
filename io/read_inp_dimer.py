@@ -92,10 +92,45 @@ from pts.qfunc import QFunc
 from sys import exit, stderr
 from pts.tools.pathtools import unpickle_path, PathTools
 from ase.atoms import Atoms
-from pts.defaults import di_default_params, di_are_strings, info_di_params
+from pts.defaults import di_are_strings, info_di_params
 from pts.common import file2str
 
-def read_dimer_input(rest):
+rot_info = """
+This is a function only for the rotation part of dimer/lanczos:
+
+Usage:
+  paratools dimer-rotate --calculator <calculator file> <start geometry> <start mode vector>
+  paratools lanczos-rotate --calculator <calculator file> <start geometry> <start mode vector>
+
+GEOMETRIES AND COORDINATE SYSTEMS:
+
+There are more options to the coordinate system choice (for example using internal coordinates for
+optimization). To find more about them do:
+   paratools dimer-rotate --help geometries
+
+Be aware that this is the same help function then for the plain dimer/lanczos. Thus it will be
+explained with these commands. dimer-rotate and lanczos-rotate will work the same way.
+
+FURTHER OPTIONS:
+
+There are some more variables specifying the way the dimer method run.
+To find out more about them do (help function of complete dimer/lanczos):
+   paratools dimer-rotate --help parameter
+
+For getting a list with all their defaults do:
+   paratools dimer-rotate --defaults
+
+If it is wanted to change there something find out the name of the variable to change
+ and add to your command:
+  --<variable name> <new value>
+
+The function uses only the rotation part of the dimer/lanczos methods. Therefore all things said there, which
+are not dealing with translation are valid here also. The only differences so far is that there is
+a reduced and changed set of parameters. They should default to a much tighter convergence of the only
+rotatin step. Output will be the new mode and the curvature, approximated for it.
+"""
+
+def read_dimer_input(rest, di_default_params ):
     """
     This function is similar to the one for pathsearcher
     """
@@ -117,8 +152,10 @@ def read_dimer_input(rest):
         elif "parameter" in rest:
            info_di_params()
         else:
-           print __doc__
-
+           if "--trans_method" in rest:
+               print __doc__
+           else:
+               print rot_info
         exit()
 
     if "--defaults" in rest:

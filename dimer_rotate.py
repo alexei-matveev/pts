@@ -575,6 +575,26 @@ def orthogonalize(v_new, vs, met, geo):
     s = s / met.norm_up(s, geo)
     return s
 
+def main(args):
+    from pts.io.read_inp_dimer import read_dimer_input
+    from pts.defaults import di_default_params_rot, info_di_params
+    pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], di_default_params_rot )
+    metric = Default()
+
+    start_mode = start_mode / metric.norm_up(start_mode, start_geo)
+    if params["rot_method"] == "lanczos":
+        min_curv, mode, res = rotate_dimer_mem(pes, start_geo, pes.fprime(start_geo), start_mode, metric, **params) 
+    else:
+        min_curv, mode, res = rotate_dimer(pes, start_geo, pes.fprime(start_geo), start_mode, metric, **params) 
+
+    print "Results finding minimal curvature mode:"
+    print "Is converged: ", res["rot_convergence"]
+    print "Number of gradient calculations:", res["rot_gradient_calculations"]
+    print "Curvature, which is supposed to be the lowest: ", min_curv
+    print "Mode at last iteration:"
+    for md in mode:
+        print "  %15.11f " % (md)
+
 # python dimer_rotate.py [-v]:
 if __name__ == "__main__":
     import doctest
