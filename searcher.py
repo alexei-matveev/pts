@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-import sys
-from sys import stderr
+from sys import stderr, maxint, exit
 import inspect
 
 import scipy.integrate
@@ -236,7 +235,7 @@ class ReactionPathway(object):
         # mask of gradients to update at each position
         self.bead_update_mask = freeze_ends(self.beads_count)
 
-        self._maxit = sys.maxint
+        self._maxit = maxint
         if reporting:
             assert type(reporting) == file
         self.reporting = reporting
