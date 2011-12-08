@@ -19,7 +19,6 @@ from numpy import empty, zeros, ones, linspace, arange
 from numpy import argmax
 
 from path import Path, Arc, scatter, scatter1
-from func import RhoInterval
 from pts.memoize import Elemental_memoize
 
 from common import * # TODO: must unify
@@ -933,8 +932,9 @@ class NEB(ReactionPathway):
         else:
             pr = PathRepresentation(reagents, beads_count, lambda x: 1)
             pr.regen_path_func()
+            weights = linspace(0.0, 1.0, beads_count)
             #Space beads along the path, as it is for start set all of them anew: mask = 1
-            pos = pr.generate_normd_positions(mt.metric)
+            pos = generate_normd_positions(pr, weights, mt.metric)
             pr.generate_beads( [1 for i in range(beads_count)], pos)
             self._state_vec = pr.state_vec.copy()
 
@@ -1046,7 +1046,7 @@ class PathRepresentation(Path):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, beads_count, rho = lambda s: 1.0):
+    def __init__(self, state_vec, beads_count):
 
         # vector of vectors defining the path
         self.__state_vec = array(state_vec)
@@ -1061,8 +1061,6 @@ class PathRepresentation(Path):
         # TODO: Linear at present, perhaps change eventually
         self.__normalised_positions = linspace(0.0, 1.0, len(self.__state_vec))
         self.__old_normalised_positions = self.__normalised_positions.copy()
-
-        self.set_rho(rho)
 
         self._funcs_stale = True
         self._integrals_stale = True
@@ -1186,52 +1184,22 @@ class PathRepresentation(Path):
         self.state_vec = masked_assign(update_mask, self.state_vec, bead_vectors)
         self.regen_path_func()
 
-    def dump_rho(self):
-        res = 0.02
-        print "rho: ",
-        for x in arange(0.0, 1.0 + res, res):
-            if x < 1.0:
-                print self.__rho(x),
-        print
-        raw_input("that was rho...")
-
     def pathpos(self):
         return deepcopy(self.__normalised_positions)
 
-    def set_rho(self, new_rho):
-        """Set new bead density function, ensuring that it is normalised."""
+def generate_normd_positions(path, weights, metric):
+    """Returns a list of distances along the string in terms of the normalised
+    coordinate, based on desired fractional distances along string."""
 
-        integral, err = scipy.integrate.quad(new_rho, 0.0, 1.0)
+    # this is a Func(s(t), ds/dt) that computes the path length, here we
+    # abuse it to provide the length of the tangent, ds/dt:
+    arc = Arc(path, norm=metric.norm_up)
 
-        self.__rho = lambda x: new_rho(x) / integral
+    # Other scatter variants are available, use the one with integrating
+    # over the tangent lenght, see also scatter(), scatter2():
+    normalised_positions = scatter1(arc.fprime, weights)
 
-    def generate_normd_positions(self, metric):
-        """Returns a list of distances along the string in terms of the normalised
-        coordinate, based on desired fractional distances along string."""
-
-        # Get fractional positions along string, based on bead density function
-        # and the desired total number of beads
-        weights = linspace(0.0, 1.0, self.beads_count)
-
-        # FIXME: I guess this method is not supposed to return terminal beads?
-        # This need to work also for piecewise rho:
-        arcs = scatter(self.__rho, weights[1:-1])
-
-        # this is a Func(s(t), ds/dt) that computes the path length, here we
-        # abuse it to provide the length of the tangent, ds/dt:
-        arc = Arc(self, norm=metric.norm_up)
-
-        # Other scatter variants are available, use the one with integrating
-        # over the tangent lenght, see also scatter(), scatter2():
-        args = scatter1(arc.fprime, arcs)
-
-        # now set the variables
-        normalised_positions = empty(len(args) + 2)
-        normalised_positions[0] = 0.0
-        normalised_positions[1:-1] = args
-        normalised_positions[-1] = 1.0
-        return normalised_positions
-
+    return normalised_positions
 
 class PiecewiseRho:
     """Supports the creation of piecewise functions as used by the GrowingString
@@ -1383,7 +1351,7 @@ class GrowingString(ReactionPathway):
     string = True
 
     def __init__(self, reagents, pes, result_storage, beads_count = 10, pmap = map,
-        rho = lambda x: 1.0, growing=True, parallel=False, head_size=None, output_level = 3,
+        weights = None, growing=True, parallel=False, head_size=None, output_level = 3,
         max_sep_ratio = 0.1, reporting=None, growth_mode='normal', freeze_beads=False,
         output_path = ".", workhere = 1, climb_image = False, start_climb = 5
         ):
@@ -1396,20 +1364,34 @@ class GrowingString(ReactionPathway):
         else:
             initial_beads_count = self.__final_beads_count
 
+        if growing:
+            if growth_mode == 'normal':
+               self.weights = zeros(4)
+               h_weights = linspace(0.0, 1.0, beads_count)
+               self.weights[:2] = h_weights[:2]
+               self.weights[-2:] = h_weights[-2:]
+            elif growth_mode == 'search':
+                self.weights = linspace(0.0, 1.0, 4)
+            else:
+                print >> stderr, "For this growth_mode ", growth_mode, "there is no way specified for getting inital weights distribution."
+                print >> stderr, "Plase check if it really exists"
+                exit()
+        else:
+            if weights == None:
+                self.weights = linspace(0.0, 1.0, beads_count)
+            else:
+                self.weights = weights
+                assert len(self.weights) == beads_count
+
         # create PathRepresentation object
-        self._path_rep = PathRepresentation(reagents, initial_beads_count, rho)
+        self._path_rep = PathRepresentation(reagents, initial_beads_count)
         ReactionPathway.__init__(self, reagents, initial_beads_count, pes, parallel, result_storage,
                  reporting=reporting, output_level = output_level, climb_image = climb_image, start_climb = 5,
                  pmap = pmap, output_path = output_path, workhere = workhere)
 
-        # final bead spacing density function for grown string
-        # make sure it is normalised
-        (int, err) = scipy.integrate.quad(rho, 0.0, 1.0)
-        self.__final_rho = lambda x: rho(x) / int
-
         # setup growth method
         self.growth_funcs = {
-            'normal': (self.grow_string_normal, self.update_rho),
+            'normal': (self.grow_string_normal, self.growing_string_init),
             'search': (self.grow_string_search, self.search_string_init)
             }
         if not growth_mode in self.growth_funcs:
@@ -1430,7 +1412,7 @@ class GrowingString(ReactionPathway):
         self._path_rep.regen_path_func()
 
         # Space beads along the path, as it is for start set all of them anew: mask = 1
-        pos = self._path_rep.generate_normd_positions(mt.metric)
+        pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
         self._path_rep.generate_beads([1 for i in range(initial_beads_count)], pos)
 
         self.parallel = parallel
@@ -1574,9 +1556,13 @@ class GrowingString(ReactionPathway):
         else:
             moving_beads = [new_i-1, new_i, new_i+1]
         
-
-        rho = RhoInterval(self.bead_positions).f
-        self._path_rep.set_rho(rho)
+        new_weight = (self.weights[new_i] + self.weights[new_i -1])/2.
+        old_weights = deepcopy(self.weights)
+        assert len(old_weights) == self.beads_count - 1
+        self.weights = zeros(self.beads_count)
+        self.weights[:new_i] = old_weights[:new_i]
+        self.weights[new_i] = new_weight
+        self.weights[new_i+1:] = old_weights[new_i:]
 
         # The following block of code ensures that all beads other than the
         # newly added one stay in exactly the same position. Otherwise, 
@@ -1586,7 +1572,7 @@ class GrowingString(ReactionPathway):
         mask = [0 for i in range(self.beads_count)]
         mask[new_i] = 2
 
-        pos = self._path_rep.generate_normd_positions(mt.metric)
+        pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
         # Mask tells which beads a new (2), stay fixed (0) or should be updated(1)
         self._path_rep.generate_beads( mask, pos)
 
@@ -1638,13 +1624,17 @@ class GrowingString(ReactionPathway):
             self.beads_count += 2
 
 
+        self.weights = zeros(self.beads_count)
+        h_weights = linspace(0.0, 1.0, self.__final_beads_count)
+        self.weights[:self.beads_count/2] = h_weights[:self.beads_count/2]
+        self.weights[-self.beads_count/2:] = h_weights[-self.beads_count/2:]
         #self.expand_internal_arrays(self.beads_count)
 
         # Does nothing? self.beads_count references self._path_rep.beads_count anyway. - HCM 26/05/10
         self._path_rep.beads_count = self.beads_count
 
         # build new bead density function based on updated number of beads
-        self.update_rho()
+        self.growing_string_init()
 
         # All beads are fixed, the newly ones need their data anyhow from the new set of beads
         # As the path is build on them the other should anyhow only get rounding errors here
@@ -1652,7 +1642,7 @@ class GrowingString(ReactionPathway):
         for i in new_ixs:
             mask[i] = 2
 
-        pos = self._path_rep.generate_normd_positions(mt.metric)
+        pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
         self._path_rep.generate_beads( mask, pos)
 
         # create a new bead_update_mask that permits us to set the state to what we want
@@ -1679,9 +1669,11 @@ class GrowingString(ReactionPathway):
         print "******** String Grown to %d beads ********" % self.beads_count
         return True
 
-    def update_rho(self):
-        """Update the density function so that it will deliver beads spaced
-        as for a growing (or grown) string."""
+    def growing_string_init(self):
+        """
+        Sets bead_positions for searching string
+        FIXME: Why not using a general setting of them?
+        """
 
         assert self.beads_count <= self.__final_beads_count
 
@@ -1696,30 +1688,6 @@ class GrowingString(ReactionPathway):
         end = self.beads_count / 2.0
         self.bead_positions = array([all_bead_ps[i] for i in range(len(all_bead_ps)) \
             if i < end or i >= (fbc - end)])
-
-        if self.beads_count == self.__final_beads_count:
-            self._path_rep.set_rho(self.__final_rho)
-
-            # see below and how it is used, update_rho() does not return anything:
-            return None # self.__final_rho
-
-        assert self.beads_count % 2 == 0
-
-        # Value that integral must be equal to to give desired number of beads
-        # at end of the string.
-        end_int = (self.beads_count / 2.0) \
-            / self.__final_beads_count
-
-        f_a1 = lambda x: (quad(self.__final_rho, 0.0, x)[0] - end_int)**2
-        f_a2 = lambda x: (quad(self.__final_rho, x, 1.0)[0] - end_int)**2
-
-        a1 = fmin(f_a1, end_int)[0]
-        a2 = fmin(f_a2, end_int)[0]
-
-        assert a2 > a1
-
-        pwr = PiecewiseRho(a1, a2, self.__final_rho, self.__final_beads_count)
-        self._path_rep.set_rho(pwr.f)
 
 
     def lengths_disparate(self):
@@ -1802,9 +1770,9 @@ class GrowingString(ReactionPathway):
                 # Thus no fear to interact with their changing rhos
                 bd_pos = new_bead_positions(new_abscissa, self.bead_positions, self.ci_num)
             else:
-                bd_pos = self._path_rep.generate_normd_positions(mt.metric)
+                bd_pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
         else:
-             bd_pos = self._path_rep.generate_normd_positions(mt.metric)
+             bd_pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
 
         mask = deepcopy(self.bead_update_mask)
         if self.climb_image and not self.ci_num == None:
