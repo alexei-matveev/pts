@@ -929,7 +929,7 @@ class NEB(ReactionPathway):
         if len(reagents) == beads_count:
             self._state_vec = array(reagents)
         else:
-            pr = PathRepresentation(reagents, beads_count, lambda x: 1)
+            pr = PathRepresentation(reagents, beads_count)
             pr.regen_path_func()
             weights = linspace(0.0, 1.0, beads_count)
             #Space beads along the path, as it is for start set all of them anew: mask = 1
