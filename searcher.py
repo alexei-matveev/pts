@@ -1196,7 +1196,9 @@ def generate_normd_positions(path, weights, metric):
 
     # Other scatter variants are available, use the one with integrating
     # over the tangent lenght, see also scatter(), scatter2():
-    normalised_positions = scatter1(arc.fprime, weights)
+    normalised_positions = zeros(len(weights))
+    normalised_positions[1:-1] = scatter1(arc.fprime, weights[1:-1])
+    normalised_positions[-1] = 1.
 
     return normalised_positions
 
