@@ -51,12 +51,6 @@ __all__ = ["QFunc"]
 from pts.func import Func, compose
 from ase.calculators.lj import LennardJones
 from os import path, mkdir, chdir, getcwd, system
-try:
-    from multiprocessing import current_process
-    def current_process_name(): return current_process().name
-except:
-    from processing import currentProcess
-    def current_process_name(): return currentProcess().getName()
 
 from shutil import copy2 as cp
 import numpy as np
