@@ -672,7 +672,7 @@ class ReactionPathway(object):
 
     state_vec = property(get_state_vec, set_state_vec)
 
-    def obj_func(self, grad=False):
+    def taylor(self, state):
        ## NOTE: this automatically skips if new_state_vec == None
        #self.state_vec = new_state_vec
 
@@ -708,7 +708,7 @@ class ReactionPathway(object):
 
 
         # get PES energy/gradients
-        es, gs = self.allvals.taylor( self.state_vec)
+        es, gs = self.allvals.taylor( state)
 
         # return to former directory
         chdir(wopl)
@@ -716,7 +716,16 @@ class ReactionPathway(object):
         # FIXME: does it need to be a a destructive update?
         self.bead_pes_energies[:] = es
         self.bead_pes_gradients[:] = gs
+        return array(es), array(gs)
 
+    def obj_func(self):
+        es, __ = self.taylor(self.state_vec)
+        self.post_obj_func(False)
+        return es
+
+    def obj_func_grad(self):
+        __, g_all = self.taylor(self.state_vec)
+        tangents = self.update_tangents()
         #
         # NOTE: update_tangents() is not implemented by this class!
         #       Consult particular subclass.
@@ -727,16 +736,15 @@ class ReactionPathway(object):
         #       was updated first. Not sure about bead separations though.
         #
         self.update_bead_separations()
-        self.update_tangents()
 
         # project gradients in para/perp components:
         for i in range(self.beads_count):
 
             # previously computed gradient:
-            g = self.bead_pes_gradients[i]
+            g = g_all[i]
 
             # contravariant tangent coordiantes:
-            T = self.tangents[i]
+            T = tangents[i]
 
             # covariant tangent coordiantes:
             t = mt.metric.lower(T, self.state_vec[i])
@@ -748,7 +756,9 @@ class ReactionPathway(object):
             self.para_bead_forces[i] = para_force
             self.perp_bead_forces[i] = perp_force
 
-        self.post_obj_func(grad)
+        self.post_obj_func(True)
+        return para_force, perp_force
+
 
     def set_positions(self, x):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -917,7 +927,6 @@ class NEB(ReactionPathway):
 
         self.base_spr_const = base_spr_const
 
-        self.tangents = zeros((beads_count,len(reagents[0])))
 
         # Make list of spring constants for every inter-bead separation
         # For the time being, these are uniform
@@ -942,8 +951,9 @@ class NEB(ReactionPathway):
         WARNING: uses self.bead_pes_energies to determine tangents
         """
         # terminal beads
-        self.tangents[0]  = self.state_vec[1] - self.state_vec[0]#zeros(self.dimension)
-        self.tangents[-1] = self.state_vec[-1] - self.state_vec[-2]#zeros(self.dimension)
+        tangents = zeros((self.beads_count,len(self._state_vec[0])))
+        tangents[0]  = self.state_vec[1] - self.state_vec[0]#zeros(self.dimension)
+        tangents[-1] = self.state_vec[-1] - self.state_vec[-2]#zeros(self.dimension)
 
         for i in range(self.beads_count)[1:-1]:
             if self.use_upwinding_tangent:
@@ -961,26 +971,25 @@ class NEB(ReactionPathway):
                 delta_V_min = min(delta_V_plus, delta_V_minus)
 
                 if Vi_plus_1 > Vi > Vi_minus_1:
-                    self.tangents[i] = tang_plus
+                    tangents[i] = tang_plus
 
                 elif Vi_plus_1 < Vi < Vi_minus_1:
-                    self.tangents[i] = tang_minus
+                    tangents[i] = tang_minus
 
                 elif Vi_plus_1 > Vi_minus_1:
-                    self.tangents[i] = tang_plus * delta_V_max + tang_minus * delta_V_min
+                    tangents[i] = tang_plus * delta_V_max + tang_minus * delta_V_min
 
                 elif Vi_plus_1 <= Vi_minus_1:
-                    self.tangents[i] = tang_plus * delta_V_min + tang_minus * delta_V_max
+                    tangents[i] = tang_plus * delta_V_min + tang_minus * delta_V_max
                 else:
                     raise Exception("Should never happen")
             else:
-                self.tangents[i] = ( (self.state_vec[i] - self.state_vec[i-1]) + (self.state_vec[i+1] - self.state_vec[i]) ) / 2
+                tangents[i] = ( (self.state_vec[i] - self.state_vec[i-1]) + (self.state_vec[i+1] - self.state_vec[i]) ) / 2
 
         for i in range(self.beads_count):
-            #self.tangents[i] /= linalg.norm(self.tangents[i], 2)
-            self.tangents[i] /= mt.metric.norm_up(self.tangents[i], self.state_vec[i])
+            tangents[i] /= mt.metric.norm_up(tangents[i], self.state_vec[i])
 
-#        print "self.tangents", self.tangents
+        return tangents
 
     def __len__(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -1003,20 +1012,21 @@ class NEB(ReactionPathway):
 
 
     def obj_func_grad(self):
-        ReactionPathway.obj_func(self, grad=True)
+        __, f_perp = ReactionPathway.obj_func_grad(self)
 
         result_bead_forces = zeros((self.beads_count, self.dimension))
 #        print "pbf", self.perp_bead_forces.reshape((-1,2))
+        tangents = self.update_tangents()
         for i in range(self.beads_count):
             # Update mask: 1 update, 0 stay fixed, 2 new bead
             if not self.bead_update_mask[i] == 1:
                 continue
 
-            total = self.perp_bead_forces[i]
+            total = f_perp[i]
 
             # Climbing image is special case
             if self.climb_image and i == self.ci_num:
-                t = mt.metric.lower(self.tangents[i], self.state_vec[i])
+                t = mt.metric.lower(tangents[i], self.state_vec[i])
                 total = total - self.para_bead_forces[i] * t
             # no spring force for end beads
             elif i > 0 and i < self.beads_count - 1:
@@ -1024,7 +1034,7 @@ class NEB(ReactionPathway):
                 dx0 = self.bead_separations[i-1]
                 spring_force_mag = self.base_spr_const * (dx1 - dx0)
 
-                spring_force = spring_force_mag * self.tangents[i]
+                spring_force = spring_force_mag * tangents[i]
                 total = total + spring_force
 
 #            print "spring", spring_force
@@ -1034,12 +1044,11 @@ class NEB(ReactionPathway):
         g = -result_bead_forces.flatten()
         return g
 
-    def obj_func(self, grad=False):
-        assert not grad
+    def obj_func(self):
 
-        ReactionPathway.obj_func(self)
+        es = ReactionPathway.obj_func(self)
 
-        return self.bead_pes_energies.sum()
+        return es.sum()
 
 class PathRepresentation(Path):
     """Supports operations on a path represented by a line, parabola, or a 
@@ -1059,7 +1068,6 @@ class PathRepresentation(Path):
         # generate initial paramaterisation density
         # TODO: Linear at present, perhaps change eventually
         self.__normalised_positions = linspace(0.0, 1.0, len(self.__state_vec))
-        self.__old_normalised_positions = self.__normalised_positions.copy()
 
         self._funcs_stale = True
         self._integrals_stale = True
@@ -1168,7 +1176,6 @@ class PathRepresentation(Path):
 
         assert not self._funcs_stale
 
-        self.__old_normalised_positions = self.__normalised_positions
         self.__normalised_positions = positions
 
         # use Path functionality:
@@ -1457,7 +1464,7 @@ class GrowingString(ReactionPathway):
     state_vec = property(get_state_vec, set_state_vec)
 
     def update_tangents(self):
-        self.tangents = self._path_rep.path_tangents
+        return self._path_rep.path_tangents
 
     def get_forces(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -1548,7 +1555,7 @@ class GrowingString(ReactionPathway):
         if energy_only:
             self.bead_positions, new_i = get_bead_positions(path, self.bead_positions)
         else:
-            self.bead_positions, new_i = get_bead_positions_grad(self.bead_pes_energies, self.bead_pes_gradients, self.tangents, self.bead_positions)
+            self.bead_positions, new_i = get_bead_positions_grad(self.bead_pes_energies, self.bead_pes_gradients, self.update_tangents(), self.bead_positions)
 
         if new_i == self.beads_count - 2:
             moving_beads = [new_i-2, new_i-1, new_i]
@@ -1714,31 +1721,45 @@ class GrowingString(ReactionPathway):
 
 
     def obj_func(self, individual=False):
-        ReactionPathway.obj_func(self)
+        es = ReactionPathway.obj_func(self)
 
         if individual:
-            return self.bead_pes_energies
+            return es
         else:
-            return self.bead_pes_energies.sum()
+            return es.sum()
 
     def obj_func_grad(self,  raw=False):
-        ReactionPathway.obj_func(self,  grad=True)
+        # Perpendicular compontent should be vanish
+        # difference for climbing image case
+        g_para, g_minimize = ReactionPathway.obj_func_grad(self)
 
         result_bead_forces = zeros((self.beads_count, self.dimension))
         if raw:
             from_array = self.bead_pes_gradients
         else:
+            tangents = self.update_tangents()
+            #
+            # NOTE: update_tangents() is not implemented by this class!
+            #       Consult particular subclass.
+            #
+            #       Also note that at least in NEB the definition
+            #       of the tangent may depend on the relative bead energies.
+            #       Therefore update tangents only after self.bead_pes_energies
+            #       was updated first. Not sure about bead separations though.
+            #
+            self.update_bead_separations()
+
             from_array = -self.perp_bead_forces
 
             if self.climb_image and not self.ci_num == None:
                 assert self.bead_update_mask[self.ci_num] > 0
-                t = mt.metric.lower(self.tangents[self.ci_num], self.state_vec[self.ci_num])
-                from_array[self.ci_num] = from_array[self.ci_num] + self.para_bead_forces[self.ci_num] * t \
-                  / sqrt(dot(t, self.tangents[self.ci_num]))
+                t = mt.metric.lower(tangents[self.ci_num], self.state_vec[self.ci_num])
+                g_minimize[self.ci_num] = g_minimize[self.ci_num] + g_para[self.ci_num] * t \
+                  / sqrt(dot(t, tangents[self.ci_num]))
 
         for i in range(self.beads_count):
-            if self.bead_update_mask[i] == 1:
-                result_bead_forces[i] = from_array[i]
+            if self.bead_update_mask[i]  > 0:
+                result_bead_forces[i] = g_minimize[i]
 
 #       print "result_bead_forces", result_bead_forces
         g = result_bead_forces.flatten()
