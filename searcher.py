@@ -957,7 +957,7 @@ class NEB(ReactionPathway):
         else:
             weights = linspace(0.0, 1.0, beads_count)
             dist =  new_abscissa(reagents, mt.metric)
-            pr = PathRepresentation(reagents, dist, beads_count)
+            pr = PathRepresentation(reagents, dist)
             #Space beads along the path, as it is for start set all of them anew
             pos = generate_normd_positions(pr, weights, mt.metric)
             self._state_vec = pr.generate_beads( pos)
@@ -1070,13 +1070,10 @@ class PathRepresentation(Path):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, positions, beads_count):
+    def __init__(self, state_vec, positions):
 
         # vector of vectors defining the path
         self.__state_vec = array(state_vec)
-
-        # number of vectors defining the path
-        self.beads_count = beads_count
 
         # NOTE: here we assume that state_vec[i] is a 1D array:
         self.__dimension = len(state_vec[0])
@@ -1376,7 +1373,8 @@ class GrowingString(ReactionPathway):
         # Build path function based on reagents
         dist =  new_abscissa(reagents, mt.metric)
         # create PathRepresentation object
-        self._path_rep = PathRepresentation(reagents, dist, initial_beads_count)
+        self._path_rep = PathRepresentation(reagents, dist)
+        self.beads_count = initial_beads_count
 
         ReactionPathway.__init__(self, reagents, initial_beads_count, pes, parallel, result_storage,
                  reporting=reporting, output_level = output_level, climb_image = climb_image, start_climb = 5,
@@ -1446,14 +1444,6 @@ class GrowingString(ReactionPathway):
     def get_potential_energy(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
         return self.obj_func()
-
-    def get_beads_count(self):
-        return self._path_rep.beads_count
-
-    def set_beads_count(self, new):
-        self._path_rep.beads_count = new
-
-    beads_count = property(get_beads_count, set_beads_count)
 
     def expand_internal_arrays(self, size):
         # arrays which must be expanded if string is grown
