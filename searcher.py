@@ -175,9 +175,10 @@ def new_abscissa(state_vec, metric):
     "metric". The abscissa will be according to the sum of pythagorean
     distances in metric for all the beads before, normed to 1.
     """
-    pythag_seps = common.pythag_seps(state_vec, metric)
 
-    new_abscissa = cumm_sum(pythag_seps)
+    separations = common.pythag_seps(state_vec, metric)
+
+    new_abscissa = common.cumm_sum(separations)
     new_abscissa /= new_abscissa[-1]
     return new_abscissa
 
