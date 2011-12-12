@@ -97,7 +97,7 @@ def freeze_ends(bc):
     """
     return [0] + [1 for i in range(bc-2)] + [0]
 
-def new_bead_positions(new_abscissa, unchanged_abscissa, ci_num):
+def new_bead_positions( weights, ci_len, ci_pos, ci_num):
     """
     gives a new abcissa, calculated from the original and the new values as followes:
     the abscissa from ci_num (climbing image) will be taken. The other
@@ -107,7 +107,7 @@ def new_bead_positions(new_abscissa, unchanged_abscissa, ci_num):
     >>> xo = [0., 0.2, 0.25, 0.4, 0.5, 0.75, 1.]
     >>> xn = [0., 0.3, 0.25, 0.45, 0.4, 0.12, 1.]
 
-    >>> out = new_bead_positions(xn, xo, 3)
+    >>> out = new_bead_positions(xo, xn[3], xn[3], 3)
     >>> print " %4.3f"* 7 %( tuple(out))
      0.000 0.225 0.281 0.450 0.542 0.771 1.000
 
@@ -115,7 +115,7 @@ def new_bead_positions(new_abscissa, unchanged_abscissa, ci_num):
     >>> 0.5 * out[3] - out[1] < 1e-7
     True
 
-    >>> out = new_bead_positions(xn, xo, 4)
+    >>> out = new_bead_positions(xo, xn[4], xn[4], 4)
     >>> print " %4.3f"* 7 %( tuple(out))
      0.000 0.160 0.200 0.320 0.400 0.700 1.000
 
@@ -129,39 +129,48 @@ def new_bead_positions(new_abscissa, unchanged_abscissa, ci_num):
     True
 
     Squeeze everything into small area:
-    >>> out = new_bead_positions(xn, xo, 5)
+    >>> out = new_bead_positions(xo, xn[5], xn[5], 5)
     >>> print " %4.3f"* 7 %( tuple(out))
      0.000 0.032 0.040 0.064 0.080 0.120 1.000
 
     If the postion of it is unchanged, so are all:
-    >>> out = new_bead_positions(xn, xo, 2)
+    >>> out = new_bead_positions(xo, xn[2], xn[2], 2)
     >>> print " %4.3f"* 7 %( tuple(out))
      0.000 0.200 0.250 0.400 0.500 0.750 1.000
     """
-    assert new_abscissa[-1] == unchanged_abscissa[-1]
-    assert new_abscissa[0] == unchanged_abscissa[0]
+    # Function is somewhat specialized
+    assert weights[0] == 0
+    assert weights[-1] == 1.
 
-    abscissa = deepcopy(new_abscissa)
-    ab_ci_n = abscissa[ci_num]
-    ab_ci_ref = unchanged_abscissa[ci_num]
-    end = abscissa[-1]
+    # distribute the weights anew
+    chang_weights = asarray(weights).copy()
+
+    # This is the positions where CI should be if it was not CI, here it
+    # is used as reference to get the scalings relative to it
+    ab_ci_ref = weights[ci_num]
+
+    end = 1.
 
     def new_absc(old):
         if old < ab_ci_ref:
             # Scale from the left
-            return old * ab_ci_n / ab_ci_ref
+            # ( [0, ab_ci_ref] -> [0, ci_len])
+            return old * ci_len / ab_ci_ref
         else:
             #Start from the other end:
-            return end - (end - old) * (end - ab_ci_n) / (end - ab_ci_ref)
+            # ( [ci_ref, 1.] -> [ci_len, 1.])
+            return end - (end - old) * (end - ci_len) / (end - ab_ci_ref)
 
-    for i in range(len(abscissa)):
+    # Do not change terminal beads, generate_normd_positions would complain
+    for i in range(1, len(weights) -1):
         if i == ci_num:
             # This is the climbing image, it will stay fixed
+            chang_weights[i] = ci_pos
             continue
 
-        abscissa[i] = new_absc(unchanged_abscissa[i])
+        chang_weights[i] = new_absc(weights[i])
 
-    return abscissa
+    return chang_weights
 
 def new_abscissa(state_vec, metric):
     """
@@ -885,7 +894,7 @@ class NEB(ReactionPathway):
 
     Was changed because of different spacing of beads, was before
     -4.5561921505021239
-    >>> neb.tangents
+    >>> neb.update_tangents()
     array([[ 0.70710678,  0.70710678],
            [ 0.70710678,  0.70710678],
            [ 0.70710678,  0.70710678],
@@ -908,20 +917,18 @@ class NEB(ReactionPathway):
     >>> neb.state_vec = [[0,0],[0,1],[1,1]]
     >>> neb.obj_func()
     -1.6878414761432885
-    >>> neb.tangents
+    >>> neb.update_tangents()
     array([[ 0.,  1.],
            [ 1.,  0.],
            [ 1.,  0.]])
     >>> neb.bead_pes_energies = array([0,1,0])
 
     >>> neb.update_tangents()
-    >>> neb.tangents
     array([[ 0.        ,  1.        ],
            [ 0.70710678,  0.70710678],
            [ 1.        ,  0.        ]])
     >>> neb.bead_pes_energies = array([1,0,-1])
     >>> neb.update_tangents()
-    >>> neb.tangents
     array([[ 0.,  1.],
            [ 0.,  1.],
            [ 1.,  0.]])
@@ -1100,17 +1107,28 @@ class PathRepresentation(Path):
         # use Path functionality, on setting nodes a new parametrizaiton is generated:
         self.nodes = self.__normalised_positions, self.__state_vec
 
+
+    def __arc_dist_func(self, x, metric):
+
+        value, tangent = self.taylor(x)
+
+        return metric.norm_up(tangent, value)
+
     def get_bead_separations(self, metric):
         """Returns the arc length between beads according to the current 
         parameterisation.
         """
 
-        #
-        # This is a Func(s(t), ds/dt) that computes the path length,
-        # here we use it to compute arc lengths between points on the
-        # path. Here "self" iherits a Path interface:
-        #
-        arc = Arc(self, norm=metric.norm_up)
+        a = self.__normalised_positions
+        N = len(a)
+        seps = []
+        def arc_fun(x):
+            # arc_dist_func needs also knowledge of some kind of metric
+            return self.__arc_dist_func(x, metric)
+
+        for i in range(N)[1:]:
+            l, _ = scipy.integrate.quad(arc_fun, a[i-1], a[i])
+            seps.append(l)
 
         arcs = array(map(arc, self.__normalised_positions))
 
@@ -1721,14 +1739,19 @@ class GrowingString(ReactionPathway):
         # respace the beads along the path
         dist =  new_abscissa(self.state_vec, mt.metric)
         path_rep = PathRepresentation(self.state_vec, dist)
-        # Reuse old abscissa, if CI does not tell others
 
         if self.climb_image and not self.ci_num == None:
-            #Scale the bead positions, strings have been fully grown
-            # Thus no fear to interact with their changing rhos
-            bd_pos = new_bead_positions(new_abscissa, self.bead_positions, self.ci_num)
+            # In this case we want different bead positions for the complete string
+            # As we want the CI to stay unchanged, and the other positions to be
+            # adapted accordingly
+            p_ci = path_rep.antiderivative( 0, dist[self.ci_num], mt.metric)
+            chang_weights = new_bead_positions(self.weights, p_ci, dist[self.ci_num], self.ci_num)
+            bd_pos = generate_normd_positions(path_rep, chang_weights, mt.metric)
+
+            # Leave CI as much as possible alone
+            bd_pos[self.ci_num] = dist[self.ci_num]
         else:
-             bd_pos = generate_normd_positions(path_rep, self.weights, mt.metric)
+            bd_pos = generate_normd_positions(path_rep, self.weights, mt.metric)
 
         mask = deepcopy(self.bead_update_mask)
         if self.climb_image and not self.ci_num == None:
