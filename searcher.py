@@ -1105,14 +1105,6 @@ class PathRepresentation(Path):
 
         return array(ts)
 
-    def get_state_vec(self):
-        return self.__state_vec
-
-    def set_state_vec(self, new_state_vec):
-        self.__state_vec = array(new_state_vec).reshape(self.beads_count, -1)
-
-    state_vec = property(get_state_vec, set_state_vec)
-
     @property
     def dimension(self):
         return self.__dimension
