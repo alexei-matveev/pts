@@ -401,17 +401,21 @@ def atom_atom_dists(v):
     return output
 
 def pythag_seps(vs, metric = Default(None)):
-    """Returns pythag distances between vectors in a list/vector of vectors.
+    """Returns pythagorean distances  between vectors in a list/vector
+    of vectors.
+
+        >>> pythag_seps([[0, 0], [1, 1], [2, 2]])
+        array([ 1.41421356,  1.41421356])
     
-    >>> pythag_seps([[0,0],[1,1],[2,2]])
-    array([ 1.41421356,  1.41421356])
-    
+    This  implementation  assumes  that  the half-way  point  is  well
+    defined in the sense that the coordinate transformation behind the
+    metric is differentiable also there.
     """
     vs = numpy.asarray(vs)
     N = len(vs)
-    subs = [vs[i] - vs[i-1] for i in range(1,N)]
-    vm = [0.5 *(vs[i] + vs[i-1]) for i in range(1,N)]
-    return numpy.array([metric.norm_up(sub, vi) for sub, vi in zip(subs,vm)])
+    subs = [vs[i] - vs[i-1] for i in range(1, N)]
+    vm = [0.5 * (vs[i] + vs[i-1]) for i in range(1, N)]
+    return numpy.array([metric.norm_up(sub, vi) for sub, vi in zip(subs, vm)])
 
 def cumm_sum(list, start_at_zero=False):
     """
