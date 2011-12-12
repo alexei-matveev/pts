@@ -445,7 +445,7 @@ class ReactionPathway(object):
         return common.rms(self.perp_bead_forces[1:-1]), [common.rms(f) for f in self.perp_bead_forces]
 
     def pathpos(self):
-         return None
+        return None
 
     @property
     def maxf_perp(self):
@@ -482,8 +482,8 @@ class ReactionPathway(object):
         path_pos  = self.pathpos()
 
         if path_pos == None:
-             # set up dummy spline abscissa for non-spline methods
-             path_pos = [0.0 for i in range(len(self.bead_pes_gradients))]
+            # set up dummy spline abscissa for non-spline methods
+            path_pos = [0.0 for i in range(len(self.bead_pes_gradients))]
 
         eg_calls = self.eg_calls
 
@@ -1090,7 +1090,7 @@ class PathRepresentation(Path):
         SS, XS = self.nodes
         ts = []
         for s in SS:
-             ts.append(self.fprime(s))
+            ts.append(self.fprime(s))
 
         return array(ts)
 
