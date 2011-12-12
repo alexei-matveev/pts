@@ -69,8 +69,10 @@ import sys
 from ase.io import write
 from pts.io.read_inputs import get_geos, ensure_short_way
 from pts.path import Path
+from pts.searcher import new_abscissa
 from pts.tools.pathtools import pickle_path
 from numpy import linspace, array
+from pts.metric import Default
 
 def main(args):
 
@@ -135,8 +137,9 @@ def main(args):
     mol, mi, funcart, dih, quats, lengt,__  = get_geos(mis, dc, zmts)
     mi = ensure_short_way(mi, dih, quats, lengt)
 
+    abcis = new_abscissa(mi, Default())
     # path between two minima (linear in coordinates):
-    ipm1m2 = Path(mi)
+    ipm1m2 = Path(mi, abcis)
 
     if output == 2:
         if zmts == []:
