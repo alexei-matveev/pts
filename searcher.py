@@ -1169,6 +1169,11 @@ def generate_normd_positions(path, weights, metric):
     """Returns a list of distances along the string in terms of the normalised
     coordinate, based on desired fractional distances along string."""
 
+    #This function is only valid for normed pathlenghts where the weights
+    # of the terminal beads are 0 and 1
+    assert weights[0] == 0.
+    assert weights[-1] == 1.
+
     # this is a Func(s(t), ds/dt) that computes the path length, here we
     # abuse it to provide the length of the tangent, ds/dt:
     arc = Arc(path, norm=metric.norm_up)
