@@ -417,26 +417,28 @@ def pythag_seps(vs, metric = Default(None)):
     vm = [0.5 * (vs[i] + vs[i-1]) for i in range(1, N)]
     return numpy.array([metric.norm_up(sub, vi) for sub, vi in zip(subs, vm)])
 
-def cumm_sum(list, start_at_zero=False):
-    """
-    >>> cumm_sum([1,2,3,4,5])
-    array([  1.,   3.,   6.,  10.,  15.])
+def cumm_sum(list):
+    """Cumulative sum
 
-    >>> cumm_sum([1,2,3,4,5], start_at_zero=True)
-    array([  0.,   1.,   3.,   6.,  10.,  15.])
+    Partial sums of an empty list  is most naturally defined as a list
+    of length one containing zero:
+
+        >>> cumm_sum([])
+        array([ 0.])
+
+    The rest follows from recursion:
+
+        >>> cumm_sum([1, 2, 3, 4, 5])
+        array([  0.,   1.,   3.,   6.,  10.,  15.])
 
     """
     N = len(list)
     l = numpy.zeros(N+1)
-    list = numpy.array(list)
 
     for i in range(N):
         l[i+1] = l[i] + list[i]
 
-    if start_at_zero:
-        return l
-    else:
-        return l[1:]
+    return l
 
 class ObjLog:
     """Inheritable object supporting logging functionality."""

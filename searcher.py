@@ -171,14 +171,13 @@ def new_bead_positions(new_abscissa, unchanged_abscissa, ci_num):
 
 def new_abscissa(state_vec, metric):
     """
-    Generates a new (normalised) abscissa, using the
-    metric metric. The abscissa will be according to the
-    sum of pythagorean distances in metric for all the beads
-    before, normed to 1.
+    Generates   a  new   (normalized)  abscissa,   using   the  metric
+    "metric". The abscissa will be according to the sum of pythagorean
+    distances in metric for all the beads before, normed to 1.
     """
     pythag_seps = common.pythag_seps(state_vec, metric)
 
-    new_abscissa = cumm_sum(pythag_seps, start_at_zero=True)
+    new_abscissa = cumm_sum(pythag_seps)
     new_abscissa /= new_abscissa[-1]
     return new_abscissa
 
