@@ -1084,7 +1084,6 @@ class PathRepresentation(Path):
         # generate initial paramaterisation density
         self.__normalised_positions = array(positions)
 
-        self._funcs_stale = False
 
         # FIXME: please provide matric as an argument, explicit is better than
         # implicit:
@@ -1099,10 +1098,10 @@ class PathRepresentation(Path):
 
     @property
     def path_tangents(self):
-        assert not self._funcs_stale
+        SS, XS = self.nodes
         ts = []
-        for i in self.__normalised_positions:
-             ts.append(self.fprime(i))
+        for s in SS:
+             ts.append(self.fprime(s))
 
         return array(ts)
 
@@ -1111,7 +1110,6 @@ class PathRepresentation(Path):
 
     def set_state_vec(self, new_state_vec):
         self.__state_vec = array(new_state_vec).reshape(self.beads_count, -1)
-        self._funcs_stale = True
 
     state_vec = property(get_state_vec, set_state_vec)
 
@@ -1133,7 +1131,6 @@ class PathRepresentation(Path):
         # use Path functionality, on setting nodes a new parametrizaiton is generated:
         self.nodes = self.__normalised_positions, self.__state_vec
 
-        self._funcs_stale = False
 
     def __arc_dist_func(self, x, metric):
 
@@ -1146,7 +1143,6 @@ class PathRepresentation(Path):
         parameterisation.
         """
 
-        assert not self._funcs_stale
         a = self.__normalised_positions
         N = len(a)
         seps = []
@@ -1180,8 +1176,6 @@ class PathRepresentation(Path):
         before applying generate_beads. It is assumed that the new beads are
         indices as 2 in the update_mask.
         """
-
-        assert not self._funcs_stale
 
         # use Path functionality:
         pairs = map(self.taylor, positions)
