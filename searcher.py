@@ -843,6 +843,8 @@ def ts_estims(beads, energies, gradients, alsomodes = False, converter = None):
 class NEB(ReactionPathway):
     """Implements a Nudged Elastic Band (NEB) transition state searcher.
     
+    >>> from numpy import ones
+
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
     >>> qc = pts.pes.GaussianPES()
     >>> neb = NEB(path, qc, 1.0, None, beads_count = 4, workhere= 0)
