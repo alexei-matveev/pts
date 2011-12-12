@@ -5,12 +5,13 @@ from numpy.linalg import norm
 
 from pts.tools.pathtools import PathTools, unpickle_path
 from pts.tools.pathtools import read_path_fix, read_path_coords
-from pts.searcher import PathRepresentation
+from pts.searcher import new_abscissa
 from pts.path import Path
 from pts.common import make_like_atoms
 import numpy as np
 from pydoc import help
 from os import path, mkdir, chdir, getcwd, system
+import pts.metric as mt
 
 def main(argv):
     """
@@ -201,13 +202,10 @@ def esttsandmd(coord_b, energy_b, gradients_b, at_object, states = None,\
     estfrompathfirst(path, ts_all, at_object, " with coordinate distance of beads", ts_wanted)
 
     statex1 = path.steps
-    # Build up a PathRepresentation, initialize it, generate new bead (spacing)
-    # and get back the spacings on the string
     numbeads = len(energy_b)
-    ptr = PathRepresentation(coord_b, numbeads)
-    ptr.regen_path_func()
-    #ptr.generate_beads(True)
-    startx =  ptr.positions_on_string()
+    #ATTENTION: this needs to be consistent to the way abscissas are build for PathRepresentation
+    startx =  new_abscissa(coord_b, mt.metric)
+
     if not states == None:
         startx = states
     # with the additional startvalue startx the same as for the other path
