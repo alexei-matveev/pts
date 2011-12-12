@@ -1564,14 +1564,6 @@ class GrowingString(ReactionPathway):
             for i in range(m):
                 self.bead_update_mask[e+i] = 1
 
-        # HCM 26/05/10: following line now done by self.state_vec assignment
-        #self._path_rep.regen_path_func() #TODO: for grow class as well
-        # AN 18/10/11: Now it is included in generate_beads
-
-        # HCM 06/05/10: the following line does nothing, see definition of setter for self.beads_count
-        # self._path_rep.beads_count = self.beads_count
-
-
         lg.info("******** String Grown to %d beads ********", self.beads_count)
 
 
@@ -1601,9 +1593,6 @@ class GrowingString(ReactionPathway):
         self.weights[:self.beads_count/2] = h_weights[:self.beads_count/2]
         self.weights[-self.beads_count/2:] = h_weights[-self.beads_count/2:]
         #self.expand_internal_arrays(self.beads_count)
-
-        # Does nothing? self.beads_count references self._path_rep.beads_count anyway. - HCM 26/05/10
-        self._path_rep.beads_count = self.beads_count
 
         # build new bead density function based on updated number of beads
         self.growing_string_init()
