@@ -1188,9 +1188,6 @@ class PathRepresentation(Path):
 
         return bead_vectors
 
-    def pathpos(self):
-        return deepcopy(self.__normalised_positions)
-
 def generate_normd_positions(path, weights, metric):
     """Returns a list of distances along the string in terms of the normalised
     coordinate, based on desired fractional distances along string."""
@@ -1444,7 +1441,11 @@ class GrowingString(ReactionPathway):
         return len(common.make_like_atoms(self.state_vec))
 
     def pathpos(self):
-        return self._path_rep.pathpos()
+        """
+        ATTENTION: keep this consistent with abscissas generated for tangents and respace
+          Maybe let it die soon.
+        """
+        return new_abscissa(self.state_vec, mt.metric)
 
     def update_tangents(self):
         dist =  new_abscissa(self.state_vec, mt.metric)
@@ -1815,11 +1816,11 @@ class GrowingString(ReactionPathway):
 
         x0 = x[self.ci_num]
 
-        s_old = self._path_rep.pathpos()[self.ci_num]
+        s_old = self.pathpos()[self.ci_num]
         x_old = self.get_state_vec()[self.ci_num]
 
-        s_l = self._path_rep.pathpos()[self.ci_num - 1]
-        s_r = self._path_rep.pathpos()[self.ci_num + 1]
+        s_l = self.pathpos()[self.ci_num - 1]
+        s_r = self.pathpos()[self.ci_num + 1]
 
         d_s_all = s_r - s_l
         dx_l = x0 -  self.get_state_vec()[self.ci_num - 1]
