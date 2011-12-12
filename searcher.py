@@ -285,7 +285,7 @@ class ReactionPathway(object):
         self.prev_energies = None
         self._step = zeros(shape)
 
-    def lengths_disparate(self):
+    def lengths_disparate(self, metric):
         return False
 
     def signal_callback(self):
@@ -294,7 +294,7 @@ class ReactionPathway(object):
         # This functionality below was used with generic 3rd party optimisers,
         # i.e. it would force the optimiser to exit, so that a respace could 
         # be done.
-        if self.lengths_disparate():
+        if self.lengths_disparate(mt.metric):
             raise pts.MustRegenerate
 
     def test_convergence(self, etol, ftol, xtol):
@@ -1084,11 +1084,6 @@ class PathRepresentation(Path):
         # generate initial paramaterisation density
         self.__normalised_positions = array(positions)
 
-
-        # FIXME: please provide matric as an argument, explicit is better than
-        # implicit:
-        self.__metric = mt.metric
-
         # TODO check all beads have same dimensionality
 
         # use Path functionality:
@@ -1130,7 +1125,7 @@ class PathRepresentation(Path):
 
         return metric.norm_up(tangent, value)
 
-    def get_bead_separations(self):
+    def get_bead_separations(self, metric):
         """Returns the arc length between beads according to the current 
         parameterisation.
         """
@@ -1140,7 +1135,7 @@ class PathRepresentation(Path):
         seps = []
         def arc_fun(x):
             # arc_dist_func needs also knowledge of some kind of metric
-            return self.__arc_dist_func(x, self.__metric)
+            return self.__arc_dist_func(x, metric)
 
         for i in range(N)[1:]:
             l, _ = scipy.integrate.quad(arc_fun, a[i-1], a[i])
@@ -1335,7 +1330,7 @@ class GrowingString(ReactionPathway):
     >>> s.state_vec = [[0,0],[0.3,0.3],[0.9,0.9],[1,1]]
     >>> s.obj_func_grad().round(3)
     array([ 0.   ,  0.   ,  0.018, -0.018,  0.214, -0.214,  0.   ,  0.   ])
-    >>> s.lengths_disparate()
+    >>> s.lengths_disparate(mt.metric)
     False
 
     >>> s.eg_calls
@@ -1690,7 +1685,7 @@ class GrowingString(ReactionPathway):
             if i < end or i >= (fbc - end)])
 
 
-    def lengths_disparate(self):
+    def lengths_disparate(self, metric):
         """Returns true if the ratio between the (difference of longest and 
         shortest segments) to the average segment length is above a certain 
         value (self.__max_sep_ratio).
@@ -1699,8 +1694,8 @@ class GrowingString(ReactionPathway):
         """
 
         dist =  new_abscissa(self.state_vec, mt.metric)
-        self._path_rep.regen_path_func(dist , self.state_vec)
-        seps = self._path_rep.get_bead_separations()
+        self._path_rep.regen_path_func(dist, self.state_vec)
+        seps = self._path_rep.get_bead_separations(metric)
         assert len(seps) == self.beads_count - 1
 
         seps_ = zeros(seps.shape)
@@ -1760,7 +1755,7 @@ class GrowingString(ReactionPathway):
         return g
 
     def respace(self, metric, smart_abscissa=True):
-        if not self.lengths_disparate():
+        if not self.lengths_disparate(mt.metric):
             # Only do respace if it is necessary
             # This test seems to be done separately for most optimizer but not at all
             # for multiopt, this way it should work for all
