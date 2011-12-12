@@ -45,7 +45,7 @@ src =	\
 	srctools \
 
 # dont call it "test" as we have a directory called so:
-test-all: $(src:.py=.doctest)
+test-all: $(src:.py=.pyflakes) $(src:.py=.doctest)
 
 manual :
 	$(MAKE) -C ./doc
@@ -53,6 +53,9 @@ manual :
 # run a doctest on the module, return failure if any of the tests fail:
 %.doctest: %.py
 	python -c "import $*, doctest, sys; errs, _ = doctest.testmod($*); sys.exit(bool(errs))"
+
+%.pyflakes: %.py
+	pyflakes $(<)
 
 srcio:
 	$(MAKE) -C $(IO)
