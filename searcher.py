@@ -9,7 +9,7 @@ import pickle
 from os import path, mkdir, chdir, getcwd
 
 from numpy import array, asarray, ceil, abs, sqrt, dot
-from numpy import zeros, linspace, arange
+from numpy import empty, zeros, linspace, arange
 from numpy import argmax
 
 from path import Path, Arc, scatter1
@@ -1170,9 +1170,10 @@ def generate_normd_positions(path, weights, metric):
 
     # Other scatter variants are available, use the one with integrating
     # over the tangent lenght, see also scatter(), scatter2():
-    normalised_positions = zeros(len(weights))
+    normalised_positions = empty(len(weights))
+    normalised_positions[0] = 0.0
     normalised_positions[1:-1] = scatter1(arc.fprime, weights[1:-1])
-    normalised_positions[-1] = 1.
+    normalised_positions[-1] = 1.0
 
     return normalised_positions
 
