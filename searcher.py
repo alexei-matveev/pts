@@ -1622,7 +1622,7 @@ class GrowingString(ReactionPathway):
             mask[i] = 2
 
         dist =  new_abscissa(self.state_vec, mt.metric)
-        self._path_rep.regen_path_func(dist , self.state_vec)
+        self._path_rep.regen_path_func(dist, self.state_vec)
         pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
         places = self._path_rep.generate_beads( pos)
         self._state_vec = masked_assign(mask, self.state_vec, places)
@@ -1751,10 +1751,10 @@ class GrowingString(ReactionPathway):
             # for multiopt, this way it should work for all
             return
 
-        print "Respacing beads"
+        #print "Respacing beads"
         # respace the beads along the path
         dist =  new_abscissa(self.state_vec, mt.metric)
-        self._path_rep.regen_path_func(dist , self.state_vec)
+        self._path_rep.regen_path_func(dist, self.state_vec)
         # Reuse old abscissa, if CI does not tell others
 
         if self.climb_image and not self.ci_num == None:
