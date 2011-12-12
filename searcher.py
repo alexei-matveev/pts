@@ -1083,12 +1083,8 @@ class PathRepresentation(Path):
 
     @property
     def path_tangents(self):
-        SS, XS = self.nodes
-        ts = []
-        for s in SS:
-            ts.append(self.fprime(s))
-
-        return array(ts)
+        ss, xs = self.nodes
+        return array(map(self.fprime, ss))
 
     def regen_path_func(self, normalised_positions, state_vec):
         """Rebuild a new path function and the derivative of the path based on 
