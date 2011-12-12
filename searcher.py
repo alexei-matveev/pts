@@ -1075,9 +1075,6 @@ class PathRepresentation(Path):
         # vector of vectors defining the path
         self.__state_vec = array(state_vec)
 
-        # NOTE: here we assume that state_vec[i] is a 1D array:
-        self.__dimension = len(state_vec[0])
-
         # generate initial paramaterisation density
         self.__normalised_positions = array(positions)
 
@@ -1096,10 +1093,6 @@ class PathRepresentation(Path):
              ts.append(self.fprime(s))
 
         return array(ts)
-
-    @property
-    def dimension(self):
-        return self.__dimension
 
     def regen_path_func(self, normalised_positions, state_vec):
         """Rebuild a new path function and the derivative of the path based on 
