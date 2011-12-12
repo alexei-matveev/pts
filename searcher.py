@@ -955,10 +955,9 @@ class NEB(ReactionPathway):
         if len(reagents) == beads_count:
             self._state_vec = array(reagents)
         else:
-            pr = PathRepresentation(reagents, beads_count)
             weights = linspace(0.0, 1.0, beads_count)
             dist =  new_abscissa(reagents, mt.metric)
-            pr.regen_path_func(dist,  reagents)
+            pr = PathRepresentation(reagents, dist, beads_count)
             #Space beads along the path, as it is for start set all of them anew
             pos = generate_normd_positions(pr, weights, mt.metric)
             self._state_vec = pr.generate_beads( pos)
@@ -1071,7 +1070,7 @@ class PathRepresentation(Path):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, beads_count):
+    def __init__(self, state_vec, positions, beads_count):
 
         # vector of vectors defining the path
         self.__state_vec = array(state_vec)
@@ -1083,10 +1082,9 @@ class PathRepresentation(Path):
         self.__dimension = len(state_vec[0])
 
         # generate initial paramaterisation density
-        # TODO: Linear at present, perhaps change eventually
-        self.__normalised_positions = linspace(0.0, 1.0, len(self.__state_vec))
+        self.__normalised_positions = array(positions)
 
-        self._funcs_stale = True
+        self._funcs_stale = False
         self._integrals_stale = True
 
         # FIXME: please provide matric as an argument, explicit is better than
@@ -1096,6 +1094,7 @@ class PathRepresentation(Path):
         # TODO check all beads have same dimensionality
 
         # use Path functionality:
+        # creates first path
         Path.__init__(self, self.__state_vec, self.__normalised_positions)
 
 
@@ -1404,8 +1403,11 @@ class GrowingString(ReactionPathway):
                 self.weights = weights
                 assert len(self.weights) == beads_count
 
+        # Build path function based on reagents
+        dist =  new_abscissa(reagents, mt.metric)
         # create PathRepresentation object
-        self._path_rep = PathRepresentation(reagents, initial_beads_count)
+        self._path_rep = PathRepresentation(reagents, dist, initial_beads_count)
+
         ReactionPathway.__init__(self, reagents, initial_beads_count, pes, parallel, result_storage,
                  reporting=reporting, output_level = output_level, climb_image = climb_image, start_climb = 5,
                  pmap = pmap, output_path = output_path, workhere = workhere)
@@ -1428,10 +1430,6 @@ class GrowingString(ReactionPathway):
         init()
 
         self.growth_mode = growth_mode
-
-        # Build path function based on reagents
-        dist =  new_abscissa(reagents, mt.metric)
-        self._path_rep.regen_path_func(dist, reagents)
 
         # Space beads along the path, as it is for start set all of them anew
         pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
