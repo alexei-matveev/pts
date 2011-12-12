@@ -1107,9 +1107,6 @@ class PathRepresentation(Path):
 
         return array(ts)
 
-    def positions_on_string(self):
-        return self.__normalised_positions
-
     def get_state_vec(self):
         return self.__state_vec
 
