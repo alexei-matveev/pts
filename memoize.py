@@ -647,8 +647,9 @@ class Elemental_memoize(Func):
 
         if self.workhere == 1:
             wds = global_distribution(xs1, self.last_xs_is)
+
         # compute missing results:
-        ys1 = self.pmap(self.memfun, zip(xs1,wds) )
+        ys1 = self.pmap(self.memfun, zip(xs1, wds))
 
         # store new results:
         for x, i, y in zip(xs1, wds, ys1):
@@ -664,19 +665,22 @@ class Elemental_memoize(Func):
                     print >> sys.stderr, "ERROR: invalid number to calculate in"
                     exit()
 
-        # return copies from the dictionary:
+        #
+        # Return copies from the dictionary:
+        #
         ys = []
         for x in xs:
             ys.append(copy(self.cache[x]))
 
-        # every ys is a tuple f, fprime
+        #
+        # Every "res"ult is a tuple (f, fprime)
+        #
         es = []
         gs = []
         for res in ys:
             e1, g1 = res
             es.append(e1)
             gs.append(g1)
-
 
         # FIXME: should we return two arrays?
         return es, gs
