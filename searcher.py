@@ -1085,7 +1085,6 @@ class PathRepresentation(Path):
         self.__normalised_positions = array(positions)
 
         self._funcs_stale = False
-        self._integrals_stale = True
 
         # FIXME: please provide matric as an argument, explicit is better than
         # implicit:
@@ -1113,7 +1112,6 @@ class PathRepresentation(Path):
     def set_state_vec(self, new_state_vec):
         self.__state_vec = array(new_state_vec).reshape(self.beads_count, -1)
         self._funcs_stale = True
-        self._integrals_stale = True
 
     state_vec = property(get_state_vec, set_state_vec)
 
@@ -1149,23 +1147,20 @@ class PathRepresentation(Path):
         """
 
         assert not self._funcs_stale
-        if self._integrals_stale:
-            a = self.__normalised_positions
-            N = len(a)
-            seps = []
-            def arc_fun(x):
-                # arc_dist_func needs also knowledge of some kind of metric
-                return self.__arc_dist_func(x, self.__metric)
+        a = self.__normalised_positions
+        N = len(a)
+        seps = []
+        def arc_fun(x):
+            # arc_dist_func needs also knowledge of some kind of metric
+            return self.__arc_dist_func(x, self.__metric)
 
-            for i in range(N)[1:]:
-                l, _ = scipy.integrate.quad(arc_fun, a[i-1], a[i])
-                seps.append(l)
+        for i in range(N)[1:]:
+            l, _ = scipy.integrate.quad(arc_fun, a[i-1], a[i])
+            seps.append(l)
 
-            self.seps = array(seps)
+        seps = array(seps)
 
-            self._integrals_stale = False
-
-        return self.seps
+        return seps
 
 
     def generate_beads(self, positions):
