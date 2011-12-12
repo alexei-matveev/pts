@@ -1371,7 +1371,7 @@ class GrowingString(ReactionPathway):
         # Build path function based on reagents
         dist =  new_abscissa(reagents, mt.metric)
         # create PathRepresentation object
-        self._path_rep = PathRepresentation(reagents, dist)
+        path_rep = PathRepresentation(reagents, dist)
         self.beads_count = initial_beads_count
 
         ReactionPathway.__init__(self, reagents, initial_beads_count, pes, parallel, result_storage,
@@ -1398,8 +1398,8 @@ class GrowingString(ReactionPathway):
         self.growth_mode = growth_mode
 
         # Space beads along the path, as it is for start set all of them anew
-        pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
-        self._state_vec = self._path_rep.generate_beads( pos)
+        pos = generate_normd_positions(path_rep, self.weights, mt.metric)
+        self._state_vec = path_rep.generate_beads( pos)
 
         self.parallel = parallel
 
@@ -1432,8 +1432,8 @@ class GrowingString(ReactionPathway):
 
     def update_tangents(self):
         dist =  new_abscissa(self.state_vec, mt.metric)
-        self._path_rep.regen_path_func(dist, self.state_vec)
-        return self._path_rep.path_tangents
+        path_rep = PathRepresentation(self.state_vec, dist)
+        return path_rep.path_tangents
 
     def get_forces(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -1542,10 +1542,10 @@ class GrowingString(ReactionPathway):
         mask[new_i] = 2
 
         dist =  new_abscissa(self.state_vec, mt.metric)
-        self._path_rep.regen_path_func(dist , self.state_vec)
-        pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
+        path_rep = PathRepresentation(self.state_vec, dist)
+        pos = generate_normd_positions(path_rep, self.weights, mt.metric)
         # Mask tells which beads a new (2), stay fixed (0) or should be updated(1)
-        places = self._path_rep.generate_beads( pos)
+        places = path_rep.generate_beads( pos)
         self._state_vec = masked_assign(mask, self.state_vec, places)
 
         self.initialise()
@@ -1609,9 +1609,9 @@ class GrowingString(ReactionPathway):
             mask[i] = 2
 
         dist =  new_abscissa(self.state_vec, mt.metric)
-        self._path_rep.regen_path_func(dist, self.state_vec)
-        pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
-        places = self._path_rep.generate_beads( pos)
+        path_rep = PathRepresentation(self.state_vec, dist)
+        pos = generate_normd_positions(path_rep, self.weights, mt.metric)
+        places = path_rep.generate_beads( pos)
         self._state_vec = masked_assign(mask, self.state_vec, places)
 
         # create a new bead_update_mask that permits us to set the state to what we want
@@ -1671,8 +1671,8 @@ class GrowingString(ReactionPathway):
         """
 
         dist =  new_abscissa(self.state_vec, mt.metric)
-        self._path_rep.regen_path_func(dist, self.state_vec)
-        seps = self._path_rep.get_bead_separations(metric)
+        path_rep = PathRepresentation(self.state_vec, dist)
+        seps = path_rep.get_bead_separations(metric)
         assert len(seps) == self.beads_count - 1
 
         seps_ = zeros(seps.shape)
@@ -1741,7 +1741,7 @@ class GrowingString(ReactionPathway):
         #print "Respacing beads"
         # respace the beads along the path
         dist =  new_abscissa(self.state_vec, mt.metric)
-        self._path_rep.regen_path_func(dist, self.state_vec)
+        path_rep = PathRepresentation(self.state_vec, dist)
         # Reuse old abscissa, if CI does not tell others
 
         if self.climb_image and not self.ci_num == None:
@@ -1749,13 +1749,13 @@ class GrowingString(ReactionPathway):
             # Thus no fear to interact with their changing rhos
             bd_pos = new_bead_positions(new_abscissa, self.bead_positions, self.ci_num)
         else:
-             bd_pos = generate_normd_positions(self._path_rep, self.weights, mt.metric)
+             bd_pos = generate_normd_positions(path_rep, self.weights, mt.metric)
 
         mask = deepcopy(self.bead_update_mask)
         if self.climb_image and not self.ci_num == None:
             mask[self.ci_num] = 0
         # Mask tells which beads a new (2), stay fixed (0) or should be updated(1)
-        places = self._path_rep.generate_beads( bd_pos)
+        places = path_rep.generate_beads( bd_pos)
         self._state_vec = masked_assign(mask, self.state_vec, places)
 
         self.respaces += 1
