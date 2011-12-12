@@ -3,8 +3,6 @@
 from sys import stderr, maxint, exit
 import inspect # unused?
 
-import scipy.integrate
-
 import logging
 from copy import deepcopy
 import pickle
@@ -1106,33 +1104,25 @@ class PathRepresentation(Path):
         # use Path functionality, on setting nodes a new parametrizaiton is generated:
         self.nodes = self.__normalised_positions, self.__state_vec
 
-
-    def __arc_dist_func(self, x, metric):
-
-        value, tangent = self.taylor(x)
-
-        return metric.norm_up(tangent, value)
-
     def get_bead_separations(self, metric):
         """Returns the arc length between beads according to the current 
         parameterisation.
         """
 
-        a = self.__normalised_positions
-        N = len(a)
-        seps = []
-        def arc_fun(x):
-            # arc_dist_func needs also knowledge of some kind of metric
-            return self.__arc_dist_func(x, metric)
+        #
+        # This is a Func(s(t), ds/dt) that computes the path length,
+        # here we use it to compute arc lengths between points on the
+        # path. Here "self" iherits a Path interface:
+        #
+        arc = Arc(self, norm=metric.norm_up)
 
-        for i in range(N)[1:]:
-            l, _ = scipy.integrate.quad(arc_fun, a[i-1], a[i])
-            seps.append(l)
+        arcs = array(map(arc, self.__normalised_positions))
 
-        seps = array(seps)
-
-        return seps
-
+        #
+        # This function is supposed to return pairwise distances, not
+        # comulative arc lengths:
+        #
+        return arcs[1:] - arcs[:-1]
 
     def generate_beads(self, positions):
         """
@@ -1172,8 +1162,10 @@ def generate_normd_positions(path, weights, metric):
     assert weights[0] == 0.
     assert weights[-1] == 1.
 
-    # this is a Func(s(t), ds/dt) that computes the path length, here we
-    # abuse it to provide the length of the tangent, ds/dt:
+    #
+    # This is a Func(s(t), ds/dt) that computes the path length, here
+    # we abuse it to provide the length of the tangent, ds/dt:
+    #
     arc = Arc(path, norm=metric.norm_up)
 
     # Other scatter variants are available, use the one with integrating
