@@ -1138,16 +1138,11 @@ class PathRepresentation(Path):
         indices as 2 in the update_mask.
         """
 
-        # use Path functionality:
-        pairs = map(self.taylor, positions)
-
-        bead_vectors, bead_tangents = zip(*pairs)
-
-        # convert to arrays:
-        bead_vectors = asarray(bead_vectors)
-        bead_tangents = asarray(bead_tangents)
-
-        return bead_vectors
+        #
+        # Uses only Path functionality, nothing specific to
+        # PathRepresentation:
+        #
+        return asarray(map(self, positions))
 
 def generate_normd_positions(path, weights, metric):
     """Returns a list of distances along the string in terms of the normalised
