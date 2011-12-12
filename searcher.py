@@ -1,26 +1,22 @@
 #!/usr/bin/env python
 
 from sys import stderr, maxint, exit
-import inspect
+import inspect # unused?
 
 import scipy.integrate
 
-from scipy import interpolate
-import tempfile, os
 import logging
 from copy import deepcopy
 import pickle
 from os import path, mkdir, chdir, getcwd
 
-# TODO: change to import numpy as np???
-from numpy import linalg, array, asarray, ceil, abs, sqrt, dot, size
-from numpy import empty, zeros, ones, linspace, arange
+from numpy import array, asarray, ceil, abs, sqrt, dot
+from numpy import zeros, linspace, arange
 from numpy import argmax
 
-from path import Path, Arc, scatter, scatter1
+from path import Path, Arc, scatter1
 from pts.memoize import Elemental_memoize
 
-from common import * # TODO: must unify
 import pts.common as common
 import pts
 import pts.metric as mt
@@ -639,7 +635,7 @@ class ReactionPathway(object):
         for i in range(len(self.state_vec))[2:]:
             t0 = self.state_vec[i-1] - self.state_vec[i-2]
             t1 = self.state_vec[i] - self.state_vec[i-1]
-            angles.append(vector_angle(t1, t0))
+            angles.append(common.vector_angle(t1, t0))
         return array(angles)
 
     def update_bead_separations(self):
@@ -1235,7 +1231,7 @@ def get_bead_positions_grad(Es, gradients, tangents, ps):
     for i, p in list(enumerate(ps))[1:-1]:
         dxds = tangents[i]
         dEdx = gradients[i]
-        dEds = numpy.dot(dEdx, dxds)
+        dEds = dot(dEdx, dxds)
 
         if Es[i-1] < Es[i] < Es[i+1] and dEds < 0:
             bad += 1
@@ -1264,7 +1260,7 @@ def get_bead_positions_grad(Es, gradients, tangents, ps):
 
         dxdp = tangents[i_max]
 
-        dEdp = numpy.dot(dEdx, dxdp)
+        dEdp = dot(dEdx, dxdp)
 
         if dEdp < 0:
             new_p = (ps[i_max-1] + ps[i_max]) / 2.0
@@ -1649,9 +1645,6 @@ class GrowingString(ReactionPathway):
 
         assert self.beads_count <= self.__final_beads_count
 
-        from scipy.optimize import fmin
-        from scipy.integrate import quad
-
         # Set up vector of fractional positions along the string.
         # TODO: this function should be unified with the grow_string_search()
         # at some point.
@@ -1775,7 +1768,7 @@ class GrowingString(ReactionPathway):
         to find out approximated path length it does not make
         sense to have it considered here
         """
-        from scipy.optimize import fmin
+
         assert self.climb_image and not self.ci_num == None
 
         x0 = x[self.ci_num]
