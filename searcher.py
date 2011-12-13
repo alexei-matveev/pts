@@ -530,8 +530,7 @@ class ReactionPathway(object):
                    's': abs(step_raw).max(),
                    's_ts_cumm': step_ts_estim_cumm,
                    's_max_cumm': step_max_bead_cumm,
-                   'ixhigh': self.bead_pes_energies.argmax()}# ,
-                   #'bead_positions': self.bead_positions}
+                   'ixhigh': self.bead_pes_energies.argmax()}
 
             bead_es = bead_gs = (self.beads_count - 2) * eg_calls + 2
             arc['bead_es'] = bead_es
@@ -1386,7 +1385,7 @@ class GrowingString(ReactionPathway):
 
 
     def search_string_init(self):
-        self.bead_positions = arange(self.beads_count) * 1.0 / (self.beads_count - 1.0)
+        pass
 
     def __len__(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
@@ -1469,14 +1468,14 @@ class GrowingString(ReactionPathway):
         else:
             self.beads_count += 1
 
-        
+        pos =  new_abscissa(self.state_vec, mt.metric)
         # Build piecewise bead density function
         _, es = self.energies
-        path = Path(es, self.bead_positions)
+        path = Path(es, pos)
         if energy_only:
-            self.bead_positions, new_i = get_bead_positions(path, self.bead_positions)
+            n_pos, new_i = get_bead_positions(path, pos)
         else:
-            self.bead_positions, new_i = get_bead_positions_grad(self.bead_pes_energies, self.bead_pes_gradients, self.update_tangents(), self.bead_positions)
+            n_pos, new_i = get_bead_positions_grad(self.bead_pes_energies, self.bead_pes_gradients, self.update_tangents(), pos)
 
         if new_i == self.beads_count - 2:
             moving_beads = [new_i-2, new_i-1, new_i]
@@ -1603,7 +1602,6 @@ class GrowingString(ReactionPathway):
 
     def growing_string_init(self):
         """
-        Sets bead_positions for searching string
         FIXME: Why not using a general setting of them?
         """
 
@@ -1615,9 +1613,6 @@ class GrowingString(ReactionPathway):
         fbc = self.__final_beads_count
         all_bead_ps = arange(fbc) * 1.0 / (fbc - 1)
         end = self.beads_count / 2.0
-        self.bead_positions = array([all_bead_ps[i] for i in range(len(all_bead_ps)) \
-            if i < end or i >= (fbc - end)])
-
 
     def lengths_disparate(self, metric):
         """Returns true if the ratio between the (difference of longest and 
@@ -1637,7 +1632,7 @@ class GrowingString(ReactionPathway):
         for i in range(len(seps))[1:]:
             seps_[i] = seps[i] + seps_[i-1]
 
-        assert len(seps_) == len(self.weights) - 1, "%s\n%s" % (seps_, self.bead_positions)
+        assert len(seps_) == len(self.weights) - 1, "%s\n%s" % (seps_, self.weights)
         diffs = abs(self.weights[1:] - seps_/seps.sum())
 
         return diffs.max() > self.__max_sep_ratio
