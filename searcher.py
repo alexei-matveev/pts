@@ -372,7 +372,8 @@ class ReactionPathway(object):
 
         """
 
-        rmsf = self.rmsf_perp[0]
+        rmsf = self.f_conv()[0]
+
         if self.eg_calls == 0:
             # because forces are always zero at zeroth iteration
             return
@@ -411,7 +412,7 @@ class ReactionPathway(object):
 
         """
 
-        f = self.maxf_perp
+        f = self.f_conv()[1]
 
         max_step = self.history.step(self.convergence_beads, self.steps_cumm)
         max_step = abs(max_step).max()
@@ -446,6 +447,14 @@ class ReactionPathway(object):
     def rmsf_perp(self):
         """RMS forces, not including those of end beads."""
         return common.rms(self.perp_bead_forces[1:-1]), [common.rms(f) for f in self.perp_bead_forces]
+
+    def f_conv(self):
+        """ forces for convergence test, not including those of end beads. first RMS forces, second maxforces"""
+        f = self.perp_bead_forces
+        if self.climb_image and not self.ci_num == None:
+            f[self.ci_num] = -self.bead_pes_gradients[self.ci_num]
+
+        return common.rms(f[1:-1]), abs(f[1:-1]).max()
 
     def pathpos(self):
         return None
