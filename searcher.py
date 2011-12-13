@@ -1174,16 +1174,14 @@ class PiecewiseRho:
             lg.error("a1 = %f, a2 = %f" % (self.a1, self.a2))
 
 
-def get_bead_positions(E, ps):
+def get_new_bead_number(E, ps):
     points = arange(ps[0], ps[-1], (ps[-1] - ps[0]) / 20.0)
 
     Es = array([E(p) for p in points])
     p_max = points[Es.argmax()]
 
-    new_p = -1
     for i in range(len(ps))[1:]:
         if ps[i] > p_max:
-            new_p = (ps[i-1] + ps[i] ) / 2.0
 
             new_i = i
 
@@ -1191,13 +1189,9 @@ def get_bead_positions(E, ps):
 
     assert new_p > 0, new_p
     
-    psa = ps.tolist()
-    new_ps = psa[:new_i] + [new_p] + psa[new_i:]
-    assert (array(new_ps).argsort() == arange(len(new_ps))).all()
-
-    return array(new_ps), new_i
+    return new_i
             
-def get_bead_positions_grad(Es, gradients, tangents, ps):
+def get_new_bead_number_grad(Es, gradients, tangents, ps):
 
     # perform safety check
     bad = 0
@@ -1212,19 +1206,17 @@ def get_bead_positions_grad(Es, gradients, tangents, ps):
             bad += 1
 
     if bad:
-        print "WARNING: %d errors in calculated gradients along path, get_bead_positions_grad() might give unreliable results" % bad
+        print "WARNING: %d errors in calculated gradients along path, get_new_bead_number_grad might give unreliable results" % bad
 #        assert False # for the time being...
 
     i_max = Es.argmax()
 
     if i_max == 0:
         print "WARNING: bead with highest energy is first bead"
-        new_p = (ps[i_max] + ps[i_max+1]) / 2.0
         new_i = 1
 
     elif i_max == len(Es) -1:
         print "WARNING: bead with highest energy is last bead"
-        new_p = (ps[i_max] + ps[i_max-1]) / 2.0
         new_i = i_max
 
     else:
@@ -1236,17 +1228,11 @@ def get_bead_positions_grad(Es, gradients, tangents, ps):
         dEdp = dot(dEdx, dxdp)
 
         if dEdp < 0:
-            new_p = (ps[i_max-1] + ps[i_max]) / 2.0
             new_i = i_max
         else:
-            new_p = (ps[i_max] + ps[i_max+1]) / 2.0
             new_i = i_max+1
 
-    psa = ps.tolist()
-    new_ps = psa[:new_i] + [new_p] + psa[new_i:]
-    assert (array(new_ps).argsort() == arange(len(new_ps))).all()
-
-    return array(new_ps), new_i
+    return new_i
 
 
 class GrowingString(ReactionPathway):
@@ -1473,9 +1459,9 @@ class GrowingString(ReactionPathway):
         _, es = self.energies
         path = Path(es, pos)
         if energy_only:
-            n_pos, new_i = get_bead_positions(path, pos)
+            new_i = get_new_bead_number(path, pos)
         else:
-            n_pos, new_i = get_bead_positions_grad(self.bead_pes_energies, self.bead_pes_gradients, self.update_tangents(), pos)
+            new_i = get_new_bead_number_grad(self.bead_pes_energies, self.bead_pes_gradients, self.update_tangents(), pos)
 
         if new_i == self.beads_count - 2:
             moving_beads = [new_i-2, new_i-1, new_i]
