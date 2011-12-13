@@ -1073,39 +1073,9 @@ class PathRepresentation(Path):
     """Supports operations on a path represented by a line, parabola, or a 
     spline, depending on whether it has 2, 3 or > 3 points."""
 
-    def __init__(self, state_vec, positions):
-
-        # vector of vectors defining the path
-        self.__state_vec = array(state_vec)
-
-        # generate initial paramaterisation density
-        self.__normalised_positions = array(positions)
-
-        # TODO check all beads have same dimensionality
-
-        # use Path functionality:
-        # creates first path
-        Path.__init__(self, self.__state_vec, self.__normalised_positions)
-
-
-    @property
     def path_tangents(self):
         ss, xs = self.nodes
         return array(map(self.fprime, ss))
-
-    def regen_path_func(self, normalised_positions, state_vec):
-        """Rebuild a new path function and the derivative of the path based on 
-        the contents of state_vec."""
-
-        assert len(normalised_positions) == len(state_vec), "%i != %i" % \
-              (len(normalised_positions), state_vec)
-        self.__normalised_positions = normalised_positions
-        self.__state_vec = state_vec
-
-        assert len(self.__state_vec) > 1
-
-        # use Path functionality, on setting nodes a new parametrizaiton is generated:
-        self.nodes = self.__normalised_positions, self.__state_vec
 
     def antiderivative(self, a, b, metric):
         """
@@ -1129,7 +1099,8 @@ class PathRepresentation(Path):
         #
         arc = Arc(self, norm=metric.norm_up)
 
-        arcs = array(map(arc, self.__normalised_positions))
+        ss, xs = self.nodes
+        arcs = array(map(arc, ss))
 
         #
         # This function is supposed to return pairwise distances, not
@@ -1432,7 +1403,7 @@ class GrowingString(ReactionPathway):
     def update_tangents(self):
         dist =  new_abscissa(self.state_vec, mt.metric)
         path_rep = PathRepresentation(self.state_vec, dist)
-        return path_rep.path_tangents
+        return path_rep.path_tangents()
 
     def get_forces(self):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
