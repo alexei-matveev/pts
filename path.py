@@ -6,16 +6,17 @@ Example use: define a few nodes, here four nodes in 2D:
 
     >>> path = ((-100., -100.), (0., -50.), (0., 50.), (100., 100.))
 
-and construct a path connecting them by default with 4-equidistant nodes
+and  construct a path  connecting them  by default  with 4-equidistant
+nodes
 
     >>> p = Path(path)
 
-This builds linear, quadratic or spline representation of the path,
+This builds  linear, quadratic or  spline representation of  the path,
 depending on the number of nodes.
 
 Now you can evaluate the path function at any point (between 0 and 1),
-the equidistant values 0, 1/3, 2/3 and 1 correspond to
-the four nodes we provided:
+the equidistant values 0, 1/3, 2/3  and 1 correspond to the four nodes
+we provided:
 
     >>> p(0)
     array([-100., -100.])
@@ -36,20 +37,21 @@ Rounding is only for tests to succeed despite the finite precision:
     >>> round(p(0.5), 10)
     array([ 0.,  0.])
 
-"Calling" a path function as above is equivalent to invoking
-the "value" method |f|:
+"Calling"  a path  function as  above  is equivalent  to invoking  the
+"value" method |f|:
 
     >>> p.f(0)
     array([-100., -100.])
 
-In addition the spline parametrization is used to efficently compute
-the tangential of the path. Get this by calling the "derivative" method |fprime|:
+In addition  the spline parametrization is used  to efficently compute
+the  tangential of  the path.  Get  this by  calling the  "derivative"
+method |fprime|:
 
     >>> p.fprime(0)
     array([ 650.,  -25.])
 
-Using the length of the tangential one can compute the arc length
-of the path section:
+Using the length  of the tangential one can compute  the arc length of
+the path section:
 
     >>> arc = Arc(p)
     >>> arc(0.0)
@@ -61,8 +63,8 @@ of the path section:
     >>> arc(0.5)
     173.76789748627249
 
-Using the reciprocal function |arg| one may reparametrize the
-path in units of arc-length:
+Using the reciprocal function |arg|  one may reparametrize the path in
+units of arc-length:
 
     >>> arg = Inverse(arc)
     >>> arg(arc(0.5))
@@ -73,9 +75,9 @@ path in units of arc-length:
     >>> round(p(arg(173.76789748627249)), 10)
     array([ 0.,  0.])
 
-To properly compose the path function p(x) and parametrization
-arg(s) so that the derivatives of the resulting function are
-also considered one may do:
+To properly compose the  path function p(x) and parametrization arg(s)
+so that the derivatives of  the resulting function are also considered
+one may do:
 
     >>> from func import compose
     >>> P = compose(p, arg)
@@ -86,9 +88,9 @@ also considered one may do:
     >>> P.fprime(173.76789748627249)
     array([-0.07974522,  0.99681528])
 
-The length of the resulting tangent is identically one because of
-the chosen parametrization. Note, that P is not a Path() but rather
-a Func() so that, for example, P.nodes will fail.
+The length of the resulting  tangent is identically one because of the
+chosen  parametrization. Note, that  P is  not a  Path() but  rather a
+Func() so that, for example, P.nodes will fail.
 
 A similar functionality is provided by the PathRepresentation class:
 
