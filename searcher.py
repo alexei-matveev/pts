@@ -1450,26 +1450,16 @@ class GrowingString(ReactionPathway):
 
         return i
 
-    def grown(self, max_beads_equiv=13):
+    def grown(self):
         """Returns true if the number of beads has reached the max allowed 
-        number, or if the interbead spacing has become smaller than would be
-        experienced if there were max_beads_equiv beads.
+        number
+
+        FIXME: There was also some test about interbead spaces for searching string,
+              Do we need such a thing? What was the difference to restricting the
+              number of allowed beads for searching string?
         """
 
-        ps = self.bead_positions
-
-        # This additional "finish growing" test makes only sense for
-        # Searching string, where the beads are set to refine the string
-        # Do not use it for growing string
-        if self.growth_mode == "search":
-            diffs = [ps[i+1] - ps[i] for i in range(self.beads_count-1)]
-            print "grown(): Difference in bead spacings:", diffs
-            min_diff = min(diffs)
-            too_closely_spaced = min_diff < 1.0 / (max_beads_equiv - 1.0)
-        else:
-            too_closely_spaced = False
-
-        return self.beads_count == self.__final_beads_count or too_closely_spaced
+        return self.beads_count == self.__final_beads_count
 
     def grow_string_search(self, energy_only=False):
         assert self.beads_count <= self.__final_beads_count
