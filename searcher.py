@@ -1703,47 +1703,6 @@ class GrowingString(ReactionPathway):
 
         self.respaces += 1
 
-
-    def ci_abscissa(self, x, metric):
-        """
-        Find a new abscissa for the climbing image, by thinking that its
-        step consists of a component perpendicular to the path and one
-        parallel to the path (here shortly in direction of parallel
-        tangent)
-        Find the component for the position of the old path, where this
-        parallel step is nearest to.
-
-        The paths defined in the PathRepresentation objects are not
-        metric invariant as they do not consider our metric. Thus 
-        to find out approximated path length it does not make
-        sense to have it considered here
-        """
-
-        assert self.climb_image and not self.ci_num == None
-
-        x0 = x[self.ci_num]
-
-        s_old = self.pathpos()[self.ci_num]
-        x_old = self.get_state_vec()[self.ci_num]
-
-        s_l = self.pathpos()[self.ci_num - 1]
-        s_r = self.pathpos()[self.ci_num + 1]
-
-        d_s_all = s_r - s_l
-        dx_l = x0 -  self.get_state_vec()[self.ci_num - 1]
-        dx_r = -x0 +  self.get_state_vec()[self.ci_num + 1]
-        fact = metric.norm_up(dx_l, x0) / (metric.norm_up(dx_l, x0) + metric.norm_up(dx_r, x0))
-
-        s_new = s_l + d_s_all * fact
-
-        if s_new >= 1. or s_new <= 0. \
-           or s_new <= s_l or s_new >= s_r:
-           print >> stderr, "WARNING: Got suspitious result for new climbing image abcissa"
-           print >> stderr, "         Reusing result from last iteration", s_old, "instead of ", s_new
-           s_new = s_old
-
-        return s_new
-
 # Testing the examples in __doc__strings, execute
 # "python gxmatrix.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
