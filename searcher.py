@@ -778,14 +778,14 @@ class ReactionPathway(object):
             t = mt.metric.lower(T, self.state_vec[i])
 
             # components of force parallel and orthogonal to the tangent:
-            para_force = - dot(T, g) / dot(T, t)
-            perp_force = - g - para_force * t
+            para_force = - dot(T, g) / sqrt(dot(T, t))
+            perp_force = - g - para_force * t / sqrt(dot(T, t))
 
             self.para_bead_forces[i] = para_force
             self.perp_bead_forces[i] = perp_force
 
         self.post_obj_func(True)
-        return self.para_bead_forces, self.perp_bead_forces
+        return -self.para_bead_forces, -self.perp_bead_forces
 
 
     def set_positions(self, x):
@@ -1039,9 +1039,9 @@ class NEB(ReactionPathway):
 
 
     def obj_func_grad(self):
-        __, f_perp = ReactionPathway.obj_func_grad(self)
+        g_para, g_perp = ReactionPathway.obj_func_grad(self)
 
-        result_bead_forces = zeros((self.beads_count, self.dimension))
+        result_bead_gradients = zeros((self.beads_count, self.dimension))
 #        print "pbf", self.perp_bead_forces.reshape((-1,2))
         tangents = self.update_tangents()
         for i in range(self.beads_count):
@@ -1049,26 +1049,26 @@ class NEB(ReactionPathway):
             if not self.bead_update_mask[i] == 1:
                 continue
 
-            total = f_perp[i]
+            total = g_perp[i]
 
+            t = mt.metric.lower(tangents[i], self.state_vec[i])
             # Climbing image is special case
             if self.climb_image and i == self.ci_num:
-                t = mt.metric.lower(tangents[i], self.state_vec[i])
-                total = total - self.para_bead_forces[i] * t
+                total = total - g_para[i] * t / sqrt(dot(t, tangents[i]))
             # no spring force for end beads
             elif i > 0 and i < self.beads_count - 1:
                 dx1 = self.bead_separations[i]
                 dx0 = self.bead_separations[i-1]
                 spring_force_mag = self.base_spr_const * (dx1 - dx0)
 
-                spring_force = spring_force_mag * tangents[i]
-                total = total + spring_force
+                spring_force = spring_force_mag * t / sqrt(dot(t, tangents[i]))
+                total = total - spring_force
 
 #            print "spring", spring_force
 
-            result_bead_forces[i] = total
+            result_bead_gradients[i] = total
 
-        g = -result_bead_forces.flatten()
+        g = result_bead_gradients.flatten()
         return g
 
     def obj_func(self):
@@ -1205,6 +1205,7 @@ def get_new_bead_number_grad(Es, gradients, tangents, ps):
     # perform safety check
     bad = 0
     for i, p in list(enumerate(ps))[1:-1]:
+        #Atttention: only sign needed, thus tangents need not be normed
         dxds = tangents[i]
         dEdx = gradients[i]
         dEds = dot(dEdx, dxds)
@@ -1646,36 +1647,27 @@ class GrowingString(ReactionPathway):
         # difference for climbing image case
         g_para, g_minimize = ReactionPathway.obj_func_grad(self)
 
-        result_bead_forces = zeros((self.beads_count, self.dimension))
+        result_bead_gradients = zeros((self.beads_count, self.dimension))
         if raw:
             from_array = self.bead_pes_gradients
         else:
             tangents = self.update_tangents()
-            #
-            # NOTE: update_tangents() is not implemented by this class!
-            #       Consult particular subclass.
-            #
-            #       Also note that at least in NEB the definition
-            #       of the tangent may depend on the relative bead energies.
-            #       Therefore update tangents only after self.bead_pes_energies
-            #       was updated first. Not sure about bead separations though.
-            #
             self.update_bead_separations()
 
-            from_array = -self.perp_bead_forces
+            from_array = g_minimize
 
             if self.climb_image and not self.ci_num == None:
                 assert self.bead_update_mask[self.ci_num] > 0
                 t = mt.metric.lower(tangents[self.ci_num], self.state_vec[self.ci_num])
-                g_minimize[self.ci_num] = g_minimize[self.ci_num] + g_para[self.ci_num] * t \
+                from_array[self.ci_num] = from_array[self.ci_num] - g_para[self.ci_num] * t \
                   / sqrt(dot(t, tangents[self.ci_num]))
 
         for i in range(self.beads_count):
             if self.bead_update_mask[i]  > 0:
-                result_bead_forces[i] = g_minimize[i]
+                result_bead_gradients[i] = from_array[i]
 
 #       print "result_bead_forces", result_bead_forces
-        g = result_bead_forces.flatten()
+        g = result_bead_gradients.flatten()
         return g
 
     def respace(self, metric, smart_abscissa=True):
@@ -1694,7 +1686,7 @@ class GrowingString(ReactionPathway):
             # In this case we want different bead positions for the complete string
             # As we want the CI to stay unchanged, and the other positions to be
             # adapted accordingly
-            p_ci = path_rep.antiderivative( 0, dist[self.ci_num], mt.metric)
+            p_ci = path_rep.antiderivative( 0, dist[self.ci_num], mt.metric) / path_rep.antiderivative( 0., 1., mt.metric)
             chang_weights = new_bead_positions(self.weights, p_ci, dist[self.ci_num], self.ci_num)
             bd_pos = generate_normd_positions(path_rep, chang_weights, mt.metric)
 
