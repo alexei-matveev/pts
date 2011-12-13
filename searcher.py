@@ -1107,28 +1107,27 @@ class PathRepresentation(Path):
         # use Path functionality, on setting nodes a new parametrizaiton is generated:
         self.nodes = self.__normalised_positions, self.__state_vec
 
+    def antiderivative(self, a, b, metric):
+        """
+        Integrates the interval from a to b, considering metric
+        """
+        arc = Arc(self, norm=metric.norm_up)
 
-    def __arc_dist_func(self, x, metric):
+        arcs = array(map(arc, [a, b]))
+        return arcs[1] - arcs[0]
 
-        value, tangent = self.taylor(x)
-
-        return metric.norm_up(tangent, value)
 
     def get_bead_separations(self, metric):
         """Returns the arc length between beads according to the current 
         parameterisation.
         """
 
-        a = self.__normalised_positions
-        N = len(a)
-        seps = []
-        def arc_fun(x):
-            # arc_dist_func needs also knowledge of some kind of metric
-            return self.__arc_dist_func(x, metric)
-
-        for i in range(N)[1:]:
-            l, _ = scipy.integrate.quad(arc_fun, a[i-1], a[i])
-            seps.append(l)
+        #
+        # This is a Func(s(t), ds/dt) that computes the path length,
+        # here we use it to compute arc lengths between points on the
+        # path. Here "self" iherits a Path interface:
+        #
+        arc = Arc(self, norm=metric.norm_up)
 
         arcs = array(map(arc, self.__normalised_positions))
 
