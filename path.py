@@ -92,157 +92,90 @@ The length of the resulting  tangent is identically one because of the
 chosen  parametrization. Note, that  P is  not a  Path() but  rather a
 Func() so that, for example, P.nodes will fail.
 
-A similar functionality is provided by the PathRepresentation class:
+A similar functionality is provided by the MetricPath class:
 
-FIXME: proper operation of PathRepresentation class needs these
-preparations:
+    >>> p = MetricPath(path)
 
-    >>> from copy import deepcopy
-    >>> from numpy import eye
-    >>> from func import Func
-    >>> from pts.metric import setup_metric
+Generate equidistant points on the path
 
-    >>> class identity(Func):
-    ...     def taylor(self, x):
-    ...         return deepcopy(x), eye(len(x))
+    >>> round(array(map(p, linspace(0.0, 1.0, 5))))
+    array([[-100., -100.],
+           [ -16.,  -84.],
+           [  -0.,    0.],
+           [  16.,   84.],
+           [ 100.,  100.]])
 
-    >>> setup_metric(identity())
+    >>> from numpy import max, abs
 
+Note the normalized path length parmeters of the original vertices are
+not equally spaced:
 
-    >>> p = PathRepresentation(path)
+    >>> ss, ys = p.nodes
+    >>> ss
+    array([ 0.        ,  0.35861009,  0.64138991,  1.        ])
+
+    >>> max(abs(ys - array(path)))
+    0.0
+
+    >>> max(abs(ys - array(map(p, ss)))) < 2.0e-14
+    True
+
+Below we test the "nonpublic" part of the MetricPath() interface:
+
     >>> p.arc(0.0)
     0.0
 
     >>> p.arc(1.0)
-    347.53579497254498
+    354.24859102964069
+
+This number is slightly different from the one obtained earlier with a
+Path(), 347.53579497254498, as  MetricPath() is different, though also
+passes  through  the same  vertices.   The  difference  arises from  a
+different choice of "abscissas". Same  holds for the arc length of the
+half the path:
 
     >>> p.arc(0.5)
-    173.76789748627249
+    177.12429551482035
 
-The inverse of the |arc| method is the |arg| method that gives you
-the spline-coordinate of the point separated from the origin by
-any arc length:
+The inverse of the |arc| method is the |arg| method that gives you the
+spline-coordinate of  the point separated  from the origin by  any arc
+length:
 
     >>> p.arg(p.arc(0.5))
     0.5
 
-    >>> p.arc(p.arg(173.76789748627249))
-    173.76789748627249
+    >>> p.arc(p.arg(177.12429551482035))
+    177.12429551482035
 
-Generate equidistant points on the path
-    >>> round(p.generate_beads(update=True))
-    array([[-100., -100.],
-           [  -2.,  -58.],
-           [   2.,   58.],
-           [ 100.,  100.]])
+Derivative  with  respect to  the  normalized  path  parameter is  the
+(unnormalized) tangent vector:
 
-without update=True the tangents would not have been updated:
+    >>> round(array(map(p.fprime, ss)))
+    array([[ 352.,  -40.],
+           [  50.,  351.],
+           [  50.,  351.],
+           [ 352.,  -40.]])
 
-    >>> round(p.path_tangents * 100)
-    array([[ 100.,   -4.],
-           [  28.,   96.],
-           [  28.,   96.],
-           [ 100.,   -4.]])
+Verify correctness of derivatives at the original vertices:
 
-You can use more points in the path if you decide so:
-
-    >>> p.beads_count = 5
-    >>> round(p.generate_beads())
-    array([[-100., -100.],
-           [ -17.,  -82.],
-           [   0.,    0.],
-           [  17.,   82.],
-           [ 100.,  100.]])
-
-Begin tests of new functionality added AFTER Alexei refactored original code.
-=============================================================================
-
-Straight path
-
-    >>> path = ((-100., -100.), (100., 100.))
-    >>> p = PathRepresentation(path, beads_count=3)
-    >>> p.generate_beads(update=True)
-    array([[-100., -100.],
-           [   0.,    0.],
-           [ 100.,  100.]])
-
-    >>> round(p.get_bead_separations())
-    array([ 141.,  141.])
-
-    >>> p.beads_count = 5
-    >>> p.generate_beads(update=True)
-    array([[-100., -100.],
-           [ -50.,  -50.],
-           [   0.,    0.],
-           [  50.,   50.],
-           [ 100.,  100.]])
-    >>> p.get_bead_separations().sum() == 2*(100*100 + 100*100)**(0.5)
+    >>> from func import NumDiff
+    >>> ts1 = array(map(p.fprime, ss))
+    >>> ts2 = array(map(NumDiff(p).fprime, ss))
+    >>> max(abs(ts1 - ts2)) < 1.0e-9
     True
-
-Symmetric parabola
-
-    >>> path = ((-100., 100.), (0., 0.), (100., 100.))
-    >>> p = PathRepresentation(path)
-    >>> p.beads_count = 10
-    >>> _ = p.generate_beads(update=True)
-
-    >>> length, _ = scipy.integrate.quad(lambda x: sqrt(1.0 + (0.02*x)**2), 0., 100.)
-    >>> round(p.get_bead_separations().sum() - 2*length, 6)
-    0.0
-
-Test using rho function that is not continuous...
-
-    >>> path = ((-100., -100.), (100., 100.))
-    >>> its = [0, 0.1, 0.2, 0.25, 0.9, 1]
-
-Construct a rho() made of peicewise constant functions...
-
-    >>> rho = RhoInterval(its)
-    >>> p = PathRepresentation(path, 6, rho)
-    >>> p.generate_beads(update=True)
-    array([[-100., -100.],
-           [ -80.,  -80.],
-           [ -60.,  -60.],
-           [ -50.,  -50.],
-           [  80.,   80.],
-           [ 100.,  100.]])
-
-    >>> seps = p.get_bead_separations()
-    >>> seps / seps.sum()
-    array([ 0.1 ,  0.1 ,  0.05,  0.65,  0.1 ])
-
-    >>> path = ((-100., 100.), (0,0), (0,10), (100., 100.))
-    >>> p = PathRepresentation(path, 6, rho)
-    >>> pts = p.generate_beads(update=True)
-
-    # do not generate output files during (and only for) docstrings
-    #>>> write_gplfile(p, 'gp1.txt')
-    >>> p = PathRepresentation(pts, 6, rho, xs=[0, 0.1, 0.2, 0.25, 0.9, 1])
-
-    #>>> write_gplfile(p, 'gp2.txt')
-    >>> p = PathRepresentation(pts, 6, rho)
-
-    #>>> write_gplfile(p, 'gp3.txt')
-    >>> p = PathRepresentation(pts, 6, rho, xs=[0, 0.08, 0.2, 0.25, 0.9, 1])
-
-    #>>> write_gplfile(p, 'gp4.txt')
-
-
-
 """
 
-__all__ = ["Path", "PathRepresentation"]
+__all__ = ["Path", "MetricPath"]
 
-import scipy.integrate
 from scipy.optimize import brentq as root
-#import matplotlib.pyplot as plt
 
-from numpy import linalg, array, dot, sqrt, arange
+from numpy import linalg, array, arange
 from numpy import asarray, empty, zeros, linspace
 
-from func import LinFunc, QuadFunc, SplineFunc, Func, RhoInterval
+from func import LinFunc, QuadFunc, SplineFunc, Func
 from func import Integral, Inverse
-import pts.metric as mt
+
+from common import pythag_seps, cumm_sum
 
 class Path(Func):
     """Supports operations on a path represented by a line, parabola, or a 
@@ -298,7 +231,7 @@ class Path(Func):
         """Evaluates the path point from the path parametrization.
         Here the x is the *spline* argument, NOT the (normalized) length or
         weighted length along the path.
-        FIXME: To use other path parametrization look into PathRepresentation class.
+        FIXME: To use other path parametrization look into MetricPath class.
         Same as __call__(self, x)
         """
 
@@ -567,34 +500,53 @@ class Arc(Integral):
 
         Integral.__init__(self, sprime)
 
+class MetricPath(Func):
+    """
+    This version uses normalized path length as path parameter. Though
+    it accepts  arbitrary metric as  a definiton of length  the actual
+    path,  due to  use  of  splines, is  not  invariant to  coordinate
+    transformaiton.
 
-class PathRepresentation(Path):
-    """Supports operations on a path represented by a line, parabola, or a 
-    spline, depending on whether it has 2, 3 or > 3 points.
+    The  MetircPath is  immutable,  the nodes  of  the MetricPath  are
+    read-only:
+
+        p = Path(ys, norm)
+        xs, ys = p.nodes
     """
 
-    def __init__(self, state_vec, beads_count = None, rho = lambda x: 1, xs=None):
+    def __init__(self, ys, norm=cartesian_norm):
 
-        if beads_count is None:
-            # default to the number of nodes:
-            self.beads_count = len(state_vec)
-        else:
-            self.beads_count = beads_count
+        #
+        # These numbers  will serve as a primary  path abscissas, they
+        # correlate but  do not equate with the  path length. Consider
+        # the  piecewise  linear zig-zag  path  and the  corresponding
+        # lengths of its sections:
+        #
+        xs = cumm_sum(pythag_seps(ys))
 
-            # If the specified beads count is different to the number of input 
-            # beads in state_vec, build a new state_vec containing the required 
-            # number of beads.
-            if beads_count != len(state_vec):
-                p = PathRepresentation(state_vec)
-                p.beads_count = beads_count
-                state_vec = p.generate_beads()
+        xs = xs / xs[-1]
+        assert xs[0] == 0.0
+        assert xs[-1] == 1.0
 
-        # construct the spline paramtrization of the path through the nodes
-        # in the |state_vec|:
-        Path.__init__(self, state_vec, xs=xs)
+        #
+        # This  is  the  primary  path  parmatrization:  it  generates
+        # linear/quadratic/spline representation of the path using the
+        # abscissas chosen  above for  the respective points  from the
+        # state vector:
+        #
+        p = Path(ys, xs)
 
-        self.__path_tangents = []
+        #
+        # We   delegate  the   control  over   details  of   the  path
+        # parametrization to function composition.  Both
+        #
+        #          Path(x) and  Path(x(s))
+        #
+        # run along the same path albeit the "distance" along the path
+        # is measured  differently every time: in units  of abscissa x
+        # or in path length s.
 
+        #
         # Next, prepare the two transforamtions:
         #
         #       s = arc(x): spline argument -> arc length of the path
@@ -605,204 +557,82 @@ class PathRepresentation(Path):
         #
         # by integrating the length of the path tangent.
         #
-        # The derivative of s(x) must be positive for s(x) to be invertible.
-        # This is the case for tangent length.
-        # It is assumed that s(0) = 0.
+        # The  derivative of  s(x) must  be  positive for  s(x) to  be
+        # invertible.   This is the  case for  tangent length.   It is
+        # assumed that s(0) = 0.
         #
 
-        # Pass integration criteria to scipy.integrate.quad() via **kwargs if desired:
-        self.arc = Arc(self)
-        self.arg = Inverse(self.arc)
+        # Pass  integration criteria  to  scipy.integrate.quad() via
+        # **kwargs if desired:
+        arc = Arc(p, norm)
+        arg = Inverse(arc)
 
         #
-        # arc(x,a) evaluates the (cartesian) path length from the path point
-        # parametrized by spline-argument |a| to the point parametrized by |x|.
-        # NOTE: this is NOT the general path weight, just its (cartesian) length.
+        # arc(x,a) evaluates the (cartesian) path length from the path
+        # point  parametrized  by  spline-argument  |a| to  the  point
+        # parametrized  by |x|.  NOTE:  this is  NOT the  general path
+        # weight, just its (cartesian) length.
         #
-        # The length of the tangential is by definition the derivative of the
-        # path length wrt spline argument:
+        # The length of the tangential is by definition the derivative
+        # of the path length wrt spline argument:
         #
-        #  ds / dx = |dp / dx| > 0  =>  s(x) is a monotonic (invertible) function
+        #  ds / dx = |dp / dx| > 0  =>  s(x)
         #
-        # arg(s) evaluates the path coordinate (spline argument) from the path arc distance
-        # from the origin.
-        # Note: x = arg(s) is inverse of the s = arc(x).
+        # is a monotonic  (invertible) function.  arg(s) evaluates the
+        # path coordinate (spline argument) from the path arc distance
+        # from the  origin.  Note: x  = arg(s) is  inverse of the  s =
+        # arc(x).  Similarly
         #
-        # Similarly
+        #  dx  /  ds =  |dp  /  dx|^-1 >  0  =>  x(s)
         #
-        #  dx / ds = |dp / dx|^-1 > 0  =>  x(s) is a monotonic (invertible) function
+        # is a  monotonic (invertible) function.   But we are  using a
+        # different, more straightforward, strategy.
         #
-        # but we are using a different, more straightforward, strategy.
-        #
-        # FIXME: anything better than Newton solver for inverse function?
-        #
-
-        self.set_rho(rho)
-
-        # Next, prepare the two transforamtions:
-        #
-        #       w = s2w(s): arc length -> arc weight
-        #
-        # and the reciprocal
-        #
-        #       s = w2s(w): arc weight -> arc length
-        #
-        # by integrating the weight function __rho
+        # FIXME:  anything  better  than  Newton  solver  for  inverse
+        # function?
         #
 
-        # Pass integration criteria to scipy.integrate.quad() via **kwargs if desired:
-        self.s2w = Integral(self.__rho)
-        self.w2s = Inverse(self.s2w)
-
         #
-        # FIXME: ultimately, we should delegate the control over details
-        # of the path parametrization to function composition.
-        # All of
-        #          Path(x), Path(x(s)), Path(x(s(w)))
+        # (Private) instance slots:  primary path parmatrization, norm
+        # definition, funciton converting length to abscissa and total
+        # path length:
         #
-        # run along the same path albeit the "distance" along the path
-        # is measured differently every time: in x, in s, or in w.
-        #
+        self.p = p
+        self.norm = norm
+        self.arc = arc
+        self.arg = arg
 
-
-        # Set the first time generate_beads() is called.
-        # Based on rho().
-        self._normd_positions = None
-        self._old_normd_positions = None
-
-        # temporatry wrapper for Path.nodes property.
-#       self.state_vec = self.nodes
-
-    def get_fs(self):
-        return self.__fs
-
-    @property
-    def path_tangents(self):
-        return self.__path_tangents
-
-    # Extra functions needed for drop-in usage in GrowingString method
-    def path_pos(self):
-        return (self._normd_positions, self._old_normd_positions)
-
-    def get_bead_separations(self):
-        N = self.beads_count
-        arcs = [self.arc(self._normd_positions[i]) for i in range(N)]
-        arc_pairs = [(arcs[i], arcs[i+1]) for i in range(N)[:-1]]
-        seps = [arc2 - arc1 for arc1, arc2 in arc_pairs]
-        return array(seps)
-
-    def update_tangents(self):
-        # This function should hopefully become redundant
-        pass
-
-
-    def generate_beads(self, update = False):
-        """Returns an array of the self.__beads_count vectors of the coordinates 
-        of beads along a reaction path, according to the established path 
-        (line, parabola or spline) and the parameterisation density."""
-
-        # For the desired distances along the string, find the values of the
-        # normalised coordinate that achive those distances.
-        normd_positions = self.__generate_normd_positions()
-
-        bead_vectors = []
-        bead_tangents = []
-        for str_pos in normd_positions:
-            bead_vectors.append(self.f(str_pos))
-            bead_tangents.append(self.tangent(str_pos))
-
-
-        # path nodes that are usually consistent with the path parametrization:
-        _xs, nodes = self.nodes
-        (reactants, products) = (nodes[0], nodes[-1])
-        bead_vectors = array([reactants] + bead_vectors + [products])
-        bead_tangents = array([self.tangent(0)] + bead_tangents + [self.tangent(1)])
-
-        if update:
-
-            self._old_normd_positions = self._normd_positions
-            self._normd_positions = [0.] + normd_positions + [1.]
-            #
-            # I think there is something tricky here: bead positions and
-            # bead tangents here were generated using the "old" path prametrization
-            #
-            #   p = p(x), t(x) = dp/dx / |dp/dx|.
-            #
-            # However now that we are about to change the state vector, the new
-            # path parametrization has to be generated (by regen_path_fun()).
-            # The new path is still passing through the points in the state array,
-            # but the tangents of the new path do not need to be preserved by
-            # a new parametrization. Similarly, but maybe less relevant, is that
-            # the beads are not "equidistant" on the new reparametrized path.
-            #
-
-            # currently this assumes to update the nodes of the Path but not
-            # to generate a new Path parametrization. Are we misusing parent class
-            # for bead storage here?
-            self.nodes = self._normd_positions, bead_vectors
-            #
-            # So, when is appropriate moment to reparametrize the path (regen_path_func())?
-            # Should it be initiated from the |state_vec| handler?
-            #
-
-            self.__path_tangents = bead_tangents
-            #
-            # And what tangents should be stored/calculated here?
-            # Consistent with the old or the new parametrization?
-            #
-
-        return bead_vectors
-
-    def dump_rho(self):
-        res = 0.02
-        print "rho: ",
-        for x in arange(0.0, 1.0 + res, res):
-            if x < 1.0:
-                print self.__rho(x),
-        print
-        raw_input("that was rho...")
-
-    def set_rho(self, new_rho):
-        """Set new bead density function, ensuring that it is normalised."""
-
-        int, err = scipy.integrate.quad(new_rho, 0.0, 1.0)
-
-        self.__rho = lambda x: new_rho(x) / int
-
-    def __generate_normd_positions(self):
+    # The next method implements the interface of Func(), however the
+    # path function is vector valued!
+    def taylor(self, s):
+        """Returns the path derivative with respect to normalized path
+        length s from the interval [0, 1].
+        """
 
         # full path length:
-        arc = self.arc(1.0)
-        self.path_len = arc
+        L = self.arc(1.0)
 
-        # full path weight:
-        s2w = Integral(lambda s: self.__rho(s / arc))
-        weight = s2w(arc) #self.s2w(arc)
+        # abscissa corresponding to normalized path length:
+        x = self.arg(s * L)
 
-        # shortcut for number of beads:
-        n = self.beads_count
+        # value and derivative of the primary path parametrization:
+        y, yprime = self.p.taylor(x)
 
-        # put n-2 points with these path weights from path origin:
-        weights = [ i * weight / (n - 1) for i in range(1, n - 1) ]
+        return y, yprime * L / self.norm(yprime, y)
 
-        # NOTE: these are unnormalized path arcs:
-        w2s = Inverse(s2w)
-        arcs = [ w2s(w) for w in weights ]
+    def get_nodes(self):
+        """Property handler, returns a tuple of arrays (xs, ys)
+        """
 
-        #  desired fractional positions along the string
-        return [ self.arg(s) for s in arcs ]
+        # primary path nodes:
+        xs, ys = self.p.nodes
 
-    def tangent(self, x):
-        """Returns the (normalized) tangent to the path at point x <- [0,1]."""
+        # full path length:
+        L = self.arc(1.0)
 
-        # NOT ANYMORE: to avoid things like array([[1],[2]]) flatten:
-        # Rather keep the shapes of p(x) and p.tangent(x) consistent:
-        t = self.fprime(x) #.flatten()
-        #FIXME: real norm? projection does not expect vector to have length
-        # any more
-        #t = t / linalg.norm(t)
-        t = t / mt.metric.norm_up(t, self.f(x))
-        return t
+        return array(map(self.arc, xs)) / L, ys
+
+    nodes = property(get_nodes)
 
 def write_gplfile(path, file):
     f = open(file, 'w')
