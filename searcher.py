@@ -875,7 +875,7 @@ class NEB(ReactionPathway):
     Was changed because beads are put differently, was before:
 
     >>> neb.obj_func_grad().round(3)
-    array([-0.   , -0.   , -0.291, -0.309,  0.327,  0.073, -0.   , -0.   ])
+    array([ 0.   ,  0.   , -0.291, -0.309,  0.327,  0.073,  0.   ,  0.   ])
 
     >>> neb.step
     (0.0, array([ 0.,  0.,  0.,  0.]), array([[ 0.,  0.],
@@ -885,7 +885,7 @@ class NEB(ReactionPathway):
 
     >>> neb.state_vec = [[0,0],[0.3,0.3],[0.9,0.9],[1,1]]
     >>> neb.obj_func_grad().round(3)
-    array([-0.   , -0.   , -0.282, -0.318,  0.714,  0.286, -0.   , -0.   ])
+    array([ 0.   ,  0.   , -0.282, -0.318,  0.714,  0.286,  0.   ,  0.   ])
 
     >>> neb.step[1].round(1)
     array([ 0. ,  0.1,  0.2,  0. ])
@@ -1252,20 +1252,22 @@ class GrowingString(ReactionPathway):
     >>> qc = pts.pes.GaussianPES()
     >>> s = GrowingString(path, qc,None, beads_count=4, growing=False, workhere=0)
     >>> s.state_vec.round(1)
-    array([[-0. , -0. ],
+    array([[ 0. ,  0. ],
            [ 0.3,  0.3],
            [ 0.7,  0.7],
            [ 1. ,  1. ]])
 
     >>> new = s.state_vec.round(2).copy()
     >>> s.obj_func()
-    -2.5882373808383816
+    -2.5717682661438515
 
     Was changed because of bead scattering changed, was before
     -2.5884273157684441
+    Changed again after change in abscissa calculation, was
+    -2.5882373808383816
 
     >>> s.obj_func_grad().round(3)
-    array([ 0.   ,  0.   ,  0.021, -0.021,  0.11 , -0.11 ,  0.   ,  0.   ])
+    array([ 0.   ,  0.   ,  0.022, -0.022,  0.113, -0.113,  0.   ,  0.   ])
 
     >>> s.step
     (0.0, array([ 0.,  0.,  0.,  0.]), array([[ 0.,  0.],
@@ -1277,13 +1279,15 @@ class GrowingString(ReactionPathway):
     # instead of looking at s.obj_func_grad directly
     >>> s.state_vec = new
     >>> a1 =  s.obj_func_grad()
-    >>> ac = array([ 0.        ,  0.        ,  0.02041863, -0.02041863,  0.10998242, -0.10998242,  0.        ,  0.        ])
+    >>> ac = array([ 0., 0., 0.02173917, -0.02173917, 0.11403271, -0.11403271, 0., 0.])
+
     >>> max(abs(a1 - ac)) < 1e-7
     True
     >>> array(s.step[1])
-    array([ 0.        ,  0.00162017,  0.00081008,  0.        ])
+    array([ 0.        ,  0.00333333,  0.00333333,  0.        ])
 
     Changed code of respacing, old results were:
+    array([ 0.        ,  0.00162017,  0.00081008,  0.        ])
     array([ 0.        ,  0.00158625,  0.00074224,  0.        ])
     array([ 0.        ,  0.00149034,  0.000736  ,  0.        ])
 
@@ -1291,7 +1295,7 @@ class GrowingString(ReactionPathway):
     >>> s.obj_func_grad().round(3)
     array([ 0.   ,  0.   ,  0.018, -0.018,  0.214, -0.214,  0.   ,  0.   ])
     >>> s.lengths_disparate(mt.metric)
-    False
+    True
 
     >>> s.eg_calls
     3
