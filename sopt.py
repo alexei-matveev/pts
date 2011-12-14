@@ -343,6 +343,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         iteration += 1
 
         if VERBOSE:
+            print "sopt: =============== Iteration ", iteration, " ==============="
             print "sopt: scheduling gradients for R="
             print R
 
