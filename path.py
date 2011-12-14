@@ -503,10 +503,10 @@ class MetricPath(Func):
     path,  due to  use  of  splines, is  not  invariant to  coordinate
     transformaiton.
 
-    The  MetircPath is  immutable,  the nodes  of  the MetricPath  are
+    The  MetricPath is  immutable,  the nodes  of  the MetricPath  are
     read-only:
 
-        p = Path(ys, norm)
+        p = MetricPath(ys, norm)
         xs, ys = p.nodes
     """
 
