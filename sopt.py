@@ -11,7 +11,7 @@ from numpy.linalg import norm as linalg_norm
 from bfgs import LBFGS, BFGS, Array
 from common import cumm_sum, pythag_seps
 
-VERBOSE = True
+VERBOSE = False
 
 TOL = 1.e-6
 
