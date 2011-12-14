@@ -625,6 +625,46 @@ def vectorize(f):
 
     return _f
 
+def lambda0(x, g, h, t, a):
+    """
+    Compute  Lagrange  multiplier  to  compensate  for  the  constrain
+    violation that would occur if the motion would proceed along
+
+        dx = - h * g.
+
+    In other words, find the lagrange factor lam such that
+
+        dx = - h * (g - lam * t)
+
+    is "orthogonal" to a
+
+        a' * dx = 0.
+
+    That is solve for lam in
+
+        lam * (a' * h * t) = (a' * h * g).
+
+    Input:
+        x -- geometry
+        g -- gradient
+        h -- hessian
+        t -- tangent
+        a -- constraint derivatives
+    """
+
+    #
+    # This would appliy the (inverse) hessian twice:
+    #
+    # lam = dot(a, h.inv(g)) / dot(a, h.inv(t))
+    #
+
+    # This applies hessian once:
+    ha = h.inv(a)
+
+    lam = dot(ha, g) / dot(ha, t)
+
+    return lam
+
 @vectorize
 def lambda1(x, g, h, t):
     """Find the lagrange factor lam such that
@@ -649,17 +689,11 @@ def lambda1(x, g, h, t):
     """
 
     #
-    # This would appliy the (inverse) hessian twice:
+    # The "constraint" to be satisfied is "no displacement along the
+    # tangent". FIXME: with a general metric the second "t" would need
+    # to be converted to covariant coordinates (aka lower index):
     #
-    # lam = dot(t, h.inv(g)) / dot(t, h.inv(t))
-    #
-
-    # This applies hessian once:
-    ht = h.inv(t)
-
-    lam = dot(ht, g) / dot(ht, t)
-
-    return lam
+    return lambda0(x, g, h, t, t)
 
 @vectorize
 def lambda2(x, g, h, t):
