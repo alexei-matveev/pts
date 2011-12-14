@@ -9,6 +9,7 @@ from numpy import array, asarray, empty, ones, dot, max, abs, sqrt, shape, linsp
 from numpy import vstack
 from numpy.linalg import norm as linalg_norm
 from bfgs import LBFGS, BFGS, Array
+from common import cumm_sum, pythag_seps
 
 VERBOSE = True
 
@@ -62,8 +63,8 @@ def tangent2(X):
 from path import Path
 
 def tangent3(X):
-    """For n geometries X[:] return n-2 tangents computed
-    from a fresh spline interpolation.
+    """For n geometries X[:] return n-2 tangents computed from a fresh
+    spline interpolation.
     """
 
     s = linspace(0., 1., len(X))
@@ -72,6 +73,21 @@ def tangent3(X):
 
     return map(p.fprime, s[1:-1])
 
+def tangent4(X):
+    """For  n geometries  X[:]  return n-2  tangents  computed from  a
+    different spline interpolation.
+    """
+
+    # abscissas of the nodes:
+    s = cumm_sum(pythag_seps(X))
+    s = s / s[-1]
+
+    assert s[0] == 0.0
+    assert s[-1] == 1.0
+
+    p = Path(X, s)
+
+    return map(p.fprime, s[1:-1])
 
 def test(A, B, trafo=None):
 
