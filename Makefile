@@ -52,7 +52,7 @@ manual :
 
 # run a doctest on the module, return failure if any of the tests fail:
 %.doctest: %.py
-	python -c "import $*, doctest, sys; errs, _ = doctest.testmod($*); sys.exit(bool(errs))"
+	(cd $(*D); python -c "import $(*F), doctest, sys; errs, _ = doctest.testmod($(*F)); sys.exit(bool(errs))")
 
 %.pyflakes: %.py
 	pyflakes $(<)
