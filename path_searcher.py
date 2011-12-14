@@ -37,28 +37,34 @@ cb_count_debug = 0
 
 
 def pathsearcher(atoms, init_path, funcart, **kwargs):
-    """Script-verison of find_path(), interprets and prints results to tty.
+    """
+    Script-verison  of find_path(), interprets  and prints  results to
+    tty.
 
-    It is possible to use the pathsearcher() function in a python script. It
-    looks like:
+    It  is possible  to use  the pathsearcher()  function in  a python
+    script. It looks like:
 
       from pts.inputs import pathsearcher
 
       pathsearcher(atoms, init_path, funcart, **kwargs)
 
-      * atoms is an ASE atoms object used to calculate the forces and energies of a given
-      (Cartesian) geometry. Be aware that it needs to have an calculator attached to it, which will
-      do the actual transformation.
-      Another possibility is to give a file in which calculator is specified separately as parameter.
-      (FIXME: this another possibility is vaguely specified)
+    * atoms is  an ASE atoms object  used to calculate  the forces and
+      energies of a given (Cartesian) geometry. Be aware that it needs
+      to have an  calculator attached to it, which  will do the actual
+      transformation.  Another possibility is  to give a file in which
+      calculator is  specified separately as  parameter.  (FIXME: this
+      another possibility is vaguely specified)
 
-      * init_path is an array containting for each bead of the starting path the internal coordinates.
+    * init_path is an array containting  for each bead of the starting
+      path the internal coordinates.
 
-      * funcart is a Func to transform internal to Cartesian coordinates. 
+    * funcart   is  a   Func  to   transform  internal   to  Cartesian
+      coordinates.
 
-      * the other parameters give the possibility to overwrite some of the default behaviour of the module,
-      They are provided as kwargs in here. For a list of them see defaults.py
-      They can be also specified in an input file given as paramfile.
+    * the other  parameters give the possibility to  overwrite some of
+      the default behaviour of the module, They are provided as kwargs
+      in here.  For a list  of them see  defaults.py They can  be also
+      specified in an input file given as paramfile.
     """
     # most parameters are stored in a dictionary, default parameters are stored in
     # defaults.py
