@@ -266,15 +266,15 @@ def find_path(pes, init_path
         #        equal to (then redundant) bead count. Or expect an
         #        interpolation Path as input.
         if len(init_path) != beads_count:
-            from pts.path import Path
+            from pts.path import MetricPath
             from numpy import linspace
-            ypath = map(Path(init_path), linspace(0., 1., beads_count))
+            ypath = map(MetricPath(init_path), linspace(0., 1., beads_count))
         else:
             ypath = array(init_path) # makes a copy
 
         geometries, stats = soptimize(pes, ypath, maxiter=40, maxstep=0.1, callback=cb)
         _, converged, _, _ = stats
-        abscissa  = None
+        abscissa = None
         energies, gradients = zip(*map(pes.taylor, geometries))
 
     # write out path to a file
