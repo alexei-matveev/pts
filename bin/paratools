@@ -123,8 +123,9 @@ def main(argv):
         valid_cmd = True
         minimize(argv[1:])
 
-    if cmd in ("string", "neb", "ci-neb", "growingstring", "searchingstring" ,\
-                "ci-string", "ci-growingstring", "ci-searchingstring"):
+    if cmd in ("string", "neb", "ci-neb", "growingstring", "searchingstring",
+               "ci-string", "ci-growingstring", "ci-searchingstring",
+               "sopt"):
         valid_cmd = True
 
         # import right here in order not to import everything,
