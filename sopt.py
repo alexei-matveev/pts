@@ -610,13 +610,18 @@ def gprime(h, G, H, G0, X0, tangents, lambdas):
     return -dG
 
 def vectorize(f):
-    """Array-version of f.  Used to build LOCAL lagrange factors.
+    """Array-version of f.  Used  to build LOCAL lagrange factors. For
+    any  function   f()  opearting  on  a  few   arguments  return  an
+    "elemental" function F, e.g.:
+
+    def F(X, G, H, T):
+        return map(f, X, G, H, T)
 
     FIXME: see if numpy.vectorize can be used
     """
 
-    def _f(X, G, H, T):
-        return map(f, X, G, H, T)
+    def _f(*args):
+        return map(f, *args)
 
     return _f
 
