@@ -184,48 +184,12 @@ class mb1(Func):
            phi = 2. * pi - phi
        return array([r, phi])
 
-class mb2(Func):
-   """
-   2 -> 2 variables
-   x1, y1 -> x, y
-   """
-   def __init__(self, par = 0.5):
-       self.par = par
-       assert self.par < 1.
-
-   def taylor(self, vec):
-       """
-       >>> fun = mb2()
-       >>> from pts.func import NumDiff
-       >>> from numpy import max, abs, dot, pi
-       >>> fun2 = NumDiff(mb2())
-       >>> x1 = array([1.,1.])
-       >>> x2 = array([1., 0.])
-       >>> x3 = array([0.01, 0.999 * pi])
-
-       >>> max(abs(fun.fprime(x1) - fun2.fprime(x1))) < 1e-12
-       True
-       >>> max(abs(fun.fprime(x2) - fun2.fprime(x2))) < 1e-12
-       True
-       >>> max(abs(fun.fprime(x3) - fun2.fprime(x3))) < 1e-12
-       True
-       """
-       v = zeros(2)
-       v[0] = vec[0] + (1.- self.par) * vec[1]
-       v[1] = vec[1] * self.par
-       dv = zeros((2,2))
-       dv[0,0] = 1.
-       dv[1,0] = 0.
-       dv[0,1] = (1.- self.par)
-       dv[1,1] = self.par
-
-       return v, dv
-
-   def pinv(self, v):
-       vec = zeros(2)
-       vec[1] = v[1] / self.par
-       vec[0] = v[0] - (1.- self.par) * vec[1]
-       return vec
+#
+# This one is here to make some tests work:
+#
+def mb2(par=0.5):
+     return Affine([[1.0, 1.0 - par],
+                    [0.0,       par]])
 
 class mb3(Func):
    """
