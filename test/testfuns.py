@@ -311,10 +311,10 @@ class Elliptic(Func):
         then transform it in the right direction.)
 
         default is with foci (-1,0) and (1,0)
-        >>> e = elliptic()
+        >>> e = Elliptic()
 
         >>> from pts.func import NumDiff
-        >>> num_e = NumDiff(elliptic())
+        >>> num_e = NumDiff(Elliptic())
 
         Here we know what to expect: nu = pi/2 means along second axis
         >>> y = array([1., pi/2.])
@@ -370,7 +370,7 @@ class Elliptic(Func):
         True
 
         Now check if the shift of center and orientation works correct:
-        >>> e = elliptic(f0 = array([0.3, -7.2]), f1 = array([8.0, 8.0]))
+        >>> e = Elliptic(f0 = array([0.3, -7.2]), f1 = array([8.0, 8.0]))
         >>> num_e = NumDiff(e)
 
         Test for some points
