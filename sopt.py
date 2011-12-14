@@ -861,13 +861,13 @@ def test1():
 
 # python fopt.py [-v]:
 if __name__ == "__main__":
-    # import doctest
-    # doctest.testmod()
+    import doctest
+    doctest.testmod()
 #   test1()
 #   exit()
     from pts.pes.mueller_brown import CHAIN_OF_STATES as P
     # from testfuns2 import mb2
     # trafo = mb2() #[[2.0, 0], [0.0, 0.5]])
-    test(P[0], P[4]) #, trafo)
+    # test(P[0], P[4]) #, trafo)
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
