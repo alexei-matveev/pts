@@ -271,7 +271,7 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=ca
     # expected to adhere to specific interface.
     #
     # By default Lagrange multipliers ensure displacements are orthogonal to
-    # tangents:
+    # tangents (lambda1):
     #
     lambdas = lambda1
 
