@@ -1,122 +1,131 @@
 #!/usr/bin/env python
 """
-This tool is the interface to the string and NEB methods. As they all share
-the same interface there is only this one for all of them, thus
-  paratools string --help
-  paratools path-searcher --help
+This tool is the interface to  the string and NEB methods. As they all
+share the same interface there is only this one for all of them, thus
 
-and so on will all lead here
+    paratools string --help
+    paratools path-searcher --help
+
+and so on will all lead here.
 
 Usage:
 
-  paratools string --calculator CALC GEOM1 GEOM2
-  paratools neb --calculator CALC GEOM1 GEOM2
-  paratools searchingstring --calculator CALC GEOM1 GEOM2
-  paratools growingstring --calculator CALC GEOM1 GEOM2
+    paratools string --calculator CALC GEOM1 GEOM2
+    paratools neb --calculator CALC GEOM1 GEOM2
+    paratools searchingstring --calculator CALC GEOM1 GEOM2
+    paratools growingstring --calculator CALC GEOM1 GEOM2
 
-For either string or NEB methods one needs to specify at least two geometries
-and the calculator.
+For either  string or NEB  methods one needs  to specify at  least two
+geometries and the calculator.
 
-GEOMETRY
+* GEOMETRY
 
-Geometries can be provided as files, which can be interpreted by ASE.
-They can be given in Cartesian coordinates files. Additionally the coordinates
-used during the optimization can be set to internal or mixed ones.
+Geometries can be provided as  files, which can be interpreted by ASE.
+They  can be given  in Cartesian  coordinates files.  Additionally the
+coordinates used  during the  optimization can be  set to  internal or
+mixed ones.
 
-To learn more about the possible geometry input and about the zmatrices do:
+To  learn  more  about  the  possible geometry  input  and  about  the
+zmatrices do:
 
-  paratools path-searcher --help geometries
+    paratools path-searcher --help geometries
 
-SETTING PARAMETERS
+* SETTING PARAMETERS
 
-The calculator is a compulsory parameter. Next to the geometry parameter there
-are many others which affect the program execution. It is only required to set them
-if they should be changed from the default values.
+The  calculator  is  a  compulsory  parameter. Next  to  the  geometry
+parameter there are many others which affect the program execution. It
+is  only required  to set  them  if they  should be  changed from  the
+default values.
 
 To get a list and explaination how to use them do:
 
-  paratools path-searcher --help parameter
+    paratools path-searcher --help parameter
 
 To see a list of their default values do:
 
-  paratools path-searcher --defaults
+    paratools path-searcher --defaults
 
-Additional informations can be taken from the minima ASE inputs. The ASE atoms
-objects may contain more informations than only the chemical symbols and the
-geometries of the wanted object. For example if reading in POSCARs there are
-additional informations as about the cell (pbc would be also set automatically
-to true in all directions). This informations can also be read in by this tool,
-if they are available, they are only used, if these variables still contain the
-default parameters. Additionally ASE can hold some constraints, which may be
-taken from a POSCAR or set directly. Some of them can be also used to generate
-a mask. This is only done if cartesian coordinates are used.
+Additional informations can  be taken from the minima  ASE inputs. The
+ASE atoms objects may contain more informations than only the chemical
+symbols  and the  geometries  of  the wanted  object.  For example  if
+reading in POSCARs there are additional informations as about the cell
+(pbc would be also set  automatically to true in all directions). This
+informations can also be read in  by this tool, if they are available,
+they  are only  used, if  these  variables still  contain the  default
+parameters. Additionally  ASE can hold some constraints,  which may be
+taken from a POSCAR or set directly.  Some of them can be also used to
+generate a mask. This is only done if cartesian coordinates are used.
 
-CALCULATOR
+* CALCULATOR
 
-The calculator can be given in ASE format. It can be set in the paramfile or in
-an own file via
+The  calculator can  be given  in ASE  format. It  can be  set  in the
+paramfile or in an own file via
 
   --calculator calc_file
 
-Additionally one can use some of the default specified calculators by for
-example:
+Additionally one can use some  of the default specified calculators by
+for example:
 
-  --calculator default_vasp
+    --calculator default_vasp
 
-The way to set up those calculators is given best on the ASE homepage at:
+The way to set up those  calculators is given best on the ASE homepage
+at:
 
-  https://wiki.fysik.dtu.dk/ase/ase/calculators/calculators.html#module-calculators
+    https://wiki.fysik.dtu.dk/ase/ase/calculators/calculators.html
 
-REUSE RESULTS FROM PREVIOUS CALCULATIONS
+* REUSE RESULTS FROM PREVIOUS CALCULATIONS
 
-It is possible to store the results of the quantum chemical calculations (which
-are the computational most expensive part of the calculation) in a
-ResultDict.pickle file. It is done by default for an output level with at least
-1. If a calculation with the same system should be done, or the system should
-be repeated, this results can be reused (the QC- program mustn't be changed, as
-well as the geometries of the two minima). To reuse this results say in the
-parameters:
+It  is  possible  to  store   the  results  of  the  quantum  chemical
+calculations (which  are the computational most expensive  part of the
+calculation) in a ResultDict.pickle file. It is done by default for an
+output level  with at least 1.  If a calculation with  the same system
+should be done, or the system  should be repeated, this results can be
+reused (the QC- program mustn't  be changed, as well as the geometries
+of the two minima). To reuse this results say in the parameters:
 
-  --cache filename
+    --cache filename
 
-filename should be directed on the file (with location) where the Results are
-stored. (For consitency with older versions of ParaTools it is also valid to
-use the parameter --old_result filename)
+filename  should be  directed on  the file  (with location)  where the
+Results are  stored. (For consitency with older  versions of ParaTools
+it is also valid to use the parameter --old_result filename)
 
-INITIAL PATH
+* INITIAL PATH
 
-One can provide the inital path by giving geometries as for the two minima
-(all in the same format, please). In this case the call of the method would be
-something like
+One can  provide the inital path  by giving geometries as  for the two
+minima (all in the same format,  please). In this case the call of the
+method would be something like
 
-  pathsearcher.py --parameter value minima1 bead2 bead3 bead4  minima2
+    pathsearcher.py --parameter value minima1 bead2 bead3 bead4  minima2
 
 or for example:
 
-  pathsearcher.py --parameter value POSCAR? POSCAR??
+    pathsearcher.py --parameter value POSCAR? POSCAR??
 
-The number of inital points and beads need not be the same.
-Be aware that there are sometimes differnet interpolations between two beads possible.
-So for example the dihedral angle (or the quaternion angle) have a 2*pi periodicity.
-The interpolation points between two same (Cartesian) geometries but with different of these
-angles should normally differ. Here the angles are choosen such that they differ of
-at least pi (the shortest possible way in these coordinates). If another path is wanted
-one needs to specify more points of the inital path to force the pathsearcher to
-take the wanted path (if two paths differ completly at the beginning they would hardly
-never converge to the same path at the end, thus it makes sense to make sure that
-the inital path is fitting)
+The number of inital points and  beads need not be the same.  Be aware
+that there  are sometimes  differnet interpolations between  two beads
+possible.  So for example the dihedral angle (or the quaternion angle)
+have a  2*pi periodicity.  The  interpolation points between  two same
+(Cartesian)  geometries  but with  different  of  these angles  should
+normally differ. Here the angles  are choosen such that they differ of
+at  least pi  (the shortest  possible  way in  these coordinates).  If
+another path is wanted one needs  to specify more points of the inital
+path to force  the pathsearcher to take the wanted  path (if two paths
+differ completly at the beginning  they would hardly never converge to
+the same path  at the end, thus  it makes sense to make  sure that the
+inital path is fitting)
 
-EXAMPLES
+* EXAMPLES
 
 A minimal one:
 
-  paratools searchingstring --calculator default_lj left.xyz right.xyz
+    paratools searchingstring --calculator default_lj left.xyz right.xyz
 
-Having several POSCAR's for the inital path (from POSCAR0 to POSCAR11). A
-parameterfile (called params.py) should hold some parameters, so especially the
-calculator) but ftol is anyway 0.07.
+Having  several  POSCAR's  for   the  inital  path  (from  POSCAR0  to
+POSCAR11).  A  parameterfile   (called  params.py)  should  hold  some
+parameters, so especially the calculator) but ftol is anyway 0.07.
 
-  paratools searchingstring --paramfile params.py --ftol 0.07 --name Hydration POSCAR? POSCAR??
+    paratools searchingstring --paramfile params.py --ftol 0.07 \\
+        --name Hydration POSCAR? POSCAR??
 """
 import ase
 from copy import deepcopy
