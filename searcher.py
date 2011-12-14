@@ -1196,8 +1196,6 @@ def get_new_bead_number(E, ps):
 
             break
 
-    assert new_p > 0, new_p
-    
     return new_i
             
 def get_new_bead_number_grad(Es, gradients, tangents, ps):
