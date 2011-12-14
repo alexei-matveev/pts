@@ -272,7 +272,7 @@ def find_path(pes, init_path
         else:
             ypath = array(init_path) # makes a copy
 
-        geometries, stats = soptimize(pes, ypath, maxiter=40, maxstep=0.1, callback=cb)
+        geometries, stats = soptimize(pes, ypath, callback=cb, **kwargs)
         _, converged, _, _ = stats
         abscissa = None
         energies, gradients = zip(*map(pes.taylor, geometries))

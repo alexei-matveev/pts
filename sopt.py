@@ -77,11 +77,11 @@ VERBOSE = False
 
 TOL = 1.e-6
 
-STOL = TOL   # step size tolerance
-GTOL = 1.e-5 # gradient tolerance
+XTOL = TOL   # step size tolerance
+FTOL = 1.e-5 # gradient tolerance
 CTOL = TOL   # constrain tolerance
 
-MAXITER = 50
+MAXIT = 50
 MAXSTEP = 0.05
 SPRING = 100.0
 
@@ -190,8 +190,8 @@ def test(A, B, trafo=None):
         print "spacing(x)=", spacing(x)
         show(x)
 
-#       x, stats = soptimize(MB, x, tangent1, spacing, maxiter=20, maxstep=0.1, callback=callback)
-        x, stats = soptimize(MB, x, tangent1, maxiter=20, maxstep=0.1, callback=callback)
+#       x, stats = soptimize(MB, x, tangent1, spacing, maxit=20, maxstep=0.1, callback=callback)
+        x, stats = soptimize(MB, x, tangent1, maxit=20, maxstep=0.1, callback=callback)
         savetxt("mb-path.txt-" + str(len(x)), x)
         show(x)
 
@@ -303,16 +303,20 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=ca
 
     return xm, stats
 
-def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
-        maxiter=MAXITER, maxstep=MAXSTEP, alpha=70., callback=None):
+def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
+         maxit=MAXIT, maxstep=MAXSTEP, alpha=70., callback=None,
+         **kwargs):
     """
     |fg| is supposed to be an elemental function that returns a tuple
 
         fg(X) == (values, derivatives)
-    
-    with values and derivatives being the arrays/lists of results
-    for all x in X. Note, that only the derivatives (gradients)
-    are used for optimization.
+
+    with values and derivatives  being the arrays/lists of results for
+    all x in  X. Note, that only the  derivatives (gradients) are used
+    for optimization.
+
+    Kwargs accomodates all arguments  that are not interpreted by this
+    sub but are otherwise used in other optimizers.
     """
 
     # init array of hessians:
@@ -331,7 +335,7 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
     # fixed trust radius:
     TR = maxstep
 
-    while not converged and iteration < maxiter:
+    while not converged and iteration < maxit:
         iteration += 1
 
         if VERBOSE:
@@ -351,7 +355,7 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
             H.update(R - R0, G - G0)
 
         #
-        # Convergency checking, based on gradients (gtol) ... {{{
+        # Convergency checking, based on gradients (ftol) ... {{{
         #
 
         # need tangents just for convergency check:
@@ -366,11 +370,11 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
         for i in xrange(len(G)):
             G2[i] = G[i] - LAM[i] * T[i]
 
-        if max(abs(G2)) < gtol:
+        if max(abs(G2)) < ftol:
             # FIXME: this may change after update step!
             converged = True
             if VERBOSE:
-                print "sopt: converged by force max(abs(G2)))", max(abs(G2)), '<', gtol
+                print "sopt: converged by force max(abs(G2)))", max(abs(G2)), '<', ftol
 
         if VERBOSE:
             print "sopt: obtained energies E=", asarray(E)
@@ -419,12 +423,12 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
             print "sopt: dR=", dR
 
         #
-        # Convergency check by step size (stol) ...
+        # Convergency check by step size (xtol) ...
         #
-        if max(abs(dR)) < stol:
+        if max(abs(dR)) < xtol:
             converged = True
             if VERBOSE:
-                print "sopt: converged by step max(abs(dR))=", max(abs(dR)), '<', stol
+                print "sopt: converged by step max(abs(dR))=", max(abs(dR)), '<', xtol
 
         # restrict the maximum component of the step:
         longest = max(abs(dR))
@@ -444,8 +448,8 @@ def sopt(fg, X, tangents, lambdas=None, stol=STOL, gtol=GTOL, \
             callback(R)
 
         if VERBOSE:
-            if iteration >= maxiter:
-                print "sopt: exceeded number of iterations", maxiter
+            if iteration >= maxit:
+                print "sopt: exceeded number of iterations", maxit
             # see while loop condition ...
 
     # also return number of interations, convergence status, and last values
