@@ -1,13 +1,21 @@
-from numpy import dot, array, asarray, matrix, size, shape
+from numpy import dot, array, asarray, size
 from numpy import sqrt
 from numpy import zeros, empty, eye
-from numpy import max, abs
-from numpy.linalg import solve
+from numpy import max, abs # used in doctests
+from numpy.linalg import solve, norm
 from copy import deepcopy
 
 
-__all__ = ["setup_metric", "metric"]
+__all__ = ["cartesian_norm", "setup_metric", "metric"]
 
+def cartesian_norm(dx, x):
+    """
+    Default  cartesian  norm of  |dx|,  |x|  is  ignored.  Works  with
+    arguments of  any shape,  not only with  1D arrays.   Emulates the
+    interface of norm_up/norm_down methods of the classes below.
+    """
+
+    return norm(dx)
 
 class Default:
     """
