@@ -16,33 +16,35 @@ from pts.func import compose
 from sys import argv
 
 """
-Using an Lennard Jones Cluster isomerie transformation to show some
-of ParaTools features.
-With testfun the cooordinate system is choosen, available are some
-zmatrices and a description with diagonals and hights, see below
-To see how the symmetry of forces vector is affected by the different
-noms use contraforce as test_what, pathsearcher will start an
-reaction path optimization.
+Using an Lennard Jones Cluster isomerie transformation to show some of
+ParaTools features.   With testfun the cooordinate  system is choosen,
+available  are some  zmatrices and  a description  with  diagonals and
+hights, see below To see how the symmetry of forces vector is affected
+by the different noms  use contraforce as test_what, pathsearcher will
+start an reaction path optimization.
 
 Usage:
-python test_nc.py <testfun>
+
+    python test_nc.py <testfun>
 
 With possible testfun:
- zmat : Zmat description of system
- zmate : Zmat extended with global parameters
- diaghigh : only diagonals and hight is given
- carts: Cartesian (same starting geometries as diaghigh)
- cartsred : Cartesians as carts but with fixed coordinates
- ztoc : Cartesians (starting geometries from zmat)
- ztoc_red : same as ztoc but with fixed coordinates
 
-For the pathsearcher testing we need a middle bead at the start also as else
-the main moving atom would behave unphysically.
+    zmat       Zmat description of system
+    zmate      Zmat extended with global parameters
+    diaghigh   only diagonals and hight is given
+    carts      Cartesian (same starting geometries as diaghigh)
+    cartsred   Cartesians as carts but with fixed coordinates
+    ztoc       Cartesians (starting geometries from zmat)
+    ztoc_red   same as ztoc but with fixed coordinates
 
-If the variable test_what is set to contraforce the symmetry of the forces can be
-tested. This makes only sense with testfun zmat or zmate. Here one can see that the
-metric Cartesian makes the contravariant force of zmate symmetric, while for the
-testfun zmat the metric Cartesian with reduction of global positions is needed.
+For the pathsearcher  testing we need a middle bead  at the start also
+as else the main moving atom would behave unphysically.
+
+If the  variable test_what is set  to contraforce the  symmetry of the
+forces  can be  tested. This  makes only  sense with  testfun  zmat or
+zmate.  Here  one  can  see   that  the  metric  Cartesian  makes  the
+contravariant force of zmate symmetric, while for the testfun zmat the
+metric Cartesian with reduction of global positions is needed.
 """
 test_what = "pathsearcher"
 """
