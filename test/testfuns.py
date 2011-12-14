@@ -3,6 +3,42 @@ from pts.func import Func
 from math import cos, sin, acos, asin
 from numpy import cosh, sinh, arccosh
 from numpy import finfo
+from numpy.linalg import solve
+
+class Affine(Func):
+   """
+   Affine transformation.   If you ever  want to invert it,  it should
+   better be invertible. That was a insightful comment, wasn't it?.
+
+       >>> trafo = Affine([[1.0, 0.5], [0.0, 0.5]])
+
+       >>> x = array([1.0, 1.0])
+
+       >>> trafo(x)
+       array([ 1.5,  0.5])
+
+       >>> trafo.fprime(x)
+       array([[ 1. ,  0.5],
+              [ 0. ,  0.5]])
+
+       >>> x - trafo.pinv(trafo(x))
+       array([ 0.,  0.])
+   """
+
+   def __init__(self, m):
+      #
+      # Affine transformation matrix:
+      #
+      self.__m = array(m)
+
+   def f(self, x):
+       return dot(self.__m, x)
+
+   def fprime(self, x):
+       return self.__m.copy()
+
+   def pinv(self, y):
+       return solve(self.__m, y)
 
 class diagsandhight(Func):
      """
