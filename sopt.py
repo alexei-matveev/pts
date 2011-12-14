@@ -1,6 +1,68 @@
 #!/usr/bin/env python
 
 """
+Example use: define a few nodes, here four nodes in 2D, the same as in
+path.py:
+
+    >>> from numpy import asarray, arctan2, pi
+    >>> nodes = asarray(((-100., -100.), (0., -50.), (0., 50.), (100., 100.)))
+
+                                           + + B
+                                       + +     (100, 100)
+                                   + +
+                               + +
+                           + +
+                         +
+                        X
+                       +(0, 50)
+                       +
+                       +
+                        +
+                        (0, 0)
+                          +
+                          +
+                          +
+                        X
+                      + (0, -50)
+                  + +
+              + +
+          + +
+    A + +
+    (-100, -100)
+
+This  illustrates "arbitrarness"  in the  definition of  the tangents,
+basically there is  more than one way to plot  a "reasonable" path and
+the corresponding tangents:
+
+    >>> asarray(tangent1(nodes))
+    array([[ 0.89442719,  1.4472136 ],
+           [ 0.89442719,  1.4472136 ]])
+
+This is the angle in grads:
+
+    >>> arctan2(1.4472136, 0.89442719) / pi * 180
+    58.282525696859388
+
+    >>> asarray(tangent2(nodes))
+    array([[ 100.,  150.],
+           [ 100.,  150.]])
+
+    >>> arctan2(150., 100.) / pi * 180
+    56.309932474020215
+
+    >>> asarray(tangent3(nodes))
+    array([[  50.,  275.],
+           [  50.,  275.]])
+
+    >>> arctan2(275., 50.) / pi * 180
+    79.69515353123397
+
+    >>> asarray(tangent4(nodes))
+    array([[  42.2291236 ,  297.50776405],
+           [  42.2291236 ,  297.50776405]])
+
+    >>> arctan2(297.50776405, 42.2291236) / pi * 180
+    81.921237154537607
 """
 
 __all__ = []
