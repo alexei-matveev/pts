@@ -179,7 +179,7 @@ def new_abscissa(state_vec, metric):
     distances in metric for all the beads before, normed to 1.
     """
 
-    separations = common.pythag_seps(state_vec, metric)
+    separations = common.pythag_seps(state_vec, metric.norm_up)
 
     new_abscissa = common.cumm_sum(separations)
     new_abscissa /= new_abscissa[-1]
@@ -656,8 +656,12 @@ class ReactionPathway(object):
     def update_bead_separations(self):
         """Updates internal vector of distances between beads."""
 
+        # FIXME: why copy?
         v = self.state_vec.copy()
+
+        # FIXME: using default cartesian norm here:
         seps = common.pythag_seps(v)
+
         self.bead_separations = seps
         return seps
 

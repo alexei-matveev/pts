@@ -9,7 +9,7 @@ import logging
 
 import numpy
 from numpy import finfo
-from pts.metric import Default
+from pts.metric import cartesian_norm
 
 import pts
 
@@ -400,7 +400,7 @@ def atom_atom_dists(v):
 
     return output
 
-def pythag_seps(vs, metric = Default(None)):
+def pythag_seps(vs, norm=cartesian_norm):
     """Returns pythagorean distances  between vectors in a list/vector
     of vectors.
 
@@ -415,7 +415,7 @@ def pythag_seps(vs, metric = Default(None)):
     N = len(vs)
     subs = [vs[i] - vs[i-1] for i in range(1, N)]
     vm = [0.5 * (vs[i] + vs[i-1]) for i in range(1, N)]
-    return numpy.array([metric.norm_up(sub, vi) for sub, vi in zip(subs, vm)])
+    return numpy.array([norm(sub, vi) for sub, vi in zip(subs, vm)])
 
 def cumm_sum(list):
     """Cumulative sum
