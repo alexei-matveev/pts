@@ -518,7 +518,7 @@ class MetricPath(Func):
         # the  piecewise  linear zig-zag  path  and the  corresponding
         # lengths of its sections:
         #
-        xs = cumm_sum(pythag_seps(ys))
+        xs = cumm_sum(pythag_seps(ys, norm))
 
         xs = xs / xs[-1]
         assert xs[0] == 0.0
