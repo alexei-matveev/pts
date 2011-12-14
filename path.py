@@ -169,13 +169,14 @@ __all__ = ["Path", "MetricPath"]
 
 from scipy.optimize import brentq as root
 
-from numpy import linalg, array, arange
+from numpy import array, arange
 from numpy import asarray, empty, zeros, linspace
 
 from func import LinFunc, QuadFunc, SplineFunc, Func
 from func import Integral, Inverse
 
 from common import pythag_seps, cumm_sum
+from metric import cartesian_norm
 
 class Path(Func):
     """Supports operations on a path represented by a line, parabola, or a 
@@ -472,11 +473,6 @@ def scatter2(rho, weights):
     arcs = [splev(p, spline, der=0) for p in weights]
 
     return array(arcs)
-
-def cartesian_norm(dx, x):
-    "Default cartesian norm of |dx|, |x| is ignored"
-
-    return linalg.norm(dx)
 
 class Arc(Integral):
     """Line integral of over path x(t):
