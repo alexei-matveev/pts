@@ -244,9 +244,28 @@ if test_what == "contraforce":
         print
 
 elif test_what == "pathsearcher":
-    # Let pathseracher optimize the path
-    pathsearcher(ar4, init_path, funcart = func, ftol = 0.01, maxit = 40, beads_count = 7, \
-    workhere = 0, output_level = 0, output_path = ".")
+    #
+    # Let pathseracher optimize the path:
+    #
+    print("\n* Default path searcher, 7 beads:\n")
+    conv, (xs, ts, es, gs) = pathsearcher(ar4, init_path, funcart = func, ftol = 0.01, maxit = 40, beads_count = 7, \
+                                              workhere = 0, output_level = 0, output_path = ".")
+    print "path=\n", xs
+    print "energies=\n", es
+    print "converged=\n", conv
+
+    print("\n* Experimental path searcher, 15 beads:\n")
+    conv, (xs, ts, es, gs) = pathsearcher(ar4, init_path, funcart = func,
+                                          ftol = 0.01,
+                                          maxit = 40,
+                                          beads_count = 15,
+                                          method="sopt",
+                                          workhere = 0,
+                                          output_level = 0,
+                                          output_path = ".")
+    print "path=\n", xs
+    print "energies=\n", es
+    print "converged=\n", conv
 
 
 
