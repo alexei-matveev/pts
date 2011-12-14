@@ -262,7 +262,7 @@ class MultiOpt(ObjLog):
 
         r = self.atoms.state_vec.reshape(bs, -1)
         e = self.atoms.obj_func(individual=True)
-        ts = self.atoms.tangents.copy()
+        ts = self.atoms.update_tangents()
         g_raw = self.atoms.obj_func_grad(raw=True)
         g.shape = (bs, -1)
         g_raw.shape = (bs, -1)
