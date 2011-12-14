@@ -319,6 +319,10 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
     sub but are otherwise used in other optimizers.
     """
 
+    if VERBOSE:
+        print "sopt: xtol=", xtol, "ftol=", ftol, "maxit=", maxit, "maxstep=", maxstep
+        if len(kwargs) > 0:
+            print "sopt: ignored kwargs=", kwargs
     # init array of hessians:
     H = Array([ BFGS(alpha) for _ in X ])
 
