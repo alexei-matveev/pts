@@ -256,9 +256,11 @@ elif test_what == "pathsearcher":
 
     print("\n* Experimental path searcher, 15 beads:\n")
     conv, (xs, ts, es, gs) = pathsearcher(ar4, init_path, funcart = func,
-                                          ftol = 0.01,
-                                          maxit = 40,
                                           beads_count = 15,
+                                          ftol = 1.0e-8,
+                                          xtol = 1.0e-8,
+                                          maxstep = 0.3,
+                                          maxit = 42,
                                           method="sopt",
                                           workhere = 0,
                                           output_level = 0,
