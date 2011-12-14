@@ -11,33 +11,32 @@ where CMD is one of the following:
     frequencies         Compute frequencies by numerical
                         differentiation of forces
 
-    minimize            minimizes the geometry, default is
-                        by BFGS
-    dimer               transition state search with eigenmode
-                        using dimer method for finding lowest eigenmode
-    lanczos             transition state search with eigenmode
-                        using lanczos algorithm to find lowest eigenmode
+    minimize            minimizes the geometry, default is by BFGS
+    dimer               transition state search with eigenmode using
+                        dimer method for finding lowest eigenmode
+    lanczos             transition state search with eigenmode using
+                        lanczos algorithm to find lowest eigenmode
 
-    dimer-rotate        using dimer rotation for finding lowest eigenmode
-                        (no update steps for geometry)
-    lanczos-rotate      using lanczos algorithm to find lowest eigenmode
-                        (as dimer-rotate)
+    dimer-rotate        using dimer rotation for finding lowest
+                        eigenmode (no update steps for geometry)
+    lanczos-rotate      using lanczos algorithm to find lowest
+                        eigenmode (as dimer-rotate)
 
     neb                 Nudged Elastic Band calculation
     ci-neb              Nudged Elastic Band with climbing image
     string              String optimization, similar to NEB
     growingstring
     searchingstring
-    ci-string, ...      climbing image additional to string, works also with
-                        growingstring and searchingstring
+    ci-string,  ...     climbing image additional to string, works
+                        also with growingstring and searchingstring
     path-searcher       Is capable of doing all of the above
 
 
     make-path           interpolate a path without optimizing it
     jmol                show interpolated path with jmol
 
-    find-limit-path     Find first appearance where some limits are met
-                        in the output logfile
+    find-limit-path     Find first appearance where some limits are
+                        met in the output logfile
     path2plot           internal coordinate plot for some path
     path2tab            internal coordinates from path
     path2xyz            convert path to xyz file(s)
@@ -46,7 +45,8 @@ where CMD is one of the following:
     ts-and-mods         Shows TS estimates and mode vector for a path
     pp2ts-err           see error of ts_estimates of path to real TS
                         (given also as input)
-    min-iter            Gives iteration with minimal value from logfile
+    min-iter            Gives iteration with minimal value from
+                        logfile
 
 See subcommand specific help for syntax details.
 
@@ -235,32 +235,54 @@ def single_point(argv):
 def minimize(argv):
     """
     Usage:
+
         minimize --calculator <calculator file> <geometry file 1>
 
-    Gives back the output of the minimizer and the last geometry.
+    This should  give back  the output of  the minimizer and  the last
+    geometry.  This subcommand also accepts the following options:
 
-    accepts also the options:
-        --maxit <n>: runs maximal n iterations (default is 100)
-        --fmax  <fm>: is converged if max(f_on_atom) < fmax
-        --optimizer <opt>: uses opt for optimization, opt can be any of the optimizers
-                           specified by ASE, like LBGFS, BFGS, FIRE, GxOptimizer
-                           default is BFGS
-                           take care that GxOptimizer needs additional input files
-        --format <format>: uses format as input and output format for the geometry. This way the name
-                           of the input file can be arbitrary, else ASE tries to identify the format by
-                           the name. In this way the output geometry will be written into the file
-                           output_geometry
-        --atommask <mask> : only atoms set True in mask are optimized. This is done by reseting steps
-                            and adjusting forces, thus not by optimizing only in a subspace.
-                            Note that in most of the other routines masks are used to fix the variables,
-                            while in this context the atoms are fixed (Thus only one flag for each atom
-                            despite 3 in the other case)
-        --restart <file>  : The optimizer (except GxOptimizer) have the option of a restart file in which
-                            they store data, like the Hessian. This data allows by a restart of the calculation
-                            to take this informations into consideration. Be aware that they will still start
-                            with the geometry given to them and use the restart file only for additional informations.
-                            As default no such file is build, setting the restart option they store the data
-                            there, if it exist already when they start their calculation they do a restart.
+    --maxit <n>
+
+        Runs maximal n iterations (default is 100).
+
+    --fmax  <fm>
+
+        Is converged if max(f_on_atom) < fmax.
+
+    --optimizer <opt>
+
+        Uses opt  for optimization, opt  can be any of  the optimizers
+        specified by ASE, like  LBGFS, BFGS, FIRE, GxOptimizer default
+        is  BFGS take  care  that GxOptimizer  needs additional  input
+        files.
+
+    --format <format>
+
+        Uses format as input and  output format for the geometry. This
+        way  the name of  the input  file can  be arbitrary,  else ASE
+        tries  to identify the  format by  the name.  In this  way the
+        output geometry will be written into the file output_geometry.
+
+    --atommask <mask>
+
+        Only atoms  set True in mask  are optimized.  This  is done by
+        reseting steps  and adjusting  forces, thus not  by optimizing
+        only in a  subspace.  Note that in most  of the other routines
+        masks are used to fix the variables, while in this context the
+        atoms are fixed (Thus only one flag for each atom despite 3 in
+        the other case).
+
+    --restart <file>
+
+        The  optimizer  (except  GxOptimizer)  have the  option  of  a
+        restart file in which they  store data, like the Hessian. This
+        data  allows by  a restart  of  the calculation  to take  this
+        informations  into  consideration.  Be  aware  that they  will
+        still  start with  the  geometry  given to  them  and use  the
+        restart file only for  additional informations.  As default no
+        such file is build, setting  the restart option they store the
+        data  there,  if  it  exist  already  when  they  start  their
+        calculation they do a restart.
     """
     from pts.io.cmdline import get_options, get_calculator, get_mask
     from ase.io import read, write
