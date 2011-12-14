@@ -353,6 +353,11 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         G = asarray(G)
 
         #
+        # Need tangents just for convergency check and RPH:
+        #
+        T = tangents(R)
+
+        #
         # Update the hessian representation:
         #
         if iteration > 0: # only then R0 and G0 are meaningfull!
@@ -361,9 +366,6 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         #
         # Convergency checking, based on gradients (ftol) ... {{{
         #
-
-        # need tangents just for convergency check:
-        T = tangents(R)
 
         # lagrange multipliers (in simple case components of gradients parallel
         # to the tangents):
