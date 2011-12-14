@@ -17,6 +17,7 @@ src =	\
 	ridders.py \
 	npz.py \
 	func.py \
+	test/testfuns.py \
 	ode.py \
 	path.py \
         quat.py \
