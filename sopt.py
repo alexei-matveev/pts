@@ -181,26 +181,38 @@ def test(A, B, trafo=None):
         # print "chain spacing=", spacing(x)
         pass
 
+    from path import MetricPath # for respacing
+    from rc import Linear # as reaction coordinate
+    rcoord = Linear([1., -1.])
+
+    from metric import Metric
+    mt = Metric(rcoord)
+
     n = 3
     n_max = 30
     while True:
-        p = Path(x)
-        s = linspace(0., 1., n)
-        print "s=", s
+        #
+        # Respace vertices based on custom metric built from the
+        # definition of reaction coordinate:
+        #
+        p = MetricPath(x, mt.norm_up)
+        x = array(map(p, linspace(0., 1., n)))
 
-        x = array(map(p, s))
-
-        print "BEFORE, x=", x
+        print "BEFORE, rc(x)=", map(rcoord, x)
         show(x)
 
-        x = respace(x, tangent1, spacing)
-        print "RESPACE, x=", x
-        print "spacing(x)=", spacing(x)
-        show(x)
+        # x = respace(x, tangent4, spacing)
+
+        # print "RESPACE, x=", x
+        # print "spacing(x)=", spacing(x)
+        # show(x)
 
 #       x, stats = soptimize(MB, x, tangent1, spacing, maxit=20, maxstep=0.1, callback=callback)
-        x, stats = soptimize(MB, x, tangent1, maxit=20, maxstep=0.1, callback=callback)
+#       x, stats = soptimize(MB, x, tangent4, maxit=20, maxstep=0.1, callback=callback)
+        x, stats = soptimize(MB, x, tangent4, rc=rcoord, maxit=20, maxstep=0.1, callback=callback)
         savetxt("mb-path.txt-" + str(len(x)), x)
+
+        print "AFTER, rc(x)=", map(rcoord, x)
         show(x)
 
         if n < n_max:
@@ -215,7 +227,7 @@ def test(A, B, trafo=None):
 from func import Reshape, Elemental
 from memoize import Memoize
 
-def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=None, **kwargs):
+def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, callback=None, **kwargs):
     """
     Several choices for pmap argument to allow for parallelizm, e.g.:
 
@@ -228,6 +240,9 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=No
     for parallelizm and chdir-isolation of QM calculations.
 
     """
+
+    if rc is not None and constraints is not None:
+        assert False, "Provide either reaction coordinate, local, or collective constraints."
 
     n = len(x0)
     assert n >= 3
@@ -278,7 +293,11 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=No
     lambdas = lambda1
 
     #
-    # If constraints are provided, use those to define "lambdas":
+    # If global  (collective) constraints  are provided, use  those to
+    # define "lambdas".  So far Collective constraints is a length N-2
+    # vector valued function of all N vertices, including the terminal
+    # ones.   This  makes   them  suitable   for  solving   a  typical
+    # optimization problem when the terminal beads are frozen.
     #
     if constraints is not None:
         # real constraints require also the terminal beads:
@@ -287,7 +306,17 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=No
         # prepare function that will compute the largangian
         # factors for this particular constraint:
         lambdas = mklambda3(constraints)
-#       lambdas = mklambda4(constraints)
+
+    #
+    # If local constraints are provided, use them to define lambdas. A
+    # local  constraint is  a  (differentiable) function  of a  single
+    # vertex. We need at least one such function per vertex. Currently
+    # it is  assumed that  the terminal vertices  are frozen,  so that
+    # their local constraints are ignored.
+    #
+    if rc is not None:
+        local = [rc.taylor] * len(x0)
+        lambdas = mklambda0(local[1:-1])
 
     if callback is not None:
         callback = wrap1(callback, x0[0], x0[-1])
