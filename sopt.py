@@ -173,6 +173,14 @@ def test(A, B, trafo=None):
         else:
             show_chain(x)
 
+    from numpy import savetxt, loadtxt
+
+    def callback(x):
+        # show(x)
+        # savetxt("path.txt", x)
+        # print "chain spacing=", spacing(x)
+        pass
+
     n = 3
     n_max = 30
     while True:
@@ -204,16 +212,10 @@ def test(A, B, trafo=None):
             print "========================================================="
             break
 
-from numpy import savetxt, loadtxt
-
-def callback(x):
-    savetxt("path.txt", x)
-    print "chain spacing=", spacing(x)
-
 from func import Reshape, Elemental
 from memoize import Memoize
 
-def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=callback, **kwargs):
+def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=None, **kwargs):
     """
     Several choices for pmap argument to allow for parallelizm, e.g.:
 
