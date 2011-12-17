@@ -285,7 +285,7 @@ def soptimize(pes, x0, tangent=tangent1, constraints=None, pmap=map, callback=No
         constraints = wrap2(constraints, x0[0], x0[-1])
 
         # prepare function that will compute the largangian
-        # factors for this particular constran:
+        # factors for this particular constraint:
         lambdas = mklambda3(constraints)
 #       lambdas = mklambda4(constraints)
 
@@ -729,19 +729,29 @@ def lambda2(x, g, h, t):
 
     return lam
 
-def mklambda3(constr):
-    """Returns a function that generates lagrangian "forces" due
-    to the differentiable constrain from
+def mklambda3(constraints):
+    """
+    Returns a  function that generates lagrangian "forces"  due to the
+    differentiable constraints from
 
-        (X, G, H, T)
+        (X, G, H, T) == (geometry, gradient, hessian, tangents)
 
-    (geometry, gradient, hessian, tangents)
+    Here "constraints" are global constraints, that is a vector valued
+    differentiable function of all  vertices. This type of constraints
+    is  usefull to  enforce  "collective" constraints,  such as  equal
+    pairwise distances between neightboring vertices.
     """
 
     def lambda3(X, G, H, T):
 
-        # evaluate constraints and their derivatives:
-        c, A = constr(X)
+        #
+        # Evaluate  constraints  and  their derivatives.   Values  are
+        # neglected   as  we  assume   the  vertices   satisfy  target
+        # constraints  already.    This  is  more   like  "preserving"
+        # properties  rather than  "seeking" target  values  (cp.  the
+        # NEB-style springs in mklambda4):
+        #
+        c, A = constraints(X)
 
         # for historical reasons the main code is here:
         return glambda(G, H, T, A)
@@ -752,9 +762,7 @@ def mklambda4(springs, k=SPRING):
     """Returns a function that generates tangential "forces" due
     to the springs from provided arguments:
 
-        (X, G, H, T)
-
-    (geometry, gradient, hessian, and tangents)
+        (X, G, H, T) == (geometry, gradient, hessian, tangents)
     """
 
     def lambda4(X, G, H, T):
@@ -762,7 +770,11 @@ def mklambda4(springs, k=SPRING):
         # these are parallel components of gradients, to be removed:
         lam2 = lambda2(X, G, H, T)
 
-        # evaluate deviations from equilibrium:
+        #
+        # Evaluate deviations from  equilibrium. Here, the derivatives
+        # are  ignored, rather  the values  of the  "deformations", if
+        # different from zero, are  used to add tangential "forces":
+        #
         c, _ = springs(X)
 
         # instead add spring forces:
