@@ -5,6 +5,8 @@ as an example here:
 
 One equilibrium:
 
+    >>> from numpy import array, max, abs
+
     >>> w=0.39685026
     >>> A = array([[ w,  w,  w],
     ...            [-w, -w,  w],
@@ -148,8 +150,8 @@ __all__ = ["volume", "distance", "angle", "dihedral", \
            "Volume", "Distance", "Angle", "Dihedral"]
 
 from func import Func
-from numpy import array, zeros, shape, cross, dot, max, abs
-from numpy import sqrt, cos, sin, arccos
+from numpy import zeros, shape, cross, dot
+from numpy import sqrt, sin, arccos
 from numpy import hstack, vstack
 
 class Volume(Func):
@@ -162,6 +164,8 @@ class Volume(Func):
     Here "x" and "*" stay for cross- and dot-products respectively.
 
     An example:
+
+        >>> from numpy import array, max, abs
 
         >>> v = Volume()
 
@@ -227,6 +231,8 @@ class Distance(Func):
 
     An example:
 
+        >>> from numpy import array, max, abs
+
         >>> d = Distance()
 
         >>> x = array([(3., 0., 0.), (0., 4., 0.)])
@@ -280,6 +286,8 @@ class Angle(Func):
     """Angle between three points
 
     An example:
+
+        >>> from numpy import array, max, abs
 
         >>> a = Angle()
 
@@ -360,6 +368,8 @@ class Dihedral(Func):
     """Dihedral angle formed by four points
 
     An example:
+
+        >>> from numpy import array, max, abs
 
         >>> h = Dihedral()
 
@@ -511,6 +521,8 @@ class Difference(Func):
     """Difference of two Funcs (say distances or other internal coordinates)
 
     An example:
+
+        >>> from numpy import array, max, abs
 
         >>> x = array([(3., 0., 0.), (0., 4., 0.), (0., 4., 2.)])
 
