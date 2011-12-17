@@ -40,60 +40,52 @@ class Affine(Func):
    def pinv(self, y):
        return solve(self.__m, y)
 
-class diagsandhight(Func):
+def diagsandhight():
      """
-     Function diagsandhight: generates Cartesian coordinates (and the derivatives)
-     from given values for the two diagonals and the high between them.
-     The First two atoms will be situated on the X-Axis, equal far away from O.
-     The other two atoms will have the same on the Y-Axis, but they are shifted in z-direction
-     about hight.
+     Function diagsandhight: generates  Cartesian coordinates (and the
+     derivatives) from given values for the two diagonals and the high
+     between  them.  The  first  two  atoms will  be  situated on  the
+     X-Axis, equal far away from O.  The other two atoms will have the
+     same on  the Y-Axis,  but they are  shifted in  z-direction about
+     hight.
 
-     >>> fun = diagsandhight()
-     >>> from pts.func import NumDiff
-     >>> from numpy import max, abs
+     Function gets d1, d2 and h and calculates Cartesian coordinates
 
-     Verify the correctness of the analytical derivative:
-     >>> fun2 = NumDiff(diagsandhight())
-     >>> t = asarray([1., 1., 0.7])
-     >>> max(abs(fun.fprime(t) - fun2.fprime(t))) < 1e-12
-     True
+          d1 == vec[0] # diagonal with small changes
+          d2 == vec[1] # diagonal with large changes
+          h  == vec[2] # hight of two last atoms in z-direction
+
+     The corresponding four positions of atoms are:
+
+          [[ d1 / 2.,       0., 0.],
+           [-d1 / 2.,       0., 0.],
+           [      0.,  d2 / 2.,  h],
+           [      0., -d2 / 2.,  h]]
+
+     Example:
+
+          >>> f = diagsandhight()
+          >>> f(asarray([1., 1., 0.7]))
+          array([[ 0.5,  0. ,  0. ],
+                 [-0.5,  0. ,  0. ],
+                 [ 0. ,  0.5,  0.7],
+                 [ 0. , -0.5,  0.7]])
+
+      FIXME: choose a better name.
      """
-     def __init__(self):
-         """
-         The derivatives are always the same, thus store them
-         once.
-         """
-         self.tmat = asarray([[[ 0.5,   0., 0.],
-                               [  0.,   0., 0.],
-                               [  0.,   0., 0.]],
-                              [[-0.5,   0., 0.],
-                               [  0.,   0., 0.],
-                               [  0.,   0., 0.]],
-                              [[  0.,   0., 0.],
-                               [  0.,  0.5, 0.],
-                               [  0.,   0., 1.]],
-                              [[  0.,   0., 0.],
-                               [  0., -0.5, 0.],
-                               [  0.,   0., 1.]]])
 
-
-     def f(self, vec):
-         """
-         Function gets d1, d2 and h and calculates Cartesian coordinates
-         """
-         d1 = float(vec[0]) # diagonal with small changes
-         d2 = float(vec[1]) # diagonal with large changes
-         h = float(vec[2])  # hight of two last atoms in z-direction
-
-         return asarray([[d1 / 2., 0., 0.], [-d1 / 2., 0., 0.], [0., d2 / 2., h], [0., -d2 / 2., h]])
-
-     def fprime(self, vec):
-         """
-         The derivatives are constant
-         """
-         return self.tmat
-
-
+     return Affine([[[ 0.5,   0., 0.],
+                     [  0.,   0., 0.],
+                     [  0.,   0., 0.]],
+                    [[-0.5,   0., 0.],
+                     [  0.,   0., 0.],
+                     [  0.,   0., 0.]],
+                    [[  0.,   0., 0.],
+                     [  0.,  0.5, 0.],
+                     [  0.,   0., 1.]],
+                    [[  0.,   0., 0.],
+                     [  0., -0.5, 0.],
+                     [  0.,   0., 1.]]])
 
 class mb1(Func):
    """
