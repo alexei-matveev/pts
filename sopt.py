@@ -630,6 +630,37 @@ def vectorize(f):
 
     return _f
 
+def mklambda0(C):
+    """
+    Returns a  function that generates lagrangian "forces"  due to the
+    differentiable constraints C from
+
+        (X, G, H, T) == (geometry, gradient, hessian, tangents)
+
+    Here constraints C is a list of local constraints, each a function
+    of the corresponding vertex.   This type of constraints is usefull
+    to enforce local properties of  vertices, such as a bond length or
+    an  angle. Within  this  file it  is  assumed that  differentiable
+    funcitons  are implemented  as functions  returning a  tuple  of a
+    value and first derivatives.
+    """
+
+    def _lambda0(X, G, H, T):
+
+        #
+        # Evaluate  constraints  and  their derivatives.   Values  are
+        # neglected   as  we  assume   the  vertices   satisfy  target
+        # constraints  already.    This  is  more   like  "preserving"
+        # properties  rather than  "seeking" target  values  (cp.  the
+        # NEB-style springs in mklambda4):
+        #
+        A = [a for _, a in [c(x) for c, x in zip(C, X)]]
+
+        # for historical reasons the main code is here:
+        return map(lambda0, X, G, H, T, A)
+
+    return _lambda0
+
 def lambda0(x, g, h, t, a):
     """
     Compute  Lagrange  multiplier  to  compensate  for  the  constrain
