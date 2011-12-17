@@ -153,6 +153,36 @@ from func import Func
 from numpy import zeros, shape, cross, dot
 from numpy import sqrt, sin, arccos
 from numpy import hstack, vstack
+from numpy import array, asarray
+
+class Linear(Func):
+    """
+    Trivial case of a  "reaction coordinate" --- linear combinaiton of
+    primary variables as such:
+
+        >>> x = asarray([1., 2., 3.])
+        >>> f = Linear([1.0, 10., 100.0])
+        >>> f(x)
+        321.0
+        >>> f.fprime(x)
+        array([   1.,   10.,  100.])
+    """
+    def __init__(self, m):
+        """
+        The matrix "m"  should have the same shape  as the argument of
+        the Linear Func.
+        """
+        self.__m = array(m)
+
+    def f(self, x):
+        x = asarray(x)
+
+        assert shape(x) == shape(self.__m)
+
+        return sum(x * self.__m)
+
+    def fprime(self, x):
+        return self.__m.copy()
 
 class Volume(Func):
     """For an array of 4 vectors x, return a measure of their
