@@ -1,5 +1,5 @@
 """
-Import minimization funciton:
+MB is a Func instance:
 
     >>> MB([ 0.62349942,  0.02803776])
     -108.16672411685232
@@ -12,6 +12,8 @@ Import minimization funciton:
 
     >>> MB([-0.05001084,  0.46669421])
     -80.767818129651189
+
+Import minimization funciton:
 
     >>> from scipy.optimize import fmin_l_bfgs_b as minimize
 
@@ -63,9 +65,8 @@ Simplex minimizer that does not require gradients:
     >>> p(bc)
     array([ 0.21577578,  0.29358769])
 
-Define a function that retunrs the square of the gradient,
-it has its minima at stationary points, both at PES minima
-and PES saddle points:
+Define a function that retunrs the  square of the gradient, it has its
+minima at stationary points, both at PES minima and PES saddle points:
 
     >>> from numpy import dot
     >>> def g2(x):
@@ -89,10 +90,11 @@ and PES saddle points:
     >>> energy(p(bc))
     -72.246871930853558
 
-The true TS between b and c is at (0.212, 0.293)
-with the energy -72.249 according to MB79.
+The  true TS between  b and  c is  at (0.212,  0.293) with  the energy
+-72.249 according to MB79.
 
 Test also dimer:
+
     >>> from pts.dimer import dimer
     >>> from pts.metric import Default
 
@@ -103,18 +105,20 @@ Test also dimer:
     ...
     Calculation is converged
 
-    We got the positions:
+We got the positions:
+
     >>> print "%5.4f %5.4f" % (res[0], res[1])
     0.2125 0.2930
 
-    But it has reached convergence
+But it has reached convergence
+
     >>> dict["trans_convergence"]
     True
     >>> print round(energy(res), 6)
     -72.24894
 
-But for another TS approximation between minima a and b
-the guess is much worse:
+But for another  TS approximation between minima a and  b the guess is
+much worse:
 
     >>> p = Path((a,b))
     >>> ab = fmin(lambda x: -energy(p(x)), 0.5)
@@ -132,9 +136,9 @@ the guess is much worse:
     >>> energy(p(ab))
     12.676227327570253
 
-The true TS between a and b is at  (-0.822, 0.624)
-with the energy -40.665 according to MB79 that is significantly
-further away than the maximum on the linear path between a and b.
+The true  TS between  a and b  is at  (-0.822, 0.624) with  the energy
+-40.665 according to MB79 that  is significantly further away than the
+maximum on the linear path between a and b.
 
     >>> ts1 = fmin(g2, [-0.8, 0.6])
     Optimization terminated successfully.
@@ -146,11 +150,11 @@ further away than the maximum on the linear path between a and b.
     >>> energy(ts1)
     -40.664843511462038
 
-So indeed tha path maximum p(ab) is not even close to a saddle point,
+So indeed tha path maximum p(ab)  is not even close to a saddle point,
 and the gradient minimization would even fail if starting from p(ab).
 
-To use a minimizer with gradients we need to compose functions AND the gradients
-consistent with the chain differentiation rule for this:
+To use a minimizer with gradients we need to compose functions AND the
+gradients consistent with the chain differentiation rule for this:
 
     q(x) = q(p(x))
 
@@ -162,10 +166,11 @@ Input is assumed to be a vector by l_bfgs_b minimizer:
 
     >>> def f(x): return -q.f( p.f(x[0]) )
 
-And this is no more than the chain differentiation rule, with
-type wrappers to make l_bfgs_b optimizer happy:
+And this  is no  more than the  chain differentiation rule,  with type
+wrappers to make l_bfgs_b optimizer happy:
 
-    >>> def fprime(x): return -dot( q.fprime( p.f(x[0]) ), p.fprime(x[0]) ).flatten()
+    >>> def fprime(x):
+    ...     return -dot(q.fprime(p.f(x[0])), p.fprime(x[0])).flatten()
 
 flatten() here has an effect of turning a scalar into length 1 array.
 
@@ -175,17 +180,17 @@ flatten() here has an effect of turning a scalar into length 1 array.
 
 (this converges after 10 func calls, compare with 26 in simplex method)
 
-The composition may be automated by a type Func() operating
-with .f and .fprime methods.
+The composition  may be automated by  a type Func()  operating with .f
+and .fprime methods.
 
     >>> from pts.func import compose
     >>> e = compose(q, p)
     >>> e(0.30661623), e.fprime(0.30661623)
     (12.676228284381487, array(8.8724010719257174e-06))
 
-Gives the same energy of the maximum on the linear path between a and b
-and almost zero gradient. To use it with minimizer one needs
-to invert the sign and wrap scalars/vectors into arrays:
+Gives the same energy of the  maximum on the linear path between a and
+b and  almost zero  gradient. To  use it with  minimizer one  needs to
+invert the sign and wrap scalars/vectors into arrays:
 
     >>> def f(x): return -e.f(x[0])
     >>> def fprime(x): return -e.fprime(x[0]).flatten()
@@ -194,9 +199,8 @@ to invert the sign and wrap scalars/vectors into arrays:
     >>> ab
     array([ 0.30661623])
 
-Build the approximate energy profile along the A-B path,
-use only seven points to evaluate MB79, both values
-and gradients:
+Build  the approximate  energy profile  along the  A-B path,  use only
+seven points to evaluate MB79, both values and gradients:
 
     >>> from numpy import linspace
     >>> xs      = linspace(0., 1., 7)
@@ -206,8 +210,8 @@ and gradients:
     >>> from pts.func import CubicSpline
     >>> e1 = CubicSpline(xs, ys, yprimes)
 
-Maximal difference between the real energy profile and
-cubic spline approximaton:
+Maximal difference  between the real  energy profile and  cubic spline
+approximaton:
 
     >>> xx = linspace(0., 1., 71)
     >>> errs = [abs(e(x) - e1(x)) for x in xx]
@@ -237,6 +241,7 @@ This is not much different from the previous result, 0.30661623.
     (-12.676228284381487, -12.632359891279457)
 
 Test also dimer:
+
     >>> res, dict = dimer(MB, array([-0.7, 0.5]), array([0.,1.]),
     ... Default(), dimer_distance = 0.001,
     ... start_step_length = 0.0003, max_step = 0.005 ) #doctest:+ELLIPSIS
@@ -244,11 +249,13 @@ Test also dimer:
     ...
     Calculation is converged
 
-    We got the positions:
+We got the positions:
+
     >>> print "%5.4f %5.4f" % (res[0], res[1])
     -0.8220 0.6243
 
-    But it has reached convergence
+But it has reached convergence
+
     >>> dict["trans_convergence"]
     True
     >>> print round(energy(res), 6)
