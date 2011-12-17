@@ -98,7 +98,7 @@ Test also dimer:
     >>> from pts.dimer import dimer
     >>> from pts.metric import Default
 
-    >>> res, dict = dimer(MB, array([0.2, 0.3]), array([0.,1.]),
+    >>> res, info = dimer(MB, array([0.2, 0.3]), array([0.,1.]),
     ... Default(), dimer_distance = 0.001, trial_step = 0.0003,
     ... start_step_length = 0.01, max_step = 0.001 ) #doctest:+ELLIPSIS
     Intermediate steps ...
@@ -112,7 +112,7 @@ We got the positions:
 
 But it has reached convergence
 
-    >>> dict["trans_convergence"]
+    >>> info["trans_convergence"]
     True
     >>> print round(energy(res), 6)
     -72.24894
@@ -242,7 +242,7 @@ This is not much different from the previous result, 0.30661623.
 
 Test also dimer:
 
-    >>> res, dict = dimer(MB, array([-0.7, 0.5]), array([0.,1.]),
+    >>> res, info = dimer(MB, array([-0.7, 0.5]), array([0.,1.]),
     ... Default(), dimer_distance = 0.001,
     ... start_step_length = 0.0003, max_step = 0.005 ) #doctest:+ELLIPSIS
     Intermediate steps ...
@@ -256,7 +256,7 @@ We got the positions:
 
 But it has reached convergence
 
-    >>> dict["trans_convergence"]
+    >>> info["trans_convergence"]
     True
     >>> print round(energy(res), 6)
     -40.664844
