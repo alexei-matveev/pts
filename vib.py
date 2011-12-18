@@ -1,36 +1,37 @@
 #!/usr/bin/env python
 """
-  Module for calculating the frequencies of a system. The main routine is
+Module for calculating the frequencies  of a system.  The main routine
+is
 
-       vibmodes(atoms)
+    vibmodes(atoms)
 
-  atoms: atomic system to look at, the position of it has to be set (it will be
-  the place where the frequencies are calculated)
+    atoms: atomic system to look at,  the position of it has to be set
+    (it will be the place where the frequencies are calculated)
 
+    delta and direction  are values of the derivatef  function used to
+    build  up  the hessian  matrix  direction  =  'central' is  highly
+    recommended,  delta   gives  the  size  of  the   steps  taken  to
+    approximate the curvature
 
-      delta and direction are values of the derivatef function used to build up
-      the hessian matrix direction = 'central' is highly recommended, delta gives
-      the size of the steps taken to approximate the curvature
+    pmap says how the  different calculations needed for the numerical
+    approximating the hessian are calculated,  if it is a parallel map
+    function this  actions will be calculated in  parallel, as default
+    it is  set to a function  of the paramap module,  which runs every
+    calculation on its own process
 
-      pmap says how the different calculations needed for the numerical approximating
-      the hessian are calculated, if it is a parallel map function this actions will be
-      calculated in parallel, as default it is set to a function of the paramap module, which
-      runs every calculation on its own process
+The  computation  proceeds   by  calculating  numerically  the  second
+derivative of the energy (the hessian, by num. diff. of the forces).
 
-  The computation proceeds by calculating numerically the second derivative of
-  the energy (the hessian, by num. diff. of the forces).
+Parallelization is achieved by using one of the par-map functions from
+paramap.py for the running of all the jobs.
 
-  Parallelization is achieved by using one of the par-map functions from paramap.py
-  for the running of all the jobs.
-
-  First test the derivates of a function
+First test the derivates of a function
 
        >>> def g(x):
        ...     return [ 2 * x[0] * x[1] * x[2]  , x[1]**2 , x[2] ]
 
-
-  FIXME: for some reason the default pool-based pmap fails the doctests,
-  use a different implementation here:
+FIXME: for some reason the default pool-based pmap fails the doctests,
+use a different implementation here:
 
        >>> from paramap import pmap
        >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap=pmap, direction='forward')
@@ -51,13 +52,12 @@
         [ 2.    3.99 -0.  ]
         [ 4.   -0.    1.  ]]
 
-
-Ar4 Cluster as first simple atomic/molecule test system with
-  LennardJones-potential.
+Ar4  Cluster   as  first  simple  atomic/molecule   test  system  with
+LennardJones-potential.
 
     >>> from ase import Atoms
 
-  One equilibrium:
+One equilibrium:
 
     >>> w=0.39685026
     >>> A = ([[ w,  w,  w],
@@ -67,21 +67,22 @@ Ar4 Cluster as first simple atomic/molecule test system with
 
     >>> ar4 = Atoms("Ar4", A)
 
-  Define LJ-PES:
+Define LJ-PES:
 
     >>> from ase.calculators.lj import LennardJones
 
     >>> ar4.set_calculator(LennardJones())
 
-  Calculate the vibration modes
+Calculate the vibration modes
 
     >>> freqs, modes = vibmodes(ar4, workhere=True)
 
-  Frequencies in cm-1, note that some are truly imaginary:
+Frequencies in cm-1, note that some are truly imaginary:
 
-    >>> from numpy import round
+    >>> from numpy import round, array
 
-    Do not quarrel about line breaks, just compare the results
+Do not quarrel about line breaks, just compare the results
+
     >>> r_freqs = array([ 1248.65 +0.j ,    882.95 +0.j ,    882.95 +0.j ,    882.95 +0.j,
     ...   623.92 +0.j,     623.92 +0.j,       0.00 +0.j ,      0.00 +0.j,
     ...     0.00 +0.j,       0.00+17.58j,     0.00+17.58j,   0.00+17.58j])
@@ -100,8 +101,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> max(abs(cm(freqs) - r_freqs)) < 1e-2
     True
 
-
-  second test System: N-N with EMT calculator
+Second test System: N-N with EMT calculator
 
     >>> from ase.calculators.emt import EMT
 
@@ -130,8 +130,7 @@ Ar4 Cluster as first simple atomic/molecule test system with
     >>> max(abs(cm(freqs) - r_freqs)) < 1e-2
     True
 
-
-  For pretty-printing the frequencies use:
+For pretty-printing the frequencies use:
 
     >>> output(freqs)
     ====================================================
@@ -330,22 +329,7 @@ def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, give_ou
 
 def vibmod(mass, hessian):
     """
-    calculates the vibration modes in harmonic approximation
-
-    atoms is the atom system (ase.atoms) with positions set to the geometry, on which the
-    frequencies are wanted
-
-    func should do the gradient call on a given geometry
-
-    if pmap is choosen as a parallel variant, all gradient calculations will be performed
-    in parallel
-    direction = 'central' should be the most accurate one but 'forward'/'backward' needs
-    fewer calculations all together (but the results may be really much worse, compare the results
-    from the derivatef tests in the doctests.
-    delta is the defaultvalue for delta in the derivatef function
-
-    alsovec says that not only the frequencies of the mode but also the eigenvectors are
-    wanted
+    Calculates the vibration modes in harmonic approximation.
     """
     mass = asarray(mass)
 
@@ -361,14 +345,14 @@ def vibmod(mass, hessian):
     #
     #   A * V[:, i] = w[i] * M * V[:, i]
     #
-    # For symmetric H and symmetric M > 0 the eigenvalues are real
-    # and eigenvectors can be (and are) chosen orthogonal:
+    # For symmetric H and symmetric M > 0 the eigenvalues are real and
+    # eigenvectors can be (and are) chosen orthogonal:
     #
     eigvalues, eigvectors = geigs(hessian, mass)
 
     #
-    # Negative eigenvalues correspond to imaginary frequencies,
-    # for square root to work lift the real numbers to complex domain:
+    # Negative  eigenvalues correspond  to imaginary  frequencies, for
+    # square root to work lift the real numbers to complex domain:
     #
     freqs = sqrt(eigvalues + 0j)
     modes = eigvectors.T
@@ -379,7 +363,8 @@ def eV(w):
     "Convert frequencies to eV"
 
     # E = hbar * omega [eV] = hvar * [1/s]
-    # omega = sqrt(H /m), [H] = [kJ/Ang^2] , [m] = [amu], [omega] = [1/s] = [ J/m^2 /kg]
+    # omega = sqrt(H / m),
+    # [H] = [kJ/Ang^2], [m] = [amu], [omega] = [1/s] = [ J/m^2 /kg]
     ev = units._hbar * 1e10 / units.Ang * sqrt( units.kJ /( units._amu * 1000 ) )
 
     return w * ev
@@ -484,11 +469,10 @@ def geigs(A, B):
 
     # FIXME: for debug only:
     check_eigensolver(a, V, A, B)
-    # In this case V should be normed AND orthogonal
-    # so there is nothing else to do here
-    # a should be also sorted, but as we want
-    # the reversed order, and thus have to change there
-    # anyhow something, we can as well sort it again
+    # In  this case  V should  be normed  AND orthogonal  so  there is
+    # nothing else to do here a  should be also sorted, but as we want
+    # the  reversed  order,  and  thus  have to  change  there  anyhow
+    # something, we can as well sort it again
 
     # Bring the results in descending order:
     sorter = list(argsort(a, kind='mergesort'))
@@ -507,15 +491,25 @@ def funm(M, fun):
     return dot(V, dot(diag(fm), V.T))
 
 def main(argv):
-    """Usage:
+    """
+    Usage:
 
         frequencies --calculator <calculator file> <geometry file>
 
-        accepts also the options:
-           --num-procs  <n> : number of processors available
-           --alsovec    <True/False> : the eigenvector is also given back as output
-           --mask  string : string should contain the mask, which Cartesian coordinates should
-                            be fixed
+    accepts also the options:
+
+    --num-procs <n>
+
+        number of processors available
+
+    --alsovec <True|False>
+
+        the eigenvector is also given back as output
+
+    --mask string
+
+        string  should contain the  mask, which  Cartesian coordinates
+        should be fixed
     """
     from pts.io.cmdline import get_options, get_calculator, get_mask
     from pts.sched import Strategy
@@ -560,17 +554,19 @@ def main(argv):
     assert calculator != None
 
     atoms.set_calculator(calculator)
-    # calculate the vibration modes, gives also already the output (to stdout)
+    # calculate the vibration modes, gives also already the output (to
+    # stdout)
     if num_procs == None:
         # default values for paramap (pool_map does not need topology)
         vibmodes(atoms, mask = mask, give_output = go)
     else:
-        # use PMap with hcm strategy:
-        # num_procs should hold the number of procces available for the complete job
-        # they will be distributed as good as possible
+        # use PMap with HCM strategy: num_procs should hold the number
+        # of  procces available  for  the complete  job  they will  be
+        # distributed as good as possible
         sched = Strategy(topology = [num_procs], pmin = 1, pmax = num_procs)
-        # new paramap version, using this Strategy (the pmap topolgy specifications
-        # are put in environment variables, which could be used by the qm-program
+        # new paramap  version, using this Strategy  (the pmap topolgy
+        # specifications are put in environment variables, which could
+        # be used by the qm-program
         pmap = PMap3(strat = sched)
         vibmodes(atoms, pmap = pmap, mask = mask, give_output = go)
 
