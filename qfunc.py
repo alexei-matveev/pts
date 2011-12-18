@@ -110,7 +110,8 @@ class QFunc(Func):
 from pts.paramap import pmap
 
 class QMap(object):
-    """Apply (parallel) map with chdir() isolation for each evaluation.
+    """
+    Apply (parallel)  map with chdir() isolation  for each evaluation.
     Directories are created, if needed, following the format:
 
         format % i
@@ -123,28 +124,17 @@ class QMap(object):
 
     def __call__(self, f, xs):
 
-       def _f( args):
-           i, xj = args
-
-           # some arguments might include informations where this
-           # value belongs (another number than by enumerate)
-           # try if this is the case
-           try:
-               x, j = xj
-           except TypeError:
-               # if not enumerate will also ensure that there are no
-               # two calculations with the same number
-               x = xj
-               j = i
+       def _f(args):
+           i, x = args
 
            if self.format is not None:
-               dir = self.format % j
+               dir = self.format % i
            else:
-               dir ="."
+               dir = "."
 
            context = QContext(wd=dir)
            with context:
-               fx = f(xj)
+               fx = f(x)
 
            return fx
 
