@@ -207,10 +207,7 @@ def elemental_memoize(f, cache=None):
     def _f(xs):
 
         # collect those to be computed:
-        xs1 = []
-        for x in xs:
-            if x not in cache:
-                xs1.append(x)
+        xs1 = [x for x in xs if x not in cache]
 
         # compute missing results:
         ys1 = f(xs1)
@@ -220,9 +217,7 @@ def elemental_memoize(f, cache=None):
             cache[x] = y
 
         # return copies from the dictionary:
-        ys = []
-        for x in xs:
-            ys.append(copy(cache[x]))
+        ys = [cache[x] for x in xs]
 
         # FIXME: should we return an array?
         return ys
