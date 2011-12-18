@@ -140,6 +140,8 @@ class QMap(object):
 
        return self.pmap(_f, enumerate(xs))
 
+qmap = QMap()
+
 # a list of restartfiles that might be usefull to copy-in
 # for a warm-start of a calculation, if it is complete, no
 # modifications to ASE are necessary:
