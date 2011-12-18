@@ -16,8 +16,8 @@ Two functions with side effects:
     >>> fn = "/tmp/TeMpOrArY.pickle"
     >>> if path.exists(fn): unlink(fn)
 
-If you dont provide |filename|, cache will not be duplicated
-in file, thus reload will not be possible:
+If you dont provide |filename|,  cache will not be duplicated in file,
+thus reload will not be possible:
 
     >>> s = Memoize(Func(si, co), filename=fn)
 
@@ -186,15 +186,15 @@ def elemental_memoize(f, cache=None):
 
         elemental(memoize(f))
 
-    which is what you really wanted. However the behaviour
-    of the latter may differ from
+    which  is what  you really  wanted. However  the behaviour  of the
+    latter may differ from
 
         elemental_memoize(f)
 
-    in case elemental(g) is implemented in a "distributed" fashion
-    and actuall calls to g = memoize(f) that cache the results
-    happen on a remote host or in a separate interpreter without
-    cache updates propagating back.
+    in case elemental(g) is implemented in a "distributed" fashion and
+    actuall calls to g = memoize(f) that cache the results happen on a
+    remote  host or in  a separate  interpreter without  cache updates
+    propagating back.
     """
 
     # for each call to memoize, create a new cache
