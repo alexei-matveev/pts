@@ -1,6 +1,6 @@
 """
-This module provides conversion from z-matrix coordiantes
-to cartesian and back.
+This module provides conversion from z-matrix coordiantes to cartesian
+and back.
 
         Construct ZMat from a tuple representaiton of atomic
 
@@ -11,12 +11,14 @@ connectivities:
     >>> rep = [(None, None, None), (0, None, None), (0, 1, None)]
     >>> zm = ZMat(rep)
 
-The above may be abbreviated using Python notations
-for empty tuple, 1-tuple, and a 2-tuple as:
+The above may  be abbreviated using Python notations  for empty tuple,
+1-tuple, and a 2-tuple as:
 
     >>> zm = ZMat([(), (0,), (0, 1)])
 
 Values of internal coordinates have to be provided separately:
+
+    >>> from numpy import pi
 
     >>> h2o = (0.96, 0.96, 104.5 * pi / 180.0)
     >>> from numpy import round
@@ -25,8 +27,8 @@ Values of internal coordinates have to be provided separately:
      [ 0.96       0.         0.       ]
      [-0.2403648  0.        -0.9294217]]
 
-The entries may come in any order, but cross-referencing should
-be correct:
+The entries  may come  in any order,  but cross-referencing  should be
+correct:
 
     >>> rep = [(2, 1, None), (2, None, None), (None, None, None)]
     >>> zm = ZMat(rep)
@@ -58,9 +60,9 @@ The derivative matrix is given by fprime:
     >>> max(abs(zm.fprime(h2o) - zm1.fprime(h2o))) < 1.e-10
     True
 
-The |pinv| (pseudo-inverse) method of the ZMat() given the cartesian coordinates
-returns the internals according to the definition of connectivities
-encoded in ZMat().
+The |pinv|  (pseudo-inverse) method of the ZMat()  given the cartesian
+coordinates  returns  the internals  according  to  the definition  of
+connectivities encoded in ZMat().
 
 Compare |internals| and zm^-1( zm(internals) ):
 
@@ -68,13 +70,13 @@ Compare |internals| and zm^-1( zm(internals) ):
     >>> zm.pinv(zm(h2o)) - h2o
     array([ 0.,  0.,  0.])
 
-The "pseudo" in the pseudoinverse is to remind you that
-the cartesian to internal is not one-to-one:
+The "pseudo" in the pseudoinverse  is to remind you that the cartesian
+to internal is not one-to-one:
 
     >>> xyz = zm(h2o)
 
-Both |xyz| and translated |xyz| correspond to the same set
-of internal coordinates:
+Both |xyz| and translated |xyz| correspond to the same set of internal
+coordinates:
 
     >>> zm.pinv(xyz) - zm.pinv(xyz + array((1., 2., 3.)))
     array([ 0.,  0.,  0.])
@@ -120,8 +122,9 @@ Test consistency with the inverse transformation:
     >>> z4.pinv(z4(ch4)) - ch4
     array([ 0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.])
 
-The matrix containing the derivatives of the Cartesian coordinates
+The  matrix containing  the derivatives  of the  Cartesian coordinates
 with regard to the internal ones:
+
     >>> z41 = NumDiff(z4)
     >>> max(abs(z4.fprime(ch4) - z41.fprime(ch4))) < 1.e-10
     True
@@ -156,8 +159,8 @@ A surface model with three atoms at these positions:
 
     >>> slab = [[0., 0., 0.], [1., 0., 0.], [0., 1., 0.]]
 
-A ZMat() with one atom attached to the surface,
-referencing the indices of atoms in the "environment":
+A  ZMat() with  one  atom  attached to  the  surface, referencing  the
+indices of atoms in the "environment":
 
     >>> zm = ZMat([(1, 2, 3)], fixed=slab)
 
@@ -165,8 +168,8 @@ referencing the indices of atoms in the "environment":
 
     >>> r = (2.5, pi/2, -pi/2)
 
-Evaluation of the zmatrix at |r| will return four
-positions, including those of the "surface" atoms:
+Evaluation of the zmatrix at |r| will return four positions, including
+those of the "surface" atoms:
 
     >>> round(zm(r), 12)
     array([[ 0. ,  0. ,  2.5],
@@ -194,18 +197,18 @@ positions, including those of the "surface" atoms:
             [ 0. ,  0. ,  0. ],
             [ 0. ,  0. ,  0. ]]])
 
-Looking at the derivative matrix for a lager system,
-thus there will be more than one atom of the others
-be connected:
-The zmatrix correspond to one of a C2H3Pt6 system, like in the hydrogen
-shift reaction CH2CH -> CH3C on a Pt(1 1 1) surface, but the values set
-are not reasonable.
+Looking at the  derivative matrix for a lager  system, thus there will
+be  more  than one  atom  of the  others  be  connected.  The  zmatrix
+correspond  to one of  a C2H3Pt6  system, like  in the  hydrogen shift
+reaction CH2CH -> CH3C on a Pt(1  1 1) surface, but the values set are
+not reasonable.
 
     >>> bigone = ZMat([(), (0,), (0, 1,), (1, 0, 2), (3, 1, 0),
     ...           (4, 1, 0), (4, 3, 1), (6, 4, 3), (6, 4, 3),
     ...           (8, 6, 4), (8, 6, 4)])
 
 For testing purpose set all xvalues to 1:
+
     >>> xval = (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
     ...    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
     ...            1.0, 1.0, 1.0, 1.0, 1.0)
@@ -215,6 +218,7 @@ For testing purpose set all xvalues to 1:
     True
 
 Now set dihedrals to pi or 0, to observe system at this limits:
+
     >>> xval = (1.0, 1.0, 1.0, 1.0, 1.0, pi, 1.0, 1.0, 0.0, 1.0, 1.0,
     ...    1.0, 1.0, 1.0, 0.0, 1.0, 1.0, pi, 1.0, 1.0, pi, 1.0,
     ...            1.0, 0.0, 1.0, 1.0, 1.0)
@@ -559,6 +563,7 @@ class RT(Func):
 
     Set up a starting system (CH4)
 
+        >>> from numpy import pi
         >>> z = [(), (0,), (0, 1), (0, 1, 2), (0, 1, 2)]
         >>> ch, hch, hchh = 1.09, 109.5 / 180. * pi, 120. / 180. * pi
 
