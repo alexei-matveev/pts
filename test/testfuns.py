@@ -6,268 +6,267 @@ from numpy import finfo
 from numpy.linalg import solve
 
 class Affine(Func):
-   """
-   Affine transformation.   If you ever  want to invert it,  it should
-   better be invertible. That was a insightful comment, wasn't it?.
+    """
+    Affine transformation.  If  you ever want to invert  it, it should
+    better be invertible. That was a insightful comment, wasn't it?.
 
-       >>> trafo = Affine([[1.0, 0.5], [0.0, 0.5]])
+    >>> trafo = Affine([[1.0, 0.5], [0.0, 0.5]])
 
-       >>> x = array([1.0, 1.0])
+    >>> x = array([1.0, 1.0])
 
-       >>> trafo(x)
-       array([ 1.5,  0.5])
+    >>> trafo(x)
+    array([ 1.5,  0.5])
 
-       >>> trafo.fprime(x)
-       array([[ 1. ,  0.5],
-              [ 0. ,  0.5]])
+    >>> trafo.fprime(x)
+    array([[ 1. ,  0.5],
+           [ 0. ,  0.5]])
 
-       >>> x - trafo.pinv(trafo(x))
-       array([ 0.,  0.])
-   """
+    >>> x - trafo.pinv(trafo(x))
+    array([ 0.,  0.])
+    """
 
-   def __init__(self, m):
-      #
-      # Affine transformation matrix:
-      #
-      self.__m = array(m)
+    def __init__(self, m):
+        #
+        # Affine transformation matrix:
+        #
+        self.__m = array(m)
 
-   def f(self, x):
-       return dot(self.__m, x)
+    def f(self, x):
+        return dot(self.__m, x)
 
-   def fprime(self, x):
-       return self.__m.copy()
+    def fprime(self, x):
+        return self.__m.copy()
 
-   def pinv(self, y):
-       return solve(self.__m, y)
+    def pinv(self, y):
+        return solve(self.__m, y)
 
 def diagsandhight():
-     """
-     Function diagsandhight: generates  Cartesian coordinates (and the
-     derivatives) from given values for the two diagonals and the high
-     between  them.  The  first  two  atoms will  be  situated on  the
-     X-Axis, equal far away from O.  The other two atoms will have the
-     same on  the Y-Axis,  but they are  shifted in  z-direction about
-     hight.
+    """
+    Function diagsandhight:  generates Cartesian coordinates  (and the
+    derivatives) from given values for  the two diagonals and the high
+    between them.  The first two atoms will be situated on the X-Axis,
+    equal far away from O.  The  other two atoms will have the same on
+    the Y-Axis, but they are shifted in z-direction about hight.
 
-     Function gets d1, d2 and h and calculates Cartesian coordinates
+    Function gets d1, d2 and h and calculates Cartesian coordinates
 
-          d1 == vec[0] # diagonal with small changes
-          d2 == vec[1] # diagonal with large changes
-          h  == vec[2] # hight of two last atoms in z-direction
+        d1 == vec[0] # diagonal with small changes
+        d2 == vec[1] # diagonal with large changes
+        h  == vec[2] # hight of two last atoms in z-direction
 
-     The corresponding four positions of atoms are:
+    The corresponding four positions of atoms are:
 
-          [[ d1 / 2.,       0., 0.],
-           [-d1 / 2.,       0., 0.],
-           [      0.,  d2 / 2.,  h],
-           [      0., -d2 / 2.,  h]]
+        [[ d1 / 2.,       0., 0.],
+        [-d1 / 2.,       0., 0.],
+        [      0.,  d2 / 2.,  h],
+        [      0., -d2 / 2.,  h]]
 
-     Example:
+    Example:
 
-          >>> f = diagsandhight()
-          >>> f(asarray([1., 1., 0.7]))
-          array([[ 0.5,  0. ,  0. ],
-                 [-0.5,  0. ,  0. ],
-                 [ 0. ,  0.5,  0.7],
-                 [ 0. , -0.5,  0.7]])
+        >>> f = diagsandhight()
+        >>> f(asarray([1., 1., 0.7]))
+        array([[ 0.5,  0. ,  0. ],
+               [-0.5,  0. ,  0. ],
+               [ 0. ,  0.5,  0.7],
+               [ 0. , -0.5,  0.7]])
 
-      FIXME: choose a better name.
-     """
+    FIXME: choose a better name.
+    """
 
-     return Affine([[[ 0.5,   0., 0.],
-                     [  0.,   0., 0.],
-                     [  0.,   0., 0.]],
-                    [[-0.5,   0., 0.],
-                     [  0.,   0., 0.],
-                     [  0.,   0., 0.]],
-                    [[  0.,   0., 0.],
-                     [  0.,  0.5, 0.],
-                     [  0.,   0., 1.]],
-                    [[  0.,   0., 0.],
-                     [  0., -0.5, 0.],
-                     [  0.,   0., 1.]]])
+    return Affine([[[ 0.5,   0., 0.],
+                    [  0.,   0., 0.],
+                    [  0.,   0., 0.]],
+                   [[-0.5,   0., 0.],
+                    [  0.,   0., 0.],
+                    [  0.,   0., 0.]],
+                   [[  0.,   0., 0.],
+                    [  0.,  0.5, 0.],
+                    [  0.,   0., 1.]],
+                   [[  0.,   0., 0.],
+                    [  0., -0.5, 0.],
+                    [  0.,   0., 1.]]])
 
 class mb1(Func):
-   """
-   2 -> 2 variables
-   r, phi -> x, y
-   """
-   def __init__(self, cent = zeros(2)):
-      self.centrum = cent
+    """
+    2 -> 2 variables
+    r, phi -> x, y
+    """
+    def __init__(self, cent = zeros(2)):
+        self.centrum = cent
 
-   def taylor(self, vec):
-       """
-       >>> fun = mb1()
-       >>> from pts.func import NumDiff
-       >>> from numpy import max, abs, dot, pi
-       >>> fun2 = NumDiff(mb1())
-       >>> x1 = array([1.,1.])
-       >>> x2 = array([1., 0.])
-       >>> x3 = array([0.01, 0.999 * pi])
+    def taylor(self, vec):
+        """
+        >>> fun = mb1()
+        >>> from pts.func import NumDiff
+        >>> from numpy import max, abs, dot, pi
+        >>> fun2 = NumDiff(mb1())
+        >>> x1 = array([1.,1.])
+        >>> x2 = array([1., 0.])
+        >>> x3 = array([0.01, 0.999 * pi])
 
-       >>> max(abs(fun.fprime(x1) - fun2.fprime(x1))) < 1e-12
-       True
-       >>> max(abs(fun.fprime(x2) - fun2.fprime(x2))) < 1e-12
-       True
-       >>> max(abs(fun.fprime(x3) - fun2.fprime(x3))) < 1e-12
-       True
-       """
-       r, phi = vec
-       v = zeros(2)
-       v[0] = self.centrum[0] + r * cos(phi)
-       v[1] = self.centrum[1] + r * sin(phi)
-       dv = zeros((2,2))
-       dv[0,0] = cos(phi)
-       dv[1,0] = sin(phi)
-       dv[0,1] = -r* sin(phi)
-       dv[1,1] = r *cos(phi)
+        >>> max(abs(fun.fprime(x1) - fun2.fprime(x1))) < 1e-12
+        True
+        >>> max(abs(fun.fprime(x2) - fun2.fprime(x2))) < 1e-12
+        True
+        >>> max(abs(fun.fprime(x3) - fun2.fprime(x3))) < 1e-12
+        True
+        """
+        r, phi = vec
+        v = zeros(2)
+        v[0] = self.centrum[0] + r * cos(phi)
+        v[1] = self.centrum[1] + r * sin(phi)
+        dv = zeros((2,2))
+        dv[0,0] = cos(phi)
+        dv[1,0] = sin(phi)
+        dv[0,1] = -r* sin(phi)
+        dv[1,1] = r *cos(phi)
 
-       return v, dv
+        return v, dv
 
-   def pinv(self, v):
-       """
-       >>> fun = mb1()
-       >>> v = [0.,0.]
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
-       >>> v = [9.3,1.5]
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
-       >>> fun = mb1(array([0., 7.]) )
-       >>> v = [0.,0.]
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
-       >>> v = [0.3,0.5]
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
-       >>> v = [9.3,1.5]
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
+    def pinv(self, v):
+        """
+        >>> fun = mb1()
+        >>> v = [0.,0.]
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
+        >>> v = [9.3,1.5]
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
+        >>> fun = mb1(array([0., 7.]) )
+        >>> v = [0.,0.]
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
+        >>> v = [0.3,0.5]
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
+        >>> v = [9.3,1.5]
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
 
-       >>> fun = mb1(array( [-0.55822362,  1.44172583]))
-       >>> v = array([ 0.80376337,  0.57728775])
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
-       >>> v = array([ 0.62349942,  0.02803776])
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
-       """
-       vc = v - self.centrum
-       r = sqrt(dot(vc, vc))
-       if r < 1e-12:
-           phi = 0.
-       else:
-           phi = acos(vc[0] / r)
-       if vc[1] < 0.:
-           phi = 2. * pi - phi
-       return array([r, phi])
+        >>> fun = mb1(array( [-0.55822362,  1.44172583]))
+        >>> v = array([ 0.80376337,  0.57728775])
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
+        >>> v = array([ 0.62349942,  0.02803776])
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
+        """
+        vc = v - self.centrum
+        r = sqrt(dot(vc, vc))
+        if r < 1e-12:
+            phi = 0.
+        else:
+            phi = acos(vc[0] / r)
+            if vc[1] < 0.:
+                phi = 2. * pi - phi
+        return array([r, phi])
 
 #
 # This one is here to make some tests work:
 #
 def mb2(par=0.5):
-     return Affine([[1.0, 1.0 - par],
-                    [0.0,       par]])
+    return Affine([[1.0, 1.0 - par],
+                   [0.0,       par]])
 
 class mb3(Func):
-   """
-   3 -> 3
-   r, theta, phi -> x, y, z
-   spherical coordinates
-   """
-   def __init__(self, r0 = array([0., 1., 2.])):
-       self.r0 = r0
+    """
+    3 -> 3
+    r, theta, phi -> x, y, z
+    spherical coordinates
+    """
+    def __init__(self, r0 = array([0., 1., 2.])):
+        self.r0 = r0
 
-   def taylor(self, vec):
-       """
-       >>> fun = mb3()
-       >>> from pts.func import NumDiff
-       >>> from numpy import max, abs, dot, pi
-       >>> fun2 = NumDiff(mb3())
-       >>> x1 = array([1.,1., 1.])
-       >>> x2 = array([1., 0., 0.5])
-       >>> x3 = array([0.01, 0.999 * pi, 0.0001 * pi ])
+    def taylor(self, vec):
+        """
+        >>> fun = mb3()
+        >>> from pts.func import NumDiff
+        >>> from numpy import max, abs, dot, pi
+        >>> fun2 = NumDiff(mb3())
+        >>> x1 = array([1.,1., 1.])
+        >>> x2 = array([1., 0., 0.5])
+        >>> x3 = array([0.01, 0.999 * pi, 0.0001 * pi ])
 
-       >>> max(abs(fun.fprime(x1) - fun2.fprime(x1))) < 1e-11
-       True
-       >>> max(abs(fun.fprime(x2) - fun2.fprime(x2))) < 1e-12
-       True
-       >>> max(abs(fun.fprime(x3) - fun2.fprime(x3))) < 1e-12
-       True
-       """
-       r, theta, phi = vec
-       v = zeros(3)
-       v[0] = self.r0[0] + r * cos(phi) * cos(theta)
-       v[1] = self.r0[1] + r * sin(phi) * cos(theta)
-       v[2] = self.r0[2] + r * sin(theta)
-       dv = zeros((3,3))
-       dv[0,0] = cos(phi) * cos(theta)
-       dv[1,0] = sin(phi) * cos(theta)
-       dv[2,0] = sin(theta)
-       dv[0,1] = -r * cos(phi) * sin(theta)
-       dv[1,1] = - r * sin(phi) * sin(theta)
-       dv[2,1] = r * cos(theta)
-       dv[0,2] = -r * sin(phi) * cos(theta)
-       dv[1,2] = r * cos(phi) * cos(theta)
-       dv[2,2] = 0.
-       return v, dv
+        >>> max(abs(fun.fprime(x1) - fun2.fprime(x1))) < 1e-11
+        True
+        >>> max(abs(fun.fprime(x2) - fun2.fprime(x2))) < 1e-12
+        True
+        >>> max(abs(fun.fprime(x3) - fun2.fprime(x3))) < 1e-12
+        True
+        """
+        r, theta, phi = vec
+        v = zeros(3)
+        v[0] = self.r0[0] + r * cos(phi) * cos(theta)
+        v[1] = self.r0[1] + r * sin(phi) * cos(theta)
+        v[2] = self.r0[2] + r * sin(theta)
+        dv = zeros((3,3))
+        dv[0,0] = cos(phi) * cos(theta)
+        dv[1,0] = sin(phi) * cos(theta)
+        dv[2,0] = sin(theta)
+        dv[0,1] = -r * cos(phi) * sin(theta)
+        dv[1,1] = - r * sin(phi) * sin(theta)
+        dv[2,1] = r * cos(theta)
+        dv[0,2] = -r * sin(phi) * cos(theta)
+        dv[1,2] = r * cos(phi) * cos(theta)
+        dv[2,2] = 0.
+        return v, dv
 
-   def pinv(self, v):
-       """
-       >>> fun = mb3()
-       >>> v = array([0.,0., 0.])
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
-       >>> v = array([9.3,1.5, 0.5])
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-13
-       True
-       >>> fun = mb3(array([0., 7., - 2.]) )
-       >>> v = array([0.,0., 0.])
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
-       >>> v = [0.3,0.5, 0.2]
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
-       >>> v = [9.3,1.5, 0.7]
-       >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
-       True
-       >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
-       True
-       """
-       vc = v - self.r0
-       r = sqrt(dot(vc, vc))
-       if r < 1e-12:
-           phi = 0.
-           theta = 0.
-       else:
-           theta = asin(vc[2] / r)
-           r_flat = r * cos(theta)
-           phi = acos(vc[0] / r_flat)
-       if vc[1] < 0:
-           phi = 2 * pi - phi
-       return array([r, theta, phi])
+    def pinv(self, v):
+        """
+        >>> fun = mb3()
+        >>> v = array([0.,0., 0.])
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
+        >>> v = array([9.3,1.5, 0.5])
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-13
+        True
+        >>> fun = mb3(array([0., 7., - 2.]) )
+        >>> v = array([0.,0., 0.])
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
+        >>> v = [0.3,0.5, 0.2]
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
+        >>> v = [9.3,1.5, 0.7]
+        >>> max(abs(v - fun.pinv(fun(v)))) < 1e-14
+        True
+        >>> max(abs(v - fun(fun.pinv(v)))) < 1e-14
+        True
+        """
+        vc = v - self.r0
+        r = sqrt(dot(vc, vc))
+        if r < 1e-12:
+            phi = 0.
+            theta = 0.
+        else:
+            theta = asin(vc[2] / r)
+            r_flat = r * cos(theta)
+            phi = acos(vc[0] / r_flat)
+            if vc[1] < 0:
+                phi = 2 * pi - phi
+        return array([r, theta, phi])
 
 class mb4(Func):
     def __init__(self, r0 = array([0.,1.,2.])):
