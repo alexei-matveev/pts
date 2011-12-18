@@ -82,8 +82,8 @@ td_s = var1
 
 def reduce(vec, mask):
     """
-    Function for generating starting values.
-    Use a mask to reduce the complete vector.
+    Function for generating starting values.  Use a mask to reduce the
+    complete vector.
     """
     vec_red = []
     for i, m in enumerate(mask):
@@ -93,9 +93,9 @@ def reduce(vec, mask):
 
 if testfun == "zmat":
     """
-    Zmatrix description with a starting values for nice
-    symmetry behaviour. Lenth to be equal in C2V symmetry
-    fullfil this at start to an accuracy of < 1e-15 Angstrom.
+    Zmatrix  description  with a  starting  values  for nice  symmetry
+    behaviour. Lenth to be equal in C2V symmetry fullfil this at start
+    to an accuracy of < 1e-15 Angstrom.
     """
     func = ZMat([(), (0,), (0, 1), (1, 2, 0)])
 
@@ -106,7 +106,7 @@ if testfun == "zmat":
 elif testfun == "zmate":
     """
     Zmatrix and startingvalues as in zmat2. But in this case there are
-    added some variables for global orientation, set to zero on every
+    added some variables for global  orientation, set to zero on every
     position at start.
     """
     func1 = ZMat([(), (0,), (0, 1), (1, 2, 0)])
@@ -118,10 +118,11 @@ elif testfun == "zmate":
 
 elif testfun == "diaghigh":
     """
-    Special diagonal and high function, which uses only three parameters
-    to describe the Cluster: the diagonals between two opposite atoms and
-    the hight in z-direction between the two x-y-Planes the atoms are
-    located in. Function provides also analytical derivative.
+    Special  diagonal  and  high   function,  which  uses  only  three
+    parameters  to describe  the  Cluster: the  diagonals between  two
+    opposite  atoms  and the  hight  in  z-direction  between the  two
+    x-y-Planes  the  atoms  are  located in.  Function  provides  also
+    analytical derivative.
     """
     func = diagsandhight()
 
@@ -133,13 +134,14 @@ elif testfun == "diaghigh":
 
 elif testfun == "carts":
     """
-    The starting geometries are provided by the diag and high function.
-    See case "diaghigh". The optimization and else is done in Cartesian
-    coordinates.
+    The  starting  geometries  are  provided  by  the  diag  and  high
+    function.  See case "diaghigh".  The optimization and else is done
+    in Cartesian coordinates.
     """
     func = Justcarts()
 
-    # generate starting geometries with the help of function diagsandhight
+    # generate   starting  geometries  with   the  help   of  function
+    # diagsandhight:
     func_h = diagsandhight()
     min1 = func_h(asarray([td_s, td_s, td_s / sqrt(2.)])).flatten()
     min2 = func_h(asarray([td_s, td_s, -td_s / sqrt(2.)])).flatten()
@@ -147,9 +149,9 @@ elif testfun == "carts":
 
 elif testfun == "cartsred":
     """
-    Same starting situation as in case "carts", only that in this case some
-    coordinates are fixed (y,z) direction for first two atoms and (x) for the
-    last two.
+    Same starting situation as in case "carts", only that in this case
+    some coordinates are fixed (y,z) direction for first two atoms and
+    (x) for the last two.
     """
     func2 = Justcarts()
 
@@ -169,8 +171,9 @@ elif testfun == "cartsred":
 
 elif testfun == "ztoc":
     """
-    The starting geometries are provided by the Zmatrix function, see case "zmat".
-    The optimization and else is done in Cartesian coordinates.
+    The starting geometries are  provided by the Zmatrix function, see
+    case  "zmat".  The  optimization  and else  is  done in  Cartesian
+    coordinates.
     """
     func = Justcarts()
 
@@ -181,9 +184,10 @@ elif testfun == "ztoc":
 
 elif testfun == "ztoc_red":
     """
-    Same starting situation as in case "ztoc", only that in this case some
-    coordinates are fixed: position of first atom, y, z coordinate of second
-    and y coordinate of third one == global rotation and translation is fixed.
+    Same starting situation as in  case "ztoc", only that in this case
+    some  coordinates  are  fixed:   position  of  first  atom,  y,  z
+    coordinate  of second  and y  coordinate  of third  one ==  global
+    rotation and translation is fixed.
     """
     func2 = Justcarts()
 
@@ -203,8 +207,8 @@ elif testfun == "ztoc_red":
 # PES in internal coordinates:
 pes = compose(pes, func)
 
-# init path contains the two minima and a middle bead to enforce the
-# starting path going in the right direction (else it would be just
+# init path contains  the two minima and a middle  bead to enforce the
+# starting path  going in the right  direction (else it  would be just
 # linear interpolation, what is not correct in this regard)
 init_path = [min1, middle, min2]
 
@@ -217,24 +221,25 @@ if test_what == "contraforce":
         # Check the symmetry:
         print "GEOMETRY"
         print "Geometry is symmetric?:"
-        # T_c2v tests if internal coordinates t_c2v
-        # provide the correct symmetry (here the ZMatrix used
-        # in testfun zmat is expected)
+        # T_c2v  tests  if internal  coordinates  t_c2v.  Provide  the
+        # correct symmetry  (here the ZMatrix used in  testfun zmat is
+        # expected)
         print t_c2v(geo)
 
         # get the forces belonging to this geometry
         f = - pes.fprime(geo)
 
         print "Forces", f
-        # test for displacements, if they would fulfill the requirements
-        # for keeping the symmetry, this should not hold for the
-        # covariant forces (the first is real, the second is relative to
-        # the complete vector length). The three numbers refer to the three
-        # constraints one gets.
+        # test   for  displacements,   if  they   would   fulfill  the
+        # requirements for keeping the  symmetry, this should not hold
+        # for the covariant  forces (the first is real,  the second is
+        # relative to  the complete vector length).  The three numbers
+        # refer to the three constraints one gets.
         print "co variant Forces are symmetric:", t_c2v_prime(f)[1]
 
         # Two ways of getting contravariant forces: one with Cartesian
-        # metric the second one with additional removal of global positions
+        # metric  the second  one  with additional  removal of  global
+        # positions
         f_co = m1.raises( geo, f)
         f_co_red = m2.raises(geo, f)
         # Here the constraints may be fulfilled (at least in one case)
