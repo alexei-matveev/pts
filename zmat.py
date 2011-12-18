@@ -226,9 +226,9 @@ Now set dihedrals to pi or 0, to observe system at this limits:
     True
 """
 
-from numpy import pi, sin, cos, cross, dot, sqrt, arccos
+from numpy import dot
 from numpy import array, asarray, empty, max, abs
-from numpy import eye, zeros, outer, hstack, vstack
+from numpy import eye, zeros
 from numpy import any, shape
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
