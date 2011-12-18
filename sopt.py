@@ -368,6 +368,10 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
     while not converged and iteration < maxit:
         iteration += 1
 
+        # To be  able to distinguish  convergence by step, or  by gradient
+        # count the number of satisfied criteria:
+        criteria = 0
+
         if VERBOSE:
             print "sopt: =============== Iteration ", iteration, " ==============="
             print "sopt: scheduling gradients for R="
@@ -405,7 +409,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
 
         if max(abs(G2)) < ftol:
             # FIXME: this may change after update step!
-            converged = True
+            criteria += 1
             if VERBOSE:
                 print "sopt: converged by force max(abs(G2)))", max(abs(G2)), '<', ftol
 
@@ -418,8 +422,9 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
             print "sopt: g(ortho)="
             print G2
 
-        # these were used for convergency check, not used below:
-        del T, LAM, G2
+        # These were  used for convergency  check, used below  only to
+        # report  additional info  upon  convergence:
+        del G2 # T, LAM
         # ... done convergency check }}}
 
         # first rough estimate of the step:
@@ -459,7 +464,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         # Convergency check by step size (xtol) ...
         #
         if max(abs(dR)) < xtol:
-            converged = True
+            criteria += 1
             if VERBOSE:
                 print "sopt: converged by step max(abs(dR))=", max(abs(dR)), '<', xtol
 
@@ -480,14 +485,36 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         if callback is not None:
             callback(R)
 
-        if VERBOSE:
-            if iteration >= maxit:
-                print "sopt: exceeded number of iterations", maxit
-            # see while loop condition ...
+        # See while  loop condition. We  are only converged  when both
+        # criteria are satisfied:
+        if criteria >= 2:
+            converged = True
 
-    # also return number of interations, convergence status, and last values
-    # of the gradient and step:
-    return R, (iteration, converged, G, dR)
+    #
+    # We are outside of the loop again:
+    #
+    if VERBOSE:
+        if iteration >= maxit and not converged:
+            print "sopt: exceeded number of iterations", maxit
+
+    #
+    # Also return number of  interations, convergence status, and last
+    # values of the energies, gradients  and step. Note again that the
+    # energies,  gradients, tangents,  and lambdas  correspond  to the
+    # last geometry used for convergency check.  The returned geometry
+    # differs   from   that   by    dR.    You   need   to   recompute
+    # energies/gradients  and such  if  you want  them  for the  final
+    # geometry.  This is left to the caller.
+    #
+    info = {"iterations": iteration + 1,
+            "converged": converged,
+            "energies": E,
+            "gradients": G,
+            "tangents": T,
+            "lambdas": LAM,
+            "step": dR}
+
+    return R, info
 
 def respace(x0, tangents, spacing):
 

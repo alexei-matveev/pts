@@ -278,8 +278,9 @@ def find_path(pes, init_path
         else:
             ypath = array(init_path) # makes a copy
 
-        geometries, stats = soptimize(pes, ypath, callback=cb, **kwargs)
-        _, converged, _, _ = stats
+        geometries, info = soptimize(pes, ypath, callback=cb, **kwargs)
+        # print "info=", info
+        converged = info["converged"]
         abscissa = None
         energies, gradients = zip(*map(pes.taylor, geometries))
 
