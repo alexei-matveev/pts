@@ -8,23 +8,21 @@ Geometries have to be given in internal coordinates (the ones the function accep
 
 """
 from ase.io import write
-from sys import argv, exit
-from re import findall
+from sys import argv
 from os import path, mkdir, remove
 from numpy import savetxt, array
 from warnings import warn
-from pts.qfunc import QFunc, QMap
+from pts.qfunc import QFunc
 from pts.func import compose
 from pts.paramap import PMap, PMap3
 from pts.sched import Strategy
-from pts.memoize import Memoize, elemental_memoize, FileStore
+from pts.memoize import FileStore
 from pts.callback import generic_callback
 from pts.searcher import GrowingString, NEB, ts_estims
 from pts.cfunc import Pass_through
 from pts.optwrap import runopt
 from pts.sopt import soptimize
 from pts.tools import pickle_path
-from pts.common import file2str
 from pts.io.read_inputs import interprete_input, create_params_dict
 import pts.metric as mt
 # be careful: array is needed, when the init_path is an array
