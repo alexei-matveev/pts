@@ -622,8 +622,8 @@ def gprime(h, G, H, G0, X0, tangents, lambdas):
 
       dy / dh = - ( y  - lambda(y) * t(y) )
 
-    The Lagrange contribution parallel to the tangent t(y) is added if the
-    function "lambdas()" is provided.
+    The Lagrange contribution parallel to the tangent t(y) is added if
+    the function "lambdas()" is provided.
 
     Procedure uses the one-to-one relation between coordinates
 
@@ -633,17 +633,18 @@ def gprime(h, G, H, G0, X0, tangents, lambdas):
 
       t(x) = t(x(y))
 
-    By now y is the same as the gradient G. Though the positive definite
-    hessian H may distrub this equivalence at some PES regions.
+    By  now y  is the  same  as the  gradient G.  Though the  positive
+    definite  hessian  H may  distrub  this  equivalence  at some  PES
+    regions.
 
     The current form of gprime() translated to real space variables
 
         dx / dh = H * dg / dh
 
-    may be used to either ensure orthogonality of dx / dh to the tangents
-    or preserve the image spacing depending on the definition of
-    function "lambdas()" that delivers lagrangian factors.
-    I am afraid one cannot satisfy both.
+    may  be used  to either  ensure orthogonality  of dx  / dh  to the
+    tangents or preserve the image spacing depending on the definition
+    of function  "lambdas()" that  delivers lagrangian factors.   I am
+    afraid one cannot satisfy both.
 
     NOTE: imaginary time variable "h" is not used anywhere.
     """
@@ -870,19 +871,21 @@ def mklambda4(springs, k=SPRING):
     return lambda4
 
 def glambda(G, H, T, A):
-    """Compute Lagrange multipliers to compensate for the constrain violation
-    that would occur if the motion would proceed along
+    """
+    Compute  Lagrange  multipliers  to  compensate for  the  constrain
+    violation that would occur if the motion would proceed along
 
         dX = - H * G.
 
-    Lagrange multipliers LAM are supposed to be used to add contributions
-    PARALLEL to the tangents and thus, redefine the default direction:
+    Lagrange  multipliers   LAM  are  supposed  to  be   used  to  add
+    contributions  PARALLEL to  the  tangents and  thus, redefine  the
+    default direction:
 
         G := G - LAM * T   (no sum over path point index i)
          i    i     i   i
 
-    This amounts to solving the system of N equations for LAM with N being the
-    number of constraints (equal to the number of points)
+    This amounts to  solving the system of N equations  for LAM with N
+    being the number of constraints (equal to the number of points)
 
         A * dX = 0,  k = 1..N
          k
