@@ -217,7 +217,7 @@ def elemental_memoize(f, cache=None):
             cache[x] = y
 
         # return copies from the dictionary:
-        ys = [cache[x] for x in xs]
+        ys = [copy(cache[x]) for x in xs]
 
         # FIXME: should we return an array?
         return ys
