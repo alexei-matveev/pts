@@ -137,6 +137,47 @@ class Affine(Func):
             #
             return dot(s1uty, vt) # this is of length n
 
+def c2v_tetrahedron1():
+    """
+    Returns  a fresh  Func (Affine,  really) that  generates Cartesian
+    coordinates of  a C2V-distorted tetrahedron.   Function gets three
+    parameters (a, b, c) as an array and returns cartesian coordinates
+    of four centers:
+
+        [[+a, +a, +c],
+         [-a, -a, +c],
+         [+b, -b, -c],
+         [-b, +b, -c]]
+
+    An  ideal  tetrahedron is  generated  when  a ==  b  ==  c. For  a
+    different way to orient tetrahedron see diagsandhight().
+
+    Example:
+
+        >>> f = c2v_tetrahedron1()
+        >>> x = array([2., 3., 4.])
+        >>> f(x)
+        array([[ 2.,  2.,  4.],
+               [-2., -2.,  4.],
+               [ 3., -3., -4.],
+               [-3.,  3., -4.]])
+        >>> x - f.pinv(f(x))
+        array([ 0.,  0.,  0.])
+    """
+
+    return Affine([[[  1.,  0.,  0.],
+                    [  1.,  0.,  0.],
+                    [  0.,  0.,  1.]],
+                   [[ -1.,  0.,  0.],
+                    [ -1.,  0.,  0.],
+                    [  0.,  0.,  1.]],
+                   [[  0.,  1.,  0.],
+                    [  0., -1.,  0.],
+                    [  0.,  0., -1.]],
+                   [[  0., -1.,  0.],
+                    [  0.,  1.,  0.],
+                    [  0.,  0., -1.]]])
+
 def diagsandhight():
     """
     Function diagsandhight:  generates Cartesian coordinates  (and the
