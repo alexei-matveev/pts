@@ -69,9 +69,9 @@ __all__ = []
 
 from numpy import array, asarray, empty, ones, dot, max, abs, sqrt, shape, linspace
 from numpy import vstack
-from numpy.linalg import norm as linalg_norm
 from bfgs import LBFGS, BFGS, Array
 from common import cumm_sum, pythag_seps
+from metric import cartesian_norm
 
 VERBOSE = False
 
@@ -89,12 +89,7 @@ from chain import Spacing, Norm, Norm2
 # spacing = Spacing(Norm())
 spacing = Spacing(Norm2())
 
-def default_norm(dx, x):
-    "Default cartesian norm, x is unused"
-
-    return linalg_norm(dx)
-
-def tangent1(X, norm=default_norm):
+def tangent1(X, norm=cartesian_norm):
     """For n geometries X[:] return n-2 tangents computed
     as averages of forward and backward tangents.
     """
