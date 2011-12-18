@@ -1,4 +1,4 @@
-from numpy import shape, sqrt, array, zeros, dot, pi
+from numpy import size, shape, sqrt, asarray, array, zeros, dot, pi
 from pts.func import Func
 from math import cos, sin, acos, asin
 from numpy import cosh, sinh, arccosh
@@ -81,6 +81,7 @@ class Affine(Func):
         self.__m = array(m)
 
     def f(self, x):
+        # FIXME: more general shape of x?
         return dot(self.__m, x)
 
     def fprime(self, x):
@@ -88,28 +89,40 @@ class Affine(Func):
 
     def pinv(self, y):
 
-        # FIXME: more general shapes?
-        m, n = shape(self.__m)
+        y = asarray(y)
+
+        #
+        # These share the  data with originall arrays, but  we are not
+        # going to modify that:
+        #
+        Y = y.view()
+        M = self.__m.view()
+
+        Y.shape = size(y)
+        M.shape = size(y), -1
+
+        # Below we work with "matrices":
+        m, n = shape(M)
 
         if m == n:
             #
             # This  is an  optimization, the  other branch  would also
             # work:
             #
-            return solve(self.__m, y)
+            return solve(M, Y)
         else:
             #
             # SVD solves for M = U * S * V^T with (m x m) matrix U, (n
             # x n) matrix V and (m x n) "diagonal matrix" S.  Diagonal
             # "s" as returned by an SVD is a 1D-array, though:
             #
-            u, s, vt = svd(self.__m)
+            u, s, vt = svd(M)
 
             #
             # This  computes V *  S^-1 *  U^T *  y for  a vector  y of
             # length m. First, compute U^T * y:
             #
-            uty = dot(y, u) # this is of length m
+            uty = dot(Y, u) # this is of length m
 
             #
             # Now the tricky part, we need the (pseudo) inverse of the
