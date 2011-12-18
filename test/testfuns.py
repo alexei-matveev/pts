@@ -1,28 +1,77 @@
-from numpy import asarray, sqrt, array, zeros, dot, pi
+from numpy import shape, sqrt, array, zeros, dot, pi
 from pts.func import Func
 from math import cos, sin, acos, asin
 from numpy import cosh, sinh, arccosh
 from numpy import finfo
-from numpy.linalg import solve
+from numpy.linalg import solve, svd
 
 class Affine(Func):
     """
     Affine transformation.  If  you ever want to invert  it, it should
-    better be invertible. That was a insightful comment, wasn't it?.
+    better be invertible. That was an insightful comment, wasn't it?
 
-    >>> trafo = Affine([[1.0, 0.5], [0.0, 0.5]])
+    A well-defined non-singular 2->2 transformation:
 
-    >>> x = array([1.0, 1.0])
+        >>> trafo = Affine([[1.0, 0.5], [0.0, 0.5]])
 
-    >>> trafo(x)
-    array([ 1.5,  0.5])
+        >>> x = array([1.0, 1.0])
 
-    >>> trafo.fprime(x)
-    array([[ 1. ,  0.5],
-           [ 0. ,  0.5]])
+        >>> trafo(x)
+        array([ 1.5,  0.5])
 
-    >>> x - trafo.pinv(trafo(x))
-    array([ 0.,  0.])
+        >>> trafo.fprime(x)
+        array([[ 1. ,  0.5],
+               [ 0. ,  0.5]])
+
+        >>> x - trafo.pinv(trafo(x))
+        array([ 0.,  0.])
+
+    Matter  get  slightly  more  complicated  for  an  injective  2->3
+    transformation:
+
+        >>> t1 = Affine([[1.0, 0.5], [0.0, 0.5], [10., 10.]])
+
+    Here "x"  is in  the definition  domain and "y"  is in  the result
+    domain:
+
+        >>> y = t1(x)
+
+    A  *proper*  result  "y"   (from  the  result  domain)  should  be
+    sufficient to find the corresponding argument "x":
+
+        >>> from numpy import max, abs
+
+        >>> max(abs(x - t1.pinv(y))) < 1.0e-12
+        True
+
+    But  for an  *arbitrary*  vector "y1"  of  length 3,  there is  no
+    correspondig "x1", in general:
+
+        >>> y1 = array([1.3, 0.7, 9.0])
+        >>> x1 = t1.pinv(y1)
+
+        >>> max(abs(y1 - t1(x1))) > 0.5
+        True
+
+    A different case is a surjective, say 3->2, transformation:
+
+        >>> t2 = Affine([[1.0, 0.0, 10.], [0.5, 0.5, 10]])
+
+    An  arbitrary 2-vector  "x1"  has a  corresponding  "y1" from  the
+    definition domain:
+
+        >>> x1 = array([1.7, 0.2])
+        >>> y1 = t2.pinv(x1)
+        >>> max(abs(x1 - t2(y1))) < 1.0e-12
+        True
+
+    Of course,  there must be more  than one 3-vector  "y1" that gives
+    that "x1". The "pinv" method finds just one of them:
+
+        >>> y1 = array([1.3, 0.7, 9.0])
+        >>> y2 = t2.pinv(t2(y1))
+        >>> max(abs(t2(y1) - t2(y2))) < 1.0e-12
+        True
     """
 
     def __init__(self, m):
@@ -38,7 +87,42 @@ class Affine(Func):
         return self.__m.copy()
 
     def pinv(self, y):
-        return solve(self.__m, y)
+
+        # FIXME: more general shapes?
+        m, n = shape(self.__m)
+
+        if m == n:
+            #
+            # This  is an  optimization, the  other branch  would also
+            # work:
+            #
+            return solve(self.__m, y)
+        else:
+            #
+            # SVD solves for M = U * S * V^T with (m x m) matrix U, (n
+            # x n) matrix V and (m x n) "diagonal matrix" S.  Diagonal
+            # "s" as returned by an SVD is a 1D-array, though:
+            #
+            u, s, vt = svd(self.__m)
+
+            #
+            # This  computes V *  S^-1 *  U^T *  y for  a vector  y of
+            # length m. First, compute U^T * y:
+            #
+            uty = dot(y, u) # this is of length m
+
+            #
+            # Now the tricky part, we need the (pseudo) inverse of the
+            # rectanglular S to compute S^-1 *  U^T *  y:
+            #
+            s1uty = zeros(n) # this is of length n
+            k = min(m, n)
+            s1uty[:k] = uty[:k] / s # eventually padded by zeroes
+
+            #
+            # Finally, multiply the result with V:
+            #
+            return dot(s1uty, vt) # this is of length n
 
 def diagsandhight():
     """
@@ -64,7 +148,7 @@ def diagsandhight():
     Example:
 
         >>> f = diagsandhight()
-        >>> f(asarray([1., 1., 0.7]))
+        >>> f(array([1., 1., 0.7]))
         array([[ 0.5,  0. ,  0. ],
                [-0.5,  0. ,  0. ],
                [ 0. ,  0.5,  0.7],
