@@ -144,7 +144,7 @@ For pretty-printing the frequencies use:
       6       no          0.0000             0.00
     ----------------------------------------------------
 """
-from numpy import array, asarray, dot, zeros, max, abs, eye, diag, sqrt
+from numpy import asarray, dot, zeros, abs, eye, diag, sqrt
 from numpy import argsort, savetxt, empty
 from scipy.linalg import eigh
 from numpy import repeat
@@ -432,6 +432,7 @@ def output(freqs, eigvectors=None, mass=None, mask=None):
 
 def check_eigensolver(a, V1, A, B):
     if VERBOSE:
+        from numpy import transpose
         print "Check the results for the eigensolver:"
         #print dot(V, dot(A, V.T)) - a * eye(len(a))
         print "V^TAV -a, maximum value:", (abs(dot(V1.T, dot(A, V1)) - a * eye(len(a)))).max()
