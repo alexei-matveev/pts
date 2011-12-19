@@ -2,47 +2,44 @@
 """
 Runge-Kutta procedures adapted from cosopt/quadratic_string.py
 
-FIXME: The "exact" integration using scipy.integrate.odeint without
-tolerance settings may require unnecessary much time. Is there a better
-way?
+Example: Integrate
+
+    dy / dt = f(t, y)
+
+given below from (t0, y0) to t = T (or infinity)
+
+    >>> def f(t, y):
+    ...     yp = - (y - 100.0)
+    ...     yp[0] *= 0.01
+    ...     yp[1] *= 100.
+    ...     return yp
+
+    >>> t0 = 0.0
+    >>> y0 = [80., 120]
+
+    >>> y = ODE(t0, y0, f)
+
+    >>> y(0.125)
+    array([  80.02498438,  100.00007444])
+
+    >>> y.fprime(0.125) - f(0.125, y(0.125))
+    array([ 0.,  0.])
+
+    >>> limit(y)
+    array([ 100.,  100.])
+
+FIXME:  The "exact"  integration using  scipy.integrate.odeint without
+tolerance  settings may  require  unnecessary much  time.  Is there  a
+better way?
 """
 
-__all__ = ["ODE", "odeint1", "rk45", "rk4", "rk5"]
+__all__ = ["ODE", "limit", "rk45", "rk4", "rk5"]
 
 from numpy import array, max, abs, searchsorted
 from scipy.integrate import odeint
 from func import Func
 
 VERBOSE = False
-
-def odeint1(t0, y0, f, T=None):
-    """Integrate
-
-        dy / dt = f(t, y)
-
-    from (t0, y0) to t = T (or infinity)
-
-    Example:
-
-        >>> def f(t, y):
-        ...     yp = - (y - 100.0)
-        ...     yp[0] *= 0.01
-        ...     yp[1] *= 100.
-        ...     return yp
-
-        >>> t0 = 0.0
-        >>> y0 = [80., 120]
-
-        >>> odeint1(t0, y0, f)
-        array([ 100.,  100.])
-    """
-
-    y = ODE(t0, y0, f)
-
-    if T is not None:
-        return y(T)
-    else:
-        return limit(y, t0=t0)
 
 def limit(y, t0=0.0, tol=1.0e-7, maxiter=12):
     """
