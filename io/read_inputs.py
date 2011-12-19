@@ -634,10 +634,8 @@ def from_params_file( lines, default_params):
     known_params.update(default_params)
 
     glob_olds = locals().copy()
-    print glob_olds.keys()
     exec(lines)
     glob = locals()
-    print glob.keys()
 
     for param in glob:
         if param not in glob_olds:
