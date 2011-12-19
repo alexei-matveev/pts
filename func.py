@@ -215,7 +215,7 @@ from numpy import array, dot, hstack, linalg, atleast_1d, sqrt, abs, column_stac
 from numpy import empty, asarray, searchsorted
 from numpy import shape
 from npz import matmul
-from scipy.interpolate import interp1d, splrep, splev
+from scipy.interpolate import splrep, splev # interp1d
 from scipy.integrate import quad
 from scipy.optimize import newton
 from ridders import dfridr
@@ -382,15 +382,30 @@ def compose(P, Q):
     return Func(f, fprime, taylor)
 
 class LinFunc(Func):
+    """
+    Linear Funciton
+
+    >>> f = LinFunc([1., 2.], [-10., -100.])
+    >>> f(3.0)
+    -190.0
+    >>> f.fprime(3.0)
+    -90.0
+    """
     def __init__(self, xs, ys):
-        self.fs = interp1d(xs, ys)
-        self.grad = (ys[1] - ys[0]) / (xs[1] - xs[0])
+        # This one throws error  on attempts to extrapolate, even with
+        # bounds_error=False it will return a "fill value".
+        # self.fs = interp1d(xs, ys)
+        self.point = ys[0], xs[0]
+        self.slope = (ys[1] - ys[0]) / (xs[1] - xs[0])
 
     def f(self, x):
-        return self.fs(x) #[0]
+        y0, x0 = self.point
+        return y0 + (x - x0) * self.slope
 
     def fprime(self, x):
-        return self.grad
+        # FIXME: copy  here, arrays  would be mutable,  though numbers
+        # are not:
+        return self.slope + 0.0
 
 class QuadFunc(Func):
     def __init__(self, xs, ys):
