@@ -310,7 +310,11 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
     # their local constraints are ignored.
     #
     if rc is not None:
+        # (2) "reshape" provided PES Func to make it accept 1D arrays:
+        rc = Reshape(rc, xshape=vshape)
+
         local = [rc.taylor] * len(x0)
+
         lambdas = mklambda0(local[1:-1])
 
     if callback is not None:
