@@ -42,28 +42,46 @@ def odeint1(t0, y0, f, T=None, tol=1.0e-7, maxiter=12):
     if T is not None:
         return y(T)
     else:
-        # integrate to infinity, for that guess
-        # the upper integration limit:
-        T = 1.0
+        return limit(y, t0=t0)
 
-        # will be comparing these two:
-        y1, y2 = y(T), y(2*T)
+def limit(y, t0=0.0, tol=1.0e-7, maxiter=12):
+    """
+    Compute  the limit  of  y(t) at  t  = inf.  The  function y(t)  is
+    supposed to be defined at least in the interval [t0, inf).
 
-        iteration = -1
-        while max(abs(y2 - y1)) > tol and iteration < maxiter:
-            iteration += 1
+    Example:
 
-            # scale the upper limit and advance:
-            T *= 2
-            y1, y2 = y2, y(2*T)
+        >>> from numpy import exp
+        >>> def f(t):
+        ...     return 100.0 * ( 1. - exp(-t))
 
-        if iteration >= maxiter:
-            print "odeint1: WARNING: maxiter=", maxiter, "exceeded"
+        >>> limit(f)
+        100.0
+    """
 
-        if VERBOSE:
-            print "odeint1: T=", 2 * T, "guessed", iteration, "times"
+    # integrate  to infinity,  for  that guess  the upper  integration
+    # limit:
+    t1 = t0 + 1.0
 
-        return y2
+    # will be comparing these two:
+    y1, y2 = y(t0), y(t1)
+
+    iteration = -1
+    while max(abs(y2 - y1)) > tol and iteration < maxiter:
+        iteration += 1
+
+        # advance  the upper  limit, by  scaling the  difference  by a
+        # factor:
+        t0, t1 = t1, t1 + 2.0 * (t1 - t0)
+        y1, y2 = y2, y(t1)
+
+    if iteration >= maxiter:
+        print "limit: WARNING: maxiter=", maxiter, "exceeded"
+
+    if VERBOSE:
+        print "limit: t=", t1, "guessed", iteration, "times"
+
+    return y2
 
 class ODE(Func):
     def __init__(self, t0, y0, f, args=()):
