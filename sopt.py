@@ -148,6 +148,26 @@ And the rombus TS is by about half a unit lower in energy:
     >>> x2, info = soptimize(pes, [A, C, B], tangent1, rc=vol)
     >>> pes(x2[1])
     -5.073420858462792
+
+Resutls  of an  optimization  without constraints,  or  rather with  a
+"dynamic" constraint  where a motion of  a vertex is  restricted to be
+orthogonal  to  the  tangent,  will  depend on  details  of  the  path
+relaxation algorithm:
+
+    >>> x1, info = soptimize(pes, x0, tangent1)
+    >>> info["iterations"]
+    13
+
+    >>> round(map(pes, x1), 4)
+    array([-6.    , -4.8631, -4.4806, -4.8631, -6.    ])
+
+    >>> round(map(vol, x1), 4)
+    array([-1.    , -0.9631, -0.    ,  0.9631,  1.    ])
+
+Note that  if judging by the  value of the energy  and volume property
+the 2nd and 4th vertices are much closer to the terminal beads than to
+the (square) TS. The funciton  soptimize() does not do any "respacing"
+by default.
 """
 
 __all__ = []
