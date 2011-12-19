@@ -15,7 +15,7 @@ from func import Func
 
 VERBOSE = False
 
-def odeint1(t0, y0, f, T=None, tol=1.0e-7, maxiter=12):
+def odeint1(t0, y0, f, T=None):
     """Integrate
 
         dy / dt = f(t, y)
