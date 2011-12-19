@@ -26,7 +26,7 @@ class conj_grad_opt():
     trial step in the direction
     """
     def __init__(self, atoms, maxstep = 0.1, respace = True,\
-      trial_step = 0.01, \
+      trial_step = 0.001, \
       reduce_to_steepest_decent = False, **kwargs):
         # Atoms to give forces/tangents
         self.atoms = atoms
@@ -40,7 +40,7 @@ class conj_grad_opt():
 
         # Maximal and start step size
         self.ms = maxstep * self.size
-        self.trial_step = trial_step * self.size
+        self.trial_step = trial_step #* self.size
 
         # Need to be there when used the first time
         self.nsteps = 0
