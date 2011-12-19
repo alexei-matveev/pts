@@ -63,6 +63,91 @@ This is the angle in grads:
 
     >>> arctan2(297.50776405, 42.2291236) / pi * 180
     81.921237154537607
+
+* Optimization of a descrete MEP with vertices selected by fixing
+  reaction coordiante:
+
+    >>> n = 5
+    >>> from numpy import array
+
+One equilibrium of Ar4  LJ cluster (in coordinates of c2v_tetrahedron1
+Func:
+
+    >>> w = 0.39685026
+
+    >>> from test.testfuns import c2v_tetrahedron1
+    >>> A = array([w, w, +w])
+
+Another equilibrium:
+
+    >>> B = array([w, w, -w])
+
+Halfway between A and B:
+
+    >>> C = (A + B) / 2.0
+
+    >>> xs = array([A, C, B])
+
+    >>> from path import MetricPath
+    >>> from metric import Metric
+    >>> from numpy import linspace
+
+Here "z" is a 3 -> (4 x 3) function generating tetrahedron:
+
+    >>> z = c2v_tetrahedron1()
+
+This  buils  the PES  as  a  composition of  QFunc  as  a funciton  of
+cartesian coordiantes and "z"-matrix:
+
+    >>> from ase import Atoms
+    >>> from qfunc import QFunc
+    >>> from func import compose
+
+    >>> pes = compose(QFunc(Atoms("Ar4")), z)
+
+    >>> from rc import Volume
+    >>> vol = compose(Volume(), z)
+
+We will abuse MetricPath to  distribute "n" points along the path with
+equal separations as measured by cartesian metric:
+
+    >>> p = MetricPath(xs, Metric(z).norm_up)
+    >>> x0 = map(p, linspace(0., 1., n))
+
+Inital energies and values of reaction coordinate:
+
+    >>> from numpy import round
+
+    >>> round(map(pes, x0), 4)
+    array([  -6.    ,   32.3409,  190.    ,   32.3409,   -6.    ])
+
+    >>> round(map(vol, x0), 4)
+    array([-1. , -0.5, -0. ,  0.5,  1. ])
+
+    >>> x1, info = soptimize(pes, x0, tangent1, rc=vol)
+    >>> info["iterations"]
+    13
+
+Optimized   energies   and  values   of   reaction  coordinate   after
+optimization:
+
+    >>> round(map(pes, x1), 4)
+    array([-6.    , -4.5326, -4.4806, -4.5326, -6.    ])
+
+    >>> round(map(vol, x1), 4)
+    array([-1. , -0.5, -0. ,  0.5,  1. ])
+
+Note  that  due to  symmetry  that  happened  to be  preserved  during
+optimization  the  square TS  state  is too  high.   This  would be  a
+symmetry distorted midpoint:
+
+    >>> C = array([w + 0.1, w - 0.1, 0.0])
+
+And the rombus TS is by about half a unit lower in energy:
+
+    >>> x2, info = soptimize(pes, [A, C, B], tangent1, rc=vol)
+    >>> pes(x2[1])
+    -5.073420858462792
 """
 
 __all__ = []
