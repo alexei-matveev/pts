@@ -248,10 +248,10 @@ class Func(object):
         return self.f(*args, **kwargs)
 
 def elemental(f, map=map):
-    """A decorator for functions "f(x, ...)" that makes
-    them elemental in the first argument. Other arguments
-    are passed as is. By using a parallel map implementation
-    one can achive parallelizm.
+    """
+    A decorator for functions "f(x, ...)" that makes them elemental in
+    the first argument.  Other arguments are passed as  is. By using a
+    parallel map implementation one can achieve parallelizm.
 
         >>> def f(x, a): return x * a
         >>> f(2, 10)
