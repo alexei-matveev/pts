@@ -211,7 +211,7 @@ The derivative matrix is a "square" of |df|:
 
 __all__ = ["Func", "LinFunc", "QuadFunc", "SplineFunc", "CubicFunc"]
 
-from numpy import array, dot, hstack, linalg, atleast_1d, sqrt, abs, column_stack, ones
+from numpy import array, dot, hstack, linalg, atleast_1d, abs, column_stack, ones
 from numpy import empty, asarray, searchsorted
 from numpy import shape
 from npz import matmul
