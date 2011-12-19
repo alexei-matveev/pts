@@ -287,6 +287,11 @@ di_default_params = {
     "phi_tol"  : 0.1 # Rotation stops if rotation angle would be smaller
 }
 
+di_default_params_rot = {
+    "max_rotations" : 100, # Maximal number of rotation steps per translation step
+    "phi_tol"  : 0.0001 # Rotation stops if rotation angle would be smaller
+}
+
 di_are_strings = ["trajectory", "trans_method", "rot_method"]
 
 def info_di_params():
