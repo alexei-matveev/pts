@@ -250,6 +250,9 @@ phi_tol            rotation step stops when the rotation angle is smaller than t
 
 max_step           the translation step will never exceed this maximal step_length
 
+logfile            If anything else than None (default) or "-" it will use the value
+                   for the file in which to write statistics about the iterations
+                   The result will still go to standard output
 trajectory         defines how much of the geometries/modes will be given as output
                    geometries will be in xyz format modes are given as matrix of floats
                    newest  : only the newest geometries and mode files will be kept as
@@ -284,7 +287,8 @@ di_default_params = {
     "trajectory" :  "newest", # Update method
     "max_step"   : 0.1, # maximal allowed step lenght (translation)
     "max_rotations" : 10, # Maximal number of rotation steps per translation step
-    "phi_tol"  : 0.1 # Rotation stops if rotation angle would be smaller
+    "phi_tol"  : 0.1, # Rotation stops if rotation angle would be smaller
+    "logfile"  : None # Where the output of dimer should go (None goes to standard output)
 }
 
 di_default_params_rot = {

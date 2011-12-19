@@ -9,6 +9,7 @@ from ase.io import write
 from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 from numpy import savetxt
 from numpy import arccos
+from sys import stdout
 """
 dimer method:
 
@@ -384,7 +385,7 @@ rot_dict = {
 
 def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_gradients = None, \
        trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.001, \
-       rot_method = "dimer", trajectory = empty_traj, **params):
+       rot_method = "dimer", trajectory = empty_traj, logfile = None, **params):
     """ The complete dimer algorithm
     Parameters for rotation and translation are handed over together. Each of the two
     grabs what it needs.
@@ -409,11 +410,17 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     error_old = 0
     mode_old = deepcopy(mode)
 
-    print "Intermediate steps for translation and rotation informations"
-    print "Values are in eV, Angstrom, degrees or combinations of them"
-    print "Trans. Infos:       Energy            ABS. Force          Max. Force        Step:",\
-    "          Perp\Para           Angle to mode"
-    print "Rot. Infos:  Conv.   Steps.       curvature        Angle to last"
+    if logfile == None or logfile == "-":
+        selflogfile = stdout
+    else:
+        selflogfile = open(logfile, "a")
+
+    selflogfile.write("Intermediate steps for translation and rotation informations\n")
+    selflogfile.write("Values are in eV, Angstrom, degrees or combinations of them\n")
+    selflogfile.write("Trans. Infos:       Energy            ABS. Force          Max. Force        Step:")
+    selflogfile.write("          Perp\Para           Angle to mode\n")
+    selflogfile.write("Rot. Infos:  Conv.   Steps.       curvature        Angle to last\n")
+    selflogfile.flush()
 
     i = 0
     # main loop:
@@ -458,11 +465,17 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
              r_conv = "False"
 
          # Give some report during dimer optimization
-         print "Step %5i with sum of Grad. calcs. %7i" % (i, grad_calc)
-         print "Trans. Infos:   %12.5f       %12.5f       %12.5f       %9.5f    %9.5f \%9.5f      %9.5f   " % \
-               (energy, abs_force, error, step_len,step_perp, step_para, arccos(angle) * 180 /pi)
-         print "Rot. Infos: ", r_conv, " %5i     %12.5f       %12.5f         " % \
-               ( res["rot_iteration"] , res["curvature"], arccos(angle2) * 180 /pi)
+         selflogfile.write("Step %5i with sum of Grad. calcs. %7i\n" % (i, grad_calc))
+         selflogfile.write("Trans. Infos:   %12.5f       %12.5f       %12.5f       %9.5f    %9.5f \%9.5f      %9.5f\n" % \
+               (energy, abs_force, error, step_len,step_perp, step_para, arccos(angle) * 180 /pi))
+
+         if r_conv:
+             selflogfile.write("Rot. Infos: True  %5i     %12.5f       %12.5f\n" % \
+               ( res["rot_iteration"] , res["curvature"], arccos(angle2) * 180 /pi))
+         else:
+             selflogfile.write("Rot. Infos: False %5i     %12.5f       %12.5f\n" % \
+               ( res["rot_iteration"] , res["curvature"], arccos(angle2) * 180 /pi))
+         selflogfile.flush()
         #if i > 0 and error_old - error < 0:
         #    print "Error is growing"
         #if i > 0:
@@ -481,8 +494,10 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
               break
 
     if conv:
+        selflogfile.write("Calculation is converged\n")
         print "Calculation is converged"
     else:
+        selflogfile.write("Calculation is not converged\n")
         print "No convergence reached"
 
     # all gradient calculations makes sense
