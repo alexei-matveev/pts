@@ -539,6 +539,8 @@ def respace(x0, tangents, spacing):
 
     return xm
 
+from ode import ODE, limit
+
 def resp(x, t, s):
     """
         dx / dh = - t(x) * s(x)
@@ -553,11 +555,20 @@ def resp(x, t, s):
             yprime[i] = T[i] * S[i]
         return yprime
 
-    print "s(x0)=", s(x)
+    print "resp: s(x0)=", s(x)
 
-    x8 = odeint1(0.0, x, f)
+    #
+    # This solves for X(t) such that dX / dt = f(t, X(t)), with X(0) =
+    # x:
+    #
+    X = ODE(0.0, x, f)
 
-    print "s(x8)=", s(x8)
+    #
+    # This computes X(inf):
+    #
+    x8 = limit(X)
+
+    print "resp: s(x8)=", s(x8)
     return x8
 
 def Dot(A, B):
@@ -565,7 +576,6 @@ def Dot(A, B):
 
     return sum([ dot(a, b) for a, b in zip(A, B) ])
 
-from ode import odeint1
 from numpy import log, min, zeros
 
 def odestep(h, G, H, X, tangents, lambdas):
@@ -578,6 +588,12 @@ def odestep(h, G, H, X, tangents, lambdas):
         return gprime(t, g, H, G, X, tangents, lambdas)
 
     #
+    # Integrate  to  T  (or  to  infinity).   To  get  an  idea,  very
+    # approximately: G8 = G + 1.0 * f(0.0, G):
+    #
+    GT = ODE(0.0, G, f)
+
+    #
     # Upper integration limit T (again "time", not "tangent)":
     #
     if h < 1.0:
@@ -585,17 +601,13 @@ def odestep(h, G, H, X, tangents, lambdas):
         # Assymptotically the gradients decay as exp[-t]
         #
         T = - log(1.0 - h)
+        G8 = GT(T)
     else:
-        T = None # FIXME: infinity
+        T = "infinity" # FIXME: used only for debug print
+        G8 = limit(GT)
 
     if VERBOSE:
         print "odestep: h=", h, "T=", T
-
-    #
-    # Integrate to T (or to infinity):
-    #
-    G8 = odeint1(0.0, G, f, T)
-    # G8 = G + 1.0 * f(0.0, G)
 
     # use one-to-one relation between dx and dg:
     dX = H.inv(G8 - G)
