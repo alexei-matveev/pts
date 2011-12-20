@@ -757,59 +757,6 @@ class Step(Func):
 
         return dX, dXprime
 
-def odestep(h, G, H, X, tangents, lambdas):
-    #
-    # Function to integrate (t is "time", not "tangent"):
-    #
-    #   dg / dt = f(t, g)
-    #
-    def f(t, g):
-        return gprime(t, g, H, G, X, tangents, lambdas)
-
-    #
-    # Integrate  to  T  (or  to  infinity).   To  get  an  idea,  very
-    # approximately: G8 = G + 1.0 * f(0.0, G):
-    #
-    GT = ODE(0.0, G, f)
-
-    #
-    # Upper integration limit T (again "time", not "tangent)":
-    #
-    if h < 1.0:
-        #
-        # Assymptotically the gradients decay as exp[-t]
-        #
-        T = - log(1.0 - h)
-        G8 = GT(T)
-    else:
-        T = "infinity" # FIXME: used only for debug print
-        G8 = limit(GT)
-
-    if VERBOSE:
-        print "odestep: h=", h, "T=", T
-
-    # use one-to-one relation between dx and dg:
-    dX = H.inv(G8 - G)
-
-    return dX
-
-def onestep(h, G, H, X, tangents, lambdas):
-    """One step of the using the same direction
-
-        dx / dh = H * gprime(...)
-
-    as the ODE procedure above. Can be used for step length
-    estimation.
-    """
-
-    # dg = h * dg / dh:
-    dG = h * gprime(0.0, G, H, G, X, tangents, lambdas)
-
-    # use one-to-one relation between dx and dg:
-    dX = H.inv(dG)
-
-    return dX
-
 from numpy.linalg import solve
 
 def gprime(h, G, H, G0, X0, tangents, lambdas):
