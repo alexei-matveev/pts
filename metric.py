@@ -1,8 +1,62 @@
-from numpy import dot, array, asarray, size
+"""
+    >>> from numpy import array, max, abs, dot
+
+This is a tetrahedral geometry:
+
+    >>> w = 0.39685026
+    >>> A = array([[ w,  w,  w],
+    ...            [-w, -w,  w],
+    ...            [ w, -w, -w],
+    ...            [-w,  w, -w]])
+
+Let the volume  of the thetrahedron be the  "reaction coordiante" or a
+"property" of the system:
+
+    >>> from rc import Volume
+    >>> v = Volume()
+
+This choice of the reaction coordinate appears to lead to a "negative"
+volume. This is an artifact of the orientation:
+
+    >>> v(A)
+    -0.99999997738152069
+
+Let us "measure" the changes of  geometry by the absolute value of the
+volumen change:
+
+    >>> m = Metric(v)
+
+This is a change in geometry corresponding to breathig mode:
+
+    >>> dA = 0.0001 * A
+
+This is the corresponding "measure":
+
+    >>> m.norm_up(dA, A)
+    0.00029999999321445622
+
+Compare that with a central difference:
+
+    >>> v(A - dA / 2.) - v(A + dA / 2.)
+    0.00029999999346475015
+
+And two one-sided differences:
+
+    >>> v(A - dA) - v(A)
+    0.00029996999421522119
+
+    >>> v(A + dA) - v(A)
+    -0.00030002999421374632
+
+Metric is unsigned, of course:
+
+    >>> m.norm_up(dA, A) == m.norm_up(-dA, A)
+    True
+"""
+from numpy import dot, array, asarray, size, copy
 from numpy import sqrt
-from numpy import zeros, empty, eye
+from numpy import zeros, empty, eye, shape
 from numpy.linalg import solve, norm
-from copy import deepcopy
 
 
 __all__ = ["cartesian_norm", "setup_metric", "metric"]
@@ -54,26 +108,40 @@ class Default:
         """
         pass
 
-    def lower(self, vec, place):
-        return deepcopy(vec)
+    def lower(self, dX, X):
+        return copy(dX)
 
-    def raises(self, vec, place):
-        return deepcopy(vec)
+    def raises(self, dx, X):
+        return copy(dx)
 
-    def norm_up(self, vec, place):
-        vec_co = self.lower(vec, place)
-        return sqrt(dot(vec, vec_co))
+    def norm_up(self, dX, X):
 
-    def norm_down(self, vec, place):
-        vec_con = self.raises(vec, place)
-        return sqrt(dot(vec_con, vec))
+        dx = self.lower(dX, X)
 
-    def g_mat(self, place):
-        g = zeros((len(place), len(place)))
-        c = zeros(len(place))
-        for i in xrange(len(place)):
+        # flat views of dx and dX:
+        dx_ = dx.reshape(-1)
+        dX_ = dX.reshape(-1)
+
+        return sqrt(dot(dX_, dx_))
+
+    def norm_down(self, dx, X):
+
+        dX = self.raises(dx, X)
+
+        # flat views of dx and dX:
+        dx_ = dx.reshape(-1)
+        dX_ = dX.reshape(-1)
+
+        return sqrt(dot(dX_, dx_))
+
+    def g_mat(self, X):
+        # FIXME: this code is broken for X of a general shape:
+        assert len(shape(X)) == 1
+        g = zeros((len(X), len(X)))
+        c = zeros(len(X))
+        for i in xrange(len(X)):
             c[i] = 1.
-            g[:,i] = self.lower(c, place)
+            g[:,i] = self.lower(c, X)
             c[i] = 0.
 
         return g
@@ -146,48 +214,73 @@ class Metric(Default):
 
     def _fprime_as_matrix(self, X):
         """
-        Some functions return not linear arrays of different shapes.
-        Then fprime will be not a 2-dimensional array but more.
-        Thus transform the result to a matrix as if the
-        function used for fprime would give back a flattened result.
+        Some functions  return not linear arrays  of different shapes.
+        Then fprime will be not  a 2-dimensional array but more.  Thus
+        transform the result  to a matrix as if  the function used for
+        fprime would give back a flattened result.
+
+        Not used  in this class, maybe  in subclasses. I  would let it
+        die.
         """
 
         # FIXME: ensure that "fprime" is always returned as an array instead:
-        fprime = asarray(deepcopy(self.fun.fprime(X)))
+        fprime = asarray(self.fun.fprime(X))
 
-        # convert shape of fprime, so that second dimension is length of vector x
-        fprime.shape = (-1, size(X))
-
-        return fprime
+        # Convert shape of fprime,  so that second dimension is length
+        # of vector x. Rather return a rectangular view of the matrix:
+        return fprime.reshape(-1, size(X))
 
     def lower(self, dX, X):
          """
-         Assuming that F is a function to get the derivatives, transforming vectors
-         of kind vec into cartesians, and that all takes place at position pos,
-         this function transforms contra in covariant vectors.
+         Transform   contravariant  coordiantes   dX   into  covariant
+         coordiantes  dx using the  derivatives of  the differentiable
+         transformation at X.
 
-         FIXME: description outdated.
+         This   should  also  work   with  rank-deficient   matrix  of
+         derivatives B.
          """
 
-         B = self._fprime_as_matrix(X)
+         dx = empty(shape(dX))
 
-         return dot(B.T, dot(B, dX))
+         # flat views of dx and dX:
+         dx_ = dx.reshape(-1)
+         dX_ = dX.reshape(-1)
+
+         # rectangular view of the trafo derivatives:
+         B = self.fun.fprime(X).reshape(-1, dX_.size)
+
+         # destructive update of a locally created var:
+         dx_[:] = dot(B.T, dot(B, dX_))
+
+         # return original view:
+         return dx
 
     def raises(self, dx, X):
          """
-         Assuming that F is a function to get the derivatives, transforming vectors
-         of kind vec into cartesians, and that all takes place at position pos,
-         this function transforms co in contravariant vectors.
+         Transform   covariant  coordiantes   dx   into  contravariant
+         coordiantes  dX using the  derivatives of  the differentiable
+         transformation at X.
 
-         FIXME: description outdated.
+         FIXME:  This will  fail  if  the matrix  of  derivatves B  is
+         rank-deficient and, hence, the corresponding M is singular.
          """
 
-         B = self._fprime_as_matrix(X)
+         dX = empty(shape(dx))
+
+         # flat views of dx and dX:
+         dx_ = dx.reshape(-1)
+         dX_ = dX.reshape(-1)
+
+         # rectangular view of the trafo derivatives:
+         B = self.fun.fprime(X).reshape(-1, dx_.size)
 
          M = dot(B.T, B)
 
-         return solve(M, dx)
+         # destructive update of a locally created var:
+         dX_[:] = solve(M, dx_)
 
+         # return original view:
+         return dX
 
     def __str__(self):
         return "Metric: Working with Metric Cartesians (Metric)"
