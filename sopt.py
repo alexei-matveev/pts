@@ -536,8 +536,19 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         del G2 # T, LAM
         # ... done convergency check }}}
 
-        # first rough estimate of the step:
-        dR = onestep(1.0, G, H, R, tangents, lambdas)
+        #
+        # step(h) with h in [0, 1]  is an estimate of the step towards
+        # the stationary  point.  Note  that there might  be numerical
+        # problems computing the  value and (especialy) the derivative
+        # of that funciton at h close to 1.0:
+        #
+        step = Step(G, H, R, tangents, lambdas)
+
+        #
+        # First rough estimate  of the step, this is  cheap as it does
+        # not involve ODE integration:
+        #
+        dR = 1.0 * step.fprime(0.0)
 
         # FIXME: does it hold in general?
         if False:
@@ -553,10 +564,12 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
             print "sopt: ODE one step, propose h=", h
             print "sopt: dR=", dR
 
-        # choose a step length below TR:
+        #
+        # Choose a step length below TR:
+        #
         while True:
             # FIXME: potentially wasting ODE integrations here:
-            dR = odestep(h, G, H, R, tangents, lambdas)
+            dR = step(h)
 
             longest = max(abs(dR))
             if longest <= TR:
