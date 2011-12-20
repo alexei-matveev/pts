@@ -144,7 +144,7 @@ class Metric(Default):
 
         self.fun = fun
 
-    def _fprime_as_matrix(self, x):
+    def _fprime_as_matrix(self, X):
         """
         Some functions return not linear arrays of different shapes.
         Then fprime will be not a 2-dimensional array but more.
@@ -153,14 +153,14 @@ class Metric(Default):
         """
 
         # FIXME: ensure that "fprime" is always returned as an array instead:
-        fprime = asarray(deepcopy(self.fun.fprime(x)))
+        fprime = asarray(deepcopy(self.fun.fprime(X)))
 
         # convert shape of fprime, so that second dimension is length of vector x
-        fprime.shape = (-1, size(x))
+        fprime.shape = (-1, size(X))
 
         return fprime
 
-    def lower(self, vec, place):
+    def lower(self, dX, X):
          """
          Assuming that F is a function to get the derivatives, transforming vectors
          of kind vec into cartesians, and that all takes place at position pos,
@@ -169,11 +169,11 @@ class Metric(Default):
          FIXME: description outdated.
          """
 
-         B = self._fprime_as_matrix(place)
+         B = self._fprime_as_matrix(X)
 
-         return dot(B.T, dot(B, vec))
+         return dot(B.T, dot(B, dX))
 
-    def raises(self, vec, place):
+    def raises(self, dx, X):
          """
          Assuming that F is a function to get the derivatives, transforming vectors
          of kind vec into cartesians, and that all takes place at position pos,
@@ -182,11 +182,11 @@ class Metric(Default):
          FIXME: description outdated.
          """
 
-         B = self._fprime_as_matrix(place)
+         B = self._fprime_as_matrix(X)
 
          M = dot(B.T, B)
 
-         return solve(M, vec)
+         return solve(M, dx)
 
 
     def __str__(self):
