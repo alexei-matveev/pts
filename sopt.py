@@ -550,11 +550,6 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         #
         dR = 1.0 * step.fprime(0.0)
 
-        # FIXME: does it hold in general?
-        if False:
-            # assume positive hessian, H > 0
-            assert Dot(G, dR) < 0.0
-
         # estimate the scaling factor for the step:
         h = 1.0
         if max(abs(dR)) > TR:
@@ -688,11 +683,6 @@ def resp(x, t, s):
 
     print "resp: s(x8)=", s(x8)
     return x8
-
-def Dot(A, B):
-    "Compute dot(A, B) for a string"
-
-    return sum([ dot(a, b) for a, b in zip(A, B) ])
 
 from numpy import log, zeros
 from func import Func
