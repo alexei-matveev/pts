@@ -1,7 +1,6 @@
 from numpy import dot, array, asarray, size
 from numpy import sqrt
 from numpy import zeros, empty, eye
-from numpy import max, abs # used in doctests
 from numpy.linalg import solve, norm
 from copy import deepcopy
 
@@ -88,7 +87,7 @@ class Metric(Default):
     transforming contra- and covariant vectors into
     each other
 
-        >>> from numpy import pi
+        >>> from numpy import pi, max, abs
 
     Use spherical coordiantes for testing:
 
@@ -243,7 +242,7 @@ class Metric_reduced(Metric):
 
         >>> dY = Z.pinv(X + dX) - Z.pinv(X)
 
-        >>> from numpy import round
+        >>> from numpy import round, max, abs
 
         >>> round(dY, 3)
         array([-0.077, -0.077,  0.   , -0.077,  0.   ,  0.   ])
@@ -459,6 +458,7 @@ def B_globals(carts):
 
     Trial geometry (tetrahedron):
 
+        >>> from numpy import max, abs
         >>> w = 2.0
         >>> X = array([[ w,  w,  w],
         ...            [-w, -w,  w],
@@ -654,6 +654,7 @@ def inv3(m):
 
     Use scaled rotation matrix for testing:
 
+        >>> from numpy import max, abs
         >>> from quat import rotmat
         >>> m = rotmat(array([0.5, 1.5, 2.])) * 10.0
 
