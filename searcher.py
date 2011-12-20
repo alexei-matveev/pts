@@ -454,7 +454,15 @@ class ReactionPathway(object):
         if self.climb_image and not self.ci_num == None:
             f[self.ci_num] = -self.bead_pes_gradients[self.ci_num]
 
-        return common.rms(f[1:-1]), abs(f[1:-1]).max()
+        l = []
+
+        for i, mask in enumerate(self.bead_update_mask):
+            if mask > 0:
+                l.append(i)
+
+        assert len(l) > 0
+
+        return common.rms(f[l]), abs(f[l]).max()
 
     def pathpos(self):
         return None
