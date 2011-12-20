@@ -681,7 +681,68 @@ def Dot(A, B):
 
     return sum([ dot(a, b) for a, b in zip(A, B) ])
 
-from numpy import log, min, zeros
+from numpy import log, zeros
+from func import Func
+
+class Step(Func):
+    """
+    A function of a scalar scale  parameter "h" in the interval [0, 1]
+    that implements a "step towards the stationary solution". Think of
+    a scaled Newton step dx = - h * H * g towards the stationary point
+    but keep  in mind that due  to constraints and  path specifics the
+    way  towards the stationary  point is  not necessarily  a straight
+    line like is implied by a newton formula.
+
+    To get a rough estimate of the (remaining) step one could use
+
+        step = Step(G, H, X, tangents, lambdas)
+        dX = (1.0 - h) * step(h)
+
+    which  for a  special  case  of h  =  0 does  not  involve no  ODE
+    integration.
+    """
+    def __init__(self, G, H, X, tangents, lambdas):
+        #
+        # Function to integrate (t is "time", not "tangent"):
+        #
+        #   dg / dt = f(t, g)
+        #
+        def f(t, g):
+            return gprime(t, g, H, G, X, tangents, lambdas)
+        #
+        # This Func can  integrate to T for any T  in the interval [0,
+        # infinity).   To get  an  idea, very  approximately for  step
+        # scale h = 1.0  the change of a gradients is: G1  = G + 1.0 *
+        # f(0.0, G). Also we will need these H and G later:
+        #
+        self._slots = ODE(0.0, G, f), H, G
+
+    def taylor(self, h):
+
+        ode, H, G = self._slots
+
+        #
+        # Upper integration limit T (again "time", not "tangent)":
+        #
+        if h < 1.0:
+            #
+            # Assymptotically the gradients decay as exp[-t]
+            #
+            T = - log(1.0 - h)
+            G8, G8prime = ode.taylor(T)
+
+            # Use one-to-one relation between dx and dg:
+            dX = H.inv(G8 - G)
+            dXprime = H.inv(G8prime) / (1.0 - h)
+        else:
+            G8 = limit(ode)
+
+            # Use  one-to-one  relation  between  dx  and  dg.  FIXME:
+            # how to approach limit(self.ode.fprime(T) * exp(T))?
+            dX = H.inv(G8 - G)
+            dXprime = None
+
+        return dX, dXprime
 
 def odestep(h, G, H, X, tangents, lambdas):
     #
