@@ -709,7 +709,7 @@ class Step(Func):
     To get a rough estimate of the (remaining) step one could use
 
         step = Step(G, H, X, tangents, lambdas)
-        dX = (1.0 - h) * step(h)
+        dX = (1.0 - h) * step.fprime(h)
 
     which  for a  special  case  of h  =  0 does  not  involve no  ODE
     integration.
