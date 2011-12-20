@@ -159,7 +159,7 @@ class ODE(Func):
 
         # return cached value, if possible:
         if t in ys:
-            return ys[t]
+            return ys[t].copy()
 
         i = searchsorted(ts, t)
 
