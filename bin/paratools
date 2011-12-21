@@ -47,6 +47,7 @@ where CMD is one of the following:
                         (given also as input)
     min-iter            Gives iteration with minimal value from
                         logfile
+    compare_geos        compare coordinates of geometry files
 
 See subcommand specific help for syntax details.
 
@@ -70,6 +71,7 @@ import pts.tools.tsestandmods
 import pts.tools.xyz2tabint
 import pts.vib
 import pts.path_searcher
+import pts.tools.compare_geos
 
 optic_methods = {
    "tab2plot"        : True       ,
@@ -93,6 +95,7 @@ methods = {
    "ts_and_mods"     : pts.tools.tsestandmods.main   ,
    "min_iter"        : pts.tools.pathmin.main   ,
    "min-iter"        : pts.tools.pathmin.main   ,
+   "compare_geos"    : pts.tools.compare_geos.main   ,
    "xyz2tab"         : pts.tools.xyz2tabint.main
 }
 
