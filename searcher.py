@@ -704,7 +704,7 @@ class ReactionPathway(object):
 
             for i in range(self.beads_count):
             # Update mask: 1 update, 0 stay fixed, 2 new bead
-                if self.bead_update_mask[i] == 1:
+                if self.bead_update_mask[i] > 0:
                     self._state_vec[i] = tmp[i]
         else:
            print >> stderr, "ERROR: setting state vector to NONE, aborting"
