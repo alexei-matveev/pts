@@ -1,0 +1,15 @@
+C
+C 1 cc2
+C 1 cc3 2 ccc3
+C 1 cc4 3 ccc4 2 dih4
+H 2 hc5 1 hcc5 3 dih5
+H 2 hc6 1 hcc6 3 dih6
+H 1 hc7 2 hcc7 5 dih7
+O 7 oh8 1 ohc8 2 dih8
+H 8 ho9 7 hoh9 1 dih9
+H 4 hc10 1 hcc10 2 dih10
+H 4 hc11 1 hcc11 2 dih11
+H 4 hc12 1 hcc12 2 dih12
+H 3 hc13 1 hcc13 2 dih13
+H 3 hc14 1 hcc14 2 dih14
+H 3 hc15 1 hcc15 2 dih15

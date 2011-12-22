@@ -1,0 +1,22 @@
+C
+C 1 var1
+C 2 var2 1 var3
+N 2 var4 1 var5 3 var6
+N 3 var7 2 var8 4 var9
+C 5 var10 3 var11 2 var12
+O 3 var13 2 var14 4 var15
+C 4 var16 2 var17 3 var18
+O 8 var19 4 var20 2 var21
+C 8 var22 4 var23 9 var24
+H 4 var25 8 var26 9 var27
+H 2 var28 3 var29 1 var30
+H 5 var31 3 var32 6 var33
+H 1 var34 2 var35 12 var36
+H 1 var37 2 var38 14 var39
+H 1 var40 2 var41 14 var42
+H 6 var43 5 var44 3 var45
+H 6 var46 5 var47 17 var48
+H 6 var49 5 var50 17 var51
+H 10 var52 8 var53 9 var54
+H 10 var55 8 var56 20 var57
+H 10 var58 8 var59 20 var60
