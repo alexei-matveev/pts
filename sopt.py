@@ -172,9 +172,9 @@ by default.
 
 __all__ = []
 
-from numpy import array, asarray, empty, ones, dot, max, abs, sqrt, shape, linspace
-from numpy import vstack
-from bfgs import LBFGS, BFGS, Array
+from numpy import array, asarray, empty, dot, max, abs, sqrt, shape, linspace
+from numpy import vstack, sign
+from bfgs import BFGS, Array
 from common import cumm_sum, pythag_seps
 from metric import cartesian_norm
 
@@ -190,7 +190,7 @@ MAXIT = 50
 MAXSTEP = 0.05
 SPRING = 100.0
 
-from chain import Spacing, Norm, Norm2
+from chain import Spacing, Norm2
 # spacing = Spacing(Norm())
 spacing = Spacing(Norm2())
 
@@ -273,7 +273,7 @@ def test(A, B, trafo=None):
         else:
             show_chain(x)
 
-    from numpy import savetxt, loadtxt
+    from numpy import savetxt
 
     def callback(x):
         # show(x)
