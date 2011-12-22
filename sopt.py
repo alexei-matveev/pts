@@ -147,7 +147,7 @@ And the rombus TS is by about half a unit lower in energy:
 
     >>> x2, info = soptimize(pes, [A, C, B], tangent1, rc=vol)
     >>> pes(x2[1])
-    -5.073420858462792
+    -5.0734208584627911
 
 Resutls  of an  optimization  without constraints,  or  rather with  a
 "dynamic" constraint  where a motion of  a vertex is  restricted to be
@@ -159,10 +159,10 @@ relaxation algorithm:
     13
 
     >>> round(map(pes, x1), 4)
-    array([-6.    , -4.8631, -4.4806, -4.8631, -6.    ])
+    array([-6.    , -4.8687, -4.4806, -4.8687, -6.    ])
 
     >>> round(map(vol, x1), 4)
-    array([-1.    , -0.9631, -0.    ,  0.9631,  1.    ])
+    array([-1.    , -0.9656, -0.    ,  0.9656,  1.    ])
 
 Note that  if judging by the  value of the energy  and volume property
 the 2nd and 4th vertices are much closer to the terminal beads than to
@@ -544,37 +544,77 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         #
         step = Step(G, H, R, tangents, lambdas)
 
-        #
-        # First rough estimate  of the step, this is  cheap as it does
-        # not involve ODE integration:
-        #
-        dR = 1.0 * step.fprime(0.0)
+        # trust(h) > 0 means we would accept the step(h):
+        def trust(h):
+            norm_inf = max(abs(step(h)))
 
-        # estimate the scaling factor for the step:
-        h = 1.0
-        if max(abs(dR)) > TR:
-            h *= 0.9 * TR / max(abs(dR))
+            if VERBOSE:
+                if norm_inf > TR:
+                    word = "too long"
+                else:
+                    word = "looks OK"
+                print "sopt: step(", h, ")", word, "by factor", norm_inf/TR, "of trust radius", TR
 
-        if VERBOSE:
-            print "sopt: ODE one step, propose h=", h
-            print "sopt: dR=", dR
+            return TR - norm_inf
 
         #
-        # Choose a step length below TR:
+        # We are looking  for a point h in [0,  1] such that |step(h)|
+        # == TR, if there is no such point then h should be 1. This is
+        # the initial interval:
+        #
+        ha, hb = 0.0, 1.0
+
+        #
+        # As  an optimization  the first  thing we  do is  proposing a
+        # point  hoping that  in the  "criminal" cases  of  very large
+        # steps  (TR  << dmax)  we  can  avoid  integrating ODE  to  h
+        # significantly  larger than  TR /  dmax.  So  here we  try to
+        # guess a more conservative upper bound of the interval.
+        #
+        # A rough  estimate of the step  follows, this is  cheap as it
+        # does not involve ODE integration:
+        #
+        dmax = max(abs(1.0 * step.fprime(0.0)))
+        if dmax > TR:
+            h = TR / dmax
+        else:
+            h = 1.0
+        #
+        # Of course if it is not  an upper bound, then it is new lower
+        # bound. In any case we restric the search the interval to [0,
+        # h] or [h, 1] in the first iteration of the following loop:
         #
         while True:
-            # FIXME: potentially wasting ODE integrations here:
-            dR = step(h)
+            if trust(h) <= 0.0:
+                ha, hb = ha, h
+            else:
+                ha, hb = h, hb
 
-            longest = max(abs(dR))
-            if longest <= TR:
+            if hb - ha > TOL:
+                # FIXME: since here  we cannot exclude that h  == 1, we should
+                # better not use the derivatves, just use bisection:
+                h = (ha + hb) / 2.0
+            else:
                 break
 
-            print "sopt: WARNING: step too long by factor", longest/TR, "retrying"
-            h *= 0.9 * TR / longest
+        assert hb == 1.0 or trust(ha) > 0.0 > trust(hb)
+
+        # prefer the left side so  that |step(h)| < TR, unless we can
+        # also trust(hb). In this case hb == 1.
+        if trust(hb) > 0:
+            h = hb
+        else:
+            h = ha
+
+        assert h != 0.0, "must be rare, see how often"
+
+        #
+        # This actually computes the step:
+        #
+        dR = step(h)
 
         if VERBOSE:
-            print "ODE step, h=", h, ":"
+            print "sopt: ODE step, propose h=", h, "between", ha, "and", hb
             print "sopt: dR=", dR
 
         #
