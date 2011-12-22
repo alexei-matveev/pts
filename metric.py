@@ -287,17 +287,16 @@ class Metric(Default):
 
 class Metric_reduced(Metric):
     """
-    Includes metrix relevant functions, like for
-    transforming contra- and covariant vectors into
-    each other
+    Includes metrix relevant  functions, like for transforming contra-
+    and covariant vectors into each other.
 
     This one uses Cartesian metric but with ensuring that there are no
     global rotation and translation. Therefore it is only designed for
-    use of some kind of internal coordinates, which do not already include
-    them.
+    use of  some kind  of internal coordinates,  which do  not already
+    include them.
 
-    Potential energy surface of Ar4, energy gradients will be used
-    as a trial covariant vector:
+    Potential energy surface of Ar4,  energy gradients will be used as
+    a trial covariant vector:
 
         >>> from ase import Atoms
         >>> from qfunc import QFunc
@@ -312,9 +311,9 @@ class Metric_reduced(Metric):
         ...            [ w, -w, -w],
         ...            [-w,  w, -w]])
 
-    Imagine we use a steepest descent procedure, where step
-    is proportional to the gradient. In cartesian coordinates
-    this may look like this:
+    Imagine  we  use  a  steepest  descent procedure,  where  step  is
+    proportional to  the gradient.  In cartesian coordinates  this may
+    look like this:
 
         >>> lam = 0.01
         >>> dX = - lam * E.fprime(X)
@@ -325,12 +324,11 @@ class Metric_reduced(Metric):
 
         >>> Z = ZMat([(), (0,), (0, 1), (1, 2, 0)])
 
-    Internal coordiantes corresponding to the (inflated)
-    geometry:
+    Internal coordiantes corresponding to the (inflated) geometry:
 
         >>> Y = Z.pinv(X)
 
-    Note what effect would a certesian step dX have on internal
+    Note  what effect  would  a  certesian step  dX  have on  internal
     coordinates:
 
         >>> dY = Z.pinv(X + dX) - Z.pinv(X)
@@ -340,8 +338,9 @@ class Metric_reduced(Metric):
         >>> round(dY, 3)
         array([-0.077, -0.077,  0.   , -0.077,  0.   ,  0.   ])
 
-    Only the bond lengths would shrink by the same amount thus preserving the
-    symmetry. Now try this with internal coordinates ...
+    Only  the  bond lengths  would  shrink  by  the same  amount  thus
+    preserving the  symmetry. Now  try this with  internal coordinates
+    ...
 
     Potential energy surface as a function of internal coordinates:
 
@@ -349,17 +348,17 @@ class Metric_reduced(Metric):
 
         >>> E1 = compose(E, Z)
 
-    What if we made the step proportional to the gradient in
-    internal coordiantes?
+    What if we made the  step proportional to the gradient in internal
+    coordiantes?
 
         >>> dY = - lam * E1.fprime(Y)
         >>> round(dY, 3)
         array([-0.039, -0.039, -0.026, -0.039, -0.026, -0.016])
 
-    This would also change the angles and break the symmetry.
-    The reduced metric helps in this case if you remember to
-    never confuse co- and contravariant coordinates
-    (FIXME: use analytic derivatives, provided by Z.fprime!):
+    This would  also change  the angles and  break the  symmetry.  The
+    reduced metric helps in this case if you remember to never confuse
+    co- and contravariant coordinates
+    (FIXME:   use   analytic derivatives, provided by Z.fprime!):
 
         >>> g = Metric_reduced(Z)
 
@@ -381,19 +380,24 @@ class Metric_reduced(Metric):
     """
     def lower(self, dY, Y):
         """
-        Assuming that F is a function to get the derivatives, transforming vectors
-        of kind vec into cartesians, while f is the function itself
-        and that all takes place at position pos,
-        this function transforms contra in covariant vectors with removing the
-        parts for global coordinates in the covariant vector space.
-        The transformation between the two is done with the expression:
+        Assuming  that  F  is  a  function  to  get  the  derivatives,
+        transforming vectors  of kind vec into cartesians,  while f is
+        the function itself and that  all takes place at position pos,
+        this  function  transforms contra  in  covariant vectors  with
+        removing  the parts  for global  coordinates in  the covariant
+        vector space.  The transformation between the two is done with
+        the expression:
+
         vec_i = B.T(I - BT (BT.T Bt)^-1 BT.T - BR (BR.T BR)^-1 BR.T) B vec^i
-        B(pos) is the transformation just in internals, BT and BR are the matrices
-        for translation and rotation (special choice with no interlap)
+
+        B(pos) is the transformation just  in internals, BT and BR are
+        the matrices for translation and rotation (special choice with
+        no interlap)
 
         FIXME: description outdated.
 
-        Compute covariant coordinates dy corresponding to contravariant dY by
+        Compute    covariant   coordinates    dy    corresponding   to
+        contravariant dY by
 
                   T                  T            T
             dy = B  * ( I - B * g * B  - B * g * B ) * B * dY
@@ -432,15 +436,19 @@ class Metric_reduced(Metric):
 
     def raises(self, dy, Y):
         """
-        Assuming that F is a function to get the derivatives, transforming vectors
-        of kind vec into cartesians, while f is the function itself
-        and that all takes place at position pos,
-        this function transforms co in contravariant vectors with removing the
-        parts for global coordinates in the covariant vector space.
-        The transformation between the two is done with the expression:
+        Assuming  that  F  is  a  function  to  get  the  derivatives,
+        transforming vectors  of kind vec into cartesians,  while f is
+        the function itself and that  all takes place at position pos,
+        this  function  transforms co  in  contravariant vectors  with
+        removing  the parts  for global  coordinates in  the covariant
+        vector space.  The transformation between the two is done with
+        the expression:
+
         vec_i = B.T(I - BT (BT.T Bt)^-1 BT.T - BR (BR.T BR)^-1 BR.T) B vec^i
-        B(pos) is the transformation just in internals, BT and BR are the matrices
-        for translation and rotation (special choice with no interlap)
+
+        B(pos) is the transformation just  in internals, BT and BR are
+        the matrices for translation and rotation (special choice with
+        no interlap)
 
         FIXME: description outdated.
         """
@@ -448,29 +456,31 @@ class Metric_reduced(Metric):
         # positions needed for the global rotation matrix:
         X = self.fun(Y)
 
-        # get the matrices for the global parameter (without interlap):
+        # get   the  matrices  for   the  global   parameter  (without
+        # interlap):
         BT, gT , BR, gR = B_globals(X)
 
         B = self._fprime_as_matrix(Y)
 
         #
-        # See description of self.lower() that defines a linear relation
+        # See  description  of  self.lower()  that  defines  a  linear
+        # relation
         #
         #       g * dY = dy
         #
-        # between contra- and covariant coordinates, dY and dy,
-        # for detailed definition of matrix g.
+        # between contra-  and covariant  coordinates, dY and  dy, for
+        # detailed definition of matrix g.
         #
-        # FIXME: isnt modified metric singular? Why do we assume
-        #        the linear equation has a solution? At least
-        #        the modified cartesian metric is singular.
+        # FIXME: isnt  modified metric singular? Why do  we assume the
+        #        linear equation has a solution? At least the modified
+        #        cartesian metric is singular.
         #
 
         # unmodified metric, NY x NY, where NY = dim(Y):
         g = dot(B.T, B)
 
-        # projections of "internal" modes onto translations and rotations,
-        # both NY x 3:
+        # projections  of  "internal"   modes  onto  translations  and
+        # rotations, both NY x 3:
         T = dot(B.T, BT)
         R = dot(B.T, BR)
 
@@ -485,21 +495,23 @@ class Metric_reduced(Metric):
 
 """
 The chosen metric, available are:
-   * Default, for which contra- and covariant vectors are the same
-   * Metric, using a Cartesian metric
-   * Metric_reduced, using a Cartesian metric but removing the effects of
-     global rotation and translation. This metric makes only sense for systems in
-     internal coordinates if the coordinates do not contain already any kind of variables
-     for global positioning. It should be expected that a change in the global postitions
-     will have no effect on the energy of the system.
 
-Use print metric to find out which one is set currently.
-Store and initalize the choosen metric in metric
-Here set up the global variable.
-Before use make sure that it is initalized with a fitting
-variable by function setup_metric.
-Do not import metric directly, as it would be the starting version
-but use for example
+   * Default, for which contra- and covariant vectors are the same
+
+   * Metric, using a Cartesian metric
+
+   * Metric_reduced, using a Cartesian metric but removing the effects
+     of global rotation and  translation. This metric makes only sense
+     for  systems in internal  coordinates if  the coordinates  do not
+     contain already any kind  of variables for global positioning. It
+     should be  expected that a  change in the global  postitions will
+     have no effect on the energy of the system.
+
+Use print  metric to find out  which one is set  currently.  Store and
+initalize  the  choosen  metric  in  metric Here  set  up  the  global
+variable.  Before use  make sure that it is  initalized with a fitting
+variable by function setup_metric.   Do not import metric directly, as
+it would be the starting version but use for example
 
  import pts.metric as mt
  ...
@@ -521,15 +533,17 @@ def setup_metric(F = None):
 
 def B_globals(carts):
     """
-    Calculates the matrices BT and BR holding translation and rotation modes
-    as needed for removing the trivial componets of a (displacement) vector.
+    Calculates the matrices BT and BR holding translation and rotation
+    modes  as   needed  for  removing  the  trivial   componets  of  a
+    (displacement) vector.
 
-    BT is just the derivatives for the translation and is thus indpendent of
-    geometry. The inverse of the matrix BT^T * BT is just eye(3) / N.
+    BT  is  just the  derivatives  for  the  translation and  is  thus
+    indpendent of  geometry. The  inverse of the  matrix BT^T *  BT is
+    just eye(3) / N.
 
-    The matrix BR is build with the geometrical center as rotation center, thus
-    rotation and translation modes are orthogonal by construction.
-    The inverse of BR^T * BR is calculated numerically.
+    The matrix  BR is  build with the  geometrical center  as rotation
+    center,  thus rotation  and  translation modes  are orthogonal  by
+    construction.  The inverse of BR^T * BR is calculated numerically.
 
     Returns a 4-tuple (BT, gT, BR, gR) with 3x3 matrices
 
@@ -596,13 +610,14 @@ def B_globals(carts):
 
     Only in this case is it meaningfull to separate the two subspaces.
 
-    Below is a somewhat obscure way to verify that translations are translations
-    and rotations are rotations.
+    Below is  a somewhat obscure  way to verify that  translations are
+    translations and rotations are rotations.
 
         >>> from zmat import RT
 
-    Constructor of an RT object expect a differentiable function,
-    prepare a function that always returns the same tetrahedral geometry:
+    Constructor  of an  RT  object expect  a differentiable  function,
+    prepare  a  function  that  always returns  the  same  tetrahedral
+    geometry:
 
         >>> def f(y):
         ...     return X
@@ -612,7 +627,8 @@ def B_globals(carts):
         >>> from func import NumDiff
         >>> f = NumDiff(f)
 
-    This one depends on rotational and translational parameters in addition:
+    This  one depends  on rotational  and translational  parameters in
+    addition:
 
         >>> f = RT(f)
 
@@ -620,13 +636,13 @@ def B_globals(carts):
 
         >>> O = array([0., 0., 0.])
 
-    The first argument of f(y, rot, trans) is ignored, so is the corresponding
-    derivative:
+    The  first argument  of f(y,  rot, trans)  is ignored,  so  is the
+    corresponding derivative:
 
         >>> _, BR1, BT1 =  f.fprime(O, O, O)
 
-    For this particular example derivatives with respect to
-    rotational and translational parameters coincide:
+    For this particular example derivatives with respect to rotational
+    and translational parameters coincide:
 
         >>> max(abs(BT.flatten() - BT1.flatten())) < 1e-16
         True
@@ -634,19 +650,18 @@ def B_globals(carts):
         >>> max(abs(BR.flatten() - BR1.flatten())) < 1e-16
         True
 
-    Note that with a different choice of, say, geometrical
-    center of X offset from origin one cannot expect this
-    agreement anymore.
+    Note that with a different choice of, say, geometrical center of X
+    offset from origin one cannot expect this agreement anymore.
     """
 
     #
-    # FIXME: this code necessarily assumes that "carts" is an array
-    #        of cartesian coordinates. Otherwise "translations" and
-    #        "rotation" modes as used implicitly below have no meaning.
-    #        Why cannot we assume that we are always passed an (N, 3)
-    #        array? In fact the code below "assumes" that N > 2
-    #        otherwise removal of 6 degrees of freedom is not well
-    #        defined. Think of a singular inertia tensor for single
+    # FIXME: this code necessarily assumes that "carts" is an array of
+    #        cartesian   coordinates.  Otherwise   "translations"  and
+    #        "rotation"  modes  as   used  implicitly  below  have  no
+    #        meaning.  Why cannot we  assume that we are always passed
+    #        an (N, 3) array? In  fact the code below "assumes" that N
+    #        > 2 otherwise removal of 6 degrees of freedom is not well
+    #        defined. Think  of a  singular inertia tensor  for single
     #        atom or a diatomic molecule.
     #
     carts = carts.view().reshape(-1, 3)
@@ -657,9 +672,9 @@ def B_globals(carts):
     # number of atoms:
     N = len(carts)
 
-    # Matrices to hold translation and rotation modes, BT and BR.
-    # For each of N atoms a 3x3 matrix, or rather for each of 3 modes
-    # an Nx3 matrix [both will be reshaped to (N*3, 3) later]:
+    # Matrices to hold translation and rotation modes, BT and BR.  For
+    # each of N atoms  a 3x3 matrix, or rather for each  of 3 modes an
+    # Nx3 matrix [both will be reshaped to (N*3, 3) later]:
     BT = empty((N, 3, 3))
     BR = empty((N, 3, 3))
 
@@ -675,8 +690,8 @@ def B_globals(carts):
                              [-z,  0,  x],
                              [ y, -x,  0]])
 
-    # NOTE: we handle cartesian coordinates as linear arrays
-    #       in order to use numpy.dot(,) later:
+    # NOTE: we handle cartesian  coordinates as linear arrays in order
+    #       to use numpy.dot(,) later:
     BT.shape = (N*3, 3)
     BR.shape = (N*3, 3)
 
@@ -698,8 +713,7 @@ def B_globals(carts):
 
 
 def center(rs):
-    """Compute mass center
-    assuming UNIT masses.
+    """Compute mass center assuming UNIT masses.
     """
 
     x = zeros((3))
@@ -771,7 +785,8 @@ def inv3(m):
     # return asarray(matrix(m).I)
 
 def adj3(m):
-    """Returns adjugate of 3x3 m, http://en.wikipedia.org/wiki/Adjugate_matrix
+    """Returns adjugate of 3x3 m,
+    http://en.wikipedia.org/wiki/Adjugate_matrix
 
     Example from Wikipedia:
 
