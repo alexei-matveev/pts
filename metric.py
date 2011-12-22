@@ -141,7 +141,7 @@ class Default:
         c = zeros(len(X))
         for i in xrange(len(X)):
             c[i] = 1.
-            g[:,i] = self.lower(c, X)
+            g[:, i] = self.lower(c, X)
             c[i] = 0.
 
         return g
@@ -231,56 +231,56 @@ class Metric(Default):
         return fprime.reshape(-1, size(X))
 
     def lower(self, dX, X):
-         """
-         Transform   contravariant  coordiantes   dX   into  covariant
-         coordiantes  dx using the  derivatives of  the differentiable
-         transformation at X.
+        """
+        Transform   contravariant  coordiantes   dX   into  covariant
+        coordiantes  dx using the  derivatives of  the differentiable
+        transformation at X.
 
-         This   should  also  work   with  rank-deficient   matrix  of
-         derivatives B.
-         """
+        This   should  also  work   with  rank-deficient   matrix  of
+        derivatives B.
+        """
 
-         dx = empty(shape(dX))
+        dx = empty(shape(dX))
 
-         # flat views of dx and dX:
-         dx_ = dx.reshape(-1)
-         dX_ = dX.reshape(-1)
+        # flat views of dx and dX:
+        dx_ = dx.reshape(-1)
+        dX_ = dX.reshape(-1)
 
-         # rectangular view of the trafo derivatives:
-         B = self.fun.fprime(X).reshape(-1, dX_.size)
+        # rectangular view of the trafo derivatives:
+        B = self.fun.fprime(X).reshape(-1, dX_.size)
 
-         # destructive update of a locally created var:
-         dx_[:] = dot(B.T, dot(B, dX_))
+        # destructive update of a locally created var:
+        dx_[:] = dot(B.T, dot(B, dX_))
 
-         # return original view:
-         return dx
+        # return original view:
+        return dx
 
     def raises(self, dx, X):
-         """
-         Transform   covariant  coordiantes   dx   into  contravariant
-         coordiantes  dX using the  derivatives of  the differentiable
-         transformation at X.
+        """
+        Transform   covariant  coordiantes   dx   into  contravariant
+        coordiantes  dX using the  derivatives of  the differentiable
+        transformation at X.
 
-         FIXME:  This will  fail  if  the matrix  of  derivatves B  is
-         rank-deficient and, hence, the corresponding M is singular.
-         """
+        FIXME:  This will  fail  if  the matrix  of  derivatves B  is
+        rank-deficient and, hence, the corresponding M is singular.
+        """
 
-         dX = empty(shape(dx))
+        dX = empty(shape(dx))
 
-         # flat views of dx and dX:
-         dx_ = dx.reshape(-1)
-         dX_ = dX.reshape(-1)
+        # flat views of dx and dX:
+        dx_ = dx.reshape(-1)
+        dX_ = dX.reshape(-1)
 
-         # rectangular view of the trafo derivatives:
-         B = self.fun.fprime(X).reshape(-1, dx_.size)
+        # rectangular view of the trafo derivatives:
+        B = self.fun.fprime(X).reshape(-1, dx_.size)
 
-         M = dot(B.T, B)
+        M = dot(B.T, B)
 
-         # destructive update of a locally created var:
-         dX_[:] = solve(M, dx_)
+        # destructive update of a locally created var:
+        dX_[:] = solve(M, dx_)
 
-         # return original view:
-         return dX
+        # return original view:
+        return dX
 
     def __str__(self):
         return "Metric: Working with Metric Cartesians (Metric)"
@@ -509,17 +509,15 @@ global metric
 metric = Default()
 
 def setup_metric(F = None):
-     """
-     sets and initalises the metric
-     F should be a function, which should when run by
-     itself provide for the internal coordinates y
-     the corresponding Cartesian coordinates x
-     This function has to be called once, afterwards
-     all modules should be able to access the metric.
-     """
-     global metric
-     metric = Default(F)
-     #print metric
+    """
+    Sets and  initalises the  metric.  F should  be a  function, which
+    should when run  by itself provide for the  internal coordinates y
+    the corresponding Cartesian coordinates  x This function has to be
+    called once, afterwards  all modules should be able  to access the
+    metric.
+    """
+    global metric
+    metric = Default(F)
 
 def B_globals(carts):
     """
@@ -732,7 +730,7 @@ def inertia(rs):
                [  0.,   0.,  32.]])
     """
 
-    I = zeros((3,3))
+    I = zeros((3, 3))
     for r in rs:
         for i in range(3):
             for j in range(3):
@@ -814,7 +812,7 @@ def adj3(m):
 # Testing the examples in __doc__strings, execute
 # "python metric.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
-     import doctest
-     doctest.testmod()
+    import doctest
+    doctest.testmod()
 
 
