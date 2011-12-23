@@ -267,7 +267,7 @@ def minimize(argv):
         tries  to identify the  format by  the name.  In this  way the
         output geometry will be written into the file output_geometry.
 
-    --atommask <mask>
+    --atomsmask <mask>
 
         Only atoms  set True in mask  are optimized.  This  is done by
         reseting steps  and adjusting  forces, thus not  by optimizing
@@ -327,8 +327,10 @@ def minimize(argv):
         elif opt == "--restart":
             restart = value
         elif opt == "--atomsmask":
-            print "The following atoms were fixed"
+            print "The following atoms will be optimized"
             mask = get_mask(value)
+            print mask
+            mask = [not ma for ma in mask]
 
     # this option has to be given!!
     assert calculator != None
