@@ -462,11 +462,10 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
     H = Array([ BFGS(alpha) for _ in X ])
 
     # geometry, energy and the gradient from previous iteration:
-    R0 = None
-    G0 = None
+    R0, G0 = None, None
 
     # initial value for the variable:
-    R = array(X) # we are going to modify it!
+    R = asarray(X)
 
     iteration = -1 # prefer to increment at the top of the loop
     converged = False
@@ -630,14 +629,12 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         if longest > TR:
             print "sopt: WARNING: step too long by factor", longest/TR, ", scale down !!!"
 
-        # save for later comparison, need a copy, see "r += dr" below:
-        R0 = R.copy()
+        # Save for later  comparison. E, G = fg(R)  will re-bind E and
+        # G, not modify them:
+        R0, G0 = R, G
 
-        # "e, g = fg(r)" will re-bind (e, g), not modify them:
-        G0 = G
-
-        # actually update the variable:
-        R += dR
+        # actually update position vector:
+        R = R + dR
 
         if callback is not None:
             callback(R)
