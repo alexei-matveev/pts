@@ -349,6 +349,10 @@ def minimize(argv):
     # constraint, be aware that this constraint only works with reseting
     # the variables after an update step
     if mask != None:
+       # ASE accects also masks for only some atoms, thus check here if we
+       # have something for every atom.
+       assert (len(mask) == len(atoms.get_chemical_symbols())), \
+           "%s != %s" % (len(mask), len(atoms.get_chemical_symbols()))
        constr = FixAtoms(mask = mask)
        atoms.set_constraint(constr)
 
