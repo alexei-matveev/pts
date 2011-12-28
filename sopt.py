@@ -458,6 +458,11 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         print "sopt: xtol=", xtol, "ftol=", ftol, "maxit=", maxit, "maxstep=", maxstep
         if len(kwargs) > 0:
             print "sopt: ignored kwargs=", kwargs
+
+    def norm(x):
+        "L-infinity norm"
+        return max(abs(x))
+
     # init array of hessians:
     H = Array([ BFGS(alpha) for _ in X ])
 
@@ -515,11 +520,11 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         for i in xrange(len(G)):
             G2[i] = G[i] - LAM[i] * T[i]
 
-        if max(abs(G2)) < ftol:
+        if norm(G2) < ftol:
             # FIXME: this may change after update step!
             criteria += 1
             if VERBOSE:
-                print "sopt: converged by force max(abs(G2)))", max(abs(G2)), '<', ftol
+                print "sopt: converged by force max(abs(G2)))", norm(G2), '<', ftol
 
         if VERBOSE:
             print "sopt: obtained energies E=", asarray(E)
@@ -545,7 +550,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
 
         # trust(h) > 0 means we would accept the step(h):
         def trust(h):
-            norm_inf = max(abs(step(h)))
+            norm_inf = norm(step(h))
 
             if VERBOSE:
                 if norm_inf > TR:
@@ -573,7 +578,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         # A rough  estimate of the step  follows, this is  cheap as it
         # does not involve ODE integration:
         #
-        dmax = max(abs(1.0 * step.fprime(0.0)))
+        dmax = norm(1.0 * step.fprime(0.0))
         if dmax > TR:
             h = TR / dmax
         else:
@@ -619,13 +624,13 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         #
         # Convergency check by step size (xtol) ...
         #
-        if max(abs(dR)) < xtol:
+        if norm(dR) < xtol:
             criteria += 1
             if VERBOSE:
-                print "sopt: converged by step max(abs(dR))=", max(abs(dR)), '<', xtol
+                print "sopt: converged by step max(abs(dR))=", norm(dR), '<', xtol
 
         # restrict the maximum component of the step:
-        longest = max(abs(dR))
+        longest = norm(dR)
         if longest > TR:
             print "sopt: WARNING: step too long by factor", longest/TR, ", scale down !!!"
 
