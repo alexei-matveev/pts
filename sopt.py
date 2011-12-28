@@ -548,69 +548,11 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         #
         step = Step(G, H, R, tangents, lambdas)
 
-        # trust(h) > 0 means we would accept the step(h):
-        def trust(h):
-            norm_inf = norm(step(h))
-
-            if VERBOSE:
-                if norm_inf > TR:
-                    word = "too long"
-                else:
-                    word = "looks OK"
-                print "sopt: step(", h, ")", word, "by factor", norm_inf/TR, "of trust radius", TR
-
-            return TR - norm_inf
-
         #
-        # We are looking  for a point h in [0,  1] such that |step(h)|
-        # == TR, if there is no such point then h should be 1. This is
-        # the initial interval:
+        # This either returns h  = 1.0 if a step is not  too long or a
+        # smaller value such that norm(step(h)) <= TR:
         #
-        ha, hb = 0.0, 1.0
-
-        #
-        # As  an optimization  the first  thing we  do is  proposing a
-        # point  hoping that  in the  "criminal" cases  of  very large
-        # steps  (TR  << dmax)  we  can  avoid  integrating ODE  to  h
-        # significantly  larger than  TR /  dmax.  So  here we  try to
-        # guess a more conservative upper bound of the interval.
-        #
-        # A rough  estimate of the step  follows, this is  cheap as it
-        # does not involve ODE integration:
-        #
-        dmax = norm(1.0 * step.fprime(0.0))
-        if dmax > TR:
-            h = TR / dmax
-        else:
-            h = 1.0
-        #
-        # Of course if it is not  an upper bound, then it is new lower
-        # bound. In any case we restric the search the interval to [0,
-        # h] or [h, 1] in the first iteration of the following loop:
-        #
-        while True:
-            if trust(h) <= 0.0:
-                ha, hb = ha, h
-            else:
-                ha, hb = h, hb
-
-            if hb - ha > TOL:
-                # FIXME: since here  we cannot exclude that h  == 1, we should
-                # better not use the derivatves, just use bisection:
-                h = (ha + hb) / 2.0
-            else:
-                break
-
-        assert hb == 1.0 or trust(ha) > 0.0 > trust(hb)
-
-        # prefer the left side so  that |step(h)| < TR, unless we can
-        # also trust(hb). In this case hb == 1.
-        if trust(hb) > 0:
-            h = hb
-        else:
-            h = ha
-
-        assert h != 0.0, "must be rare, see how often"
+        h = scale(step, norm, TR)
 
         #
         # This actually computes the step:
@@ -618,8 +560,8 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         dR = step(h)
 
         if VERBOSE:
-            print "sopt: ODE step, propose h=", h, "between", ha, "and", hb
-            print "sopt: dR=", dR
+            print "sopt: ODE step, propose h=", h, "max(abs(dR))=", norm(dR)
+            print "sopt: dR=\n", dR
 
         #
         # Convergency check by step size (xtol) ...
@@ -674,6 +616,81 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
             "step": dR}
 
     return R, info
+
+def scale(step, norm, TR):
+    """
+    For a "curve" step(h) with h in [0, 1] find a suitable h such that
+
+        norm(step(h)) <= TR
+
+    Was a piece of sopt() code, extracted here for brevity.
+    """
+
+    # trust(h) > 0 means we would accept the step(h):
+    def trust(h):
+        norm_inf = norm(step(h))
+
+        if VERBOSE:
+            if norm_inf > TR:
+                word = "too long"
+            else:
+                word = "looks OK"
+            print "sopt: step(", h, ")", word, "by factor", norm_inf/TR, "of trust radius", TR
+
+        return TR - norm_inf
+
+    #
+    # We are looking  for a point h in [0,  1] such that |step(h)|
+    # == TR, if there is no such point then h should be 1. This is
+    # the initial interval:
+    #
+    ha, hb = 0.0, 1.0
+
+    #
+    # As  an optimization  the first  thing we  do is  proposing a
+    # point  hoping that  in the  "criminal" cases  of  very large
+    # steps  (TR  << dmax)  we  can  avoid  integrating ODE  to  h
+    # significantly  larger than  TR /  dmax.  So  here we  try to
+    # guess a more conservative upper bound of the interval.
+    #
+    # A rough  estimate of the step  follows, this is  cheap as it
+    # does not involve ODE integration:
+    #
+    dmax = norm(1.0 * step.fprime(0.0))
+    if dmax > TR:
+        h = TR / dmax
+    else:
+        h = 1.0
+    #
+    # Of course if it is not  an upper bound, then it is new lower
+    # bound. In any case we restric the search the interval to [0,
+    # h] or [h, 1] in the first iteration of the following loop:
+    #
+    while True:
+        if trust(h) <= 0.0:
+            ha, hb = ha, h
+        else:
+            ha, hb = h, hb
+
+        if hb - ha > TOL:
+            # FIXME: since here  we cannot exclude that h  == 1, we should
+            # better not use the derivatves, just use bisection:
+            h = (ha + hb) / 2.0
+        else:
+            break
+
+    assert hb == 1.0 or trust(ha) > 0.0 > trust(hb)
+
+    # prefer the left side so  that |step(h)| < TR, unless we can
+    # also trust(hb). In this case hb == 1.
+    if trust(hb) > 0:
+        h = hb
+    else:
+        h = ha
+
+    assert h != 0.0, "must be rare, see how often"
+
+    return h
 
 def respace(x0, tangents, spacing):
 
