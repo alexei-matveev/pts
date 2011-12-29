@@ -172,9 +172,17 @@ def newton(x, fg, tol=TOL, maxiter=MAXITER, rk=None):
 
         >>> x = array([3., 7.])
 
-        >>> from ode import rk5
+        >>> x0, info = newton(x, fg, tol=1.0e-14)
+        >>> info["iterations"]
+        9
 
-        >>> x0, stats = newton(x, fg, rk=rk5)
+        >>> from ode import rk5
+        >>> x0, info = newton(x, fg, tol=1.0e-14, rk=rk5)
+        >>> info["iterations"]
+        4
+
+    Though  this  iteration  number  is  misleading as  each  of  them
+    involved extra (5?) evaluations of the Jacobian.
 
         >>> x0
         array([ 0.95346259,  0.95346259])
@@ -215,7 +223,12 @@ def newton(x, fg, tol=TOL, maxiter=MAXITER, rk=None):
 
     assert converged
 
-    return x, (converged, it, f, J)
+    info = { "converged": converged,
+             "iterations": it,
+             "value": f,
+             "derivative": J }
+
+    return x, info
 
 def minimize(f, x):
     """
