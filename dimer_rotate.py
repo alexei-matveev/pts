@@ -5,6 +5,7 @@ from copy import deepcopy
 from scipy.linalg import eig, eigh
 from pts.func import NumDiff
 from pts.metric import Default
+from pts.memoize import Memoize
 
 def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distance = 0.0001, \
     max_rotations = 10, phi_tol = 0.1, interpolate_grad = True, restart = None, **params):
@@ -580,6 +581,14 @@ def main(args):
     from pts.defaults import di_default_params_rot, info_di_params
     pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], di_default_params_rot, "rotate" )
     metric = Default()
+
+    if "cache" in params.keys():
+        if params["cache"] == None:
+            pes = Memoize(pes, filename = "dimer.ResultDict.pickle")
+        else:
+            pes = Memoize(pes, filename = params["cache"])
+    else:
+        pes = Memoize(pes, filename = "dimer.ResultDict.pickle")
 
     start_mode = start_mode / metric.norm_up(start_mode, start_geo)
     if params["rot_method"] == "lanczos":

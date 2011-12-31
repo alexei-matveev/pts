@@ -63,6 +63,15 @@ add to the paratools command:
 So for example to have only 100 of them:
   --max_translation 100
 
+It is also possible to reuse calculations from older runs. They will be stored in a pickle file (only
+readable by current paratools version). If it is given in another calculation as:
+
+    --cache <file name>
+The results in this file will be used if possible instead of doing a new calculation with the caluclator.
+The parameter can be also used to name or redirect the storage of the results. As default it will go to
+dimer.ResultDict.pickle. Be aware that ParaTools does not test if the results are belonging to the current
+system settings. If the geometry fits it takes the result.
+
 DIFFERENCES BETWEEN DIMER AND LANCZOS METHOD:
 
 Each of the methods represent a different way of getting the lowest eigenmode of an second derivative
