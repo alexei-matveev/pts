@@ -18,7 +18,7 @@ J. K\{a"}stner, P. Sherwood; J. Chem. Phys. 128 (2008), 014106
 A. Heyden, A. T. Bell, F. J. Keil; J. Chem. Phys. 123 (2005), 224101
 G. Henkelman, H. J\{o'}nsson; J. Chem. Phys. 111 (1999), 7010
 """
-def empty_traj(geo, mode, step, iter, error):
+def empty_traj(geo, mode, step, grad, iter, error):
     """
     Do nothing
     """
@@ -33,10 +33,11 @@ class traj_every:
         self.atoms = atoms
         self.fun = funcart
 
-    def __call__(self, geo, mode, step, iter, error):
+    def __call__(self, geo, mode, step, grad, iter, error):
         self.atoms.set_positions(self.fun(geo))
         write(("geo" + str(iter)), self.atoms, format = "xyz")
         savetxt("mode" + str(iter), mode)
+        savetxt("grad" + str(iter), grad)
 
 class traj_last:
     """
@@ -48,10 +49,11 @@ class traj_last:
         self.atoms = atoms
         self.fun = funcart
 
-    def __call__(self, geo, mode, step, iter, error):
+    def __call__(self, geo, mode, step, grad, iter, error):
         self.atoms.set_positions(self.fun(geo))
         write("actual_geo", self.atoms, format = "xyz")
         savetxt("actual_mode", mode)
+        savetxt("actual_grad", grad)
 
 class traj_long:
     """
@@ -63,10 +65,11 @@ class traj_long:
         self.atoms = atoms
         self.fun = funcart
 
-    def __call__(self, geo, mode, step, iter, error):
+    def __call__(self, geo, mode, step, grad, iter, error):
         self.atoms.set_positions(self.fun(geo))
         write("actual_geo", self.atoms, format = "xyz")
         savetxt("actual_mode", mode)
+        savetxt("actual_grad", grad)
         f_in = open("actual_geo", "r")
         gs = f_in.read()
         f_in.close()
@@ -78,6 +81,14 @@ class traj_long:
         f_in.close()
         f_out = open("all_modes", "a")
         line = "Mode of iteration " + str(iter) + "\n"
+        f_out.write(line)
+        f_out.write(gs)
+        f_out.close()
+        f_in = open("actual_grad", "r")
+        gs = f_in.read()
+        f_in.close()
+        f_out = open("all_grads", "a")
+        line = "Gradients of iteration " + str(iter) + "\n"
         f_out.write(line)
         f_out.write(gs)
         f_out.close()
@@ -487,7 +498,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          #print "Step",i , pes(geo-step), abs_force, max(grad), res["trans_last_step_length"], res["curvature"], res["rot_gradient_calculations"]
          i += 1
          error_old = error
-         trajectory(geo, mode, step, i, error)
+         trajectory(geo, mode, step, grad, i, error)
 
          if not max_gradients == None and max_gradients <= grad_calc:
               # Breakpoint 2: for counting gradient calculations instead of translation steps
