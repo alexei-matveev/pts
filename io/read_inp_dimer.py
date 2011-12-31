@@ -130,7 +130,7 @@ a reduced and changed set of parameters. They should default to a much tighter c
 rotatin step. Output will be the new mode and the curvature, approximated for it.
 """
 
-def read_dimer_input(rest, di_default_params ):
+def read_dimer_input(rest, di_default_params, help_choice ):
     """
     This function is similar to the one for pathsearcher
     """
@@ -155,7 +155,10 @@ def read_dimer_input(rest, di_default_params ):
            if "--trans_method" in rest:
                print __doc__
            else:
-               print rot_info
+               if help_choice == "rotate":
+                   print rot_info
+               else:
+                   print __doc__
         exit()
 
     if "--defaults" in rest:

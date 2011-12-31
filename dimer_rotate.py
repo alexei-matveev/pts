@@ -578,7 +578,7 @@ def orthogonalize(v_new, vs, met, geo):
 def main(args):
     from pts.io.read_inp_dimer import read_dimer_input
     from pts.defaults import di_default_params_rot, info_di_params
-    pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], di_default_params_rot )
+    pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], di_default_params_rot, "rotate" )
     metric = Default()
 
     start_mode = start_mode / metric.norm_up(start_mode, start_geo)

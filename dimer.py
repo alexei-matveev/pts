@@ -540,7 +540,7 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, max_st
 def main(args):
     from pts.io.read_inp_dimer import read_dimer_input
     from pts.defaults import di_default_params
-    pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], di_default_params )
+    pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], di_default_params, "dimer" )
     metric = Default()
     if "trajectory" in params.keys():
         if params["trajectory"] in ["empty", "None", "False"]:
