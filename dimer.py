@@ -563,6 +563,8 @@ def main(args):
             params["trajectory"] = traj_long(atoms, funcart)
         else:
             params["trajectory"] = traj_last(atoms, funcart)
+    else:
+            params["trajectory"] = traj_last(atoms, funcart)
 
     if "cache" in params.keys():
         if params["cache"] == None:
