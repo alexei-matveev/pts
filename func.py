@@ -925,60 +925,50 @@ class NumDiff(Func):
             xshape = x.shape
             xsize  = x.size
 
-            # FIXME: this evaluation is only to get the type info of the result:
-            fx = f(x)
-
-            fx = asarray(fx)
+            # FIXME: this evaluation  is only to get the  shape of the
+            # result:
+            fx = asarray(f(x))
             fshape = fx.shape
             fsize  = fx.size
 
-            # print "ftype, xtype=", type(fx), type(x)
-            # print "fshape, xshape =", fshape, xshape
-            # print "fsize, xsize =", fsize, xsize
-
-            # univariate function of |y| with parameter |n| staying for the
-            # index of variable component:
-            xwork  = x.copy() # will be used by |func|
+            # Univariate  function of |y|  with parameter  |n| staying
+            # for the  index of variable  component. Two views  of the
+            # same local array will be used by func(y, n):
+            xwork = array(x) # makes a copy
+            xview  = xwork.reshape(-1)
             def func(y, n):
-                # flatten:
-                xwork.shape = (xsize,)
-
                 # save component:
-                old = xwork[n]
+                old = xview[n]
 
                 # set component:
-                xwork[n] = old + y
+                xview[n] = old + y
 
-                # restore original shape:
-                xwork.shape = xshape
-
-                # feed into function to be differentiated:
+                # Feed into function  to be differentiated. Here xwork
+                # and xview  share the data.  FIXME: do  we allow f(x)
+                # to modify x? Not here:
                 fx = f(xwork)
 
-                # reshape and restore old component:
-                xwork.shape = (xsize,)
-                xwork[n] = old
+                # restore old component:
+                xview[n] = old
 
                 return fx
 
-            # we take the convention that df_i/dx_k is at [i,k] position
-            # of the array:
-            dfdx = empty((fsize, xsize))
+            # We take the convention that df_i/dx_k is at [i,k] position
+            # of the array. These are two views of the same array:
+            fwork = empty(fshape + xshape)
+            fview = fwork.reshape(fshape + (xsize,))
 
             # differentiate by each component:
             for n in range(xsize):
-                fn = lambda y: func(y, n)
-                dfdxn, err = dfridr(fn, 0.0, h=self.__h)
-                # print dfdxn, type(dfdxn), dfdxn.shape
+                g = lambda y: func(y, n)
+                gprime, err = dfridr(g, 0.0, h=self.__h)
+                # FIXME: what do we do with err?
 
-                # for assignment to dfdx[:,n] to succed, flatten if suitable:
-                if fsize > 1: dfdxn.shape = (fsize,)
-                dfdx[:, n] = dfdxn
+                # The rhs may be of a non-trivial shape:
+                fview[..., n] = gprime
 
-            # set the proper shape of the result:
-            dfdx.shape = fshape + xshape
-            # print 'dfdx=', dfdx
-            return dfdx
+            # Return result in proper shape:
+            return fwork
 
 class Reshape(Func):
     """
