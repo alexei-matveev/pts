@@ -72,12 +72,105 @@ Limited-memory BFGS implementation (inverse only):
     array([ 0.00200021,  0.00200021])
 """
 
-__all__ = ["SR1", "LBFGS", "BFGS", "Array"]
+__all__ = ["SR1", "LBFGS", "BFGS", "Array", "isolve"]
 
-from numpy import asarray, empty, dot
+from numpy import asarray, empty, zeros, dot
 from numpy import eye, outer
-from numpy.linalg import norm
+from numpy.linalg import norm, solve
 #from numpy.linalg import solve #, eigh
+
+def isolve(A, b, tol=1.0e-7):
+    """
+    Solve iteratively  a linear equation A(x)  = b, with  A(x) being a
+    callable linear operator  and b a vector. If  provided, x0 is used
+    as an initial value instead of b.
+
+    >>> from test.testfuns import Affine
+
+    >>> a = array([[2.0, 0.5],
+    ...            [0.0, 8.0]])
+
+    >>> A = Affine(a)
+
+    >>> x = array([0.25, 4.0])
+
+    >>> solve(a, A(x))
+    array([ 0.25,  4.  ])
+
+    >>> isolve(A, A(x))
+    array([ 0.25,  4.  ])
+
+    FIXME:  very preliminary, newer  versions of  SciPy seem  to offer
+    better solutions ...
+    """
+
+    b = asarray(b)
+
+    qs = []
+    ys = []
+    A_ = empty((0, 0))
+    b_ = empty(0)
+
+    xnew = zeros(b.shape) # x0?
+    qn = b # array([0.0, 1.0])
+
+    for n in range(1, b.size+1):
+        # print "isolve: n=", n
+
+        # orthogonalization:
+        for q in qs:
+            qn = qn - q * dot(q, qn)
+        qn = qn / norm(qn)
+
+        # print "new qn=", qn
+
+        # new basis vector:
+        qs.append(qn)
+
+        # and a new candidate, for the next iteration:
+        qn = A(qn)
+
+        # print "A(qn)=", qn
+
+        ys.append(qn)
+
+        A_new = empty((n, n))
+        b_new = empty(n)
+
+        A_new[:-1, :-1] = A_
+        b_new[:-1] = b_
+
+        A_ = A_new
+        b_ = b_new
+
+        #
+        # A   = ( q  . A * q ):
+        #  ij      i        j
+        #
+        for i in range(n):
+            A_[i, -1] = dot(qs[i], ys[-1])
+            A_[-1, i] = dot(qs[-1], ys[i])
+
+        #
+        # b  = (q  .  b):
+        #  i     i
+        #
+        b_[-1] = dot(qs[-1], b)
+
+        # print "A=", A_
+        # print "b=", b_
+        x_ = solve(A_, b_)
+        # print "x=", x_
+
+        xnew, xold = dot(x_, qs), xnew
+
+        # print "xnew=", xnew, "norm(xnew - xold)=", norm(xnew - xold)
+
+        if norm(xnew - xold) < tol * norm(xnew):
+            # print "break"
+            break
+
+    return xnew
 
 def _sr1(B, s, y, thresh=1.0e-7):
     """Update scheme for the direct/inverse hessian:
