@@ -883,6 +883,29 @@ class NumDiff(Func):
 #   def f(self, x):
 #       return self.__f(x)
 
+    def d(self, x, dx):
+        """
+        Differantial df of f(x) upon dx by numerical differentiation.
+        This is NOT a finite difference f(x + dx) - f(x)!
+        """
+
+        x = asarray(x)
+        dx = asarray(dx)
+
+        # To respect the step size "h" we will scale dx by its length:
+        d = linalg.norm(dx)
+
+        if d > 0.0:
+            # This is a univariate f(s) := f(x + s * dx):
+            fs = lambda s: self.f(x + (s/d) * dx)
+        else:
+            # a lazy way to get the correct shape of the result:
+            fs = lambda s: self.f(x + s * dx)
+
+        fsprime, err = dfridr(fs, 0.0, h=self.__h)
+
+        return fsprime * d
+
     def fprime(self, x):
         """Numerical derivatives of self.f(x)"""
 
