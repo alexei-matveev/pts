@@ -140,7 +140,7 @@ give its orientation.
 
 __all__ = ["minimize", "cminimize"]
 
-from numpy import asarray, empty, dot, max, abs, shape
+from numpy import asarray, empty, dot, max, abs, shape, size
 from numpy.linalg import solve #, eigh
 from scipy.optimize import fmin_l_bfgs_b as minimize1D
 from bfgs import LBFGS, BFGS
@@ -155,6 +155,25 @@ CTOL = TOL   # constrain tolerance
 
 MAXITER = 50
 MAXSTEP = 0.04
+
+def _solve(A, b):
+    """
+    Solve for x in A * x = b, albeit for arbotrary shapes of A, x, and
+    b.
+    """
+
+    b = asarray(b)
+    A = asarray(A)
+
+    bshape = shape(b)
+    ashape = shape(A)
+    xshape = ashape[:len(bshape)]
+
+    b = b.reshape(-1)
+    A = A.reshape(-1, size(b))
+    x = solve(A, b)
+
+    return x.reshape(xshape)
 
 def newton(x, fg, tol=TOL, maxiter=MAXITER, rk=None):
     """Solve F(x) = 0 (rather, reduce rhs to < tol)
