@@ -361,22 +361,14 @@ def compose(P, Q):
         q, qx = Q.taylor(x)
         p, pq = P.taylor(q)
 
-        pshape = shape(p)
-        qshape = shape(q)
-        xshape = shape(x)
-
-        px = matmul(pshape, xshape, qshape, pq, qx)
+        px = matmul(shape(p), shape(x), shape(q), pq, qx)
         return px
 
     def taylor(x):
         q, qx = Q.taylor(x)
         p, pq = P.taylor(q)
 
-        pshape = shape(p)
-        qshape = shape(q)
-        xshape = shape(x)
-
-        px = matmul(pshape, xshape, qshape, pq, qx)
+        px = matmul(shape(p), shape(x), shape(q), pq, qx)
         return p, px
 
     return Func(f, fprime, taylor)
