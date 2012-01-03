@@ -217,7 +217,7 @@ def newton(x, fg, tol=TOL, maxiter=MAXITER, rk=None):
         #                                       0
         def xprime(t, x, f0):
             f, J = fg(x)
-            return solve(J, -f0)
+            return _solve(J, -f0)
 
     it = 0
     converged = False
@@ -232,7 +232,7 @@ def newton(x, fg, tol=TOL, maxiter=MAXITER, rk=None):
 
         if rk is None:
             # FIXME: what if J is rank-deficent?
-            dx = solve(J, -f)
+            dx = _solve(J, -f)
         else:
             # use provided routine for Runge-Kutta step prediciton:
             dx = rk(0.0, x, xprime, 1.0, args=(f,))
