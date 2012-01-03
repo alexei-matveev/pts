@@ -30,6 +30,11 @@ Symmetric rank-1 (SR1) implementation:
     >>> h3.inv(y2)
     array([ 0.002, -0.002])
 
+An occasion to test the iterative linear equation solver:
+
+    >>> isolve(h3.app, y2)
+    array([ 0.002, -0.002])
+
     >>> h3.inv(y1)
     array([ 0.002,  0.002])
 
