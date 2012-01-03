@@ -426,7 +426,8 @@ def cumm_sum(list):
         >>> cumm_sum([])
         array([ 0.])
 
-    The rest follows from recursion:
+    The rest  follows from recursion  (numpy.cumsum is broken  in this
+    respect):
 
         >>> cumm_sum([1, 2, 3, 4, 5])
         array([  0.,   1.,   3.,   6.,  10.,  15.])
