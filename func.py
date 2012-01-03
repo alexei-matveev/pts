@@ -145,16 +145,26 @@ argument:
     >>> x = zeros((2, 2))
     >>> df = f1.fprime(x)
 
-In most (all?) cases so far we decide to store the
-derivatives of array-valued funcitons of array arguments
-consistenly with this mnemonics:
+All of four linearly independent differentials, have the same shape as
+the function result, only two shown here:
+
+    >>> f1.d(x, [[1, 0], [0, 0]])
+    array([[ 1.,  0.],
+           [ 0., -1.]])
+
+    >>> f1.d(x, [[0.5, 0.5], [0.5, 0.5]])
+    array([[ 1.,  0.],
+           [ 0.,  0.]])
+
+In most  (all?) cases  so far  we decide to  store the  derivatives of
+array-valued  funcitons  of  array  arguments  consistenly  with  this
+mnemonics:
 
     df / dx  is stored at array location [i, k]
       i    k
 
-If any or both of |f| or |x| have more than one
-axis consider |i| and |k| as composite indices.
-Here is an example:
+If any or both of |f| or  |x| have more than one axis consider |i| and
+|k| as composite indices.  Here is an example:
 
 Derivatives wrt |a| == x[0,0]:
 
@@ -242,6 +252,17 @@ class Func(object):
     # alternatively, subclasses may choose to implement just one:
     def taylor(self, *args, **kwargs):
         return self.f(*args, **kwargs), self.fprime(*args, **kwargs)
+
+    # subclasses may  choose to offer a  more efficient implementation
+    # of the differential:
+    def d(self, x, dx):
+        assert shape(x) == shape(dx)
+
+        f, fp = self.taylor(x)
+
+        df = matmul(shape(f), (), shape(x), fp, dx)
+
+        return df
 
     # make our Funcs callable:
     def __call__(self, *args, **kwargs):
