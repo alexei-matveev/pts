@@ -58,7 +58,8 @@ hessians, respectively:
     >>> max(abs(h1.inv(h1.app(s2)) - s2)) < 1.e-10
     True
 
-Limited-memory BFGS implementation (inverse only):
+Limited-memory  BFGS implementation (inverse  inv() method  is limited
+memory, the app() method is iterative solver):
 
     >>> h2 = LBFGS()
 
@@ -70,6 +71,13 @@ Limited-memory BFGS implementation (inverse only):
 
     >>> h2.inv(y1)
     array([ 0.00200021,  0.00200021])
+
+This relies on an iterative solver, may be fragile:
+
+    >>> max(abs(h2.app(h2.inv(y2)) - y2)) < 1.e-15
+    True
+    >>> max(abs(h2.app(h2.inv(y1)) - y1)) < 1.e-15
+    True
 """
 
 __all__ = ["SR1", "LBFGS", "BFGS", "Array", "isolve"]
@@ -404,7 +412,8 @@ class LBFGS:
     def app(self, s):
         # FIXME: need a limited memory implementation for
         # direct hessian. For the moment use BFGS() instead.
-        raise NotImplementedError
+        # raise NotImplementedError
+        return isolve(self.inv, s)
 
 class BFGS:
     """Update scheme for the direct hessian:
