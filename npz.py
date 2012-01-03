@@ -130,8 +130,9 @@ def dots(m, n, k, A, B):
     N = prod(n)
     K = prod(k)
 
-    A.shape = (M, K)
-    B.shape = (M, K, N)
+    # these are two different views of the same read-only data:
+    A = A.reshape(M, K)
+    B = B.reshape(M, K, N)
 
     C = empty((M, N))
 
@@ -139,8 +140,8 @@ def dots(m, n, k, A, B):
     for i in xrange(M):
         C[i, :] = dot(A[i], B[i])
 
-    A.shape = m + k
-    B.shape = m + k + n
+    # A.shape = m + k
+    # B.shape = m + k + n
     C.shape = m + n
 
     return C
@@ -177,28 +178,32 @@ def matmul(m, n, k, A, B, transA=False, transB=False):
 
     if transA:
         assert A.shape == k + m
-        A.shape = (K, M)
+        # a different view of the read-only data:
+        A = A.reshape(K, M)
 
         # transposed view of A:
         opA = transpose(A)
 
     else:
         assert A.shape == m + k
-        A.shape = (M, K)
+        # a different view of the read-only data:
+        A = A.reshape(M, K)
 
         # alias:
         opA = A
 
     if transB:
         assert B.shape == n + k
-        B.shape = (N, K)
+        # a different view of the read-only data:
+        B = B.reshape(N, K)
 
         # transposed view of B:
         opB = transpose(B)
 
     else:
         assert B.shape == k + n
-        B.shape = (K, N)
+        # a different view of the read-only data:
+        B = B.reshape(K, N)
 
         # alias:
         opB = B
@@ -206,8 +211,8 @@ def matmul(m, n, k, A, B, transA=False, transB=False):
     C = dot(opA, opB)
 
     # reshape back:
-    A.shape = m + k
-    B.shape = k + n
+    # A.shape = m + k
+    # B.shape = k + n
     C.shape = m + n
 #   print "matmul: C =", C, type(C)
 
