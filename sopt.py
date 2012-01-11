@@ -964,6 +964,11 @@ def lambda0(x, g, h, t, a):
     # This applies hessian once:
     ha = h.inv(a)
 
+    #
+    # FIXME: division by zero and  small numbers occur here when it is
+    #        becoming "increasingly difficult" to "fix" the constraint
+    #        by applying tangential forces.
+    #
     lam = dot(ha, g) / dot(ha, t)
 
     return lam
