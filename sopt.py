@@ -501,8 +501,9 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
 
         if VERBOSE:
             print "sopt: =============== Iteration ", iteration, " ==============="
-            print "sopt: scheduling gradients for R="
-            print R
+            if VERBOSE > 1:
+                print "sopt: scheduling gradients for R="
+                print R
 
         # compute energy and gradients at all R[i]:
         E, G = fg(R)
@@ -542,12 +543,14 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
 
         if VERBOSE:
             print "sopt: obtained energies E=", asarray(E)
-            print "sopt: obtained gradients G="
-            print G
+            if VERBOSE > 1:
+                print "sopt: obtained gradients G="
+                print G
             print "sopt: g(para)=", LAM, "(lambdas)"
             print "sopt: g(ortho norms)=", asarray([sqrt(dot(g, g)) for g in G2])
-            print "sopt: g(ortho)="
-            print G2
+            if VERBOSE > 1:
+                print "sopt: g(ortho)="
+                print G2
 
         # These were  used for convergency  check, used below  only to
         # report  additional info  upon  convergence:
