@@ -474,6 +474,8 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
     def norm(x):
         "L-infinity norm"
         return max(abs(x))
+        # "L2 norm"
+        # return cartesian_norm(x, None)
 
     # init array of hessians:
     H = Array([ BFGS(alpha) for _ in X ])
@@ -536,7 +538,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
             # FIXME: this may change after update step!
             criteria += 1
             if VERBOSE:
-                print "sopt: converged by force max(abs(G2)))", norm(G2), '<', ftol
+                print "sopt: converged by force", norm(G2), '<', ftol, "(", norm.__doc__, ")"
 
         if VERBOSE:
             print "sopt: obtained energies E=", asarray(E)
@@ -572,7 +574,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         dR = step(h)
 
         if VERBOSE:
-            print "sopt: ODE step, propose h=", h, "max(abs(dR))=", norm(dR)
+            print "sopt: ODE step, propose h=", h, "norm(dR)=", norm(dR), "(", norm.__doc__, ")"
             print "sopt: dR=\n", dR
 
         #
@@ -581,12 +583,15 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         if norm(dR) < xtol:
             criteria += 1
             if VERBOSE:
-                print "sopt: converged by step max(abs(dR))=", norm(dR), '<', xtol
+                print "sopt: converged by step norm(dR)", norm(dR), '<', xtol, "(", norm.__doc__, ")"
 
-        # restrict the maximum component of the step:
-        longest = norm(dR)
-        if longest > TR:
-            print "sopt: WARNING: step too long by factor", longest/TR, ", scale down !!!"
+        #
+        # Verify the  step length  one last time,  in case all  of the
+        # magic above breaks:
+        #
+        length = norm(dR)
+        if length > TR:
+            print "sopt: WARNING: step too long by factor", length/TR, ", scale down !!!"
 
         # Save for later  comparison. E, G = fg(R)  will re-bind E and
         # G, not modify them:
@@ -640,16 +645,16 @@ def scale(step, norm, TR):
 
     # trust(h) > 0 means we would accept the step(h):
     def trust(h):
-        norm_inf = norm(step(h))
+        nrm = norm(step(h))
 
         if VERBOSE:
-            if norm_inf > TR:
+            if nrm > TR:
                 word = "too long"
             else:
                 word = "looks OK"
-            print "sopt: step(", h, ")", word, "by factor", norm_inf/TR, "of trust radius", TR
+            print "sopt: step(", h, ")", word, "by factor", nrm/TR, "of trust radius", TR
 
-        return TR - norm_inf
+        return TR - nrm
 
     #
     # We are looking  for a point h in [0,  1] such that |step(h)|
