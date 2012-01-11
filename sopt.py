@@ -1341,8 +1341,8 @@ if __name__ == "__main__":
 #   test1(5)
 #   exit()
     from pts.pes.mueller_brown import CHAIN_OF_STATES as P
-    # from testfuns2 import mb2
-    # trafo = mb2() #[[2.0, 0], [0.0, 0.5]])
+    # from pts.test.testfuns import Affine
+    # trafo = Affine([[2.0, 0], [0.0, 0.5]])
     # test(P[0], P[4]) #, trafo)
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
