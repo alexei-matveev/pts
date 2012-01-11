@@ -1280,67 +1280,65 @@ def wrap2(spacing, A, B):
 
     return _constr
 
-def test1():
+def test1(n):
     from numpy import array
-    from ase import Atoms
-    ar4 = Atoms("Ar4")
 
+    # One   equilibrium  of   Ar4  LJ   cluster  (in   coordinates  of
+    # c2v_tetrahedron1 Func):
+    w = 0.39685026
+    A = array([w, w, +w])
 
-    from qfunc import QFunc
-    pes = QFunc(ar4)
+    # Another equilibrium:
+    B = array([w, w, -w])
 
-    # One equilibrium:
-
-    w=0.39685026
-    A = array([[ w,  w,  w],
-               [-w, -w,  w],
-               [ w, -w, -w],
-               [-w,  w, -w]])
-
-    # Another equilibrium (first two exchanged):
-
-    B = array([[-w, -w,  w],
-               [ w,  w,  w],
-               [ w, -w, -w],
-               [-w,  w, -w]])
-
-    # Halfway between A and B (first two z-rotated by 90 deg):
-
-    C = array([[-w,  w,  w],
-               [ w, -w,  w],
-               [ w, -w, -w],
-               [-w,  w, -w]])
-
+    # Halfway between A and B:
+    C = (A + B) / 2.0
+    C = array([w + 0.01, w - 0.01, 0.0])
 
     xs = array([A, C, B])
 
-    from path import Path
-    p = Path(xs)
-
+    from test.testfuns import c2v_tetrahedron1
+    from path import MetricPath
+    from metric import Metric
     from numpy import linspace
-    x5 = [p(t) for t in linspace(0., 1., 5)]
 
-    es0 = array([pes(x) for x in x5])
+    z = c2v_tetrahedron1()
 
-    print "energies=", es0
-    print "spacing=", spacing(x5)
+    p = MetricPath(xs, Metric(z).norm_up)
 
-#   xm, stats = soptimize(pes, x5, tangent1, maxiter=20, maxstep=0.1, callback=callback)
-    xm, stats = soptimize(pes, x5, tangent1, spacing, maxiter=50, maxstep=0.1, callback=callback)
+    x0 = map(p, linspace(0., 1., n))
 
-    es1 = array([pes(x) for x in xm])
+    from ase import Atoms
+    from qfunc import QFunc
+    from func import compose
 
-    print "energies=", es1
-    print "spacing=", spacing(xm)
+    pes = compose(QFunc(Atoms("Ar4")), z)
 
-    from pts.tools.jmol import jmol_view_path
-    jmol_view_path(xm, syms=["Ar"]*4, refine=5)
+    from rc import Volume
+
+    vol = compose(Volume(), z)
+
+    def callback(x):
+        # from pts.tools.jmol import jmol_view_path
+        print "energies=", map(pes, x)
+        print "volume=", map(vol, x)
+        # jmol_view_path(map(z, x), syms=["Ar"]*4, refine=1)
+        pass
+
+    print "BEFORE:"
+    callback(x0)
+
+    x1, info = soptimize(pes, x0, tangent1, rc=vol, callback=callback)
+    # print "info=", info
+
+    print "AFTER:"
+    callback(x1)
 
 # python fopt.py [-v]:
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-#   test1()
+#   test1(5)
 #   exit()
     from pts.pes.mueller_brown import CHAIN_OF_STATES as P
     # from testfuns2 import mb2
