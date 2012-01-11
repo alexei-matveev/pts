@@ -1338,7 +1338,8 @@ def test1(n):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-#   test1(5)
+#   import profile
+#   profile.run("test1(5)")
 #   exit()
     from pts.pes.mueller_brown import CHAIN_OF_STATES as P
     # from pts.test.testfuns import Affine
