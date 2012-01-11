@@ -213,14 +213,14 @@ def tangent1(X, norm=cartesian_norm):
 
 def tangent2(X):
     """For n geometries X[:] return n-2 tangents computed
-    as central differences.
+    as central differences:
+
+        T[i] = X[i+1] - X[i-1]
     """
 
-    T = []
-    for i in range(1, len(X) - 1):
-        T.append(X[i+1] - X[i-1])
+    X = asarray(X)
 
-    return T
+    return X[2:] - X[:-2]
 
 from path import Path
 
