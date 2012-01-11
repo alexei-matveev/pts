@@ -174,7 +174,7 @@ __all__ = []
 
 from numpy import array, asarray, empty, dot, max, abs, sqrt, shape, linspace
 from numpy import vstack, sign
-from bfgs import BFGS, Array
+from bfgs import BFGS, SR1, Array
 from common import cumm_sum, pythag_seps
 from metric import cartesian_norm
 
@@ -479,6 +479,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
 
     # init array of hessians:
     H = Array([ BFGS(alpha) for _ in X ])
+    B = Array([ SR1(alpha) for _ in X ])
 
     # geometry, energy and the gradient from previous iteration:
     R0, G0 = None, None
@@ -519,8 +520,11 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         #
         # Update the hessian representation:
         #
-        if iteration > 0: # only then R0 and G0 are meaningfull!
+        if iteration == 0: # only later R0 and G0 become meaningfull!
+            pass
+        else:
             H.update(R - R0, G - G0)
+            B.update(R - R0, G - G0)
 
         #
         # Convergency checking, based on gradients (ftol) ... {{{
