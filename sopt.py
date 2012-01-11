@@ -199,17 +199,29 @@ def tangent1(X, norm=cartesian_norm):
     as averages of forward and backward tangents.
     """
 
-    T = []
-    for i in range(1, len(X) - 1):
-        a = X[i] - X[i-1]
-        b = X[i+1] - X[i]
+    # T = []
+    # for i in range(1, len(X) - 1):
+    #     a = X[i] - X[i-1]
+    #     b = X[i+1] - X[i]
+    #     a /= norm(a, X[i]) # FIXME: (X[i] + X[i-1]) / 2.0 ?
+    #     b /= norm(b, X[i]) # FIXME: (X[i] + X[i+1]) / 2.0 ?
+    #     T.append(a + b)
 
-        a /= norm(a, X[i]) # FIXME: (X[i] + X[i-1]) / 2.0 ?
-        b /= norm(b, X[i]) # FIXME: (X[i] + X[i+1]) / 2.0 ?
+    X = asarray(X)
 
-        T.append(a + b)
+    # pairwise differences along the chain:
+    deltas = X[1:] - X[:-1]
 
-    return T
+    # middle points of each interval (used only if norm() makes use of
+    # them):
+    centers = (X[1:] + X[:-1]) / 2.0
+
+    # normalize  tangents  before  averaging forward-  and  backfoward
+    # tangent:
+    T = array([ d / norm(d, x) for d, x in zip(deltas, centers)])
+
+    # sum of a forward and backward normalized tangents:
+    return T[:-1] + T[1:]
 
 def tangent2(X):
     """For n geometries X[:] return n-2 tangents computed
