@@ -178,7 +178,7 @@ from bfgs import BFGS, SR1, Array
 from common import cumm_sum, pythag_seps
 from metric import cartesian_norm
 
-VERBOSE = False
+VERBOSE = 0
 
 TOL = 1.e-6
 
