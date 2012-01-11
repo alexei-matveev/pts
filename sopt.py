@@ -567,7 +567,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         # problems computing the  value and (especialy) the derivative
         # of that funciton at h close to 1.0:
         #
-        step = Step(G, H, R, tangents, lambdas)
+        step = Step(R, G, B, H, tangents, lambdas)
 
         #
         # This either returns h  = 1.0 if a step is not  too long or a
@@ -781,13 +781,13 @@ class Step(Func):
 
     To get a rough estimate of the (remaining) step one could use
 
-        step = Step(G, H, X, tangents, lambdas)
+        step = Step(X, G, H, H, tangents, lambdas)
         dX = (1.0 - h) * step.fprime(h)
 
     which  for a  special  case  of h  =  0 does  not  involve no  ODE
     integration.
     """
-    def __init__(self, G, H, X, tangents, lambdas):
+    def __init__(self, X, G, B, H, tangents, lambdas):
         #
         # Function to integrate (t is "time", not "tangent"):
         #
