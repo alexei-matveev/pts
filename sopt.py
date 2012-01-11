@@ -568,6 +568,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         # of that funciton at h close to 1.0:
         #
         step = Step(R, G, B, H, tangents, lambdas)
+        # step = Step1(R, G, B, H, tangents, lambdas)
 
         #
         # This either returns h  = 1.0 if a step is not  too long or a
@@ -829,6 +830,113 @@ class Step(Func):
             dXprime = None
 
         return dX, dXprime
+
+class Step1(Func):
+    """
+    A function of a scalar scale  parameter "h" in the interval [0, 1]
+    that implements a "step towards the stationary solution". Think of
+    a scaled Newton step dx = - h * H * g towards the stationary point
+    but keep  in mind that due  to constraints and  path specifics the
+    way  towards the stationary  point is  not necessarily  a straight
+    line like is implied by a newton formula.
+
+    To get a rough estimate of the (remaining) step one could use
+
+        step = Step(X, G, B, H, tangents, lambdas)
+        dX = (1.0 - h) * step.fprime(h)
+
+    which  for a  special  case  of h  =  0 does  not  involve no  ODE
+    integration.
+    """
+
+    def __init__(self, X0, G0, B, H, tangents, lambdas):
+        #
+        # Function to integrate (h is "evolution time"):
+        #
+        #   dx / dh = f(h, x)
+        #
+        def xprime(h, x):
+            """For the descent procedure return
+
+              dx / dh = - H * ( g(x0 + x)  - lambda * t(x0 + x) )
+
+            The Lagrange contribution parallel to the tangent t(x) is computed
+            by the function lambdas(X, G, H, T).
+
+            The gradient g(x) has the following relation to the coordinats:
+
+                g - g0 = B * x
+
+            with B being the inverse of H.
+
+            Note that  this is equivalent  to the descent procedure
+
+              dy / dh = - ( y  - lambda(y) * t(y) )
+
+            for local coordinates  y (aka gradient g) defined  by a one-to-one
+            relation:
+
+              (x - x0) = H * (y - y0)
+
+            By  now y  is the  same  as the  gradient g.  Though the  positive
+            definite  hessian  H may  distrub  this  equivalence  at some  PES
+            regions.
+
+            The  current  form  of  xprime()  may be  used  to  either  ensure
+            orthogonality of  dx /  dh to the  tangents or preserve  the image
+            spacing  depending on  the definition  of function  lambdas() that
+            delivers lagrangian factors.  I am afraid one cannot satisfy both.
+
+            NOTE: imaginary time variable "h" is not used anywhere.
+            """
+
+            # G = G(X), here B should represent PES well:
+            G = G0 + B.app(x)
+
+            # T = T(X(G)):
+            T = tangents(X0 + x)
+
+            # Compute Lagrange factors, here H should be non-negative:
+            LAM = lambdas(X0 + x, G, H, T)
+
+            #
+            # Add lagrange forces, only  component parallel to the tangents is
+            # affected:
+            #
+            G2 = empty(shape(G))
+            for i in xrange(len(G)):
+                G2[i, ...] = G[i] - LAM[i] * T[i]
+
+            # here H should be non-negative:
+            return -H.inv(G2)
+            # return dX1
+
+        #
+        # This Func can  integrate to T for any T  in the interval [0,
+        # infinity).   To get  an  idea, very  approximately for  step
+        # scale h = 1.0  the change of a gradients is: G1  = G + 1.0 *
+        # f(0.0, G). Also we will need these H and G later:
+        #
+        self.ode = ODE(0.0, zeros(shape(X0)), xprime)
+
+    def taylor(self, h):
+        #
+        # Upper integration limit T (again "time", not "tangent)":
+        #
+        if h < 1.0:
+            #
+            # Assymptotically the gradients decay as exp[-t]
+            #
+            T = - log(1.0 - h)
+            X, Xprime = self.ode.taylor(T)
+
+            return X, Xprime / (1.0 - h)
+        else:
+            X = limit(self.ode)
+
+            # FIXME:   how  to  approach   limit(self.ode.fprime(T)  *
+            # exp(T))?
+            return X, None
 
 from numpy.linalg import solve
 
