@@ -126,7 +126,7 @@ Inital energies and values of reaction coordinate:
 
     >>> x1, info = soptimize(pes, x0, tangent1, rc=vol)
     >>> info["iterations"]
-    13
+    15
 
 Optimized   energies   and  values   of   reaction  coordinate   after
 optimization:
@@ -147,7 +147,7 @@ And the rombus TS is by about half a unit lower in energy:
 
     >>> x2, info = soptimize(pes, [A, C, B], tangent1, rc=vol)
     >>> pes(x2[1])
-    -5.0734208584627911
+    -5.073420858462792
 
 Resutls  of an  optimization  without constraints,  or  rather with  a
 "dynamic" constraint  where a motion of  a vertex is  restricted to be
@@ -156,18 +156,16 @@ relaxation algorithm:
 
     >>> x1, info = soptimize(pes, x0, tangent1)
     >>> info["iterations"]
-    13
+    14
 
     >>> round(map(pes, x1), 4)
-    array([-6.    , -4.8687, -4.4806, -4.8687, -6.    ])
+    array([-6.    , -4.8521, -4.4806, -4.8521, -6.    ])
 
     >>> round(map(vol, x1), 4)
-    array([-1.    , -0.9656, -0.    ,  0.9656,  1.    ])
+    array([-1.   , -0.958, -0.   ,  0.958,  1.   ])
 
-Note that  if judging by the  value of the energy  and volume property
-the 2nd and 4th vertices are much closer to the terminal beads than to
-the (square) TS. The funciton  soptimize() does not do any "respacing"
-by default.
+Note  that the  funciton soptimize()  does not  do any  "respacing" by
+default.
 """
 
 __all__ = []
@@ -472,10 +470,10 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
             print "sopt: ignored kwargs=", kwargs
 
     def norm(x):
-        "L-infinity norm"
-        return max(abs(x))
-        # "L2 norm"
-        # return cartesian_norm(x, None)
+        # "L-infinity norm"
+        # return max(abs(x))
+        "L2 norm"
+        return cartesian_norm(x, None)
 
     # init array of hessians:
     H = Array([ BFGS(alpha) for _ in X ])
