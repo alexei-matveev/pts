@@ -309,34 +309,54 @@ class ReactionPathway(object):
              # If used together with string let it work only on complete strings
              t_clim = self.grown()
 
+        if self.conv_mode == 'gradstep':
+            conv = self.test_convergence_GS(ftol, xtol)
+
+        if self.conv_mode == 'gradstep_new':
+            conv =  self.test_convergence_GS_new(ftol, xtol)
+
+        if self.conv_mode == 'energy':
+            conv = self.test_convergence_E(etol)
+
+        # conv = True means:
+        #    * Convergence with current convergence test has been finished,
+        #    * OR substring is converged enough for growing.
+        # If climbing image has not yet started to climb, convergence was tested
+        # without it, thus CI is not yet correctly finshed. Then force a growing
+        # and test again. If CI does not find a valid CI-image abort in this case.
+        # Test only the rougher convergence criteria in preoptimization state of
+        # CI method.
+
         if t_clim:
             # If climbing image is used on NEB or a completely grown string
             # try to find the image, which should actually climb
-            if self.opt_iter >= self.start_climb and self.ci_num == None:
+            if ((self.opt_iter >= self.start_climb) or conv) \
+                 and self.ci_num == None:
                 clim = self.try_set_ci_num()
                 if clim:
                     print "Turned image", self.ci_num, " into climbing image"
+                    assert not self.ci_num == None
+                    # eventually the new convergence criteria are already met.
+                    conv = self.test_convergence( etol, ftol, xtol)
+                else:
+                    if conv:
+                        print "ATTENTION: no climbing image found on current converged path!"
+                        print "           thus only did calculation without CI              "
+                        print >> stderr, "ATTENTION: calculation converged but CI was not applied"
 
-        if self.conv_mode == 'gradstep':
-            return self.test_convergence_GS(ftol, xtol)
 
-        if self.conv_mode == 'gradstep_new':
-            return self.test_convergence_GS_new(ftol, xtol)
-
-        if self.conv_mode == 'energy':
-            return self.test_convergence_E(etol)
-
-        assert False, "Should have been prevented by test in constructor."
+        if conv:
+           raise pts.Converged
             
     def test_convergence_E(self, etol):
         if self.eg_calls < 2:
             # because forces are always zero at zeroth iteration
-            return
+            return False
 
         bc_history = self.history.bead_count(2)
         if bc_history[1] != bc_history[0]:
             lg.info("Testing Convergence: string just grown, so skipping.")
-            return
+            return False
 
 
         es = array(self.history.e(2)) / (self.beads_count - 2)
@@ -346,7 +366,9 @@ class ReactionPathway(object):
 
         lg.info("Testing Convergence of %f to %f eV / moving bead / step." % (diff, etol))
         if diff < etol:
-            raise pts.Converged
+            return True
+
+        return False
         
     def test_convergence_GS(self, f_tol, x_tol, always_tight=False):
         """
@@ -376,17 +398,19 @@ class ReactionPathway(object):
 
         if self.eg_calls == 0:
             # because forces are always zero at zeroth iteration
-            return
-        elif not always_tight and self.growing and not self.grown():
+            return False
+        elif not always_tight and ((self.growing and not self.grown()) \
+           or (self.climb_image and self.ci_num == None)):
             lg.info("Testing During-Growth Convergence to %f: %f" % (f_tol*5, rmsf))
             if rmsf < f_tol*5:
-                raise pts.Converged
+                return True
         else:
             max_step = self.history.step(self.convergence_beads, self.steps_cumm)
             max_step = abs(max_step).max()
             lg.info("Testing Non-Growing Convergence to f: %f / %f, x: %f / %f" % (rmsf, f_tol, max_step, x_tol))
             if rmsf < f_tol or (self.eg_calls > self.steps_cumm and max_step < x_tol and rmsf < 5*f_tol):
-                raise pts.Converged
+                return True
+        return False
 
     def test_convergence_GS_new(self, f_tol, x_tol):
         """
@@ -419,15 +443,18 @@ class ReactionPathway(object):
 
         if self.eg_calls == 0:
             # because forces are always zero at zeroth iteration
-            return
-        elif self.growing and not self.grown():
+            return False
+        elif self.growing and not self.grown() \
+           or (self.climb_image and self.ci_num == None):
             lg.info("Testing During-Growth Convergence to f: %f / %f (max), x: %f / %f" % (f, 5*f_tol, max_step, 2*x_tol))
             if f < f_tol*5 or (self.eg_calls > self.steps_cumm and max_step < 2*x_tol):
-                raise pts.Converged
+                return True
         else:
             lg.info("Testing Non-Growing Convergence to f: %f / %f (max), x: %f / %f" % (f, f_tol, max_step, x_tol))
             if f < f_tol or (self.eg_calls > self.steps_cumm and max_step < x_tol):
-                raise pts.Converged
+                return True
+
+        return False
 
     def try_set_ci_num(self):
         """
