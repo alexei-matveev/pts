@@ -1,86 +1,166 @@
 #!/usr/bin/env python
 """
-This tools takes pathes given by files (path.pickle or others)
-reads it in and gives a picture back of some preselected internal coordinates
+This tools takes  pathes given by files (path.pickle  or others) reads
+it  in  and  gives  a   picture  back  of  some  preselected  internal
+coordinates
 
-As input the path file(s) have to be given and at least two
-internal coordinates
+As input the  path file(s) have to be given and  at least two internal
+coordinates
 
-An internal coodinate is selected by settings --kind n1 n2 ...
-where the ni's are the atomnumbers (starting with 1) which should be used
-for getting the internal coordinate, how many of them are requiered is dependent
-on the kind choosen. There are the possiblilities:
+An internal coodinate is selected  by settings --kind n1 n2 ...  where
+the ni's  are the atomnumbers (starting  with 1) which  should be used
+for getting the internal coordinate, how many of them are requiered is
+dependent on the kind choosen. There are the possiblilities:
 
-"internal coordinate"  "kind"  "number of Atoms needed"
-      distance           dis      2
-        angle            ang      3
- angle not connected     ang4     4
-    dihedral angle       dih      4
- distance to  plane      dp       4 (the first is the atom, the others define the plane;
-                                     the plane atoms must not be on a line)
+    +---------------------+----+------+
+    |internal coordinate  |kind|number|
+    |                     |    |of    |
+    |                     |    |Atoms |
+    |                     |    |needed|
+    +---------------------+----+------+
+    |distance             |dis |2     |
+    +---------------------+----+------+
+    |angle                |ang |3     |
+    +---------------------+----+------+
+    |angle not connected  |ang4|4     |
+    +---------------------+----+------+
+    |dihedral angle       |dih |4     |
+    +---------------------+----+------+
+    |distance to plane    |dp  |4 (a) |
+    +---------------------+----+------+
 
-Normally the first internal coordinate will be the x-value of the plot. Alternatly one might
-use the path abscissa instead. For this one has to set the option --t.
+    (a) The first is the atom,  the others define the plane; the plane
+    atoms must not be on a line.
 
-Another set of coordinates refers to energy and gradients stored in path.pickle files.
-For the gradients are several different options of interest possible. 
-The values on the path will be interpolated from the beads, else the ones from the beads are taken.
+Normally  the first  internal coordinate  will be  the x-value  of the
+plot. Alternatly one might use the path abscissa instead. For this one
+has to set the option --t.
 
-The energy/gradient informations are always given after the geometry informations:
-   --energy \ --en              : energies
-   --gradients \ --gr \ --grabs : gives the absolute value of the gradients at the required positions
-   --grmax                      : gives maximal value of (internal) gradients
-   --grpara                     : length of gradient component parallel to the path
-   --gperp                      : length of gradient component perpendicular to the path
-   --grangle                    : angle (in degree) between path and gradients, should be 90 for convergence
+Another set  of coordinates refers  to energy and gradients  stored in
+path.pickle files.  For the gradients are several different options of
+interest possible.  The  values on the path will  be interpolated from
+the beads, else the ones from the beads are taken.
 
-easiest input is by path.pickle files which can be given directly without need of
-any option.
+The energy/gradient  informations are always given  after the geometry
+informations:
 
-some options handle a different way of input:
-Here coordinates are given in cordinate files (coordinates in internal coordinates for all
+    --energy
+
+        energies
+
+    --gradients
+
+        gives  the absolute  value of  the gradients  at  the required
+        positions
+
+    --grmax
+
+        gives maximal value of (internal) gradients
+
+    --grpara
+
+        length of gradient component parallel to the path
+
+    --gperp
+
+        length of gradient component perpendicular to the path
+
+    --grangle
+
+        angle (in degree) between path and gradients, should be 90 for
+        convergence
+
+Easiest  input is  by path.pickle  files which  can be  given directly
+without need of any option.
+
+Some options  handle a  different way of  input. Here  coordinates are
+given in cordinate files  (coordinates in internal coordinates for all
 beads). One has to set addtionally at least the symbols.
-    --symbols symfile            : file should contain all the symbols of the atoms
-    --zmat    zmatfile           : to switch from Cartesian to Zmatrix coordinates, should be
-                                   given the same way as for path tools
-    --mask   maskfile geo_raw    : mask has to be given separately in maskfile one complete
-                                   internal geometry has to be given as geo_raw to provide the
-                                   tool with the fixed values
-    --abscissa  abscissafile     : the abscissa for the coordinate file. There need not to be any
-                                   but if there are some there need to be exactly one file for
-                                   each coordinate file
+
+    --symbols symfile
+
+        file should contain all the symbols of the atoms
+
+    --zmat zmatfile
+
+        to  switch from  Cartesian to  Zmatrix coordinates,  should be
+        given the same way as for path tools
+
+    --mask maskfile geo_raw
+
+        mask  has to  be  given separately  in  maskfile one  complete
+        internal geometry  has to be  given as geo_raw to  provide the
+        tool with the fixed values
+
+    --abscissa abscissafile
+
+        the abscissa for the coordinate file. There need not to be any
+        but if  there are some there  need to be exactly  one file for
+        each coordinate file
 
 der are other options which may be set:
-    --diff                       :for the next two internal coordinates the difference
-                                  will be taken, instead of the values
-    --expand cellfile expandfile : the atoms will be exanded with atoms choosen as
-                                   original ones shifted with cell vectors, as described
-                                   in expandfile.
-                                  cellfile should contain the three basis vectors for the cell
-                                  expandfile contains the shifted atoms with:
-                                  "number of origin" "shift in i'th direction"*3
-    --title string               : string will be the title of the picture
-    --xlabel string              : string will be the label in x direction
-    --ylabel string              : string will be the label in y direction
-    --logscale z                 : for z = 1,2 or z = x,y sets scale of this direction to
-                                   logarithmic
-    --name string                : string will be the name of the path-plot, for several
-                                   files the names could be given by repeatly set --name string
-                                   but in this case the name of the i'th call of --name option
-                                   always refers to the i'th file, no matter in which order given
-    --log  filename string num   : reads in filename which should be a .log file output file of
-                                   a string or neb calculation and takes string line of the num'th
-                                   iteration as some extra bead data to plot
-                                   the x-value used for this plot are the same x-values as from the
-                                   last path.pickle given before this option
 
-    --lognf filename             : new log as before, but reuses the string and num from the last one
-                                   only the logfile is changed
-    --lognn num                  : new log plot as above, but takes another iteration than the last one
-    --symm <midx>                : uses the next coordinate defined (or the next difference defined) and
-                                   returns the derivative to symmetry around midx instead of the value
-                                   if midx is not given, 0 is used, symmetry is calculated by:
-                                   0.5 * (f(midx + x) - f(midx - x))
+    --diff
+
+        for the  next two internal coordinates the  difference will be
+        taken, instead of the values
+
+    --expand cellfile expandfile
+
+        the atoms will be exanded  with atoms choosen as original ones
+        shifted  with  cell   vectors,  as  described  in  expandfile.
+        cellfile should  contain the three basis vectors  for the cell
+        expandfile contains the shifted atoms with: "number of origin"
+        "shift in i'th direction"*3
+
+    --title string
+
+        string will be the title of the picture
+
+    --xlabel string
+
+        string will be the label in x direction
+
+    --ylabel string
+
+        string will be the label in y direction
+
+    --logscale z
+
+        for  z =  1,2  or z  = x,y  sets  scale of  this direction  to
+        logarithmic
+
+    --name string
+
+        string will  be the name  of the path-plot, for  several files
+        the names could be given  by repeatly set --name string but in
+        this case  the name of the  i'th call of  --name option always
+        refers to the i'th file, no matter in which order given
+
+    --log filename string num
+
+        reads in filename which should be a .log file output file of a
+        string or neb calculation and  takes string line of the num'th
+        iteration as some extra bead data to plot the x-value used for
+        this plot are  the same x-values as from  the last path.pickle
+        given before this option
+
+    --lognf filename
+
+        new log as before, but reuses the string and num from the last
+        one only the logfile is changed
+
+    --lognn num
+
+        new log  plot as above,  but takes another iteration  than the
+        last one
+
+    --symm <midx>
+
+        uses  the  next coordinate  defined  (or  the next  difference
+        defined) and  returns the  derivative to symmetry  around midx
+        instead of the value if midx is not given, 0 is used, symmetry
+        is calculated by: 0.5 * (f(midx + x) - f(midx - x))
 """
 from pts.path import Path
 from sys import exit
