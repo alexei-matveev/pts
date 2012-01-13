@@ -180,13 +180,11 @@ import numpy as np
 
 def main(argv):
     """
-    Reads in stuff from the sys.argv if not
-    provided an other way
+    Reads in stuff from the sys.argv if not provided an other way
 
-    Then calculate according to the need
-    the result will be a picture showing
-    for each inputfile a path of the given
-    coordinates with beads marked on them
+    Then calculate according to the  need the result will be a picture
+    showing for  each inputfile a  path of the given  coordinates with
+    beads marked on them
     """
     if argv[0] == '--help':
         print __doc__
@@ -239,26 +237,24 @@ def main(argv):
     # read all the arguments in
     for i in range(len(argv)):
          if argv == []:
-             # stop cycle if all input is read in
-             # (sometimes more than one is read in
-             # at the same time)
+             # stop cycle if all input is read in (sometimes more than
+             # one is read in at the same time)
              break
          elif argv[0].startswith("--"):
              # differenciate between options and files
              option = argv[0][2:]
              if option == "num":
-                 # change number of frames in path from 100
-                 # to next argument
+                 # change number  of frames in  path from 100  to next
+                 # argument
                  num = int(argv[1])
                  argv = argv[2:]
              elif option == "diff":
-                 # of the next twoo coordinates the difference
-                 # should be taken, store the number of the first
-                 # of them
+                 # of the next  twoo coordinates the difference should
+                 # be taken, store the number of the first of them
                  diff.append(num_i)
                  argv = argv[1:]
              elif option == "symm":
-                 # test if the following coordinate (or coord. diffs)
+                 # test if the  following coordinate (or coord. diffs)
                  # follow the same symmetry as the x-coordinate
                  symm.append(num_i)
                  try:
@@ -278,7 +274,7 @@ def main(argv):
                       value.partners.append(int(argv[j]))
                  allval.append(value)
                  argv = argv[value.lengthneeded() + 1:]
-                 # count up, to know how many and more important for
+                 # count up,  to know how many and  more important for
                  # let diff easily know what is the next
                  num_i += 1
              elif option in ["s", "t"]:
@@ -310,9 +306,9 @@ def main(argv):
                  argv = argv[2:]
                  log_x_num.append(xfiles)
              elif option == "expand":
-                 # done like in xyz2tabint, expand the cell
-                 #FIXME: There should be a better way to consider atoms
-                 # to be shifted to other cells
+                 # done  like in  xyz2tabint, expand  the  cell FIXME:
+                 # There should  be a better way to  consider atoms to
+                 # be shifted to other cells
                  cell, tomove, howmove = get_expansion(argv[1], argv[2])
                  argv = argv[3:]
              elif option == "title":
@@ -425,27 +421,29 @@ def main(argv):
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
 
-        # prepare plot from the tables containing the path and bead data
-        # only if there are enough for x AND y values
+        # prepare plot  from the tables  containing the path  and bead
+        # data only if there are enough for x AND y values
         if num_opts > 1:
             if ase:
                pl.prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt)
             else:
                pl.prepare_plot( path, name_p, beads, "_nolegend_", None, None, opt)
 
-        # if some data has been extracted from a logfile, after this file i has been used
-        # it has to be plotted here, as here the x values of the files are valid
-        # the log_points should be at the beads
+        # if some data  has been extracted from a  logfile, after this
+        # file i has been used it  has to be plotted here, as here the
+        # x values of the files  are valid the log_points should be at
+        # the beads
 	if special_vals != []:
             assert (e_a_gr is not None)
             for s_val in special_vals:
-                 # use the options for x and plot the data gotten from the file directly
+                 # use the options for x and plot the data gotten from
+                 # the file directly
                  optlog = optx + " t %i" % (xnum_opts + 1)
                  log_points = beads
                  log_points = log_points[:xnum_opts + 1,:]
                  log_points = log_points.tolist()
-                 # till here the x-data should be copied and ready, now add also
-                 # the logdata
+                 # till here  the x-data  should be copied  and ready,
+                 # now add also the logdata
 		 en, gr = e_a_gr
                  if s_val.startswith("en"):
                     log_points.append(en)
@@ -474,16 +472,18 @@ def main(argv):
         if logs != []:
             for j, log in enumerate(logs):
                 if log_x_num[j] == i:
-                 # use the options for x and plot the data gotten from the file directly
+                 # use the options for x and plot the data gotten from
+                 # the file directly
                  optlog = optx + " t %i" % (xnum_opts + 1)
                  log_points = beads
                  log_points = log_points[:xnum_opts + 1,:]
                  log_points = log_points.tolist()
-                 # till here the x-data should be copied and ready, now add also
-                 # the logdata
+                 # till here  the x-data  should be copied  and ready,
+                 # now add also the logdata
                  log_points.append(read_line_from_log(log, logs_find[j], logs_num[j]))
                  log_points = np.asarray(log_points)
-                 # The name should be the name of the data line taken, right?
+                 # The name should be the name of the data line taken,
+                 # right?
                  pl.prepare_plot( None, None, None, None, log_points,\
                                logs_find[j] + ', iteration %i' % (logs_num[j]) , optlog)
 
@@ -492,9 +492,8 @@ def main(argv):
 
 def makeoption(num_i, diff, symm, symshift, withs):
      """
-     All coordinates generated are used
-     For all pairs given by diff the difference
-     is taken, all other values are taken as they are
+     All coordinates  generated are used  For all pairs given  by diff
+     the difference is taken, all other values are taken as they are
      """
      opt = ""
      optx = []
@@ -534,9 +533,10 @@ def makeoption(num_i, diff, symm, symshift, withs):
           if many == 1 and xmany == 0:
               xmany = count
               optx = opt
-     # return: all options, how many lines in the plot, how many options belong
-     #          to x, (as some like symm or difference use more than one)
-     #          what are the options only for the xfunction
+     # return:  all options,  how many  lines  in the  plot, how  many
+     #          options belong to x,  (as some like symm or difference
+     #          use more than  one) what are the options  only for the
+     #          xfunction
      return opt, many, xmany, optx
 
 if __name__ == "__main__":
