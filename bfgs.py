@@ -98,6 +98,7 @@ def isolve(A, b, tol=1.0e-7):
     callable linear operator  and b a vector. If  provided, x0 is used
     as an initial value instead of b.
 
+    >>> from numpy import array
     >>> from test.testfuns import Affine
 
     >>> a = array([[2.0, 0.5],
