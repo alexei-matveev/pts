@@ -18,6 +18,8 @@ from os import path, mkdir, chdir, getcwd, system
 from shutil import copy2 as cp
 import numpy as np
 
+VERBOSE = 0
+
 class QFunc(Func):
     """
         >>> from ase import Atoms
@@ -27,8 +29,8 @@ class QFunc(Func):
 
         >>> pes = QFunc(ar4)
 
-    Provide a different one by  specifying the second argument, e.g: pes =
-    QFunc(ar4, gaussian)
+    Provide a  different one by  specifying the second  argument, e.g:
+    pes = QFunc(ar4, gaussian)
 
         >>> from numpy import array
         >>> x = array([[  1.,  1.,  1. ],
@@ -49,8 +51,8 @@ class QFunc(Func):
         >>> [pes(scale * x) for scale in linspace(0.38, 0.42, 3)]
         [-5.469484020549146, -5.9871235862374306, -5.5011134098626151]
 
-    Find the minimum (first scale the cluster by 0.4 which is close to the
-    minimum):
+    Find the minimum (first scale the cluster by 0.4 which is close to
+    the minimum):
 
         >>> from fopt import minimize
         >>> x = x * 0.4
@@ -66,18 +68,21 @@ class QFunc(Func):
     """
     def __init__(self, atoms, calc=LennardJones(), moving=None):
 
-        # we are going to repeatedly set_positions() for this instance,
-        # So we make a copy to avoid effects visible outside:
+        # We  are   going  to  repeatedly   set_positions()  for  this
+        # instance,  So  we  make  a  copy to  avoid  effects  visible
+        # outside:
         self.atoms = atoms.copy()
 
-        # FIXME: should we assume atoms were already associated
-        #        with a calculator instead of using LJ as default?
+        # FIXME: should we assume atoms were already associated with a
+        #        calculator instead of using LJ as default?
         self.atoms.set_calculator(calc)
 
-        # list of moving atoms whose coordinates are considered as variables:
+        # list  of moving  atoms whose  coordinates are  considered as
+        # variables:
         self.moving = moving
 
-    # (f, fprime) methods inherited from abstract Func and use this by default:
+    # (f, fprime) methods inherited from abstract Func and use this by
+    # default:
     def taylor(self, x):
         "Energy and gradients"
 
@@ -101,17 +106,27 @@ class QFunc(Func):
         # update positions:
         atoms.set_positions(x)
 
-        # request energy:
-        e = atoms.get_potential_energy()
-
-        # request forces. NOTE: forces are negative of the gradients:
+        if VERBOSE:
+            print "QFunc: compute forces ..."
+        #
+        # Request  forces first, hopefully  when computing  forces the
+        # correcponsing  energy  will also  be  computed  so that  the
+        # request  for  the  energy  will  not  imply  a  new  program
+        # invokation. NOTE: forces are negative of the gradients:
+        #
         g = - atoms.get_forces()
 
         if moving is not None:
-
             # rebind g:
             g = g[moving]
 
+        if VERBOSE:
+            print "QFunc: energy ..."
+        # request energy:
+        e = atoms.get_potential_energy()
+
+        if VERBOSE:
+            print "QFunc: ... done"
         # return both:
         return e, g
 
@@ -182,8 +197,8 @@ def constraints2mask(atoms):
 
 class pwrapper(object ):
     """
-    Belongs to fwrapper,
-    Makes preparations for using pmap with fwrapper
+    Belongs  to  fwrapper,  Makes  preparations for  using  pmap  with
+    fwrapper
     """
     def __init__(self, pmap):
        self.pmap = pmap
@@ -193,10 +208,9 @@ class pwrapper(object ):
 
 class fwrapper(object):
     """
-    Wrapper around a function which changes in
-    a workingdirectory special for the processes
-    it works in and handles startdata for the qm-solver
-    if self.start is not None
+    Wrapper  around a  function  which changes  in a  workingdirectory
+    special for  the processes it  works in and handles  startdata for
+    the qm-solver if self.start is not None
     """
     def __init__(self, fun, startdir = None, mask = None, workhere = True ):
         self.start = startdir
@@ -219,11 +233,10 @@ class fwrapper(object):
 
     def __call__(self, z):
         """
-        This is the function which should be called by the
-        processes for mapping and so on
-        If wanted it changes the current working directory/back
-        and copies starting files, when called, the result
-        is given back as a list and contain only derivatives
+        This is the  function which should be called  by the processes
+        for mapping and so on If wanted it changes the current working
+        directory/back  and copies  starting files,  when  called, the
+        result is  given back as  a list and contain  only derivatives
         for the elements which are True in self.mask
         """
         num, x = z
@@ -236,14 +249,14 @@ class fwrapper(object):
             chdir(wx)
             print "FWRAPPER: Entering working directory:", wx
 
-        # if there is a startingdirectory named, now is the time
-        # to have a look, if there is something useful inside
+        # if there  is a startingdirectory  named, now is the  time to
+        # have a look, if there is something useful inside
         if self.start is not None and path.exists(self.start):
              wh = getcwd()
-             # in RESTARTFILES are the names of all the files for all
+             # in RESTARTFILES are the names  of all the files for all
              # the quantum chemistry calculators useful for a restart
              for singfile in RESTARTFILES:
-                # copy every one of them, which is available to the
+                # copy every  one of them,  which is available  to the
                 # current directory
                 try:
                    filename = self.start + "/" + singfile
@@ -256,15 +269,15 @@ class fwrapper(object):
         res = self.fun.fprime(x)
         res = (res.flatten()).tolist()
 
-        # if the startingdirectory does not exist yet but has a
+        # if  the  startingdirectory does  not  exist  yet  but has  a
         # resonable name, it now can be created
         if self.start is not None and not path.exists(self.start):
              try:
                  # Hopefully the next line is thread save
                  mkdir(self.start)
-                 # if this process was alowed to create the starting
-                 # directory it can also put its restartfiles in,
-                 # the same thing than above but in the other direction
+                 # if this  process was alowed to  create the starting
+                 # directory it can also  put its restartfiles in, the
+                 # same thing than above but in the other direction
                  wh = getcwd()
                  for singfile in RESTARTFILES:
                      try:
@@ -277,8 +290,8 @@ class fwrapper(object):
              except OSError:
                  print "FWRAPPER: not make new path", wx
 
-        # it is safer to return to the last working directory, so
-        # the code does not affect too many things
+        # it is safer to return  to the last working directory, so the
+        # code does not affect too many things
         if not self.workhere:
             chdir(self.wopl)
         # the result of the function call:
@@ -286,9 +299,10 @@ class fwrapper(object):
 
 
 class QContext(object):
-    """For the option of working in a workingdirectory different to
-    the one used, and the possibility to use old stored datafiles
-    for restart some extra parameters are needed
+    """
+    For the option  of working in a workingdirectory  different to the
+    one  used, and  the possibility  to use  old stored  datafiles for
+    restart some extra parameters are needed
 
     WARNING: this will create and remove a directory |dir|:
 
@@ -321,9 +335,8 @@ class QContext(object):
         # save for __exit__ to chdir back:
         self.__cwd = getcwd()
 
-        # first the working directory is changed to
-        # If it does not exist, it is
-        # created, make sure that if it exists, there is
+        # first the  working directory  is changed to  If it  does not
+        # exist, it is created, make  sure that if it exists, there is
         # no grabage inside
 
         # print "QContext: chdir to", self.wd
@@ -336,8 +349,8 @@ class QContext(object):
         if self.restartdir is not None and path.exists(self.restartdir):
             # print "QContext: using data for restarting from directory", self.restartdir
 
-            # files being in self.restartdir are copied in
-            # the current working directory
+            # files being in self.restartdir are copied in the current
+            # working directory
             cmd = "echo cp " + self.restartdir + '/*  .'
             system(cmd)
             # FIXME: we should copy only RESTARTFILES
@@ -351,28 +364,31 @@ class QContext(object):
         # As a default the working directory is not changed:
         if self.wd is None: return True
 
-        # the files stored in the restartdir may be of course be there before
-        # the calculation and be stored by hand or another code, but if they
-        # do not exist yet and there are several calculations going on, then
-        # they can be done now
+        # the files stored in the restartdir may be of course be there
+        # before  the calculation  and be  stored by  hand  or another
+        # code, but  if they  do not exist  yet and there  are several
+        # calculations going on, then they can be done now
         if self.restartdir is not None:
-            # The calculations we are considering are all very near each other
-            # so the starting values may be from any other finished calculation
-            # if any has stored one, there is no need for anymore storage
-            # and the code uses the threadsavenes of the path.exists function
+            # The calculations  we are  considering are all  very near
+            # each other so the starting  values may be from any other
+            # finished calculation if any  has stored one, there is no
+            # need  for   anymore  storage  and  the   code  uses  the
+            # threadsavenes of the path.exists function
 
             if not path.exists(self.restartdir):
                 # so here build the function
                 mkdir(self.restartdir)
                 # print "QContext: store data for restarting"
 
-                # make sure RESTARTFILES lists files essential for restart:
+                # make  sure RESTARTFILES  lists  files essential  for
+                # restart:
                 for file in RESTARTFILES:
-                    # copy the interesting files of in to working directory
+                    # copy  the  interesting files  of  in to  working
+                    # directory
                     cmd = "echo cp " + file + " " + self.restartdir
                     system(cmd)
-        # it is safer to return to the last working directory, so
-        # the code does not affect too many things
+        # it is safer to return  to the last working directory, so the
+        # code does not affect too many things
         chdir(self.__cwd)
 
         return True
