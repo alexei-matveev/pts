@@ -63,8 +63,21 @@ class traj_long:
     the current mode vector
     """
     def __init__(self, atoms, funcart):
+        from os import remove
         self.atoms = atoms
         self.fun = funcart
+        try:
+            remove("all_geos")
+        except OSError:
+            pass
+        try:
+            remove("all_grads")
+        except OSError:
+            pass
+        try:
+            remove("all_modes")
+        except OSError:
+            pass
 
     def __call__(self, geo, mode, step, grad, iter, error):
         self.atoms.set_positions(self.fun(geo))
