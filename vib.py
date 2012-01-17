@@ -511,6 +511,24 @@ def main(argv):
 
         string  should contain the  mask, which  Cartesian coordinates
         should be fixed
+
+    The numerically build second derivative of the energy (the Hessian
+    approximation) is build with the following settings, instead the defaults:
+
+    --direction <forward|central|backwards>
+
+      In which direction the step is taken for the approximation. The default
+      value is "central".
+
+    --delta d
+
+      How far away the step is done from the current geometry. In case of central
+      differences, there is one step of +delta and one of -delta for each
+      of the coordinates.
+
+    --save-hessian filename
+
+      This will save the approximated Hessian to a file named filename.
     """
     from pts.io.cmdline import get_options, get_calculator, get_mask
     from pts.sched import Strategy
@@ -521,7 +539,8 @@ def main(argv):
          sys.exit()
 
     # vibration module  options (not all that the vibmodes function has):
-    opts, args = get_options(argv, long_options=["calculator=","mask=", "num-procs=", "alsovec="])
+    opts, args = get_options(argv, long_options=["calculator=","mask=", "num-procs=", "alsovec=",
+                                                 "delta=", "direction=", "save-hessian="])
 
     # and one geometry:
     if len(args) != 1:
@@ -538,6 +557,9 @@ def main(argv):
     # for parallel calculations
     num_procs = None
     mask = None
+    save_h = None
+    direction = "central"
+    delta = 0.01
 
     for opt, value in opts:
          if opt == "--calculator":
@@ -548,6 +570,12 @@ def main(argv):
                  go = 2
          elif opt == "--num-procs":
              num_procs = int(value)
+         elif opt == "--direction":
+             direction = value
+         elif opt == "--delta":
+             delta = float(value)
+         elif opt == "--save-hessian":
+             save_h = value
          elif opt == "--mask":
              mask = get_mask(value)
 
@@ -559,7 +587,7 @@ def main(argv):
     # stdout)
     if num_procs == None:
         # default values for paramap (pool_map does not need topology)
-        vibmodes(atoms, mask = mask, give_output = go)
+        vibmodes(atoms, mask = mask, give_output = go, direction = direction, delta = delta, save = save_h)
     else:
         # use PMap with HCM strategy: num_procs should hold the number
         # of  procces available  for  the complete  job  they will  be
@@ -569,7 +597,7 @@ def main(argv):
         # specifications are put in environment variables, which could
         # be used by the qm-program
         pmap = PMap3(strat = sched)
-        vibmodes(atoms, pmap = pmap, mask = mask, give_output = go)
+        vibmodes(atoms, pmap = pmap, mask = mask, give_output = go, direction = direction, delta = delta, save = save_h)
 
 # python vib.py [-v]:
 if __name__ == "__main__":
