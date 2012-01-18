@@ -95,7 +95,8 @@ and a valid caluclator file calc.py do to start a 20 translation steps dimer opt
 from pts.io.read_inputs import get_geos, get_masked, from_params_file
 from pts.io.read_COS import geo_params, info_geometries
 from pts.io.read_COS import set_atoms
-from numpy import loadtxt
+from numpy import loadtxt, savetxt
+from ase.io import write
 from pts.func import compose
 from pts.qfunc import QFunc
 from sys import exit, stderr
@@ -297,6 +298,8 @@ def read_from_pickle(file, ts_est, geo_dict):
     atoms = Atoms(symbols)
     atoms.set_positions(funcart(start_geo))
     atoms = set_atoms(atoms, geo_dict)
+    write("start.xyz", atoms)
+    savetxt("mode.start", init_mode)
 
     return start_geo, init_mode, funcart, atoms
 
