@@ -444,7 +444,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     selflogfile.write("Values are in eV, Angstrom, degrees or combinations of them\n")
     selflogfile.write("Trans. Infos:       Energy            ABS. Force          Max. Force        Step:")
     selflogfile.write("          Perp\Para           Angle to mode\n")
-    selflogfile.write("Rot. Infos:  Conv.   Steps.       curvature        Angle to last\n")
+    selflogfile.write("Rot. Infos:  Conv.   Steps.       curvature      rot. force        Angle to last\n")
     selflogfile.flush()
 
     i = 0
@@ -495,11 +495,11 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
                (energy, abs_force, error, step_len,step_perp, step_para, arccos(angle) * 180 /pi))
 
          if r_conv:
-             selflogfile.write("Rot. Infos: True  %5i     %12.5f       %12.5f\n" % \
-               ( res["rot_iteration"] , res["curvature"], arccos(angle2) * 180 /pi))
+             selflogfile.write("Rot. Infos: True  %5i     %12.5f       %12.5f       %12.5f\n" % \
+               ( res["rot_iteration"] , res["curvature"], res["rot_abs_forces"], arccos(angle2) * 180 /pi))
          else:
-             selflogfile.write("Rot. Infos: False %5i     %12.5f       %12.5f\n" % \
-               ( res["rot_iteration"] , res["curvature"], arccos(angle2) * 180 /pi))
+             selflogfile.write("Rot. Infos: False %5i     %12.5f       %12.5f       %12.5f\n" % \
+               ( res["rot_iteration"] , res["curvature"], res["rot_abs_forces"], arccos(angle2) * 180 /pi))
          selflogfile.flush()
         #if i > 0 and error_old - error < 0:
         #    print "Error is growing"
