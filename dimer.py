@@ -527,8 +527,13 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
 
     # all gradient calculations makes sense
     # gradient calculations only of last rotation not so much
-    del res["rot_gradient_calculations"]
-    del res["trans_gradient_calculations"]
+    try:
+        del res["rot_gradient_calculations"]
+        del res["trans_gradient_calculations"]
+    except UnboundLocalError:
+        # Convergence criteria was fulfilled from the start.
+        res = {}
+
     res["gradient_calculations"] = grad_calc
 
     # add some more results to give back
