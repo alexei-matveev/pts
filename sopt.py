@@ -372,8 +372,7 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
     # sopt() driver deals only with the collections of 1D vectors, so
     #
     # (1) reshape the input ...
-    x0.shape = (n, vsize)
-    # FIXME: dont forget to restore the shape of input-only x0 on exit!
+    x0 = x0.reshape(n, -1)
 
     # (2) "reshape" provided PES Func to make it accept 1D arrays:
     pes = Reshape(pes, xshape=vshape)
@@ -438,15 +437,45 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
     # for restarts and post-analysis:
     pes = Memoize(pes, filename="soptimize.pkl")
 
-    xm, stats = sopt(pes.taylor, x0[1:-1], tangents, lambdas, callback=callback, **kwargs)
+    xm, info = sopt(pes.taylor, x0[1:-1], tangents, lambdas, callback=callback, **kwargs)
 
     # put the terminal images back:
     xm = vstack((x0[0], xm, x0[-1]))
 
+    #
+    # In  this scope  PES is  memoized,  compute the  energies of  the
+    # (hopefully)  converged chain  including terminal  vertices. Note
+    # that  terminals  are not  treated  by  sopt()  but the  info  is
+    # expected  by the  caller.  Also  note that  sopt()  delivers the
+    # corresponding  info from  the last  iteration and  only  for the
+    # moving vertices:
+    #
+    energies, gradients = pes.taylor(xm)
+
+    # info = {"iterations": iteration + 1,
+    #         "converged": converged,
+    #         "energies": E,
+    #         "gradients": G,
+    #         "tangents": T,
+    #         "lambdas": LAM,
+    #         "step": dR}
+
     xm.shape = xshape
     x0.shape = xshape
 
-    return xm, stats
+    info["energies"] = asarray(energies)
+    info["gradients"] = asarray(gradients)
+
+    assert len(vshape) == 1 # FIXME: generalize!
+
+    info["step"] = vstack((zeros(vshape), info["step"], zeros(vshape)))
+
+    # FIXME:  need a  convention for  the terminal  tangents, lambdas,
+    # until then delete incomplete info:
+    del info["tangents"]
+    del info["lambdas"]
+
+    return xm, info
 
 def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
          maxit=MAXIT, maxstep=MAXSTEP, alpha=70., callback=None,

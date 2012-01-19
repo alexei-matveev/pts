@@ -279,9 +279,15 @@ def find_path(pes, init_path
         # FIXME: the default pmap() is not parallelized?
         geometries, info = soptimize(pes, ypath, callback=cb, pmap=qmap, **kwargs)
         # print "info=", info
+        # energies, gradients = zip(*qmap(pes.taylor, geometries))
+        # energies = array(energies)
+        # gradients = array(gradients)
+        # print "diff=", energies - info["energies"]
+        # print "diff=", gradients - info["gradients"]
         converged = info["converged"]
+        energies = info["energies"]
+        gradients = info["gradients"]
         abscissa = None
-        energies, gradients = zip(*qmap(pes.taylor, geometries))
 
     # write out path to a file
     if output_level > 0 and CoS is not None:
