@@ -431,13 +431,16 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
 
         lambdas = mklambda0(local[1:-1])
 
-    if callback is not None:
-        callback = wrap1(callback, x0[0], x0[-1])
-
     # for restarts and post-analysis:
     pes = Memoize(pes, filename="soptimize.pkl")
 
-    xm, info = sopt(pes.taylor, x0[1:-1], tangents, lambdas, callback=callback, **kwargs)
+    def cb(x, e, g, t, lam):
+        if callback is not None:
+            assert len(vshape) == 1 # FIXME: generalize!
+            x2 = vstack((x0[0], x, x0[-1]))
+            callback(x2) #, e, g)
+
+    xm, info = sopt(pes.taylor, x0[1:-1], tangents, lambdas, callback=cb, **kwargs)
 
     # put the terminal images back:
     xm = vstack((x0[0], xm, x0[-1]))
@@ -630,15 +633,21 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
         if length > TR:
             print "sopt: WARNING: step too long by factor", length/TR, ", scale down !!!"
 
+        #
+        # The info  we pass  to the caller,  should be  consistent, so
+        # invoke  callback before  updating the  state vector,  as the
+        # energies, gradients, tangents and lambdas correspond to this
+        # state:
+        #
+        if callback is not None:
+            callback(R, E, G, T, LAM)
+
         # Save for later  comparison. E, G = fg(R)  will re-bind E and
         # G, not modify them:
         R0, G0 = R, G
 
         # actually update position vector:
         R = R + dR
-
-        if callback is not None:
-            callback(R)
 
         # See while  loop condition. We  are only converged  when both
         # criteria are satisfied:
