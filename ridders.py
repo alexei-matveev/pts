@@ -50,7 +50,7 @@ for vector valued functions.
 __all__ = ["dfridr"]
 
 # this affects precision for some reason:
-from numpy import abs, max
+from numpy import abs, max, inf
 
 def dfridr(func, x, h=0.001):
     """
@@ -66,7 +66,7 @@ def dfridr(func, x, h=0.001):
 #   PARAMETER (CON=1.4,CON2=CON*CON,BIG=1.E30,NTAB=10,SAFE=2.)
     CON = 1.4
     CON2 = CON * CON
-    BIG = 1.0e30
+    BIG = inf #1.0e30
     NTAB = 10
     SAFE = 2.0
 #   INTEGER i,j
