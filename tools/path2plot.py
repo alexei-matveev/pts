@@ -162,14 +162,12 @@ der are other options which may be set:
         instead of the value if midx is not given, 0 is used, symmetry
         is calculated by: 0.5 * (f(midx + x) - f(midx - x))
 """
-from pts.path import Path
 from sys import exit
 from sys import argv as sargv
-from pickle import load
 from pts.tools.path2xyz import read_in_path
 from pts.tools.path2tab import energy_from_path, grads_from_path, grads_from_beads
 from pts.tools.pathtools import read_path_fix, read_path_coords
-from pts.tools.xyz2tabint import returnall, interestingvalue, expandlist
+from pts.tools.xyz2tabint import interestingvalue
 from pts.tools.path2tab import path_to_int, beads_to_int, reorder_files, get_expansion
 from pts.tools.path2tab import read_line_from_log
 from pts.tools.tab2plot import plot_tabs
