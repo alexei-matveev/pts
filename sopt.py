@@ -452,6 +452,9 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
     #
     energies, gradients = pes.taylor(xm)
 
+    energies = asarray(energies)
+    gradients = asarray(gradients)
+
     # info = {"iterations": iteration + 1,
     #         "converged": converged,
     #         "energies": E,
@@ -461,10 +464,9 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
     #         "step": dR}
 
     xm.shape = xshape
-    x0.shape = xshape
 
-    info["energies"] = asarray(energies)
-    info["gradients"] = asarray(gradients)
+    info["energies"] = energies
+    info["gradients"] = gradients
 
     assert len(vshape) == 1 # FIXME: generalize!
 
