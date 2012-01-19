@@ -519,6 +519,11 @@ from copy import deepcopy, copy
 from pickle import load, dump
 
 def pickle_path(file, coord, pathps, energy, gradients, symbols, int2cart):
+    """
+    Original format: a nested tuple in the file:
+
+    ((geometries, abscissas, energies, gradients), (symbols, int2cart))
+    """
     tuple = coord, pathps, energy, gradients
     cs = (symbols, int2cart)
     f = open(file, 'wb')
@@ -526,6 +531,11 @@ def pickle_path(file, coord, pathps, energy, gradients, symbols, int2cart):
     f.close()
 
 def unpickle_path(file):
+    """
+    Original format: a nested tuple in the file:
+
+    ((geometries, abscissas, energies, gradients), (symbols, int2cart))
+    """
     f = open(file, "r")
     geo_tuple, at_object = load(f)
     f.close()
