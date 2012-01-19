@@ -17,7 +17,6 @@ from pts.func import compose
 from pts.paramap import PMap, PMap3
 from pts.sched import Strategy
 from pts.memoize import FileStore
-from pts.callback import generic_callback
 from pts.searcher import GrowingString, NEB, ts_estims
 from pts.cfunc import Pass_through
 from pts.optwrap import runopt
@@ -245,11 +244,6 @@ def find_path(pes, init_path
              # store interal coordinates of given iteration in file
              savetxt("%s/%s.state_vec%d.txt" % (output_path, name, cb_count_debug), CoS.state_vec.reshape(CoS.beads_count,-1))
          cb_count_debug += 1
-         return generic_callback(x, None, None, tol=tol
-                    , name = output_path + "/" + name
-                    , output_level=output_level
-                    , output_path=output_path
-                    , **kwargs)
 
     # print out initial path
     cb(init_path)
