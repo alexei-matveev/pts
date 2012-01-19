@@ -8,4 +8,4 @@ def generic_callback(x, molinterface, CoS, tol=0.01, correct_ts=None
     """
     FIXME: need to design an suitable interface for callbacks ...
     """
-
+    pass
