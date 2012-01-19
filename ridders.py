@@ -109,6 +109,9 @@ def dfridr(func, x, h=0.001):
             # If higher order is worse by a signicant factor SAFE, then quit early.
             return result, err
 
+    # not obvious from the code:
+    assert result is not None
+
     return result, err
 
 # "python ridders.py [-v]", eventualy with "-v" option appended:
