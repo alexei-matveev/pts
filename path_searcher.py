@@ -227,23 +227,40 @@ def find_path(pes, init_path
     else:
          raise Exception('Unknown type: %s' % method)
 
-    # has also set global, as the callback function wants this
-    # but here it is explictly reset to 0
-    cb_count_debug = 0
+    # Has also  set global,  as the callback  function wants  this but
+    # here  it is  explictly  reset.  FIXME: should  we  count from  1
+    # instead?
+    cb_count_debug = -1
 
-    # callback function
-    def cb(x, tol=0.01):
-         global cb_count_debug
-         if output_level > 1 and CoS is not None:
-             coords, pathps, energies, gradients = CoS.state_vec.reshape(CoS.beads_count,-1), \
-                   CoS.pathpos(), \
-                   CoS.bead_pes_energies.reshape(-1), \
-                   CoS.bead_pes_gradients.reshape(CoS.beads_count,-1)
-             pickle_path(coords, pathps, energies, gradients, symbols, int2cart, "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
-         if output_level > 2 and CoS is not None:
-             # store interal coordinates of given iteration in file
-             savetxt("%s/%s.state_vec%d.txt" % (output_path, name, cb_count_debug), CoS.state_vec.reshape(CoS.beads_count,-1))
-         cb_count_debug += 1
+    #
+    # Callback function, communicate variables through argument list:
+    #
+    def cb1(geometries, energies, gradients, abscissas=None, **kw):
+        global cb_count_debug
+        cb_count_debug += 1
+
+        if output_level > 1:
+            pickle_path(geometries, abscissas, energies, gradients,
+                        symbols, int2cart,
+                        "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
+
+        if output_level > 2:
+            # store interal coordinates of given iteration in file
+            savetxt("%s/%s.state_vec%d.txt" % (output_path, name, cb_count_debug), geometries)
+
+    #
+    # Callback  function  for  optimizers  using  the  CoS  object  to
+    # communicate between  subsystems. All  data will be  fetched from
+    # there. I would say, this is an abuse and must die.
+    #
+    def cb(x, tol=None): # FIXME: x is unused, do we still need tol?
+        if CoS is not None:
+            geometries = CoS.state_vec.reshape(CoS.beads_count, -1)
+            energies = CoS.bead_pes_energies.reshape(-1)
+            gradients = CoS.bead_pes_gradients.reshape(CoS.beads_count, -1)
+            abscissas = CoS.pathpos()
+
+            cb1(geometries, energies, gradients, abscissas)
 
     # print out initial path
     cb(init_path)
@@ -273,7 +290,10 @@ def find_path(pes, init_path
         gradients = info["gradients"]
         abscissa = None
 
-    # write out path to a file
+    #
+    # Write out  path to  a file. FIXME:  this duplicates code  in the
+    # callback! The only difference I see is the name of the file ...
+    #
     if output_level > 0 and CoS is not None:
         coords, pathps, energies, gradients = CoS.state_vec.reshape(CoS.beads_count,-1), \
               CoS.pathpos(), \
