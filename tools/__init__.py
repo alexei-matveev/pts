@@ -1,2 +1,2 @@
-from pathtools import PathTools, pickle_path, gnuplot_path, gnuplot_path3D
+from pathtools import PathTools, gnuplot_path, gnuplot_path3D
 
