@@ -266,15 +266,10 @@ def find_path(pes, init_path
         # Alternative optimizer:
         #
 
-        # FIXME: this "if" is ugly. Either assume len(init_path) is
-        #        equal to (then redundant) bead count. Or expect an
-        #        interpolation Path as input.
-        if len(init_path) != beads_count:
-            from pts.path import MetricPath
-            from numpy import linspace
-            ypath = map(MetricPath(init_path), linspace(0., 1., beads_count))
-        else:
-            ypath = array(init_path) # makes a copy
+        # FIXME:  this "do what  I mean"  attitude is  brocken. Either
+        #        assume  len(init_path) is  equal to  (then redundant)
+        #        bead count. Or expect an interpolation Path as input.
+        ypath = do_what_i_mean(init_path, beads_count)
 
         # FIXME: the default pmap() is not parallelized?
         geometries, info = soptimize(pes, ypath, callback=cb, pmap=qmap, **kwargs)
@@ -300,6 +295,50 @@ def find_path(pes, init_path
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration
     return converged, (geometries, abscissa, energies, gradients)
+
+def do_what_i_mean(nodes, count):
+    """
+    FIXME: this "if"  is ugly. Either assume number  of nodes is equal
+           to (then redundant) bead  count. Or expect an interpolation
+           Path as  input if you let  the choice of  initial points to
+           the code. It should be one or another. Any kind of "do what
+           I mean" logic is broken by design.
+    """
+    if len(nodes) == count:
+        #
+        # Use   user-supplied   nodes,    the   quality   of   initial
+        # approximaiton is the responsibility of the user:
+        #
+        nodes = array(nodes) # makes a copy
+    else:
+        print "WARNING: number of supplied geometries and bead count do not agree:", len(nodes), "/=", count
+        from pts.path import MetricPath
+        from numpy import linspace
+
+        #
+        # This voodoo is to preserve symmetry (in case there is any) as
+        # much  as  possible,  integrating  path length  is  prone  to
+        # numerical errors.
+        #
+        forw = nodes[::+1] # forward path
+        back = nodes[::-1] # backward path
+
+        #
+        # Since we anyway have to generate new nodes, we will put them
+        # equally  spaced.  Note  that  the nodes  that  the user  has
+        # supplied  (eventually   with  a  more-or-less   suitable  TS
+        # approximation) are lost:
+        #
+        forw = array(map(MetricPath(forw), linspace(0., 1., count)))
+        back = array(map(MetricPath(back), linspace(0., 1., count)))
+
+        #
+        # Hopefully   this  will  reduce   assymetry  of   the  vertex
+        # distribution along the path:
+        #
+        nodes = (forw[::+1] + back[::-1]) / 2.0
+
+    return nodes
 
 def output(optimized_path, cartesian, output_level, format , atoms):
     """Print user-friendly output.
