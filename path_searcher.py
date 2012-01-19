@@ -242,11 +242,11 @@ def find_path(pes, init_path
         if output_level > 1:
             pickle_path(geometries, abscissas, energies, gradients,
                         symbols, int2cart,
-                        "%s/%s.debug%d.path.pickle" % (output_path, name, cb_count_debug))
+                        "%s/%s.debug%03d.path.pickle" % (output_path, name, cb_count_debug))
 
         if output_level > 2:
             # store interal coordinates of given iteration in file
-            savetxt("%s/%s.state_vec%d.txt" % (output_path, name, cb_count_debug), geometries)
+            savetxt("%s/%s.state_vec%03d.txt" % (output_path, name, cb_count_debug), geometries)
 
     #
     # Callback  function  for  optimizers  using  the  CoS  object  to
