@@ -12,7 +12,7 @@ from sys import argv
 from os import path, mkdir, remove
 from numpy import savetxt, array
 from warnings import warn
-from pts.qfunc import QFunc
+from pts.qfunc import QFunc, qmap
 from pts.func import compose
 from pts.paramap import PMap, PMap3
 from pts.sched import Strategy
@@ -276,11 +276,12 @@ def find_path(pes, init_path
         else:
             ypath = array(init_path) # makes a copy
 
-        geometries, info = soptimize(pes, ypath, callback=cb, **kwargs)
+        # FIXME: the default pmap() is not parallelized?
+        geometries, info = soptimize(pes, ypath, callback=cb, pmap=qmap, **kwargs)
         # print "info=", info
         converged = info["converged"]
         abscissa = None
-        energies, gradients = zip(*map(pes.taylor, geometries))
+        energies, gradients = zip(*qmap(pes.taylor, geometries))
 
     # write out path to a file
     if output_level > 0 and CoS is not None:
