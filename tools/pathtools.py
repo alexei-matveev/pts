@@ -528,6 +528,7 @@ def pickle_path(coord, pathps, energy, gradients, symbols, int2cart, file):
 def unpickle_path(file):
     f = open(file, "r")
     geo_tuple, at_object = load(f)
+    f.close()
     coord, pathps, energy, gradients = geo_tuple
     symbols, int2cart = at_object
     return coord, pathps, energy, gradients, symbols, int2cart
