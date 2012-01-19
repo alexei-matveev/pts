@@ -1,16 +1,21 @@
 #!/usr/bin/env python
 """
-This tools takes  pathes given by files (path.pickle  or others) reads
-it  in  and  gives  a   picture  back  of  some  preselected  internal
-coordinates
+This tool  takes the "pickled"  path information from input  files and
+produces an  xy-plot of one selected property  against another.  These
+properties include, but are not limited to, internal coordinates.
 
-As input the  path file(s) have to be given and  at least two internal
-coordinates
+The command line  has to specify at least  two internal coordinates to
+be used in the xy-plot and a path to one or more input files.
 
-An internal coodinate is selected  by settings --kind n1 n2 ...  where
-the ni's  are the atomnumbers (starting  with 1) which  should be used
-for getting the internal coordinate, how many of them are requiered is
-dependent on the kind choosen. There are the possiblilities:
+An internal coordinate is selected by a command line switch
+
+     --<kind> n1 n2 ...
+
+followed by 2, 3, or 4 atomic indices, n1, n2, ..., each between 1 and
+the total  number of  atoms.  Together with  the <kind>  these indices
+specify a bond, an angle, a dihedral angle or another system property.
+The number  of indices depends on  the kind of  internal coordinate as
+specified in the table:
 
     +---------------------+----+------+
     |internal coordinate  |kind|number|
