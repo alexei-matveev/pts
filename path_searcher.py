@@ -240,9 +240,8 @@ def find_path(pes, init_path
         cb_count_debug += 1
 
         if output_level > 1:
-            pickle_path(geometries, abscissas, energies, gradients,
-                        symbols, int2cart,
-                        "%s/%s.debug%03d.path.pickle" % (output_path, name, cb_count_debug))
+            filename = "%s/%s.debug%03d.path.pickle" % (output_path, name, cb_count_debug)
+            pickle_path(filename, geometries, abscissas, energies, gradients, symbols, int2cart)
 
         if output_level > 2:
             # store interal coordinates of given iteration in file
@@ -299,7 +298,8 @@ def find_path(pes, init_path
               CoS.pathpos(), \
               CoS.bead_pes_energies.reshape(-1), \
               CoS.bead_pes_gradients.reshape(CoS.beads_count,-1)
-        pickle_path(coords, pathps, energies, gradients, symbols, int2cart, "%s.path.pickle" % (name))
+        filename = "%s.path.pickle" % (name)
+        pickle_path(filename, coords, pathps, energies, gradients, symbols, int2cart)
 
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration
