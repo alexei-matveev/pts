@@ -232,13 +232,12 @@ def main(argv):
     log_x_num = []
     xfiles = -1
 
-    # read all the arguments in
-    for i in range(len(argv)):
-         if argv == []:
-             # stop cycle if all input is read in (sometimes more than
-             # one is read in at the same time)
-             break
-         elif argv[0].startswith("--"):
+    #
+    # Read all the arguments in.  Stop  cycle if all input is read in.
+    # Some iterations consume more than one item.
+    #
+    while len(argv) > 0:
+         if argv[0].startswith("--"):
              # differenciate between options and files
              option = argv[0][2:]
              if option == "num":
