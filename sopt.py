@@ -436,9 +436,15 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
 
     def cb(x, e, g, t, lam):
         if callback is not None:
+            #
+            # We were obliged to report every iteration, unfortunately
+            # we have to report the info about terminals beads too. At
+            # the moment  it appears  cumbersome, so just  pretend the
+            # terminal beads are non-existent:
+            #
             assert len(vshape) == 1 # FIXME: generalize!
-            x2 = vstack((x0[0], x, x0[-1]))
-            callback(x2) #, e, g)
+            # x2 = vstack((x0[0], x, x0[-1]))
+            callback(x, e, g)
 
     xm, info = sopt(pes.taylor, x0[1:-1], tangents, lambdas, callback=cb, **kwargs)
 
@@ -479,6 +485,14 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
     # until then delete incomplete info:
     del info["tangents"]
     del info["lambdas"]
+
+    #
+    # For the moment we invoke  callback with valid data that includes
+    # terminals only  once upon convergence.  The problem  is that the
+    # caller expects terminals, but sopt() operates without them.
+    #
+    if callback is not None:
+        callback(xm, energies, gradients)
 
     return xm, info
 

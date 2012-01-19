@@ -283,7 +283,7 @@ def find_path(pes, init_path
         ypath = do_what_i_mean(init_path, beads_count)
 
         # FIXME: the default pmap() is not parallelized?
-        geometries, info = soptimize(pes, ypath, callback=cb, pmap=qmap, **kwargs)
+        geometries, info = soptimize(pes, ypath, callback=cb1, pmap=qmap, **kwargs)
 
         converged = info["converged"]
         energies = info["energies"]
