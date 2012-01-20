@@ -349,7 +349,7 @@ def do_what_i_mean(nodes, count):
 
     return nodes
 
-def output(optimized_path, cartesian, output_level, format , atoms):
+def output(optimized_path, cartesian, output_level, format, atoms):
     """Print user-friendly output.
     Also estimates locations of transition states from bead geometries.
     """
