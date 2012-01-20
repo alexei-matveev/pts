@@ -381,9 +381,9 @@ def output(optimized_path, cartesian, output_level, format, atoms):
     for i, ts in enumerate(tss):
         e, v, s0, s1,_ ,bead0_i, bead1_i = ts
         print "Energy = %.4f eV, between beads %d and %d." % (e, bead0_i, bead1_i)
-        print "Positions", v
+        print "Positions\n", v
         carts = cartesian(v)
-        print "Cartesians", carts
+        print "Cartesians\n", carts
         atoms.set_positions(carts)
         if output_level > 0:
              write("ts_estimate%d" % i, atoms, format = format)
