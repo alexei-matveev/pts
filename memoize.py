@@ -3,7 +3,7 @@ Memoize Func()s
 
 Two functions with side effects:
 
-    >>> from numpy import sin, cos, pi
+    >>> from numpy import sin, cos, pi, asarray
 
     >>> def si(x):
     ...     print "si(",x,")"
@@ -79,7 +79,6 @@ Delete the object and recreate from file:
 """
 
 from __future__ import with_statement
-from numpy import asarray
 from copy import copy
 from func import Func
 #import os  # only os.path.exisist
@@ -245,7 +244,7 @@ def tup(a):
         True
     """
     try:
-        n = len(a)
+        len(a)
     except:
         # return scalar object as is:
         return a
