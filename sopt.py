@@ -335,7 +335,7 @@ def test(A, B, trafo=None):
             break
 
 from func import Reshape, Elemental
-from memoize import Memoize
+from memoize import Memoize, FileStore
 
 def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, callback=None, **kwargs):
     """
@@ -432,7 +432,7 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
         lambdas = mklambda0(local[1:-1])
 
     # for restarts and post-analysis:
-    pes = Memoize(pes, filename="soptimize.pkl")
+    pes = Memoize(pes, FileStore("soptimize.pkl"))
 
     def cb(x, e, g, t, lam):
         if callback is not None:

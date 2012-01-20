@@ -19,7 +19,7 @@ Two functions with side effects:
 If you dont provide |filename|,  cache will not be duplicated in file,
 thus reload will not be possible:
 
-    >>> s = Memoize(Func(si, co), filename=fn)
+    >>> s = Memoize(Func(si, co), FileStore(fn))
 
     >>> a = asarray([0., pi/4., pi/2.])
     >>> b = asarray([0.1, 0.2, 0.3])
@@ -61,7 +61,7 @@ Second evaluation:
 Delete the object and recreate from file:
 
     >>> del(s)
-    >>> f = Memoize(Func(si, co), filename=fn)
+    >>> f = Memoize(Func(si, co), FileStore(fn))
     >>> f(a)
     array([ 0.        ,  0.70710678,  1.        ])
 
@@ -336,7 +336,7 @@ class FileStore(Store):
             with open(filename,'r') as f:
                 d = load(f) # pickle.load
             # warn by default, so that people dont forget to clean:
-            print >> sys.stderr, "WARNING: FileStore found and loaded " + filename
+            print >> sys.stderr, "WARNING: FileStore found and loaded ", filename
         except:
             # empty dictionary:
             d = {}
@@ -397,15 +397,19 @@ class Memoize(Func):
         co( 0.0 )
         (1.0, 1.0, 1.0)
     """
-    def __init__(self, func, filename=None):
+    def __init__(self, func, store=None):
         self.__f = func
 
-        if filename is None:
+        if store is None:
             # cache in memory:
             self.__d = Store()
         else:
-            # cache in memory, save to disk on updates:
-            self.__d = FileStore(filename)
+            #
+            # With  FileStore:  cache  in  memory,  save  to  disk  on
+            # updates. With DirStore, cache on disk only.
+            #
+            self.__d = store
+            # self.__d = FileStore(filename)
 
     def f(self, *args):
         # key for the value:

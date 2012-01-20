@@ -10,7 +10,7 @@ from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 from numpy import savetxt
 from numpy import arccos
 from sys import stdout
-from pts.memoize import Memoize
+from pts.memoize import Memoize, FileStore
 """
 dimer method:
 
@@ -554,7 +554,7 @@ def main(args):
     from pts.defaults import di_default_params
     pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], di_default_params, "dimer" )
     metric = Default()
-    if "trajectory" in params.keys():
+    if "trajectory" in params:
         if params["trajectory"] in ["empty", "None", "False"]:
             params["trajectory"] = empty_traj
         elif params["trajectory"] == "every":
@@ -566,13 +566,13 @@ def main(args):
     else:
             params["trajectory"] = traj_last(atoms, funcart)
 
-    if "cache" in params.keys():
-        if params["cache"] == None:
-            pes = Memoize(pes, filename = "dimer.ResultDict.pickle")
+    if "cache" in params:
+        if params["cache"] is None:
+            pes = Memoize(pes, FileStore("dimer.ResultDict.pickle"))
         else:
-            pes = Memoize(pes, filename = params["cache"])
+            pes = Memoize(pes, FileStore(params["cache"]))
     else:
-        pes = Memoize(pes, filename = "dimer.ResultDict.pickle")
+        pes = Memoize(pes, FileStore("dimer.ResultDict.pickle"))
 
 
     start_mode = start_mode / metric.norm_up(start_mode, start_geo)
