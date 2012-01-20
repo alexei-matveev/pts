@@ -167,8 +167,7 @@ der are other options which may be set:
         instead of the value if midx is not given, 0 is used, symmetry
         is calculated by: 0.5 * (f(midx + x) - f(midx - x))
 """
-from sys import exit
-from sys import argv as sargv
+import sys
 from pts.tools.path2xyz import read_in_path
 from pts.tools.path2tab import energy_from_path, grads_from_path, grads_from_beads
 from pts.tools.pathtools import read_path_fix, read_path_coords
@@ -189,7 +188,12 @@ def main(argv):
     showing for  each inputfile a  path of the given  coordinates with
     beads marked on them
     """
-    if argv[0] == '--help':
+    if len(argv) <= 0:
+        # errors go to STDERR:
+        print >> sys.stderr, __doc__
+        exit()
+    elif argv[0] == '--help':
+        # normal (requested) output goes to STDOUT:
         print __doc__
         exit()
 
@@ -544,5 +548,5 @@ def makeoption(num_i, diff, symm, symshift, withs):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    main(sargv[1:])
+    main(sys.argv[1:])
 
