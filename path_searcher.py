@@ -296,8 +296,9 @@ def find_path(pes, init_path
     #
     cb1(geometries, energies, gradients, abscissa)
 
-    # Return (hopefully) converged discreete path representation:
-    #  return:  if converged,  internal coordinates, energies, gradients of last iteration
+    # Return  (hopefully)  converged  discreete  path  representation.
+    # Return  convergence   status,  internal  coordinates,  energies,
+    # gradients of last iteration:
     return converged, (geometries, abscissa, energies, gradients)
 
 def do_what_i_mean(nodes, count):
