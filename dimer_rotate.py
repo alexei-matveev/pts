@@ -10,20 +10,24 @@ from pts.memoize import Memoize
 def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distance = 0.0001, \
     max_rotations = 10, phi_tol = 0.1, interpolate_grad = True, restart = None, **params):
     """
-    Rotates the dimer while keeping its old results in memory, therefore
-    building slowly a picture of how the second derivative matrix of the
-    potential energy surface at the point mid_point looks like
-    The code is inspired by the Lanczos method for finding eigenvalues (and eigenvectors)
-    but as the smallest eigenvalue rather than the one with largest absolute value is searched
-    for there could not be used MINRES directly.
+    Rotates  the  dimer  while  keeping  its old  results  in  memory,
+    therefore building  slowly a picture of how  the second derivative
+    matrix  of the  potential energy  surface at  the  point mid_point
+    looks  like.  The  code  is  inspired by  the  Lanczos method  for
+    finding  eigenvalues  (and   eigenvectors)  but  as  the  smallest
+    eigenvalue  rather than  the one  with largest  absolute  value is
+    searched for there could not be used MINRES directly.
+
     >>> from pts.pes.mueller_brown import MB
     >>> from pts.metric import Metric
     >>> met = Default(None)
 
     Try at a point:
+
     >>> start = array([-0.5, 0.5])
 
     This is far of:
+
     >>> mode = array([ 0., 1.])
     >>> mode = mode / met.norm_up(mode, start)
     >>> d = 0.000001
@@ -45,7 +49,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     >>> dot(V[0] + n_mode, V[0] + n_mode) < 1e-7
     True
 
-    Thus only rough estimate for the curvature but the direction has
+    Thus only rough  estimate for the curvature but  the direction has
     is quite near
 
     Try another point:
@@ -66,8 +70,9 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     >>> min(a) - info["curvature"] < 0.1
     True
 
-    Here the minimal value of a is the first
-    (and the direction of the mode vector is reversed)
+    Here the minimal value of a is the first (and the direction of the
+    mode vector is reversed)
+
     >>> ((dot(V[0] - n_mode1, V[0] - n_mode1) < 1e-7) or
     ...   (dot(V[0] + n_mode1, V[0] + n_mode1) < 1e-7))
     True
@@ -84,6 +89,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     >>> p1 = compose(MB, fun)
 
     Prepare Metric functions
+
     >>> met1 = Metric(fun)
 
     This is far of:
@@ -95,12 +101,14 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     True
 
     Result should be the same as before:
+
     >>> n_c = (fun(start + d * n_mode2) - fun(start))
     >>> n_c = n_c / met.norm_up(n_c, start)
     >>> dot(n_c + n_mode, n_c + n_mode) < 1e-3 or dot(n_c - n_mode, n_c - n_mode) < 1e-3
     True
 
     A bigger example using Ar4
+
     >>> from ase import Atoms
     >>> ar4 = Atoms("Ar4")
     >>> from pts.qfunc import QFunc
