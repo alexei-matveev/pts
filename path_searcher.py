@@ -371,7 +371,7 @@ def output(optimized_path, cartesian, output_level, format, atoms):
         carts = cartesian(bead)
         print carts
         atoms.set_positions(carts)
-        write("bead%d" % i, atoms, format=format)
+        write("bead%02d" % i, atoms, format=format)
 
     # get best estimate(s) of TS from band/string
     tss = ts_estims(beads, energies, gradients, alsomodes=False, converter=cartesian)
