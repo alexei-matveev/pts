@@ -598,6 +598,7 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
                 print G
             print "sopt: g(para)=", LAM, "(lambdas)"
             print "sopt: g(ortho norms)=", asarray([sqrt(dot(g, g)) for g in G2])
+            print "sopt: g(ORTHO NORM)=", norm(G2)
             if VERBOSE > 1:
                 print "sopt: g(ortho)="
                 print G2
