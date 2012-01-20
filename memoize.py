@@ -84,7 +84,11 @@ from func import Func
 import os # mkdir, chdir, getcwd, unlink, path, ...
 import sys # only stderr
 from pickle import dump, load
+from pickle import dumps, loads
 from numpy import dot
+import hashlib
+
+VERBOSE = 0
 
 def memoize(f, cache=None):
     """Returns a memoized function f.
@@ -348,6 +352,166 @@ class FileStore(Store):
         # dump the whole dictionary into file, FIXME: better solution?
         with open(self.filename,'w') as f:
             dump(self._d, f, protocol=2) # pickle.dump
+
+def hexhash(sdata):
+    """
+    Doctests are parsed twice, need double escape:
+
+        >>> hexhash("blob 0\\0")
+        'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391'
+
+    This is the SHA-1 hash of the empty file in Git.
+    """
+
+    h = hashlib.sha1()
+    h.update(sdata)
+    return h.hexdigest()
+
+def hextuple(key):
+    """
+        >>> hexhash("blob 0\\0")
+        'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391'
+
+        >>> hextuple("blob 0\\0")
+        ('e6', '9de29bb2d1d6434b8b29ae775ad8c2e48c5391')
+    """
+
+    shex = hexhash(key)
+    return shex[0:2], shex[2:]
+
+def serialize(x):
+    return dumps(x, protocol=2) # pickle.dumps
+
+def deserialize(s):
+    """
+    >>> from numpy import array
+    >>> deserialize(serialize(array([1., 2.])))
+    array([ 1.,  2.])
+
+    >>> hexhash(serialize(array([1., 2.])))
+    'f2e54be8388eec2ef6c62f0f4a90d31dbaf25dd9'
+    """
+    return loads(s) # pickle.laodss
+
+class DirStore(object):
+    """
+    Minimalistic  disk-persistent  dictionary.  To  enable  concurrent
+    reads and writes each key value  pair is stored in a separate file
+    named after SHA-1 hash of the key.
+
+        >>> fn = "/tmp/tEmP.pickle.d"
+        >>> if os.path.exists(fn): os.rmdir(fn)
+
+        >>> d = DirStore(fn)
+
+        >>> d[0.] = 10.
+        >>> d[1.] = 20.
+        >>> d[0.]
+        10.0
+        >>> d[1.]
+        20.0
+        >>> d[[1., 2.]] = 30.
+        >>> [1., 2.] in d
+        True
+        >>> d[[1., 2.]]
+        30.0
+
+    Now delete this object and re-create from file:
+
+        >>> del(d)
+        >>> e = DirStore(fn)
+        >>> [1., 2.] in e
+        True
+        >>> e[[1., 2.]]
+        30.0
+
+    Clean up:
+
+        >>> del e[0.], e[1.], e[[1., 2.]]
+        >>> del e
+        >>> [os.rmdir(os.path.join(fn, sh)) for sh in ["1f", "dd", "e2"]]
+        [None, None, None]
+        >>> os.rmdir(fn)
+
+    FIXME: does not handle collisions.
+
+    FIXME: Not race free. Reading  of an incompletely written file and
+           such.
+    """
+
+    def __init__(self, filename="DirStore.d"):
+
+        # Use absolute names, otherwise  the storage will not be found
+        # after chdir() e.g. in QContext() handler:
+        if not os.path.isabs(filename):
+            filename = os.path.abspath(filename)
+
+        self.filename = filename
+
+        if os.path.exists(filename):
+            print >> sys.stderr, "WARNING: DirStore: found ", filename
+
+    def __setitem__(self, key, val):
+        """Needs to update on-disk state."""
+
+        if not os.path.exists(self.filename):
+            os.mkdir(self.filename)
+            if VERBOSE:
+                print >> sys.stderr, "WARNING: DirStore: mkdir", self.filename
+
+        #
+        # Dump the  key-value pair into  a file named after  the SHA-1
+        # hash of the key:
+        #
+        sh, ex = hextuple(serialize(key))
+
+        if not os.path.exists(os.path.join(self.filename, sh)):
+            os.mkdir(os.path.join(self.filename, sh))
+
+        with open(os.path.join(self.filename, sh, ex), 'w') as f:
+            dump((key, val), f, protocol=2) # pickle.dump
+            if VERBOSE:
+                print >> sys.stderr, "WARNING: DirStore: written ", sh+ex
+
+    def __getitem__(self, key):
+        """Slurps the data from the file"""
+
+        #
+        # Get the  key-value pair  from a file  named after  the SHA-1
+        # hash of the key:
+        #
+        sh, ex = hextuple(serialize(key))
+
+        try:
+            with open(os.path.join(self.filename, sh, ex), 'r') as f:
+                key1, val = load(f) # pickle.load
+                assert serialize(key) == serialize(key1) # FIXME: collision?
+                if VERBOSE:
+                    print >> sys.stderr, "WARNING: DirStore: loaded  ", sh+ex
+        except IOError:
+            raise IndexError
+
+        return val
+
+    def __contains__(self, key):
+
+        try:
+            self[key]
+            return True
+        except IndexError:
+            return False
+
+    def __delitem__(self, key):
+        """Deletes a an entry, unlinks the file"""
+
+        sh, ex = hextuple(serialize(key))
+
+        try:
+            os.unlink(os.path.join(self.filename, sh, ex))
+            if VERBOSE:
+                print >> sys.stderr, "WARNING: DirStore: deleted ", sh+ex
+        except IOError:
+            raise IndexError
 
 class Memoize(Func):
     """Memoize the .f and .fprime methods
