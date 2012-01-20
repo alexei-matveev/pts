@@ -86,6 +86,7 @@ from func import Func
 import sys # only stderr
 from pickle import dump, load
 from numpy import dot
+import os
 from os import mkdir, chdir, getcwd, unlink, path
 
 def memoize(f, cache=None):
@@ -323,11 +324,10 @@ class FileStore(Store):
     """
     def __init__(self, filename="FileStore.pickle"):
 
-        # FIXME: non-portable filename handling:
-        if filename[0] != '/':
-            # use absolute names, otherwise the storage will not be
-            # found after chdir() e.g. in QContext() handler:
-            filename = getcwd() + '/' + filename
+        # Use absolute names, otherwise  the storage will not be found
+        # after chdir() e.g. in QContext() handler:
+        if not os.path.isabs(filename):
+            filename = os.path.abspath(filename)
 
         self.filename = filename
 
