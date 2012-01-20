@@ -1350,12 +1350,19 @@ def test1(n):
 
     xs = array([A, C, B])
 
-    from test.testfuns import c2v_tetrahedron1
+    from test.testfuns import c2v_tetrahedron1, diagsandhight
     from path import MetricPath
     from metric import Metric
     from numpy import linspace
 
     z = c2v_tetrahedron1()
+
+    # z = diagsandhight()
+    # r = 1.12246195815
+    # A = array([r, r,  r / sqrt(2.)])
+    # B = array([r, r, -r / sqrt(2.)])
+    # C = array([r, r * sqrt(2.), 0.])
+    # xs = array([A, C, B])
 
     p = MetricPath(xs, Metric(z).norm_up)
 
@@ -1386,6 +1393,18 @@ def test1(n):
 
     print "AFTER:"
     callback(x1, map(pes, x1), map(pes.fprime, x1))
+
+    # from pts.tools.jmol import jmol_view_path
+    # jmol_view_path(map(z, x1), syms=["Ar"]*4)
+
+    # from scipy.linalg import eigh
+    # from func import NumDiff
+    # hess = NumDiff(pes.fprime, h=1.0e-5).fprime(x1[2])
+    # e, V = eigh(hess)
+    # from numpy import dot, diag
+    # print "diff=", dot(hess, V) - dot(V, diag(e))
+    # print "eigenvalues and eigenvectors:", e
+    # print V
 
 # python fopt.py [-v]:
 if __name__ == "__main__":
