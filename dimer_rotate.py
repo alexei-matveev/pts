@@ -140,7 +140,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
 
     global grad_calc
     grad_calc = 0
-    def grad( vm):
+    def grad(vm):
         global grad_calc
         grad_calc = grad_calc + 1
         return pes.fprime(mid_point + dimer_distance * vm) - g0
@@ -202,7 +202,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
 
        for j, m, g in zip(range(hl), m_basis, g_for_mb):
           # Hessian is symmetric, or should be, enforce it here:
-          if j > hl -3:
+          if j > hl - 3:
               H[j, -1] = (dot(m, g_for_mb[-1]) + dot(m_basis[-1], g)) /2.
               H[-1, j] = H[j, -1]
 
