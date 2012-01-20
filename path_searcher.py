@@ -291,16 +291,10 @@ def find_path(pes, init_path
         abscissa = None
 
     #
-    # Write out  path to  a file. FIXME:  this duplicates code  in the
-    # callback! The only difference I see is the name of the file ...
+    # Write out final path to  a file. The corresponding file name has
+    # the largest index:
     #
-    if output_level > 0 and CoS is not None:
-        coords, pathps, energies, gradients = CoS.state_vec.reshape(CoS.beads_count,-1), \
-              CoS.pathpos(), \
-              CoS.bead_pes_energies.reshape(-1), \
-              CoS.bead_pes_gradients.reshape(CoS.beads_count,-1)
-        filename = "%s.path.pickle" % (name)
-        pickle_path(filename, coords, pathps, energies, gradients, symbols, int2cart)
+    cb1(geometries, energies, gradients, abscissa)
 
     # Return (hopefully) converged discreete path representation:
     #  return:  if converged,  internal coordinates, energies, gradients of last iteration
