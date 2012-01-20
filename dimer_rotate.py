@@ -165,7 +165,6 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     conv = False
     i = 1
     while i < max_rotations:
-       i = i + 1
        # check if we are (approximately) in direction of eigenvector
        n_mode_down = met.lower(new_mode, mid_point)
 
@@ -185,6 +184,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
            conv = True
            break
 
+       i = i + 1
        # New basis vector from the interpolation of the last iteration:
        #n_bas = orthogonalize(met.raises(new_g, mid_point), m_basis, met, mid_point)
        n_bas = orthogonalize(met.raises(g_for_mb[-1], mid_point), m_basis, met, mid_point)
