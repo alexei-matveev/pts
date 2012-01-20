@@ -245,7 +245,8 @@ def find_path(pes, init_path
 
         if output_level > 2:
             # store interal coordinates of given iteration in file
-            savetxt("%s/%s.state_vec%03d.txt" % (output_path, name, cb_count_debug), geometries)
+            filename = "%s/%s.state_vec%03d.txt" % (output_path, name, cb_count_debug)
+            savetxt(filename, geometries)
 
     #
     # Callback  function  for  optimizers  using  the  CoS  object  to
