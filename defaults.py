@@ -249,6 +249,7 @@ trans_converged    If the maximum of abs gradient values is below this value the
 phi_tol            rotation step stops when the rotation angle is smaller than this
 
 max_step           the translation step will never exceed this maximal step_length
+dimer_distance     The distance between the dimer middle and end point
 
 logfile            If anything else than None (default) or "-" it will use the value
                    for the file in which to write statistics about the iterations
@@ -288,15 +289,19 @@ di_default_params = {
     "max_step"   : 0.1, # maximal allowed step lenght (translation)
     "max_rotations" : 10, # Maximal number of rotation steps per translation step
     "phi_tol"  : 0.1, # Rotation stops if rotation angle would be smaller
-    "logfile"  : None # Where the output of dimer should go (None goes to standard output)
+    "logfile"  : None, # Where the output of dimer should go (None goes to standard output)
+    "dimer_distance" : 0.01, #Distance between dimer end and middle point
+    "cache"    : None # Making results of calculator reusable
 }
 
 di_default_params_rot = {
     "max_rotations" : 100, # Maximal number of rotation steps per translation step
-    "phi_tol"  : 0.0001 # Rotation stops if rotation angle would be smaller
+    "phi_tol"  : 0.0001, # Rotation stops if rotation angle would be smaller
+    "dimer_distance" : 0.01, #Distance between dimer end and middle point
+    "cache"    : None # Making results of calculator reusable
 }
 
-di_are_strings = ["trajectory", "trans_method", "rot_method"]
+di_are_strings = ["trajectory", "trans_method", "rot_method", "cache"]
 
 def info_di_params():
     print dimer_info
