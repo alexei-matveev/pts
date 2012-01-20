@@ -14,7 +14,7 @@ Two functions with side effects:
     ...     return cos(x)
 
     >>> fn = "/tmp/TeMpOrArY.pickle"
-    >>> if path.exists(fn): unlink(fn)
+    >>> if os.path.exists(fn): os.unlink(fn)
 
 If you dont provide |filename|,  cache will not be duplicated in file,
 thus reload will not be possible:
@@ -75,18 +75,16 @@ Delete the object and recreate from file:
     >>> f.fprime(b)
     array([ 0.99500417,  0.98006658,  0.95533649])
 
-    >>> unlink(fn)
+    >>> os.unlink(fn)
 """
 
 from __future__ import with_statement
 from copy import copy
 from func import Func
-#import os  # only os.path.exisist
+import os # mkdir, chdir, getcwd, unlink, path, ...
 import sys # only stderr
 from pickle import dump, load
 from numpy import dot
-import os
-from os import mkdir, chdir, getcwd, unlink, path
 
 def memoize(f, cache=None):
     """Returns a memoized function f.
@@ -296,7 +294,7 @@ class FileStore(Store):
     """Minimalistic disk-persistent dictionary.
 
         >>> fn = "/tmp/tEmP.pickle"
-        >>> if path.exists(fn): unlink(fn)
+        >>> if os.path.exists(fn): os.unlink(fn)
 
         >>> d = FileStore(fn)
         >>> d[0.] = 10.
@@ -319,7 +317,7 @@ class FileStore(Store):
         True
         >>> e[[1., 2.]]
         30.0
-        >>> unlink(fn)
+        >>> os.unlink(fn)
     """
     def __init__(self, filename="FileStore.pickle"):
 
@@ -514,12 +512,12 @@ class Single_contex(object):
     >>> prep = Single_contex(num)
 
     Change in temporear working directory:
-    >>> cwd = getcwd()
-    >>> chdir("/tmp/")
+    >>> cwd = os.getcwd()
+    >>> os.chdir("/tmp/")
 
     For a single calculation:
     >>> with prep:
-    ...     print getcwd()
+    ...     print os.getcwd()
     Starting Calculation in 02
     /tmp/02
     Finished Calculation in 02
@@ -528,21 +526,21 @@ class Single_contex(object):
     >>> from os import system
     >>> system("rmdir /tmp/%02d" % num)
     0
-    >>> chdir(cwd)
+    >>> os.chdir(cwd)
     """
     def __init__(self, wdi, format = "%02d"):
        self.__wd = format % wdi
 
     def __enter__(self):
-        self.__cwd = getcwd()
-        if not path.exists(self.__wd):
-            mkdir(self.__wd)
-        chdir(self.__wd)
+        self.__cwd = os.getcwd()
+        if not os.path.exists(self.__wd):
+            os.mkdir(self.__wd)
+        os.chdir(self.__wd)
         print "Starting Calculation in", self.__wd
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         assert (exc_type == None)
-        chdir(self.__cwd)
+        os.chdir(self.__cwd)
         print "Finished Calculation in", self.__wd
         return True
 
