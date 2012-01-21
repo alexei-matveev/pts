@@ -337,7 +337,7 @@ class FileStore(Store):
             with open(filename,'r') as f:
                 d = load(f) # pickle.load
             # warn by default, so that people dont forget to clean:
-            print >> sys.stderr, "WARNING: FileStore found and loaded ", filename
+            print >> sys.stderr, "WARNING: FileStore found and loaded", filename
         except:
             # empty dictionary:
             d = {}
@@ -471,7 +471,7 @@ class DirStore(object):
         with open(os.path.join(self.filename, sh, ex), 'w') as f:
             dump((key, val), f, protocol=2) # pickle.dump
             if VERBOSE:
-                print >> sys.stderr, "WARNING: DirStore: written ", sh+ex
+                print >> sys.stderr, "WARNING: DirStore:", sh+ex, "written"
 
     def __getitem__(self, key):
         """Slurps the data from the file"""
@@ -487,7 +487,7 @@ class DirStore(object):
                 key1, val = load(f) # pickle.load
                 assert serialize(key) == serialize(key1) # FIXME: collision?
                 if VERBOSE:
-                    print >> sys.stderr, "WARNING: DirStore: loaded  ", sh+ex
+                    print >> sys.stderr, "WARNING: DirStore:", sh+ex, "loaded"
         except IOError:
             raise IndexError
 
@@ -509,7 +509,7 @@ class DirStore(object):
         try:
             os.unlink(os.path.join(self.filename, sh, ex))
             if VERBOSE:
-                print >> sys.stderr, "WARNING: DirStore: deleted ", sh+ex
+                print >> sys.stderr, "WARNING: DirStore:", sh+ex, "deleted"
         except IOError:
             raise IndexError
 
