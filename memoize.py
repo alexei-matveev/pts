@@ -604,6 +604,43 @@ class Memoize(Func):
             self.__d[key1] = fprime
             return f, fprime
 
+def convert(filename, dirname, kind):
+    from numpy import array
+
+    print "pts.memoize.convert(", filename, dirname, ")"
+    fcache = FileStore(filename)
+    dcache = DirStore(dirname)
+    d = fcache._d
+
+    if kind == "plain":
+        for k, v in d.iteritems():
+            # for a scalar function this should be sufficient ...
+#           dcache[k] = v
+            args, order = k
+            tup, = args
+            dcache[((array(tup),), order)] = v
+    elif kind == "elemental":
+        # ... this is only for the caches of elemental functions:
+
+        for k, v in d.iteritems():
+            # the key, k, is a tuple of *args and derivative order:
+            args, order = k
+
+            # args for simple function  is just a 1-tuple containg the
+            # single  (array) argument.  The first  axis of  array and
+            # that  of  the  corresponding  array  of  result  is  the
+            # elemental index:
+            arr, = args
+
+            # so here y  = f(x), which we insert  into a DirStore each
+            # as separate entry.  Again the  key should be a pair of a
+            # 1-tuple and the order, cf. implementation of Memoize().
+            for x, y in zip(arr, v):
+                # print array(x), order, y
+                dcache[((array(x),), order)] = y
+    else:
+        print >> sys.stderr, "Please say what kind of function is the source cache for!"
+        print >> sys.stderr, "Choices are: plain, elemental"
 
 class Empty_contex(object):
    """
@@ -847,6 +884,8 @@ class Elemental_memoize(Func):
 
 # python memoize.py [-v]:
 if __name__ == "__main__":
+    # convert(*sys.argv[1:])
+    # exit()
     import doctest
     doctest.testmod()
 
