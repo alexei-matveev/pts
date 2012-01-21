@@ -489,7 +489,7 @@ class DirStore(object):
                 if VERBOSE:
                     print >> sys.stderr, "WARNING: DirStore:", sh+ex, "loaded"
         except IOError:
-            raise IndexError
+            raise KeyError
 
         return val
 
@@ -498,7 +498,7 @@ class DirStore(object):
         try:
             self[key]
             return True
-        except IndexError:
+        except KeyError:
             return False
 
     def __delitem__(self, key):
