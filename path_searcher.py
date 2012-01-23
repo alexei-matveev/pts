@@ -109,7 +109,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     if "pmap" not in para_dict:
         para_dict["pmap"] = PMap3(strat=strat)
 
-    para_dict["int2cart"] = funcart
+    para_dict["trafo"] = funcart
     para_dict["symbols"] = atoms.get_chemical_symbols()
 
     # this operates with PES in internals:
@@ -128,7 +128,7 @@ def find_path(pes, init_path
                             , spring = 5.0          # only for NEB: spring constant
                             , output_level = 2
                             , output_path = "."
-                            , int2cart = Pass_through()   # For mere transformation of internal to Cartesians
+                            , trafo = Pass_through()   # For mere transformation of internal to Cartesians
                             , symbols = None     # Only needed if output needs them
                             , cache = None
                             , pmap = PMap()
@@ -169,7 +169,7 @@ def find_path(pes, init_path
         method = method[3:]
         climb_image = True
 
-    mt.setup_metric(int2cart)
+    mt.setup_metric(trafo)
     #
     # NOTE: most of the parameters to optimizers might be passed
     # via **kwargs. This may require changes in the interface of
@@ -258,7 +258,7 @@ def find_path(pes, init_path
 
         if output_level > 1:
             filename = "%s/%s.debug%03d.path.pickle" % (output_path, name, cb_count_debug)
-            pickle_path(filename, geometries, abscissas, energies, gradients, symbols, int2cart)
+            pickle_path(filename, geometries, abscissas, energies, gradients, symbols, trafo)
 
         if output_level > 2:
             # store interal coordinates of given iteration in file

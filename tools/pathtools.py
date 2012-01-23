@@ -212,7 +212,7 @@ class PathTools:
 
             yield along_path, across_path
        
-    def modeandcurvature(self, s0, leftbd, rightbd, int2cart):
+    def modeandcurvature(self, s0, leftbd, rightbd, trafo):
         """The mode along the path in the point s0 and
         the curvature for it are given back in several
         possible approximations
@@ -226,8 +226,8 @@ class PathTools:
         if rightbd > (len(self.state)-1):
              rightbd = len(self.state) -1
 
-        leftcoord = int2cart(self.state[leftbd])
-        rightcoord = int2cart(self.state[leftbd])
+        leftcoord = trafo(self.state[leftbd])
+        rightcoord = trafo(self.state[leftbd])
 
         modedirect = rightcoord - leftcoord
         normer = np.sqrt(sum(sum(modedirect * modedirect)))
@@ -237,7 +237,7 @@ class PathTools:
         normer = np.sqrt(sum(modeint * modeint))
         modeint /= normer
         modeint = np.asarray(modeint)
-        transfer = int2cart.fprime(self.xs(s0)).flatten()
+        transfer = trafo.fprime(self.xs(s0)).flatten()
         transfer.shape = (modeint.shape[0], -1)
         modefromint = np.dot( modeint, transfer)
 
@@ -245,7 +245,7 @@ class PathTools:
         normer = np.sqrt(sum(modeint * modeint))
         modeint /= normer
         modeint = np.asarray(modeint)
-        transfer = int2cart.fprime(self.xs(s0)).flatten()
+        transfer = trafo.fprime(self.xs(s0)).flatten()
         transfer.shape = (modeint.shape[0], -1)
         modeallpath = np.dot(modeint, transfer)
 
@@ -518,14 +518,14 @@ class PathTools:
 from copy import deepcopy, copy
 from pickle import load, dump
 
-def pickle_path(file, coord, pathps, energy, gradients, symbols, int2cart):
+def pickle_path(file, coord, pathps, energy, gradients, symbols, trafo):
     """
     Original format: a nested tuple in the file:
 
-    ((geometries, abscissas, energies, gradients), (symbols, int2cart))
+    ((geometries, abscissas, energies, gradients), (symbols, trafo))
     """
     tuple = coord, pathps, energy, gradients
-    cs = (symbols, int2cart)
+    cs = (symbols, trafo)
     f = open(file, 'wb')
     dump((tuple, cs), f, protocol=2)
     f.close()
@@ -534,14 +534,14 @@ def unpickle_path(file):
     """
     Original format: a nested tuple in the file:
 
-    ((geometries, abscissas, energies, gradients), (symbols, int2cart))
+    ((geometries, abscissas, energies, gradients), (symbols, trafo))
     """
     f = open(file, "r")
     geo_tuple, at_object = load(f)
     f.close()
     coord, pathps, energy, gradients = geo_tuple
-    symbols, int2cart = at_object
-    return coord, pathps, energy, gradients, symbols, int2cart
+    symbols, trafo = at_object
+    return coord, pathps, energy, gradients, symbols, trafo
 
 def read_path_fix(symbfile, zmatifiles = None, maskfile = None, maskedgeo = None):
     """
@@ -560,9 +560,9 @@ def read_path_fix(symbfile, zmatifiles = None, maskfile = None, maskedgeo = None
 
 
     if len(zmatifiles)==0:
-        int2cart = Justcarts()
+        trafo = Justcarts()
     else:
-        int2cart, __, __, __ = get_transformation(zmatifiles, len(symbols))
+        trafo, __, __, __ = get_transformation(zmatifiles, len(symbols))
 
     if maskfile is not None:
         assert (maskedgeo is not None)
@@ -571,9 +571,9 @@ def read_path_fix(symbfile, zmatifiles = None, maskfile = None, maskedgeo = None
         f.close()
         mask = get_mask(sr)
         geo_raw = loadtxt(maskedgeo)
-        int2cart = Masked(int2cart, mask, geo_raw)
+        trafo = Masked(trafo, mask, geo_raw)
 
-    return symbols, int2cart
+    return symbols, trafo
 
 def read_path_coords(coordfile, pathpsfile = None, energyfile = None, forcefile = None):
     """

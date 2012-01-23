@@ -69,7 +69,7 @@ def read_in_path(filename):
     interest, e.g. the coordinates and path positions of the beads
     """
     try:
-        coord, pathps, energy, gradients, symbols, int2cart = unpickle_path(filename)
+        coord, pathps, energy, gradients, symbols, trafo = unpickle_path(filename)
     except:
         print "ERROR: No path file found to read input from"
         print "First argument of call must be a path.pickle object"
@@ -77,7 +77,7 @@ def read_in_path(filename):
         print __doc__
         exit()
 
-    return pathps, coord, (symbols, int2cart), (energy, gradients)
+    return pathps, coord, (symbols, trafo), (energy, gradients)
 
 def read_in_path_raw(coordfile, symbfile, zmatifiles = None, pathpsfile = None, \
         maskfile = None, maskedgeo = None ):
@@ -85,10 +85,10 @@ def read_in_path_raw(coordfile, symbfile, zmatifiles = None, pathpsfile = None, 
     Reads in a path from several user readable files and gives
     back the informations of interest
     """
-    symbols, int2cart = read_path_fix( symbfile, zmatifiles, maskfile, maskedgeo )
+    symbols, trafo = read_path_fix( symbfile, zmatifiles, maskfile, maskedgeo )
     coord, pathps, __, __ = read_path_coords(coordfile, pathpsfile, None, None)
 
-    return pathps, coord, (symbols, int2cart)
+    return pathps, coord, (symbols, trafo)
 
 def path_geos(x, y, cs, num):
     """
@@ -98,7 +98,7 @@ def path_geos(x, y, cs, num):
     """
     path1 = Path(y, x)
 
-    __, int2cart = cs
+    __, trafo = cs
     # to decide how long x is, namely what
     # coordinate does the end x have
     # if there is no x at all, the path has
@@ -116,7 +116,7 @@ def path_geos(x, y, cs, num):
          # the internal coordinates are converted
          # to Cartesian by the cs fake-Atoms object
          coord = path1((endx / (num -1) * i))
-         path.append(int2cart(coord))
+         path.append(trafo(coord))
          xvals.append((endx / (num -1) * i))
 
     return path, xvals
@@ -143,7 +143,7 @@ def print_xyz(x, y, cs, num):
     else:
         endx = float(x[-1])
 
-    symbs, int2cart = cs
+    symbs, trafo = cs
     numats = len(symbs)
 
     for i in range(num):
@@ -153,7 +153,7 @@ def print_xyz(x, y, cs, num):
          print numats
          print "This is the %i'th frame" % (i+1)
          coord = path1((endx / (num -1) * i))
-         carts = int2cart(coord)
+         carts = trafo(coord)
          for sy, pos in zip(symbs, carts):
              print '%-2s %22.15f %22.15f %22.15f' % (sy, pos[0], pos[1], pos[2])
 
@@ -165,12 +165,12 @@ def print_beads(ys, cs):
     positions is taken but also  that it's exactly the beads which are
     used to create the frames
     """
-    symbs, int2cart = cs
+    symbs, trafo = cs
     numats = len(symbs)
     for i,y in enumerate(ys):
          print numats
          print "This is the %i'th bead" % (i+1)
-         carts = int2cart(y)
+         carts = trafo(y)
          for sy, pos in zip(symbs, carts):
              print '%-2s %22.15f %22.15f %22.15f' % (sy, pos[0], pos[1], pos[2])
 

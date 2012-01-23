@@ -540,8 +540,8 @@ def main(args):
      else:
          for file in args[:]:
              xs, ys, obj = read_in_path(file)
-             __, int2cart = obj
-             b1 = [int2cart(y) for y in ys]
+             __, trafo = obj
+             b1 = [trafo(y) for y in ys]
              geomsbeads.append(b1)
              bead_s.append(xs)
              p1, p_s = path_geos(xs, ys, obj, num)

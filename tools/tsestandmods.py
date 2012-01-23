@@ -163,12 +163,12 @@ def main(argv):
         wanted = [1, 2, 3, 4, 6]
 
     if symbfile == None:
-        coord_b, posonstring, energy_b, gradients_b, symbols, int2cart = unpickle_path(f_ts)
+        coord_b, posonstring, energy_b, gradients_b, symbols, trafo = unpickle_path(f_ts)
     else:
-        symbols, int2cart = read_path_fix( symbfile, zmats, mask, maskgeo )
+        symbols, trafo = read_path_fix( symbfile, zmats, mask, maskgeo )
         coord_b, posonstring, energy_b, gradients_b = read_path_coords(f_ts, abcis, energies, forces)
 
-    at_object = (symbols, int2cart)
+    at_object = (symbols, trafo)
     # calculate the (wanted) estimates
     estms, stx1, stx2 = esttsandmd(coord_b, energy_b, gradients_b, at_object, posonstring, wanted)
     # show the result
@@ -226,7 +226,7 @@ def estfrompathfirst(pt, ts_sum, cs, addtoname, which):
     estfrompath only calculates the one depending on a path
     """
     ts_est = []
-    __, int2cart = cs
+    __, trafo = cs
     #cs_c = cs.copy()
     if 1 in which:
         ts_est.append(('Highest', pt.ts_highest()[-1]))
@@ -241,7 +241,7 @@ def estfrompathfirst(pt, ts_sum, cs, addtoname, which):
     # generates modevectors to the given TS-estimates
     for name, est in ts_est:
          energy, coords, s0, s1,s_ts,  l, r = est
-         modes =  pt.modeandcurvature(s_ts, l, r, int2cart)
+         modes =  pt.modeandcurvature(s_ts, l, r, trafo)
          addforces = neighborforces(pt, l, r)
          ts_sum.append((name, est, modes, addforces))
 
@@ -255,7 +255,7 @@ def estfrompath(pt2, ts_sum, cs, addtoname, which ):
     which are choosen and put them back together
     """
     ts_est = []
-    __, int2cart = cs
+    __, trafo = cs
     #cs_c = cs.copy()
     if 2 in which:
         ts_int = pt2.ts_spl()
@@ -273,7 +273,7 @@ def estfrompath(pt2, ts_sum, cs, addtoname, which ):
     # generates modevectors to the given TS-estimates
     for name, est in ts_est:
          energy, coords, s0, s1,s_ts,  l, r = est
-         modes =  pt2.modeandcurvature(s_ts, l, r, int2cart)
+         modes =  pt2.modeandcurvature(s_ts, l, r, trafo)
          addforces = neighborforces(pt2, l, r)
          ts_sum.append((name + addtoname , est, modes, addforces))
 
@@ -529,7 +529,7 @@ def print_estimates(ts_sum, cs, withmodes = False ):
      Prints the transition state estimates with their geometry
      in xyz-style, and their mode vectors if wanted
      """
-     __, int2cart = cs
+     __, trafo = cs
      print "==================================================="
      print "printing all available transition state estimates"
      print "---------------------------------------------------"
@@ -538,7 +538,7 @@ def print_estimates(ts_sum, cs, withmodes = False ):
           energy, coords, s0, s1,s_ts,  l, r = est
           print "Energy was approximated as:", energy
           print "This gives the positition:"
-          print int2cart(coords)
+          print trafo(coords)
           print
           if withmodes:
               print "The possible modes are:"
@@ -553,14 +553,14 @@ def print_estimatesdump(ts_sum, cs ):
      """
      Prints all the geometries as a (jmol) xyz file
      """
-     symbs, int2cart = cs
+     symbs, trafo = cs
      print
      for name, est, modes, addforces in ts_sum:
           numats = len(symbs)
           print numats
           energy, coords, s0, s1,s_ts,  l, r = est
           print "Energy was approximated as:", energy
-          carts = int2cart(coords)
+          carts = trafo(coords)
           for s, c in zip(symbs, carts):
               x, y, z = c
               print '%-2s %22.15f %22.15f %22.15f' % (s, x, y, z)

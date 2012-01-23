@@ -327,7 +327,7 @@ def reduce(vec, mask):
     return array([vec[i] for i, flag in enumerate(mask) if flag])
 
 
-def get_masked(int2cart, at, geo_carts, zmat, geos, mask1):
+def get_masked(trafo, at, geo_carts, zmat, geos, mask1):
     """
     There are different ways to provide a mask (fixes some
     of the variables), check for them and use a masked
@@ -343,10 +343,10 @@ def get_masked(int2cart, at, geo_carts, zmat, geos, mask1):
        mask = mask1
 
     if not mask == None:
-       int2cart = Masked(int2cart, mask, geos[0])
+       trafo = Masked(trafo, mask, geos[0])
        geos = [reduce(geo, mask) for geo in geos]
 
-    return int2cart, geos
+    return trafo, geos
 
 def ensure_short_way(init_path_raw, dih, quats, lengt):
     """
