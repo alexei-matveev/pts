@@ -54,12 +54,16 @@ from numpy import abs, max, inf
 
 def dfridr(func, x, h=0.001):
     """
-    Returns the derivative of a function func at a point x by Ridders' method of polynomial
-    extrapolation. The value h is input as an estimated initial stepsize; it need not be small,
-    but rather should be an increment in x over which func changes substantially. An estimate
-    of the error in the derivative is returned as err.
-    Parameters: Stepsize is decreased by CON at each iteration. Max size of tableau is set by
-    NTAB. Return when error is SAFE worse than the best so far.
+    Returns the derivative of a function func at a point x by Ridders'
+    method of  polynomial extrapolation.  The value h  is input  as an
+    estimated  initial stepsize;  it  need not  be  small, but  rather
+    should   be  an   increment   in  x   over   which  func   changes
+    substantially.  An estimate  of  the error  in  the derivative  is
+    returned as err.
+
+    Parameters: Stepsize  is decreased by  CON at each  iteration. Max
+    size of  tableau is set by  NTAB. Return when error  is SAFE worse
+    than the best so far.
     """
 #   INTEGER NTAB
 #   REAL dfridr,err,h,x,func,CON,CON2,BIG,SAFE
