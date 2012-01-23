@@ -465,6 +465,8 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          if error < trans_converged:
               # Breakpoint 1: calculation has converged
               conv = True
+              selflogfile.write("Calculation is converged with max(abs(force)) %8.5f < %8.5f \n" % \
+               (error, trans_converged))
               break
 
          # calculate one step of the dimer, also update dimer direction
@@ -519,7 +521,6 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
               break
 
     if conv:
-        selflogfile.write("Calculation is converged\n")
         print "Calculation is converged"
     else:
         selflogfile.write("Calculation is not converged\n")
@@ -541,6 +542,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     res["abs_force"] = abs_force
     res["trans_steps"] = i
     res["mode"] = mode
+    res["conv_criteria"] = error
 
     return geo, res
 
