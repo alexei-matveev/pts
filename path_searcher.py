@@ -16,7 +16,7 @@ from pts.qfunc import QFunc, qmap
 from pts.func import compose
 from pts.paramap import PMap, PMap3
 from pts.sched import Strategy
-from pts.memoize import FileStore
+from pts.memoize import Memoize, DirStore, FileStore
 from pts.searcher import GrowingString, NEB, ts_estims
 from pts.cfunc import Pass_through
 from pts.optwrap import runopt
@@ -79,9 +79,26 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     # print parameters to STDOUT:
     tell_params(para_dict)
 
-    # PES to be used for energy, forces. FIXME: maybe adapt QFunc not to
-    # default to LJ, but rather keep atoms as is?
-    pes = compose(QFunc(atoms, atoms.get_calculator()), funcart)
+    #
+    # PES to be used for  energy, forces. FIXME: maybe adapt QFunc not
+    # to default to LJ, but rather keep atoms as is?
+    #
+    pes = QFunc(atoms, atoms.get_calculator())
+
+    #
+    # Memoize early, PES as a function of cartesian coordiantes is the
+    # lowest  denominator.  The  cache  store used  here should  allow
+    # concurrent writes  and reads from  multiple processes eventually
+    # running on different nodes  --- DirStore() keeps everything in a
+    # dedicated directory on disk or on an NFS share:
+    #
+    pes = Memoize(pes, DirStore("cache.d"))
+
+    #
+    # PES as  a funciton of  optimization variables, such  as internal
+    # coordinates:
+    #
+    pes = compose(pes, funcart)
 
     # This parallel mapping function puts every single point calculation in
     # its own subfolder
