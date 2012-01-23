@@ -207,7 +207,7 @@ class MultiOpt(ObjLog):
 
     """
     string = False
-    def __init__(self, atoms, maxstep=0.05, alpha = 70., respace=True, **kwargs): # alpha was 70, memory was 100
+    def __init__(self, reaction_pathway, maxstep=0.05, alpha = 70., respace=True, **kwargs): # alpha was 70, memory was 100
         """
         THIS DESCRIPTION IS A BIT OUT OF DATE.
 
@@ -226,12 +226,15 @@ class MultiOpt(ObjLog):
         logfile: file object or str
             If *logfile* is a string, a file with that name will be opened.
             Use '-' for stdout.
-        [[atoms: Atoms object
-            The Atoms object to relax.]]
+
+        reaction_pathway: ReactionPathway object was inspired by Atoms
+            object  but is  not quite  duck-compatible.   This objects
+            implements pathway state storage and comminication between
+            optimiter and PES-evaluator.
         """
 
         ### Opt Code
-        self.atoms = atoms
+        self.atoms = reaction_pathway
         self.observers = []
         self.nsteps = 0
         ###
@@ -241,8 +244,8 @@ class MultiOpt(ObjLog):
 
         self.slog("Optimiser (MultiOpt): parameters: alpha =", alpha, when='always')
 
-        self.bs = atoms.beads_count
-        d = atoms.dimension
+        self.bs = reaction_pathway.beads_count
+        d = reaction_pathway.dimension
         self.respace = respace
         self.maxstep = maxstep
 
