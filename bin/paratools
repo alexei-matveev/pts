@@ -126,6 +126,29 @@ def main(argv):
         valid_cmd = True
         minimize(argv[1:])
 
+    if cmd in ("fopt"):
+        valid_cmd = True
+        from pts.path_searcher import call_with_pes
+        from pts.fopt import minimize
+        from pts.qfunc import qmap
+
+        # The default pmap is not parallel:
+        def pes_method(pes, path, pmap=qmap, **kw):
+            # here only one input geometry is expected:
+            # assert len(path) == 1
+            return qmap(lambda x: minimize(pes, x, **kw), path)
+
+        # historically,  command  line  has  to start  with  "--method
+        # something":
+        argv1 = ["--method"] + argv
+        results = call_with_pes(pes_method, argv1)
+        # print results
+        for x, info in results:
+            print "# E=", info["value"], \
+                "converged =", info["converged"], \
+                "in", info["iterations"], "iterations"
+            print x
+
     if cmd in ("string", "neb", "ci-neb", "growingstring", "searchingstring",
                "ci-string", "ci-growingstring", "ci-searchingstring",
                "sopt"):
