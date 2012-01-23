@@ -101,7 +101,7 @@ plain minimizers:
 Location of dimer center:
 
     >>> xm[:2]
-    array([-0.00084325, -0.00085287])
+    array([-0.00084324, -0.00085287])
 
 Dimer orientaiton:
 
@@ -403,14 +403,21 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
         e, g = fg(r)
 
         # check convergence, if any:
+        criteria = 0
+
         if max(abs(dr)) < stol:
             if VERBOSE:
                 print "fmin: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
-            converged = True
+            criteria += 1
+
         if max(abs(g))  < gtol:
             if VERBOSE:
                 print "fmin: converged by force max(abs(g))=", max(abs(g)), '<', gtol
+            criteria += 1
+
+        if criteria >= 2:
             converged = True
+
         if iteration >= maxiter:
             if VERBOSE:
                 print "fmin: exceeded number of iterations", maxiter
