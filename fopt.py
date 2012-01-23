@@ -13,22 +13,22 @@ minimizers):
     >>> from numpy import round
     >>> n = 6
 
-    >>> b, fb, stats = minimize(f, [0., 0.])
+    >>> b, info = minimize(f, [0., 0.])
     >>> round(b, n)
     array([ 0.623499,  0.028038])
-    >>> round(fb, n)
+    >>> round(f(b), n)
     -108.166724
 
-    >>> a, fa, stats = minimize(f, [-1., 1.])
+    >>> a, info = minimize(f, [-1., 1.])
     >>> round(a, n)
     array([-0.558224,  1.441726])
-    >>> round(fa, n)
+    >>> round(f(a), n)
     -146.69951699999999
 
-    >>> c, fc, stats = minimize(f, [0., 1.])
+    >>> c, info = minimize(f, [0., 1.])
     >>> round(c, n)
     array([-0.050011,  0.466694])
-    >>> round(fc, n)
+    >>> round(f(c), n)
     -80.767818000000005
 
 Constrained minimization works with flat funcitons
@@ -58,7 +58,7 @@ offset from the minimum C on MB-surface along the plane:
     >>> c1, fc1, _ = cmin(fg, [c[0] + 0.1, c[1] - 0.1], cg)
     >>> max(abs(c1 - c)) < 1.e-7
     True
-    >>> max(abs(fc1 - fc)) < 1.e-7
+    >>> max(abs(fc1 - f(c))) < 1.e-7
     True
 
 Energy of a dimer at around the minimum A on MB-surface,
@@ -96,7 +96,7 @@ The fixed dimer length was eliminated, one can use
 plain minimizers:
 
     >>> x = array([0., 0., 0.])
-    >>> xm, fm, _ = fmin(e3, x)
+    >>> xm, info = fmin(e3, x)
 
 Location of dimer center:
 
@@ -249,10 +249,16 @@ def newton(x, fg, tol=TOL, maxiter=MAXITER, rk=None):
 
     return x, info
 
-def minimize(f, x):
+def minimize(f, x, xtol=STOL, ftol=GTOL, **kw):
     """
     Minimizes a Func |f| starting with |x|.
-    Returns (xm, fm, stats)
+    Returns (xm, info)
+
+    Input:
+
+        ftol    --- force tolerance
+        xtol    --- step tolerance
+        **kw    --- unused
 
     xm          --- location of the minimum
     fm          --- f(xm)
@@ -261,6 +267,8 @@ def minimize(f, x):
 
     # in case we are given a list instead of array:
     x = asarray(x)
+    if VERBOSE:
+        print "x(in) =\n", x
 
     # save the shape of the actual argument:
     xshape = x.shape
@@ -273,14 +281,28 @@ def minimize(f, x):
     # flat version of inital point:
     y = x.flatten()
 
-    xm, fm, stats =  minimize1D(fg, y)
-    #xm, fm, stats =  fmin(fg, y, hess="LBFGS") #, stol=1.e-6, gtol=1.e-5)
-    #xm, fm, stats =  fmin(fg, y, hess="BFGS") #, stol=1.e-6, gtol=1.e-5)
+    if False:
+        xm, info = fmin(fg, y, hess="BFGS", stol=xtol, gtol=ftol)
+    else:
+        xm, fm, info =  minimize1D(fg, y)
+
+        #
+        # External optimizer has its own conventions:
+        #
+        info["converged"] = (info["warnflag"] == 0)
+        info["iterations"] = info["funcalls"]
+        del info["funcalls"]
+        info["value"] = fm
+        info["derivative"] = info["grad"].reshape(xshape)
+        del info["grad"]
 
     # return the result in original shape:
     xm.shape = xshape
 
-    return xm, fm, stats
+    if VERBOSE:
+        print "x(out)=\n", xm
+
+    return xm, info
 
 def cminimize(f, x, c, **kwargs):
     """
@@ -425,7 +447,12 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
 
     # also return number of interations, convergence status, and last values
     # of the gradient and step:
-    return r, e, (iteration, converged, g, dr)
+    info = { "converged": converged,
+             "iterations": iteration,
+             "value": e,
+             "derivative": g,
+             "step": dr }
+    return r, info # (iteration, converged, g, dr)
 
 def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
         maxiter=MAXITER, maxstep=MAXSTEP, alpha=70.0, hess="LBFGS", callback=None):

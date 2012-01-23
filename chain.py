@@ -35,7 +35,8 @@ Unconstrained minimization brings all instances to the
 minimum:
 
     >>> from fopt import minimize
-    >>> xms, e3, _ = minimize(cha, xs)
+    >>> xms, info = minimize(cha, xs)
+    >>> e3 = cha(xms)
 
 Three times -6.0 is the total energy after optimization:
 

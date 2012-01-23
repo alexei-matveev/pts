@@ -55,8 +55,8 @@ class QFunc(Func):
 
         >>> from fopt import minimize
         >>> x = x * 0.4
-        >>> xm, fm, _ = minimize(pes, x)
-        >>> round(fm, 7)
+        >>> xm, info = minimize(pes, x)
+        >>> round(pes(xm), 7)
         -6.0
         >>> xm
         array([[ 0.39685026,  0.39685026,  0.39685026],
