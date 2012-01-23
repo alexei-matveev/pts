@@ -34,8 +34,12 @@ cb_count_debug = 0
 
 def pathsearcher(atoms, init_path, trafo, **kwargs):
     """
-    Script-verison  of find_path(), interprets  and prints  results to
-    tty.
+    MUSTDIE: from  python code use  a PES method  find_path(pes, path,
+             ...), for command  line there is call_with_pes(find_path,
+             sys.argv[1:])   See   call_with_pes()   and   find_path()
+             instead.
+
+    Only used in ./tests.
 
     It  is possible  to use  the pathsearcher()  function in  a python
     script. It looks like:
