@@ -510,15 +510,29 @@ def call_with_pes(method, args):
 
 def main(args):
     """
-    starts a pathsearcher calculation
-    This variant expects the calculation to be done with an ASE atoms object
-    coordinate systems are limited to internal, Cartesian and mixed systems
+    Starts  a  pathsearcher  calculation.   This variant  expects  the
+    calculation to be done with an ASE atoms object coordinate systems
+    are limited to internal, Cartesian and mixed systems.
 
     Uses the arguments of the standard input for setting the parameters
     """
-    atoms, init_path, funcart, kwargs = interprete_input(args)
-    pathsearcher(atoms, init_path, funcart, **kwargs)
 
+    def pes_method(pes, path, **kw):
+        """
+        Has the interface of the most general PES method.
+        """
+
+        convergence, optimized_path = find_path(pes, path, **kw)
+
+        # Command  line verison  of the  path searcher  used  to print
+        # user-friendly output, including cartesian geometries:
+        output(optimized_path, kw["trafo"], kw["output_level"], kw["output_geo_format"], kw["atoms"])
+
+        # Command line version used to return this:
+        return convergence, optimized_path
+
+    # Interprete args and call a PES method:
+    return call_with_pes(pes_method, args)
 
 if __name__ == "__main__":
     main(argv[1:])
