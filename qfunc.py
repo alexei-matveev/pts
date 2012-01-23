@@ -11,12 +11,11 @@ verified:
 
 __all__ = ["QFunc"]
 
-from pts.func import Func, compose
+from pts.func import Func
 from ase.calculators.lj import LennardJones
 from os import path, mkdir, chdir, getcwd, system
 
 from shutil import copy2 as cp
-import numpy as np
 
 VERBOSE = 0
 
