@@ -1,32 +1,35 @@
 #!/usr/bin/env python
 """
-This tools takes pathes given by files (path.pickle or others)
-reads it in and prints for some data the results.
+This tools takes  pathes given by files (path.pickle  or others) reads
+it in and prints for some data the results.
 
 As input the path file(s) have to be given and the wanted set of
 coordinates and other values
 
-An internal coodinate is selected by settings --kind n1 n2 ...
-where the ni's are the atomnumbers (starting with 1) which should be used
-for getting the internal coordinate, how many of them are requiered is dependent
-on the kind choosen. There are the possiblilities:
+An internal coodinate is selected  by settings --kind n1 n2 ...  where
+the ni's  are the atomnumbers (starting  with 1) which  should be used
+for getting the internal coordinate, how many of them are requiered is
+dependent on the kind choosen. There are the possiblilities:
 
 "internal coordinate"  "kind"  "number of Atoms needed"
       distance           dis      2
         angle            ang      3
  angle not connected     ang4     4
     dihedral angle       dih      4
- distance to  plane      dp       4 (the first is the atom, the others define the plane;
-                                     the plane atoms must not be on a line)
+ distance to  plane      dp       4 *)
 
-It is also possible to ask for the abscissas of the path (would be given as first element). This is done
-by --t.
+ *) the  first is  the atom,  the others define  the plane;  the plane
+  atoms must not be on a line
 
-Another set of coordinates refers to energy and gradients stored in path.pickle files.
-For the gradients are several different options of interest possible. If pathes are used (see --num
-below) the values will be interpolated from the beads, else the ones from the beads are taken. IF required
-for gradient calculations the tangent to the path is extracted from an interpolation path of the
-geometries.
+It is  also possible to  ask for the  abscissas of the path  (would be
+given as first element). This is done by --t.
+
+Another set  of coordinates refers  to energy and gradients  stored in
+path.pickle files.  For the gradients are several different options of
+interest possible.  If pathes  are used (see  --num below)  the values
+will be interpolated from the beads,  else the ones from the beads are
+taken. IF required  for gradient calculations the tangent  to the path
+is extracted from an interpolation path of the geometries.
 
 The energy/gradient informations are always given after the geometry informations:
    --energy \ --en              : energies
@@ -36,8 +39,8 @@ The energy/gradient informations are always given after the geometry information
    --gperp                      : length of gradient component perpendicular to the path
    --grangle                    : angle (in degree) between path and gradients, should be 90 for convergence
 
-easiest input is by path.pickle files which can be given directly without need of
-any option.
+easiest  input is  by path.pickle  files which  can be  given directly
+without need of any option.
 
 some options handle a different way of input:
 Here coordinates are given in cordinate files (coordinates in internal coordinates for all
@@ -136,28 +139,25 @@ def path_to_int(x, y, cs, num, allval, cell, tomove, howmove, withs):
 
     return path
 
-def energy_from_path(x, E, num ):
+def energy_from_path(x, E, num):
     """
-    Gives back the values of the Energies
-    which appear on num equally spaced (in x-direction) on
-    the path
+    Gives back the values of  the Energies which appear on num equally
+    spaced (in x-direction) on the path
     """
     path1 = Path(E, x)
     energies = []
 
-    # to decide how long x is, namely what
-    # coordinate does the end x have
-    # if there is no x at all, the path has
-    # distributed the beads equally from 0 to 1
-    # thus in this case the end of x is 1
+    # to decide how  long x is, namely what coordinate  does the end x
+    # have if there is no x at all, the path has distributed the beads
+    # equally from 0 to 1 thus in this case the end of x is 1
     if x is None:
         endx = 1.0
     else:
         endx = float(x[-1])
 
     for i in range(num):
-         # this is one of the frames, with its gradients
-         # Make it the saem way than for the coordinates
+         # this is one  of the frames, with its  gradients Make it the
+         # saem way than for the coordinates
          x_1 = (endx / (num -1) * i)
          energies.append(path1(x_1))
 
