@@ -14,7 +14,7 @@ __all__ = ["QFunc"]
 from pts.func import Func
 from ase.calculators.lj import LennardJones
 from os import path, mkdir, chdir, getcwd, system
-
+from numpy import array
 from shutil import copy2 as cp
 
 VERBOSE = 0
@@ -84,6 +84,11 @@ class QFunc(Func):
     # default:
     def taylor(self, x):
         "Energy and gradients"
+
+        # FIXME:  do  all  calculators  treat arrays  passed  to  them
+        # read-only? In the case they  do not, construct one for their
+        # exclusive use:
+        x = array(x)
 
         # aliases:
         atoms = self.atoms
