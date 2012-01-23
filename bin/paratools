@@ -198,6 +198,8 @@ def single_point(argv):
     """
     from pts.io.cmdline import get_options, get_calculator
     import ase
+    from pts.qfunc import QFunc
+    from pts.memoize import Memoize, DirStore
 
     # first arg tells what to do:
     if argv[0] not in ("energy", "forces"):
@@ -216,21 +218,44 @@ def single_point(argv):
 
     calculator = get_calculator(opts[0][1])
 
+    #
+    # The  cache store used  here should  allow concurrent  writes and
+    # reads  from multiple processes  eventually running  on different
+    # nodes ---  DirStore() keeps everything in  a dedicated directory
+    # on disk or on an NFS share:
+    #
+    cache = DirStore("cache.d")
+
     for file in args:
         atoms = ase.io.read(file)
-        # print atoms.get_positions()
-        atoms.set_calculator(calculator)
+        x = atoms.get_positions()
+        # print "x=\n", x
+        # atoms.set_calculator(calculator)
+
+        #
+        # PES to be used for  energy, forces. FIXME: maybe adapt QFunc not
+        # to default to LJ, but rather keep atoms as is?
+        #
+        pes = QFunc(atoms, calculator)
+
+        #
+        # Memoize early, PES as a function of cartesian coordiantes is
+        # the lowest denominator.
+        #
+        pes = Memoize(pes, cache)
 
         if argv[0] == "energy":
             # calculate total energy:
-            e = atoms.get_potential_energy()
+            # e = atoms.get_potential_energy()
+            e = pes(x)
 
             # print results to stdout
             print e
 
         if argv[0] == "forces":
             # calculate total energy:
-            f = atoms.get_forces()
+            # f = atoms.get_forces()
+            f = - pes.fprime(x)
 
             # print results to stdout
             print f
