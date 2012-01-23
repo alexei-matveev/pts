@@ -32,8 +32,7 @@ import pts.metric as mt
 # needed as global variable
 cb_count_debug = 0
 
-
-def pathsearcher(atoms, init_path, funcart, **kwargs):
+def pathsearcher(atoms, init_path, trafo, **kwargs):
     """
     Script-verison  of find_path(), interprets  and prints  results to
     tty.
@@ -43,7 +42,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
 
       from pts.inputs import pathsearcher
 
-      pathsearcher(atoms, init_path, funcart, **kwargs)
+      pathsearcher(atoms, init_path, trafo, **kwargs)
 
     * atoms is  an ASE atoms object  used to calculate  the forces and
       energies of a given (Cartesian) geometry. Be aware that it needs
@@ -55,8 +54,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     * init_path is an array containting  for each bead of the starting
       path the internal coordinates.
 
-    * funcart   is  a   Func  to   transform  internal   to  Cartesian
-      coordinates.
+    * trafo is a Func to transform internal to Cartesian coordinates.
 
     * the other  parameters give the possibility to  overwrite some of
       the default behaviour of the module, They are provided as kwargs
@@ -98,7 +96,7 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     # PES as  a funciton of  optimization variables, such  as internal
     # coordinates:
     #
-    pes = compose(pes, funcart)
+    pes = compose(pes, trafo)
 
     # This parallel mapping function puts every single point calculation in
     # its own subfolder
@@ -109,14 +107,14 @@ def pathsearcher(atoms, init_path, funcart, **kwargs):
     if "pmap" not in para_dict:
         para_dict["pmap"] = PMap3(strat=strat)
 
-    para_dict["trafo"] = funcart
+    para_dict["trafo"] = trafo
     para_dict["symbols"] = atoms.get_chemical_symbols()
 
     # this operates with PES in internals:
     convergence, optimized_path = find_path(pes, init_path, **para_dict)
 
     # print user-friendly output, including cartesian geometries:
-    output(optimized_path, funcart, para_dict["output_level"], para_dict["output_geo_format"], atoms)
+    output(optimized_path, trafo, para_dict["output_level"], para_dict["output_geo_format"], atoms)
 
     return convergence, optimized_path
 
