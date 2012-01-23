@@ -187,7 +187,7 @@ for choice in nums:
     # This is the function call of pathsearcher, here besides the function needed in any case
     # some of the default parameter are overwritten, so the convergence criteria and the maximal iteration number
     # are reset and the new searchingstring method is used to calculate the path
-    c, (pt, st, en, fn) = pathsearcher(h2, init_path, funcart = func, ftol = 0.1, maxit = 4, beads_count = 5, method = "searchingstring", output_level = 0)
+    c, (pt, st, en, fn) = pathsearcher(h2, init_path, func, ftol = 0.1, maxit = 4, beads_count = 5, method = "searchingstring", output_level = 0)
     paths.append(pt)
     energies.append(en)
     gradients.append(fn)

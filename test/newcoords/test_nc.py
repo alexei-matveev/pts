@@ -255,14 +255,14 @@ elif test_what == "pathsearcher":
     # Let pathseracher optimize the path:
     #
     print("\n* Default path searcher, 7 beads:\n")
-    conv, (xs, ts, es, gs) = pathsearcher(ar4, init_path, funcart = func, ftol = 0.01, maxit = 40, beads_count = 7, \
+    conv, (xs, ts, es, gs) = pathsearcher(ar4, init_path, func, ftol = 0.01, maxit = 40, beads_count = 7, \
                                               workhere = 0, output_level = 0, output_path = ".")
     print "path=\n", xs
     print "energies=\n", es
     print "converged=\n", conv
 
     print("\n* Experimental path searcher, 15 beads:\n")
-    conv, (xs, ts, es, gs) = pathsearcher(ar4, init_path, funcart = func,
+    conv, (xs, ts, es, gs) = pathsearcher(ar4, init_path, func,
                                           beads_count = 15,
                                           ftol = 1.0e-8,
                                           xtol = 1.0e-8,
