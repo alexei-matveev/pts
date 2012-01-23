@@ -442,13 +442,19 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
         if callback is not None:
             #
             # We were obliged to report every iteration, unfortunately
-            # we have to report the info about terminals beads too. At
-            # the moment  it appears  cumbersome, so just  pretend the
-            # terminal beads are non-existent:
+            # we  have  to  report  the  info  about  terminals  beads
+            # too. This massaging is supposed to do that:
             #
             assert len(vshape) == 1 # FIXME: generalize!
-            # x2 = vstack((x0[0], x, x0[-1]))
-            callback(x, e, g)
+            x2 = vstack((x0[0], x, x0[-1]))
+
+            #
+            # Hopefully the function is cheap or uses a result cache:
+            #
+            e2, g2 = pes.taylor(x2)
+            e2 = asarray(e2)
+            g2 = asarray(g2)
+            callback(x2, e2, g2)
 
     xm, info = sopt(pes.taylor, x0[1:-1], tangents, lambdas, callback=cb, **kwargs)
 
