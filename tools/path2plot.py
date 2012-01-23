@@ -464,7 +464,7 @@ def main(argv):
                     log_path = log_path[:xnum_opts + 1,:]
                     log_path = log_path.tolist()
                     if s_val.startswith("en"):
-                        log_path.append(energy_from_path(x, en, num ))
+                        log_path.append(energy_from_path(x, en, num))
                     elif s_val.startswith("gr"):
                         val = s_val[2:]
                         log_path.append(grads_from_path(x, y, gr, num, val))
