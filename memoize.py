@@ -393,6 +393,15 @@ def deserialize(s):
     """
     return loads(s) # pickle.laodss
 
+def maybe_mkdir(path):
+    # FIXME: race condition here:
+    try:
+        os.mkdir(path)
+    except OSError:
+        # FIXME: check errno?
+        assert os.path.exists(path)
+        pass
+
 class DirStore(object):
     """
     Minimalistic  disk-persistent  dictionary.  To  enable  concurrent
@@ -454,8 +463,9 @@ class DirStore(object):
     def __setitem__(self, key, val):
         """Needs to update on-disk state."""
 
+        # FIXME: race condition here:
         if not os.path.exists(self.filename):
-            os.mkdir(self.filename)
+            maybe_mkdir(self.filename)
             if VERBOSE:
                 print >> sys.stderr, "WARNING: DirStore: mkdir", self.filename
 
@@ -466,7 +476,8 @@ class DirStore(object):
         sh, ex = hextuple(serialize(key))
 
         if not os.path.exists(os.path.join(self.filename, sh)):
-            os.mkdir(os.path.join(self.filename, sh))
+            # FIXME: race condition here:
+            maybe_mkdir(os.path.join(self.filename, sh))
 
         with open(os.path.join(self.filename, sh, ex), 'w') as f:
             dump((key, val), f, protocol=2) # pickle.dump
