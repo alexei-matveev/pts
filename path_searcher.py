@@ -409,6 +409,105 @@ def tell_params(params):
     for param, value in params.iteritems():
          print "    %s = %s" % (str(param), str(value))
 
+def call_with_pes(method, args):
+    """
+    Interprete  command line  args and  call a  method() with  PES and
+    other input  constructed according to  the command line.  A method
+    should have an interface as
+
+        method(pes, geometries, **kw)
+
+    Return value(s) of the method are passed up the caller chain. Most
+    path searcher algorithms can be made to fit this interface.
+
+    For  use in  scripts. Note  that args  is a  list of  strings from
+    sys.args.
+
+    To invoke a method(pes, path, **rest) do this:
+
+        from pts.path_searcher import call_with_pes
+
+        results = call_with_pes(method, sys.argv[1:])
+
+    The  rest  is  a  slightly   misplaced  doc  copied  from  a  more
+    specialized code:
+
+    * atoms is  an ASE atoms object  used to calculate  the forces and
+      energies of a given (Cartesian) geometry. Be aware that it needs
+      to have an  calculator attached to it, which  will do the actual
+      transformation.  Another possibility is  to give a file in which
+      calculator is  specified separately as  parameter.  (FIXME: this
+      another possibility is vaguely specified)
+
+    * geometries is an array containting for each bead of the starting
+      path the internal coordinates.
+
+    * trafo is a Func to transform internal to Cartesian coordinates.
+
+    * the other  parameters give the possibility to  overwrite some of
+      the default behaviour of the module, They are provided as kwargs
+      in here.  For a list  of them see  defaults.py They can  be also
+      specified in an input file given as paramfile.
+    """
+
+    # this interpretes the command line:
+    atoms, geometries, trafo, kwargs = interprete_input(args)
+
+    # most parameters  are stored in a  dictionary, default parameters
+    # are stored in defaults.py
+    kw = create_params_dict(kwargs)
+
+    # calculator from kwargs, if valid, has precedence over
+    if "calculator" in kw:
+        # the associated (or not) with the atoms:
+        if kw["calculator"] is not None:
+            atoms.set_calculator(kw["calculator"])
+
+        # calculator is not used below:
+        del kw["calculator"]
+
+    # print parameters to STDOUT:
+    tell_params(kw)
+
+    #
+    # PES to be used for  energy, forces. FIXME: maybe adapt QFunc not
+    # to default to LJ, but rather keep atoms as is?
+    #
+    pes = QFunc(atoms, atoms.get_calculator())
+
+    #
+    # Memoize early, PES as a function of cartesian coordiantes is the
+    # lowest  denominator.  The  cache  store used  here should  allow
+    # concurrent writes  and reads from  multiple processes eventually
+    # running on different nodes  --- DirStore() keeps everything in a
+    # dedicated directory on disk or on an NFS share:
+    #
+    pes = Memoize(pes, DirStore("cache.d"))
+
+    #
+    # PES as  a funciton of  optimization variables, such  as internal
+    # coordinates:
+    #
+    pes = compose(pes, trafo)
+
+    # This parallel mapping function puts every single point calculation in
+    # its own subfolder
+    if "pmap" not in kw:
+        strat = Strategy(kw["cpu_architecture"], kw["pmin"], kw["pmax"])
+        kw["pmap"] = PMap3(strat=strat)
+
+    del kw["cpu_architecture"]
+    del kw["pmin"]
+    del kw["pmax"]
+
+    # some methds think they need to know atomic details of the PES:
+    kw["atoms"] = atoms
+    kw["trafo"] = trafo
+    kw["symbols"] = atoms.get_chemical_symbols()
+
+    # this operates with PES in internal variables:
+    return method(pes, geometries, **kw)
+
 def main(args):
     """
     starts a pathsearcher calculation
