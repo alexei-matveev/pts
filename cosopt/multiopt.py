@@ -214,23 +214,30 @@ class MultiOpt(ObjLog):
         Parameters:
 
         maxstep: float
-            How far is a single atom allowed to move. This is useful for DFT
-            calculations where wavefunctions can be reused if steps are small.
-            Default is 0.04 Angstrom.
+
+            How far is  a single atom allowed to  move. This is useful
+            for DFT calculations where  wavefunctions can be reused if
+            steps are small.  Default is 0.04 Angstrom.
 
         alpha: float
-            Initial guess for the Hessian (curvature of energy surface). A
-            conservative value of 70.0 is the default, but number of needed
-            steps to converge might be less if a lower value is used. However,
-            a lower value also means risk of instability.
-        logfile: file object or str
-            If *logfile* is a string, a file with that name will be opened.
-            Use '-' for stdout.
 
-        reaction_pathway: ReactionPathway object was inspired by Atoms
-            object  but is  not quite  duck-compatible.   This objects
-            implements pathway state storage and comminication between
-            optimiter and PES-evaluator.
+            Initial  guess  for   the  Hessian  (curvature  of  energy
+            surface). A conservative value of 70.0 is the default, but
+            number  of needed  steps to  converge might  be less  if a
+            lower  value is used.  However, a  lower value  also means
+            risk of instability.
+
+        logfile: file object or str
+
+            If *logfile*  is a string, a  file with that  name will be
+            opened.  Use '-' for stdout.
+
+        reaction_pathway: ReactionPathway
+
+            An object of a type  that was inspired by Atoms object but
+            is  not quite  duck-compatible.   This objects  implements
+            pathway state storage  and comminication between optimiter
+            and PES-evaluator.
         """
 
         ### Opt Code
