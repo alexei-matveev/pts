@@ -251,7 +251,14 @@ def single_point(argv):
 
     for file in args:
         atoms = ase.io.read(file)
+
+        # leave no  constraints at the  atoms, they seem to  make Vasp
+        # calculator modify geometry passed as input:
+        for con in atoms.constraints:
+            atoms.constraints.remove(con)
+
         x = atoms.get_positions()
+
         # print "x=\n", x
         # atoms.set_calculator(calculator)
 
