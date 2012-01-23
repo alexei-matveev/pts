@@ -109,7 +109,7 @@ class QFunc(Func):
             print "QFunc: compute forces ..."
         #
         # Request  forces first, hopefully  when computing  forces the
-        # correcponsing  energy  will also  be  computed  so that  the
+        # corresponding  energy  will also  be  computed  so that  the
         # request  for  the  energy  will  not  imply  a  new  program
         # invokation. NOTE: forces are negative of the gradients:
         #
