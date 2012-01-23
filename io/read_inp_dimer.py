@@ -311,6 +311,10 @@ def build_new(geo, geo_dict_dim, zmatrix, mode):
     # if a mask has been provided, some variables are not optimized
     funcart, init_geo = get_masked(funcart, atoms, geo_dict_dim, zmatrix == [], init_geo, mask1)
 
+    # leave no constraints at the atoms:
+    for con in atoms.constraints:
+       atoms.constraints.remove(con)
+
     # We have only one geometry here
     start_geo = init_geo[0]
 
