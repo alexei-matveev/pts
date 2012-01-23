@@ -483,6 +483,8 @@ class DirStore(object):
         sh, ex = hextuple(serialize(key))
 
         try:
+            if VERBOSE:
+                print >> sys.stderr, "WARNING: DirStore:", sh+ex, "trying"
             with open(os.path.join(self.filename, sh, ex), 'r') as f:
                 key1, val = load(f) # pickle.load
                 assert serialize(key) == serialize(key1) # FIXME: collision?
