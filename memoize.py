@@ -444,10 +444,14 @@ class DirStore(object):
 
     Clean up:
 
-        >>> del e[0.], e[1.], e[[1., 2.]]
+        >>> for k, v in e:
+        ...     del e[k]
         >>> del e
-        >>> [os.rmdir(os.path.join(fn, sh)) for sh in ["1f", "dd", "e2"]]
-        [None, None, None]
+
+    Keep these explicit, this is safer:
+
+        >>> for sh in ["1f", "dd", "e2"]:
+        ...     os.rmdir(os.path.join(fn, sh))
         >>> os.rmdir(fn)
 
     FIXME: does not handle collisions.
