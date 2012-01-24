@@ -437,6 +437,11 @@ class DirStore(object):
         >>> e[[1., 2.]]
         30.0
 
+    Dump all key-value pairs:
+
+        >>> [kv for kv in e]
+        [(1.0, 20.0), (0.0, 10.0), ([1.0, 2.0], 30.0)]
+
     Clean up:
 
         >>> del e[0.], e[1.], e[[1., 2.]]
@@ -528,6 +533,14 @@ class DirStore(object):
                 print >> sys.stderr, "WARNING: DirStore:", sh+ex, "deleted"
         except IOError:
             raise IndexError
+
+    def __iter__(self):
+        # print >> sys.stderr, "WARNING: DirStore: iterating over cache"
+        for root, dirs, files in os.walk(self.filename):
+            for name in files:
+                # yield os.path.join(root, name)
+                with open(os.path.join(root, name)) as f:
+                    yield load(f) # pickle.load
 
 class Memoize(Func):
     """Memoize the .f and .fprime methods
