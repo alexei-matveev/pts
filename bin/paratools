@@ -226,6 +226,7 @@ def single_point(pes, geometries, method="energy", pmap=map, **kw):
         forces --calculator <calculator file> <geometry file 1> [ <geometry file 2> ... ]
     """
     # print "kw=", kw
+    from pts.qfunc import qmap # there is something wrong with the default pmap
 
     # first arg tells what to do:
     if method not in ("energy", "forces"):
@@ -240,7 +241,7 @@ def single_point(pes, geometries, method="energy", pmap=map, **kw):
         # forces are negative of the gradient:
         f = lambda x: -pes.fprime(x)
 
-    return pmap(f, geometries)
+    return qmap(f, geometries)
 
 def minimize(argv):
     """
