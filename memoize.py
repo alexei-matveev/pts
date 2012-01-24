@@ -393,12 +393,15 @@ def deserialize(s):
     """
     return loads(s) # pickle.laodss
 
+import errno
+
 def maybe_mkdir(path):
     # FIXME: race condition here:
     try:
         os.mkdir(path)
-    except OSError:
-        # FIXME: check errno?
+    except OSError, e:
+        # must exist already, all other reasons should remain fatal:
+        assert e.errno == errno.EEXIST
         assert os.path.exists(path)
         pass
 
