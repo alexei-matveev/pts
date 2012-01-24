@@ -486,17 +486,12 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          if angle2 > 1.0: #will be a rounding error
             angle2 = 1.0
 
-         if res["rot_convergence"]:
-             r_conv = "True "
-         else:
-             r_conv = "False"
-
          # Give some report during dimer optimization
          selflogfile.write("Step %5i with sum of Grad. calcs. %7i\n" % (i, grad_calc))
          selflogfile.write("Trans. Infos:   %12.5f       %12.5f       %12.5f       %9.5f    %9.5f \%9.5f      %9.5f\n" % \
                (energy, abs_force, error, step_len,step_perp, step_para, arccos(angle) * 180 /pi))
 
-         if r_conv:
+         if res["rot_convergence"]:
              selflogfile.write("Rot. Infos: True  %5i     %12.5f       %12.5f       %12.5f\n" % \
                ( res["rot_iteration"] , res["curvature"], res["rot_abs_forces"], arccos(angle2) * 180 /pi))
          else:
