@@ -881,19 +881,13 @@ class Elemental_memoize(Func):
         #
         # Return copies from the dictionary:
         #
-        ys = []
-        for x in xs:
-            ys.append(copy(self.cache[x]))
+        ys = [copy(self.cache[x]) for x in xs]
 
         #
         # Every "res"ult is a tuple (f, fprime)
         #
-        es = []
-        gs = []
-        for res in ys:
-            e1, g1 = res
-            es.append(e1)
-            gs.append(g1)
+        es = [e for e, g in ys]
+        gs = [g for e, g in ys]
 
         # FIXME: should we return two arrays?
         return es, gs
