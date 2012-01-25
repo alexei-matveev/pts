@@ -494,7 +494,7 @@ def main(argv):
                                logs_find[j] + ', iteration %i' % (logs_num[j]) , optlog)
 
     # now plot
-    pl.plot_data(xrange = xran, yrange = yran )
+    pl.plot_data(xrange = xran, yrange = yran)
 
 def makeoption(num_i, diff, symm, symshift, withs):
      """
