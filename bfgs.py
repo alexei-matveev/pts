@@ -92,7 +92,9 @@ from numpy import eye, outer
 from numpy.linalg import norm, solve
 #from numpy.linalg import solve #, eigh
 
-def isolve(A, b, tol=1.0e-7):
+THRESH = 1.0e-7
+
+def isolve(A, b, tol=THRESH):
     """
     Solve iteratively  a linear equation A(x)  = b, with  A(x) being a
     callable linear operator  and b a vector. If  provided, x0 is used
@@ -186,7 +188,7 @@ def isolve(A, b, tol=1.0e-7):
 
     return xnew
 
-def _sr1(B, s, y, thresh=1.0e-7):
+def _sr1(B, s, y, thresh=THRESH):
     """Update scheme for the direct/inverse hessian:
 
         B    = B  +  z * z' / (z' * s )   with   z = y - B * s
