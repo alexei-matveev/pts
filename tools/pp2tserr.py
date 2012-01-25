@@ -80,7 +80,7 @@ def main(argv):
             raise Usage("Requires either one or two arguments.")
 
         fn_pickle = args[0]
-        state, ss, es, gs, ns, cs = unpickle_path(fn_pickle)
+        state, es, gs, tangents, ss, ns, cs = unpickle_path(fn_pickle) # v2
         max_coord_change = np.abs(state[0] - state[-1]).max()
         print "Max change in any one coordinate was %.2f" % max_coord_change
         print "                            Per bead %.2f" % (max_coord_change / len(state))

@@ -178,7 +178,9 @@ def main(args):
             write("-" , mol)
 
     if output == 4:
-        pickle_path("make_path.path.pickle", array(ys), array(xs), None, None,
+        pickle_path("make_path.path.pickle", # v2
+                    array(ys), None, None,   # geometries, energies, gradients
+                    None, array(xs),         # tangents, abscissas
                     mol.get_chemical_symbols(), funcart)
 
 if __name__ == "__main__":

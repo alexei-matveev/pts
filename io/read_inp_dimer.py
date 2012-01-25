@@ -254,7 +254,7 @@ def read_dimer_input(rest, di_default_params, help_choice ):
 
 def read_from_pickle(file, ts_est, geo_dict):
 
-    coord_b, posonstring, energy_b, gradients_b, symbols, funcart = unpickle_path(file)
+    coord_b, energy_b, gradients_b, tangents, posonstring, symbols, funcart = unpickle_path(file) # v2
     pt2 = PathTools(coord_b, energy_b, gradients_b, posonstring)
 
     if ts_est == "spline":

@@ -1,3 +1,5 @@
+from __future__ import with_statement
+__doc__ = \
 """
 Contains code to analyse the path and generate TS guesses via interpolation.
 
@@ -518,30 +520,64 @@ class PathTools:
 from copy import deepcopy, copy
 from pickle import load, dump
 
-def pickle_path(file, coord, pathps, energy, gradients, symbols, trafo):
+def pickle_path(file,
+                geometries, energies, gradients,
+                tangents, abscissas,
+                symbols, trafo):
     """
     Original format: a nested tuple in the file:
 
+    v1:
+
     ((geometries, abscissas, energies, gradients), (symbols, trafo))
+
+    v2:
+
+    (geometries, energies, gradients, tangents, abscissas), (symbols, trafo))
     """
-    tuple = coord, pathps, energy, gradients
-    cs = (symbols, trafo)
-    f = open(file, 'wb')
-    dump((tuple, cs), f, protocol=2)
-    f.close()
+
+    path = geometries, energies, gradients, tangents, abscissas
+    system = symbols, trafo
+
+    with open(file, "wb") as f:
+        dump((path, system), f, protocol=2)
 
 def unpickle_path(file):
     """
     Original format: a nested tuple in the file:
 
+    v1:
+
     ((geometries, abscissas, energies, gradients), (symbols, trafo))
+
+    v2:
+
+    (geometries, energies, gradients, tangents, abscissas), (symbols, trafo))
     """
-    f = open(file, "r")
-    geo_tuple, at_object = load(f)
-    f.close()
-    coord, pathps, energy, gradients = geo_tuple
-    symbols, trafo = at_object
-    return coord, pathps, energy, gradients, symbols, trafo
+
+    with open(file, "r") as f:
+        contents = load(f)
+
+    path, system = contents
+
+    # this hack  is for backwards  compatibility, remove when  no more
+    # necessary:
+    try:
+        # older versions had only two items in the file:
+        geometries, abscissas, energies, gradients = path
+
+        print >> sys.stderr, "WARNING: old file format:", file
+        tangents = None
+
+    except ValueError, e:
+        assert e.message == "too many values to unpack"
+
+        # newer versions have tangent info too:
+        geometries, energies, gradients, tangents, abscissas = path
+
+    symbols, trafo = system
+
+    return geometries, energies, gradients, tangents, abscissas, symbols, trafo
 
 def read_path_fix(symbfile, zmatifiles = None, maskfile = None, maskedgeo = None):
     """
@@ -693,11 +729,7 @@ if __name__ == "__main__":
 
     print __doc__
 
-
-
 # You need to add "set modeline" and eventually "set modelines=5"
 # to your ~/.vimrc for this to take effect.
 # Dont (accidentally) delete these lines! Unless you do it intentionally ...
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax
-
-

@@ -163,7 +163,7 @@ def main(argv):
         wanted = [1, 2, 3, 4, 6]
 
     if symbfile == None:
-        coord_b, posonstring, energy_b, gradients_b, symbols, trafo = unpickle_path(f_ts)
+        coord_b, energy_b, gradients_b, tangents, posonstring, symbols, trafo = unpickle_path(f_ts) # v2
     else:
         symbols, trafo = read_path_fix( symbfile, zmats, mask, maskgeo )
         coord_b, posonstring, energy_b, gradients_b = read_path_coords(f_ts, abcis, energies, forces)

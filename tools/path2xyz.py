@@ -69,7 +69,7 @@ def read_in_path(filename):
     interest, e.g. the coordinates and path positions of the beads
     """
     try:
-        coord, pathps, energy, gradients, symbols, trafo = unpickle_path(filename)
+        coord, energy, gradients, tangents, pathps, symbols, trafo = unpickle_path(filename) # v2
     except:
         print "ERROR: No path file found to read input from"
         print "First argument of call must be a path.pickle object"

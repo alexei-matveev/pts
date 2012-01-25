@@ -570,7 +570,7 @@ def plot(argv):
         from matplotlib import pyplot
 
     for i, name in enumerate(args):
-        geometries, abscissas, energy, gradients, symbols, trafo = unpickle_path(name)
+        geometries, energy, gradients, tangents, abscissas, symbols, trafo = unpickle_path(name) # v2
 
         if cmd == "show":
             # tuple is printed in one line:

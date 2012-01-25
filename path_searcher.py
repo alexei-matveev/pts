@@ -253,14 +253,18 @@ def find_path(pes, init_path
 
     #
     # Callback function, communicate variables through argument list:
+    # FIXME: Maybe make tangents obligatory when everybody supports that?
     #
-    def cb1(geometries, energies, gradients, abscissas=None, **kw):
+    def cb1(geometries, energies, gradients, tangents=None, abscissas=None, **kw):
         global cb_count_debug
         cb_count_debug += 1
 
         if output_level > 1:
             filename = "%s/%s.debug%03d.path.pickle" % (output_path, name, cb_count_debug)
-            pickle_path(filename, geometries, abscissas, energies, gradients, symbols, trafo)
+            pickle_path(filename, # v2
+                        geometries, energies, gradients,
+                        tangents, abscissas,
+                        symbols, trafo)
 
         if output_level > 2:
             # store interal coordinates of given iteration in file
@@ -279,7 +283,7 @@ def find_path(pes, init_path
             gradients = CoS.bead_pes_gradients.reshape(CoS.beads_count, -1)
             abscissas = CoS.pathpos()
 
-            cb1(geometries, energies, gradients, abscissas)
+            cb1(geometries, energies, gradients, abscissas=abscissas)
 
     # print out initial path
     cb(init_path)
@@ -313,7 +317,7 @@ def find_path(pes, init_path
     # Write out final path to  a file. The corresponding file name has
     # the largest index:
     #
-    cb1(geometries, energies, gradients, abscissa)
+    cb1(geometries, energies, gradients, abscissas=abscissa)
 
     # Return  (hopefully)  converged  discreete  path  representation.
     # Return  convergence   status,  internal  coordinates,  energies,
