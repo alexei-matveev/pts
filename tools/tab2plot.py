@@ -246,7 +246,7 @@ class plot_tabs:
         rcParams['lines.linewidth'] = 2
 
         if title is not None:
-             set_title(str(title),fontsize = 'large')
+             set_title(str(title), fontsize = 'large')
 
         if x_label is not None:
              xlabel(x_label)
