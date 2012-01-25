@@ -545,6 +545,48 @@ def makeoption(num_i, diff, symm, symshift, withs):
      #          xfunction
      return opt, many, xmany, optx
 
+def plot(argv):
+    """
+    Handles commands
+
+        argv[0] in ("plot", "show")
+    """
+    import getopt
+    from pathtools import unpickle_path
+    # from numpy import linspace #, empty, transpose
+    # from numpy import array
+
+    #
+    # Only position arguments so far.  The first, argv[0], is the name
+    # of the method, usually just "plot":
+    #
+    cmd = argv[0]
+    opts, args = getopt.getopt(argv[1:], "", [])
+    # print "opts=", opts
+    # print "args=", args
+
+    if cmd == "plot":
+        # needs X11:
+        from matplotlib import pyplot
+
+    for i, name in enumerate(args):
+        geometries, abscissas, energy, gradients, symbols, trafo = unpickle_path(name)
+
+        if cmd == "show":
+            # tuple is printed in one line:
+            print tuple(energy)
+
+        if cmd == "plot":
+            # energy profile:
+            pyplot.plot(energy, "o--")
+            pyplot.ylabel("Energy [eV]")
+            pyplot.xlabel("Path point [arb. u.]")
+            pyplot.title("Energy profile", fontsize="large")
+
+    # Display the plot, needs X11:
+    if cmd == "plot":
+        pyplot.show()
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
