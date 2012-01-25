@@ -248,12 +248,24 @@ def negpara_force(force_raw_trial, mode_vector, mode_vector_down):
 class translate_lbfgs():
     def __init__(self, metric, unused):
         """
+        The parameter unused is there for consistence, as the other
+        translation steps needs a parameter more
+
         Calculates a translation step of the dimer (not scaled)
         Uses an approximated hessian hess
 
-        step is Newton (Hessian) step for grads:
+        Combination of a Dimer\Lanczos and a L-BFGS quasi-Newton algorithm:
+           * A (positive definite) L-BFGS update maintans an approximate
+           hessian. A quasi-Newton step with this is done the usual way.
+           * Additionally the mode and curvature of the dimer is used to
+           generate an Hessian update of SR1 kind (should keep negative
+           curvature). A step modification using this "Matrix" is added
+           to the normal step.
 
-        g = g_0 - 2 * (g_0, m) * m
+        If the Dimer\Lanczos curvature is positive instead the usual
+        step for the Dimer/Lanczos method is done to get as fast away
+        from the minima as possible (maximal step along negative of
+        Dimer/Lanczos mode vector).
 
         Consider metric
 
@@ -279,7 +291,7 @@ class translate_lbfgs():
         >>> print step
         [-0.02558608 -3.58730495]
         """
-        self.hess = LBFGS( positive = False)
+        self.hess = BFGS()
         self.old_grad = None
         self.old_geo = None
         self.metric = metric
@@ -292,41 +304,85 @@ class translate_lbfgs():
         shape = force_raw.shape
         force_raw = force_raw.flatten()
         mode_vec_down = self.metric.lower(mode_vector, start_geo).flatten()
+
+        # These are mainly there for output and printing, force_para is
+        # also needed if the curvature is positive.
         force_para = dot(force_raw, mode_vector.flatten()) * mode_vec_down
         force_perp = force_raw - force_para
 
+        if "rot_updates" in info:
+            # Lanczos method keeps some informations for our update.
+            # If it created the mode, we can now use them for the
+            # step hessian.
+            for dr, dg in info["rot_updates"]:
+                # Be aware that the direction goes from middle point
+                # to the dimer end point, while the forces are from
+                # the dimer end point  minus the middle point.
+                self.hess.update( -dr, dg)
+
         if not self.old_grad == None:
-            #self.h_old = deepcopy(self.hess.H)
+            # This is the update of the Hessian with the gradient
+            # change from the last step. It is always the last
+            # update as it is the most relevant one.
             dr = start_geo - self.old_geo
             dg = geo_grad - self.old_grad
-            dr = dr - dot(dr, mode_vec_down) * mode_vector.flatten()
-            dg = dg - dot(dg, mode_vector.flatten()) * mode_vec_down
             self.hess.update(dr, dg)
 
-        if "rot_updates" in info:
-            for dr, dg in info["rot_updates"]:
-                self.hess.update(dr, dg)
+        # BFGS hessian is positive definite. Thus it has the wrong
+        # eigenvalue in direction of the mode (when it has as desired
+        # a negative direction).
+        step_hess = self.hess.inv(force_raw)
+
+        # Like SR1 update on the hessian with the mode vector:
+        # result is (H* - H) * tau.
+        def H_times_tau(tau):
+             y_k = curv * mode_vector
+             # y_k = curv * mode_vector is a gradient.
+             u_k = mode_vector.flatten() - self.hess.inv(y_k)
+             return u_k / (dot(u_k, y_k)) * dot(u_k, tau)
+
+        # Like a SR1 update step, using mode and curvature of
+        # dimer/lanczos method.
+        step_add = H_times_tau(force_raw)
+
+        # step = H_BFGS * f + update(SR1) * f
+        step = step_hess + step_add
 
         if curv > 0:
-            step = -1. * force_para / curv
-            step_perp = 0
-            step_para = 0
-        else:
-            step_para = force_para / curv
-            step_perp = self.hess.inv(force_perp)
+            # Undesired Hessian, there is no negative eigenmode.
+            # Therefore do a maximal step away. Relax as long as relaxation
+            # might be going, additionally do rest of the step along mode
+            # (should become negative eigenvalue direction). Go there
+            # opposite to the forces (climb)
+            step_relax = step - dot( step, mode_vec_down) * mode_vector
+            length_relax = self.metric.norm_up(step_relax, start_geo)
+            if length_relax > info["max_step"]:
+                # will be scaled down later
+                step = step_relax
+            else:
+                # The step climbing along mode_vector should have the opposite
+                # direction than the force.
+                sign = 1.
+                if dot(mode_vector, force_raw) > 0:
+                    sign = -1.
 
-            #if abs(dot(step_perp, mode_vector.flatten())) > 0.01 * self.metric.norm_up(step_perp, start_geo):
-            #    print >> stderr, "WARNING: Hessian approximation produces large step in unwanted direction ", \
-            #             dot(step_perp, mode_vector.flatten())
-            step = step_perp + step_para
+                step = step_relax + sign * mode_vector * sqrt(info["max_step"]**2 - length_relax**2)
+
+        # Test if the perpendicular part of the force is perpendicular to the mode
+        # (Angle == pi/2)
+        #test_step = H_times_tau(force_raw - dot(force_raw, mode_vector) * mode_vec_down )
+        #print "Angle", dot(test_step, mode_vector)
 
         self.old_grad = geo_grad
         self.old_geo = start_geo
-        #print "Forces BFGS",self.metric.norm_down(force_raw, start_geo) , self.metric.norm_down(force_perp, start_geo), self.metric.norm_down(force_para, start_geo)
-        #print "Steps BFGS", self.metric.norm_down(step, start_geo) ,self.metric.norm_down(step_perp, start_geo), self.metric.norm_down(step_para, start_geo)
+
+        #print "Forces mod BFGS",self.metric.norm_down(force_raw, start_geo), self.metric.norm_down(force_para, start_geo), self.metric.norm_down(force_perp, start_geo)
+        #print "Steps mod BFGS", self.metric.norm_up(step, start_geo) ,self.metric.norm_up(step_hess, start_geo), self.metric.norm_up(step_add, start_geo)
 
         info_out = {"trans_perp_force" : self.metric.norm_down(force_perp, start_geo),
                 "trans_para_force": self.metric.norm_down(force_para, start_geo),
+                "trans_step_hess" : self.metric.norm_up(step_hess, start_geo),
+                "trans_step_mod" : self.metric.norm_up(step_add, start_geo),
                 "trans_gradient_calculations": 0}
 
         step.shape = shape
@@ -550,6 +606,7 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, max_st
     """
     curv, mode_vec, info = rot(pes, start_geo, geo_grad, start_mode, metric, **params)
 
+    info["max_step"] = max_step
     step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv, info)
 
     info.update(info_t)
