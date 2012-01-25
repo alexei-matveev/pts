@@ -496,14 +496,6 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
     del info["tangents"]
     del info["lambdas"]
 
-    #
-    # For the moment we invoke  callback with valid data that includes
-    # terminals only  once upon convergence.  The problem  is that the
-    # caller expects terminals, but sopt() operates without them.
-    #
-    if callback is not None:
-        callback(xm, energies, gradients)
-
     return xm, info
 
 def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
