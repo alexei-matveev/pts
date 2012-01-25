@@ -208,6 +208,13 @@ def main(argv):
         cmd_main = eval(cmd)
         cmd_main(argv[1:])
 
+    if cmd in ("show", "plot"):
+        valid_cmd = True
+
+        from pts.tools.path2plot import plot
+
+        plot(argv)
+
     if not valid_cmd:
         print >> sys.stderr, "pts: no such command:", cmd
         print >> sys.stderr, __doc__
