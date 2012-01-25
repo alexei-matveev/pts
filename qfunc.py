@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 from __future__ import with_statement # need to be at the beginning
+__doc__ = \
 """
-FIXME:  the line  above  apparently leads  to  this string  not to  be
-interpreted as  a docstring.  Do NOT put  doctests here, they  are not
-verified:
+FIXME: without explicit assignment above the import from future at the
+top  apparently  leads to  this  string not  to  be  interpreted as  a
+docstring.
 
     >>> 2 * 2
-    5
+    2
 """
 
 __all__ = ["QFunc"]
