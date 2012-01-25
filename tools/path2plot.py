@@ -168,17 +168,6 @@ der are other options which may be set:
         is calculated by: 0.5 * (f(midx + x) - f(midx - x))
 """
 import sys
-from pts.tools.path2xyz import read_in_path
-from pts.tools.path2tab import energy_from_path, grads_from_path, grads_from_beads
-from pts.tools.pathtools import read_path_fix, read_path_coords
-from pts.tools.xyz2tabint import interestingvalue
-from pts.tools.path2tab import path_to_int, beads_to_int, reorder_files, get_expansion
-from pts.tools.path2tab import read_line_from_log
-from pts.tools.tab2plot import plot_tabs
-from pts.cfunc import Pass_through
-from pts.io.read_COS import read_geos_from_file_more
-import numpy as np
-
 
 def main(argv):
     """
@@ -188,6 +177,17 @@ def main(argv):
     showing for  each inputfile a  path of the given  coordinates with
     beads marked on them
     """
+    from pts.tools.path2xyz import read_in_path
+    from pts.tools.path2tab import energy_from_path, grads_from_path, grads_from_beads
+    from pts.tools.pathtools import read_path_fix, read_path_coords
+    from pts.tools.xyz2tabint import interestingvalue
+    from pts.tools.path2tab import path_to_int, beads_to_int, reorder_files, get_expansion
+    from pts.tools.path2tab import read_line_from_log
+    from pts.tools.tab2plot import plot_tabs
+    from pts.cfunc import Pass_through
+    from pts.io.read_COS import read_geos_from_file_more
+    import numpy as np
+
     if len(argv) <= 0:
         # errors go to STDERR:
         print >> sys.stderr, __doc__
