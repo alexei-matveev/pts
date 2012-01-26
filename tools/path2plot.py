@@ -568,20 +568,86 @@ def plot(argv):
     if cmd == "plot":
         # needs X11:
         from matplotlib import pyplot
+        from matplotlib import cm # color management
 
+    def colormap(i):
+        """
+        Returns a color undertood by color keyword of pyplot.plot()
+        """
+        # return cm.hsv(float(i) / (len(args) - 1))
+        return cm.jet(float(i) / (len(args) - 1))
+
+    def plot_energy(energies, i=0):
+        # energy profile:
+        pyplot.title("Energy profile", fontsize="large")
+        pyplot.ylabel("Energy [eV]")
+        pyplot.xlabel("Path point [arb. u.]")
+        pyplot.plot(range(1, len(energies)+1), energies, "o--", color=colormap(i))
+        pyplot.xlim((1, len(energies)))
+
+    def plot_energy_with_cubic_spline(geometries, energies, tangents, i=0):
+        """
+        Plot the energy profile indicating  the slope of the energy at
+        the vertices.
+
+        Tangents are usually normalized,  if at all, quite differently
+        from the  convention used  here -- one  unit of  "path length"
+        between  neyboring images.  To  avoid visual  mismatch between
+        finite difference (E[i+1] - E[i]) / 1.0 and differential slope
+        dE  /  ds  =  dot(g,  t)  at  the  nodes  we  invent  a  local
+        re-normalization of the tangents.
+        """
+        # energy profile:
+        from numpy import dot, linspace, sqrt, array, vstack, shape, empty
+        from pts.func import CubicSpline
+
+        pyplot.title("Energy profile", fontsize="large")
+        pyplot.ylabel("Energy [eV]")
+        pyplot.xlabel("Path point [arb. u.]")
+
+        # this will hold distances vectors between path points:
+        xdeltas =  empty(shape(geometries))
+        xdeltas[0] = geometries[1] - geometries[0]
+        xdeltas[-1] = geometries[-1] - geometries[-2]
+        xdeltas[1:-1] = (geometries[2:] - geometries[:-2]) / 2.0
+
+        # this is the measure  of the real separatioin between images,
+        # each will correspond to one unit on the graph:
+        scales = array([sqrt(dot(x, x)) for x in xdeltas])
+
+        # re-normalize tangents:
+        tangents = array([s * t / sqrt(dot(t, t)) for s, t in zip(scales, tangents)])
+
+        # projection of the gradient on the new tangents, dE / ds:
+        slopes = [dot(g, t) for g, t in zip(gradients, tangents)]
+
+        # cubic spline
+        spline = CubicSpline(range(1, len(energies)+1), energies, slopes)
+
+        # spline will be plotted with that many points:
+        line = linspace(1.0, len(energies), 100)
+
+        pyplot.plot(range(1, len(energies)+1), energies, "o",
+                    line, map(spline, line), "--",
+                    color = colormap(i))
+        pyplot.xlim((1, len(energies)))
+
+    #
+    # This is the main loop over the input files:
+    #
     for i, name in enumerate(args):
-        geometries, energy, gradients, tangents, abscissas, symbols, trafo = unpickle_path(name) # v2
+        geometries, energies, gradients, tangents, abscissas, symbols, trafo = unpickle_path(name) # v2
 
         if cmd == "show":
             # tuple is printed in one line:
-            print tuple(energy)
+            print tuple(energies)
 
         if cmd == "plot":
             # energy profile:
-            pyplot.plot(energy, "o--")
-            pyplot.ylabel("Energy [eV]")
-            pyplot.xlabel("Path point [arb. u.]")
-            pyplot.title("Energy profile", fontsize="large")
+            if tangents is not None:
+                plot_energy_with_cubic_spline(geometries, energies, tangents, i)
+            else:
+                plot_energy(energies, i)
 
     # Display the plot, needs X11:
     if cmd == "plot":
