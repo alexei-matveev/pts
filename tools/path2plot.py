@@ -572,10 +572,23 @@ def plot(argv):
 
     def colormap(i):
         """
-        Returns a color undertood by color keyword of pyplot.plot()
+        Returns a color understood by color keyword of pyplot.plot().
+
+        To choose most appropriate color map see
+
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
         """
-        # return cm.hsv(float(i) / (len(args) - 1))
-        return cm.jet(float(i) / (len(args) - 1))
+
+        # we want to map i=0 to 0.0 and i=imax to 1.0
+        imax = len(args) - 1
+        if imax == 0:
+            imax = 1
+
+        #
+        # Color maps map the interval [0, 1] ontoto a color palette:
+        #
+        # return cm.hsv(float(i) / imax)
+        return cm.jet(float(i) / imax)
 
     def plot_energy(energies, i=0):
         # energy profile:
