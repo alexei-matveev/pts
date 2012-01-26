@@ -448,13 +448,16 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
             assert len(vshape) == 1 # FIXME: generalize!
             x2 = vstack((x0[0], x, x0[-1]))
 
+            # add fake tangents for terminal vertices:
+            t2 = vstack((x[0] - x0[0], t, x0[-1] - x[-1]))
+
             #
             # Hopefully the function is cheap or uses a result cache:
             #
             e2, g2 = pes.taylor(x2)
             e2 = asarray(e2)
             g2 = asarray(g2)
-            callback(x2, e2, g2)
+            callback(x2, e2, g2, t2)
 
     xm, info = sopt(pes.taylor, x0[1:-1], tangents, lambdas, callback=cb, **kwargs)
 
