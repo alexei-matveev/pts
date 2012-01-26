@@ -628,7 +628,7 @@ def plot(argv):
         line = linspace(1.0, len(energies), 100)
 
         pyplot.plot(range(1, len(energies)+1), energies, "o",
-                    line, map(spline, line), "--",
+                    line, map(spline, line), "-",
                     color = colormap(i))
         pyplot.xlim((1, len(energies)))
 
