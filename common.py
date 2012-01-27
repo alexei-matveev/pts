@@ -6,12 +6,9 @@ import sys
 import random
 import time
 import logging
-
 import numpy
 from numpy import finfo
-from pts.metric import cartesian_norm
-
-import pts
+from metric import cartesian_norm
 
 lg = logging.getLogger("pts.common")
 
