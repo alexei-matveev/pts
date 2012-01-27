@@ -332,12 +332,13 @@ def do_what_i_mean(nodes, count):
            the code. It should be one or another. Any kind of "do what
            I mean" logic is broken by design.
     """
+
     if len(nodes) == count:
         #
         # Use   user-supplied   nodes,    the   quality   of   initial
         # approximaiton is the responsibility of the user:
         #
-        nodes = array(nodes) # makes a copy
+        new = array(nodes) # makes a copy
     else:
         print "WARNING: number of supplied geometries and bead count do not agree:", len(nodes), "/=", count
         from pts.path import MetricPath
@@ -364,9 +365,13 @@ def do_what_i_mean(nodes, count):
         # Hopefully   this  will  reduce   assymetry  of   the  vertex
         # distribution along the path:
         #
-        nodes = (forw[::+1] + back[::-1]) / 2.0
+        new = (forw[::+1] + back[::-1]) / 2.0
 
-    return nodes
+        # There is no reason to change the terminals:
+        new[0] = nodes[0]
+        new[-1] = nodes[-1]
+
+    return new
 
 def output(optimized_path, cartesian, output_level, format, atoms):
     """Print user-friendly output.
