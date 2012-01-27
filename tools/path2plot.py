@@ -565,10 +565,14 @@ def plot(argv):
     # print "opts=", opts
     # print "args=", args
 
+    import matplotlib
+
     if cmd == "plot":
-        # needs X11:
-        from matplotlib import pyplot
-        from matplotlib import cm # color management
+        # do not expect X11 to be available, use a different backend:
+        matplotlib.use("Agg")
+
+    from matplotlib import pyplot
+    from matplotlib import cm # color management
 
     def colormap(i):
         """
@@ -651,20 +655,22 @@ def plot(argv):
     for i, name in enumerate(args):
         geometries, energies, gradients, tangents, abscissas, symbols, trafo = unpickle_path(name) # v2
 
-        if cmd == "show":
-            # tuple is printed in one line:
-            print tuple(energies)
+        # tuple is printed in one line:
+        # print tuple(energies)
 
-        if cmd == "plot":
-            # energy profile:
-            if tangents is not None:
-                plot_energy_with_cubic_spline(geometries, energies, tangents, i)
-            else:
-                plot_energy(energies, i)
+        # energy profile:
+        if tangents is not None:
+            plot_energy_with_cubic_spline(geometries, energies, tangents, i)
+        else:
+            plot_energy(energies, i)
 
-    # Display the plot, needs X11:
-    if cmd == "plot":
+    if cmd == "show":
+        # Display the plot, needs X11:
         pyplot.show()
+
+    if cmd == "plot":
+        # Save in vecor format, allows post-processing:
+        pyplot.savefig("plot.svg")
 
 if __name__ == "__main__":
     import doctest
