@@ -571,12 +571,12 @@ def plot(argv):
         # do not expect X11 to be available, use a different backend:
         matplotlib.use("Agg")
 
-    from matplotlib import pyplot
+    from matplotlib import pyplot as plt
     from matplotlib import cm # color management
 
     def colormap(i):
         """
-        Returns a color understood by color keyword of pyplot.plot().
+        Returns a color understood by color keyword of plt.plot().
 
         To choose most appropriate color map see
 
@@ -596,11 +596,11 @@ def plot(argv):
 
     def plot_energy(energies, i=0):
         # energy profile:
-        pyplot.title("Energy profile", fontsize="large")
-        pyplot.ylabel("Energy [eV]")
-        pyplot.xlabel("Path point [arb. u.]")
-        pyplot.plot(range(1, len(energies)+1), energies, "o--", color=colormap(i))
-        pyplot.xlim((1, len(energies)))
+        plt.title("Energy profile", fontsize="large")
+        plt.ylabel("Energy [eV]")
+        plt.xlabel("Path point [arb. u.]")
+        plt.plot(range(1, len(energies)+1), energies, "o--", color=colormap(i))
+        plt.xlim((1, len(energies)))
 
     def plot_energy_with_cubic_spline(geometries, energies, tangents, i=0):
         """
@@ -618,9 +618,9 @@ def plot(argv):
         from numpy import dot, linspace, sqrt, array, vstack, shape, empty
         from pts.func import CubicSpline
 
-        pyplot.title("Energy profile", fontsize="large")
-        pyplot.ylabel("Energy [eV]")
-        pyplot.xlabel("Path point [arb. u.]")
+        plt.title("Energy profile", fontsize="large")
+        plt.ylabel("Energy [eV]")
+        plt.xlabel("Path point [arb. u.]")
 
         # this will hold distances vectors between path points:
         xdeltas =  empty(shape(geometries))
@@ -644,10 +644,10 @@ def plot(argv):
         # spline will be plotted with that many points:
         line = linspace(1.0, len(energies), 100)
 
-        pyplot.plot(range(1, len(energies)+1), energies, "o",
-                    line, map(spline, line), "-",
-                    color = colormap(i))
-        pyplot.xlim((1, len(energies)))
+        plt.plot(range(1, len(energies)+1), energies, "o",
+                 line, map(spline, line), "-",
+                 color = colormap(i))
+        plt.xlim((1, len(energies)))
 
     #
     # This is the main loop over the input files:
@@ -666,11 +666,11 @@ def plot(argv):
 
     if cmd == "show":
         # Display the plot, needs X11:
-        pyplot.show()
+        plt.show()
 
     if cmd == "plot":
         # Save in vecor format, allows post-processing:
-        pyplot.savefig("plot.svg")
+        plt.savefig("plot.svg")
 
 if __name__ == "__main__":
     import doctest
