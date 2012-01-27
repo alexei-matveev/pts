@@ -270,15 +270,6 @@ def file2str(f):
     f.close()
     return mystr
 
-def file2carts(f):
-    s = file2str(f)
-    if pts.coord_sys.XYZ.matches(s):
-        return pts.coord_sys.XYZ(s).get_cartesians()
-    elif pts.coord_sys.ZMatrix.matches(s):
-        return pts.coord_sys.ZMatrix(s).get_cartesians()
-    else:
-        raise False, "Unrecognised file format in:\n" + s
-
 def str2file(s, fn):
     """Returns contents file with name f as a string."""
     f = open(fn, "w")

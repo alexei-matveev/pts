@@ -253,6 +253,15 @@ def run(args, extra, maxit=500, known_ts_aa_dists = 0):
     os.system('gnuplot -persist ' + gpfile)
 #    os.system('gv plots.ps')
 
+def file2carts(f):
+    s = pts.common.file2str(f)
+    if pts.coord_sys.XYZ.matches(s):
+        return pts.coord_sys.XYZ(s).get_cartesians()
+    elif pts.coord_sys.ZMatrix.matches(s):
+        return pts.coord_sys.ZMatrix(s).get_cartesians()
+    else:
+        raise False, "Unrecognised file format in:\n" + s
+
 def main(argv=None):
     known_ts_aa_dists = 0
 
