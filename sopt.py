@@ -597,13 +597,17 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
                 print "sopt: converged by force", norm(G2), '<', ftol, "(", norm.__doc__, ")"
 
         if VERBOSE:
-            print "sopt: obtained energies E=", asarray(E)
+            def fmt(floats):
+                return " ".join(["%10.6f" % (f,) for f in floats])
             if VERBOSE > 1:
                 print "sopt: obtained gradients G="
                 print G
-            print "sopt: g(para)=", LAM, "(lambdas)"
-            print "sopt: g(ortho norms)=", asarray([sqrt(dot(g, g)) for g in G2])
-            print "sopt: g(ORTHO NORM)=", norm(G2)
+            print "sopt: energies =      ", fmt(E)
+            print "sopt: lambdas =       ", fmt(LAM)
+            print "sopt: g(para) =       ", fmt([lam * sqrt(dot(t, t)) for lam, t in zip(LAM, T)])
+            print "sopt: g(ortho norms) =", fmt([sqrt(dot(g, g)) for g in G2])
+            print "sopt: g(ORTHO NORM) = ", fmt([norm(G2)])
+            del lam, t, g
             if VERBOSE > 1:
                 print "sopt: g(ortho)="
                 print G2
