@@ -7,7 +7,7 @@ top  apparently  leads to  this  string not  to  be  interpreted as  a
 docstring.
 
     >>> 2 * 2
-    2
+    4
 """
 
 __all__ = ["QFunc"]
