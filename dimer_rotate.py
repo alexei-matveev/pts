@@ -5,9 +5,10 @@ from copy import deepcopy
 from scipy.linalg import eig, eigh
 from pts.func import NumDiff
 from pts.metric import Default
-from pts.memoize import Memoize, FileStore
+from pts.memoize import Memoize
 
-def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distance = 0.0001, \
+
+def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distance = 0.01, \
     max_rotations = 10, phi_tol = 0.1, interpolate_grad = True, restart = None, **params):
     """
     Rotates  the  dimer  while  keeping  its old  results  in  memory,
@@ -586,17 +587,16 @@ def orthogonalize(v_new, vs, met, geo):
 
 def main(args):
     from pts.io.read_inp_dimer import read_dimer_input
-    from pts.defaults import di_default_params_rot, info_di_params
-    pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], di_default_params_rot, "rotate" )
+    pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], args[0] )
     metric = Default()
 
-    if "cache" in params:
-        if params["cache"] is None:
-            pes = Memoize(pes, FileStore("dimer.ResultDict.pickle"))
+    if "cache" in params.keys():
+        if params["cache"] == None:
+            pes = Memoize(pes, filename = "dimer.ResultDict.pickle")
         else:
-            pes = Memoize(pes, FileStore(params["cache"]))
+            pes = Memoize(pes, filename = params["cache"])
     else:
-        pes = Memoize(pes, FileStore("dimer.ResultDict.pickle"))
+        pes = Memoize(pes, filename = "dimer.ResultDict.pickle")
 
     start_mode = start_mode / metric.norm_up(start_mode, start_geo)
     if params["rot_method"] == "lanczos":

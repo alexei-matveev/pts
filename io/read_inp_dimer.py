@@ -92,19 +92,8 @@ and a valid caluclator file calc.py do to start a 20 translation steps dimer opt
   paratools dimer --calculator calc.py  --max_translation 20 POSCAR.start MODE_START
 
 """
-from pts.io.read_inputs import get_geos, get_masked, from_params_file
-from pts.io.read_COS import geo_params, info_geometries
-from pts.io.read_COS import set_atoms
-from numpy import loadtxt, savetxt
-from ase.io import write
-from pts.func import compose
-from pts.qfunc import QFunc
-from sys import exit, stderr
-from pts.tools.pathtools import unpickle_path, PathTools
-from ase.atoms import Atoms
-from pts.defaults import di_are_strings, info_di_params
-from pts.common import file2str
 
+from sys import exit, stderr
 rot_info = """
 This is a function only for the rotation part of dimer/lanczos:
 
@@ -140,10 +129,47 @@ a reduced and changed set of parameters. They should default to a much tighter c
 rotatin step. Output will be the new mode and the curvature, approximated for it.
 """
 
-def read_dimer_input(rest, di_default_params, help_choice ):
+qn_info = """
+This is a simple Quasi Newton method. For more complex ones use the ASE functionalities (over the
+interface paratools minimize, for example). The only advantage of this one is that it can use
+all the coordinate systems available and that it can go towards transition states, if it is near
+enough as it does not enforce a positive definite hessian.
+
+Usage:
+  paratools quasi-newton --calculator <calculator file> <start geometry>
+
+GEOMETRIES AND COORDINATE SYSTEMS:
+
+There are more options to the coordinate system choice (for example using internal coordinates for
+optimization). To find more about them do:
+   paratools quasi-newton --help geometries
+
+FURTHER OPTIONS:
+
+There are some more variables specifying the way the Quasi Newton method run.
+To find out more about them do:
+   paratools quasi-newton --help parameter
+
+For getting a list with all their defaults do:
+   paratools quasi-newton --defaults
+
+If it is wanted to change there something find out the name of the variable to change
+ and add to your command:
+  --<variable name> <new value>
+"""
+
+def read_dimer_input(rest, name):
     """
     This function is similar to the one for pathsearcher
     """
+    from pts.io.read_inputs import from_params_file
+    from pts.io.read_COS import geo_params
+    from pts.defaults import are_strings
+    from pts.common import file2str
+    from pts.func import compose
+    from pts.qfunc import QFunc
+    from pts.memoize import Memoize
+    from pts.defaults import di_default_params, qn_default_params
     #This variables will be needed afterwards anyway
     # independent of beeing given by user
     geo_dict = {"format" : None, "zmt_format" : "direct"}
@@ -156,30 +182,32 @@ def read_dimer_input(rest, di_default_params, help_choice ):
     ts_estim = None
     accept_all = False
 
-    if "--help" in rest:
-        if "geometries" in rest:
-           info_geometries()
-        elif "parameter" in rest:
-           info_di_params()
-        else:
-           if "--trans_method" in rest:
-               print __doc__
-           else:
-               if help_choice == "rotate":
-                   print rot_info
-               else:
-                   print __doc__
-        exit()
-
-    if "--defaults" in rest:
-        print "The default parameters for the dimer/lanczos algorithm are:"
-        for param, value in di_default_params.iteritems():
-            print "    %s = %s" % (str(param), str(value))
-        exit()
+    give_help_if_needed(rest, name)
 
     if rest[0] == "--accept_all":
         rest = rest[1:]
         accept_all = True
+
+    defaults_available = True
+    if name in ["lanczos", "dimer", "lanczos-rotate", "dimer-rotate"]:
+        default_params = di_default_params
+    elif name in ["qn", "simple_qn", "quasi-newton"]:
+        default_params = qn_default_params
+    else:
+        print >> stderr, "WARNING: No default parameter for specific method found"
+        print >> stderr, "         There will be no test if the given parameter make sense"
+        default_params = {}
+        accept_all = True
+        defaults_available = False
+
+    if "--defaults" in rest:
+        if defaults_available:
+            print "The default parameters for the algorithm ", name, " are:"
+            for param, value in default_params.iteritems():
+                print "    %s = %s" % (str(param), str(value))
+        else:
+            print "No default values available for the specific method", name
+        exit()
 
     for i in range(len(rest)):
         if rest == []:
@@ -212,9 +240,9 @@ def read_dimer_input(rest, di_default_params, help_choice ):
                 # suppose that the rest are setting parameters
                 # we do not have a complet list of them
                 if not accept_all:
-                    assert o in di_default_params or o == "rot_method", "Parameter %s" % (o)
+                    assert o in default_params or o == "rot_method", "Parameter %s" % (o)
 
-                if o in di_are_strings:
+                if o in are_strings:
                     add_param[o] = a
                 else:
                     add_param[o] = eval(a)
@@ -237,22 +265,65 @@ def read_dimer_input(rest, di_default_params, help_choice ):
         if accept_all:
             params_dict, geo_dict_dim = from_params_file_dimer(paramfile )
         else:
-            params_dict, geo_dict_dim = from_params_file(paramfile, di_default_params )
+            params_dict, geo_dict_dim = from_params_file(paramfile, default_params )
         params_dict.update(add_param)
         geo_dict_dim.update(geo_dict)
 
     if as_pickle:
         start_geo, init_mode, funcart, atoms = read_from_pickle(geo[0], ts_estim, geo_dict_dim)
     else:
-        start_geo, init_mode, funcart, atoms = build_new(geo, geo_dict_dim, zmatrix, mode)
+        start_geo, funcart, atoms = build_new(geo, geo_dict_dim, zmatrix)
+        if name in ["lanczos", "dimer", "lanczos-rotate", "dimer-rotate"]:
+           init_mode = build_mode(mode, start_geo, funcart)
+        else:
+           assert mode == None
+           init_mode = None
 
     # Build up the qfunc, calculator is included in atoms already
     pes = compose(QFunc(atoms, calc = atoms.get_calculator()), funcart)
 
+    if "cache" in params_dict.keys():
+          if params_dict["cache"] == None:
+                pes = Memoize(pes, filename = "%s.ResultDict.pickle" % (name))
+          else:
+                pes = Memoize(pes, filename = params_dict["cache"])
+    else:
+         pes = Memoize(pes, filename = "%s.ResultDict.pickle" % (name))
+
     #Attention inital mode need not be normed (and cannot as metric is not yet known)
     return pes, start_geo, init_mode, params_dict, atoms, funcart
 
+def give_help_if_needed(rest, name):
+    from pts.defaults import info_di_params, info_qn_params
+    from pts.io.read_COS import info_geometries
+    if "--help" in rest:
+        if "geometries" in rest:
+           info_geometries()
+        elif "parameter" in rest:
+           if name in ["lanczos", "dimer", "lanczos-rotate", "dimer-rotate"]:
+              info_di_params()
+           elif name in ["qn", "simple_qn", "quasi-newton"]:
+              info_qn_params()
+           else:
+              print "No parameter information for the specific method", name ,"found."
+        else:
+           if name in ["lanczos", "dimer"]:
+               print __doc__
+           elif name in ["lanczos-rotate", "dimer-rotate"]:
+               print rot_info
+           elif name in ["qn", "simple_qn", "quasi-newton"]:
+               print qn_info
+           else:
+               print "No help text for the specific method", name, "found."
+        exit()
+
+
 def read_from_pickle(file, ts_est, geo_dict):
+    from pts.tools.pathtools import unpickle_path, PathTools
+    from ase import Atoms
+    from ase.io import write
+    from pts.io.read_COS import set_atoms
+    from numpy import savetxt
 
     coord_b, energy_b, gradients_b, tangents, posonstring, symbols, funcart = unpickle_path(file) # v2
     pt2 = PathTools(coord_b, energy_b, gradients_b, posonstring)
@@ -300,10 +371,10 @@ def read_from_pickle(file, ts_est, geo_dict):
     atoms = set_atoms(atoms, geo_dict)
     write("start.xyz", atoms)
     savetxt("mode.start", init_mode)
-
     return start_geo, init_mode, funcart, atoms
 
-def build_new(geo, geo_dict_dim, zmatrix, mode):
+def build_new(geo, geo_dict_dim, zmatrix):
+    from pts.io.read_inputs import get_geos, get_masked
     # also pathsearcher routines to build atoms object and internal to Cartesian
     # handle, the variables not used here would be required to ensure
     # shortest way between some pictures
@@ -318,6 +389,10 @@ def build_new(geo, geo_dict_dim, zmatrix, mode):
     # We have only one geometry here
     start_geo = init_geo[0]
 
+    return start_geo, funcart, atoms
+
+def build_mode(mode, start_geo, funcart):
+    from numpy import loadtxt
     # Modevector either in internals (like direct from previous calculation with
     # dimer or pathsearcher) or external most certainly in Cartesian
     mode_cart = loadtxt(mode)
@@ -338,7 +413,7 @@ def build_new(geo, geo_dict_dim, zmatrix, mode):
        assert (len(mode_cart) == len(start_geo))
        init_mode = mode_cart
 
-    return start_geo, init_mode, funcart, atoms
+    return init_mode
 
 def from_params_file_dimer( lines ):
     """

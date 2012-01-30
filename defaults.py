@@ -123,7 +123,7 @@ default parameters.
             there are three choices:
             0    runs directly in workplace. Not even serial calculations can
                  ensure that the calculations are thus separated from each other
-                 (as input will be crated for all calculations at once. Only if 
+                 (as input will be crated for all calculations at once. Only if
                  the pmap is set accordingly or the quantum chemical calculator
                  needs no files but handles all by direct input it might work.
             1    (default case). The subdirectory to run the QC calculation in is
@@ -301,7 +301,74 @@ di_default_params_rot = {
     "cache"    : None # Making results of calculator reusable
 }
 
-di_are_strings = ["trajectory", "trans_method", "rot_method", "cache"]
+qn_info = """
+Parameter can be set as:
+ --<parameter name> <new parameter value>
+
+So for example:
+  --max_iteration 100
+This would set the maximal number of iterations to 100
+
+Additionally all parameters can be specified in a parameter file, given as:
+--paramfile <name of parameter file>
+
+So for example with paramfile params.py containin
+cat params.py
+   max_iteration = 100
+
+--paramfile params.py
+
+The same result as in the example above would be archived. It is also
+possible to specify the calculator in the paramfile or include
+parameter belonging to the geometry reading in there. It is
+however illegal to specify geometries or mode vectors in there.
+
+To find out the default values for the parameter do:
+paratools quasi-newton --defaults
+
+There exists:
+Parameter          short description
+------------------------------------------------
+max_iteration    maximal number of steps
+converged        convergence criteria, convergence is reached if the maximal absolute value
+                 of the gradient is below this threshold
+max_step         maximal allowed step_size
+update_method    Hessian update method. There is SR1 to go to the next extremum (hopefully
+                 transition state or minima) and BFGS and LBFGS for going to a minima (they
+                 keep the matrix positive definite)
+
+logfile          If anything else than None (default) or "-" it will use the value
+                 for the file in which to write statistics about the iterations
+                 The result will still go to standard output
+trajectory       defines how much of the geometries and gradients will be given as output
+                 geometries will be in xyz format gradients are given as matrix of floats
+                 newest  : only the newest geometries and gradients files will be kept as
+                           actual_geometry and actual_gradients
+                 empty   : No geometries will be stored
+                 every   : For every iteration n there will be a file called geo<n>
+                           and a file called gradients<n> containing the geometries/gradients
+                           for the said iteration
+                 one_file: Besides the actual geometries of newest case all the
+                           geometries will be given in all_geos just put after one
+                           another (allows for example jmol to understand this file)
+                           gradients are given as "Gradient of iteration <n>" in all_gradients
+"""
+
+qn_default_params = {
+   "max_iterations" : 100000000, # Maximal number of steps
+   "converged" : 0.00016, # Convergence criteria, converged if max(abs(gradients)) < than it
+   "max_step" : 0.1, # maximal allowed step lenght (translation)
+    "logfile"  : None, # Where the output of dimer should go (None goes to standard output)
+    "trajectory" :  "newest", # Update method
+   "update_method" : "SR1" # Hessian update method, choose SR1 for transition state seach
+}
+
+are_strings = ["trajectory", "trans_method", "rot_method", "cache"]
+
+
+def info_qn_params():
+    print qn_info
+
 
 def info_di_params():
     print dimer_info
