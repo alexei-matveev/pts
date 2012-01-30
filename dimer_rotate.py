@@ -6,6 +6,7 @@ from scipy.linalg import eig, eigh
 from pts.func import NumDiff
 from pts.metric import Default
 
+VERBOSE = 0
 
 def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distance = 0.01, \
     max_rotations = 10, phi_tol = 0.1, interpolate_grad = True, restart = None, **params):
@@ -404,6 +405,8 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
     mode = mode.flatten()
     mode = mode / metric.norm_up(mode, mid_point)
 
+    old_mode = deepcopy(mode)
+
     g0 = deepcopy(grad_mp)
 
     md2 = deepcopy(mode)
@@ -500,8 +503,24 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
 
         # prepare for next rotation step: start with minimum of last iteration
         xm, mm  = rotate_phi(mid_point, mode, dir, phi_m, dimer_distance,  metric)
+
+        if VERBOSE > 0:
+            print "Left Informations for Rotation iteration", i -1
+            print "Left curvature", curv(g0, g1, old_mode, dimer_distance, metric, mid_point)
+            print "For Rotation iteration", i
+            print "Force projection: g1-gm, g2-gm both on dir and mode "
+            print dot((g1 - g0), dir), dot((g2 - g0), dir), dot((g1 - g0), mode), dot((g2 - g0), mode)
+            print "Force sizes (m, 1, 2):"
+            print metric.norm_down(g0, mid_point), metric.norm_down(g1, mid_point), metric.norm_down(g2, mid_point)
+            print "Distances: dimer_distance, between 1 and 2, x1 and new value"
+            print dimer_distance, metric.norm_up(x2 -x, mid_point), metric.norm_up(xm -x, mid_point)
+            print "Rotation Angle:", phi_m
+            print "curvatures (1,2):", c1, c2
+            print "curvature approximation for new point:", cm
+
         x_old = x
         x = xm
+        old_mode = mode
         mode = mm
         l_curv = cm
         #print i,  metric.norm_down(fr, mid_point), l_curv, metric.norm_down(x-x_old,mid_point)
@@ -510,15 +529,16 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
     # this was the shape of the starting mode vector
     mode.shape = shape
 
-   #grad = NumDiff(pes.fprime)
-   #h = grad.fprime(mid_point)
-   #a, V = eigh(h)
-   #print "EIGENMODES", a
-   #print l_curv
-   #print "Difference to lowest mode", dot(V[0] - mode, V[0] - mode), a[0] - l_curv
+    if VERBOSE > 1:
+        grad = NumDiff(pes.fprime)
+        h = grad.fprime(mid_point)
+        a, V = eigh(h)
+        print "EIGENMODES", a
+        print l_curv
+        print "Difference to lowest mode", dot(V[:,0] - mode, V[:,0] - mode), a[0] - l_curv
 
     res = { "rot_convergence" : conv, "rot_iteration" : i,
-            "curvature" : l_curv, "rot_abs_forces" : metric.norm_down(fr,mid_point),
+            "curvature" : l_curv, "rot_abs_forces" : metric.norm_down(fr, mid_point),
             "rot_last_angle": l_ang, "rot_gradient_calculations": grad_calc}
 
     return l_curv, mode, res
