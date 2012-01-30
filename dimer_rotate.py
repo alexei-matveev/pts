@@ -231,6 +231,19 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
        new_mode = new_mode / mode_len
        new_gi = new_gi / mode_len
 
+       if VERBOSE > 0:
+           print "Change in modes"
+           print c_phi1
+           print ""
+           print "For Lanczos iteration", i
+           print "New Force: norm, projection "
+           print met.norm_down(new_g, mid_point), dot(m_basis[-1], g_for_mb[-1]), dot(m_basis[-2], g_for_mb[-1])
+           print "Force difference between g and last g:", met.norm_down(g_for_mb[-1] - g_for_mb[-2], mid_point)
+           print "Distances: dimer_distance, between last adn current position"
+           print dimer_distance, met.norm_up(m_basis[-1] - m_basis[-2], mid_point) * dimer_distance
+           print "Eigenvalues:"
+           print a
+
        if interpolate_grad:
           # need restarts means: we have only one vector in
           # g_for_mb, no use to recalculate it again
@@ -246,12 +259,20 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     # this was the shape of the starting mode vector
     mode.shape = shape
 
-   #grad2 = NumDiff(pes.fprime)
-   #h = grad2.fprime(mid_point)
-   #a2, V2 = eigh(h)
-   #print "EIGENMODES", a2
-   #print "own", a / dimer_distance
-   #print "Difference to lowest mode", dot(V2[0] - mode, V2[0] - mode), a2.min() - min_curv
+    if VERBOSE > 1:
+        grad2 = NumDiff(pes.fprime)
+        h = grad2.fprime(mid_point)
+        a2, V2 = eigh(h)
+        print "EIGENMODES", a2
+        print "LC", a / dimer_distance
+        print "own", a / dimer_distance
+        print "Difference to lowest mode", dot(V2[:,0] - mode, V2[:,0] - mode), a2.min() - min_curv
+        print V2[:,0]
+        print mode
+        mode = V2[:,0]
+        min_curv = a2[0]
+        print mode
+        print min_curv
 
     # some more statistics (to compare to other version)
     fr = rot_force(g0, pes.fprime(mid_point + dimer_distance * mode), mode, met, mid_point)
@@ -510,6 +531,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
             print "For Rotation iteration", i
             print "Force projection: g1-gm, g2-gm both on dir and mode "
             print dot((g1 - g0), dir), dot((g2 - g0), dir), dot((g1 - g0), mode), dot((g2 - g0), mode)
+            print "Force difference between g1 and g2:", metric.norm_down(g1 -g2, mid_point)
             print "Force sizes (m, 1, 2):"
             print metric.norm_down(g0, mid_point), metric.norm_down(g1, mid_point), metric.norm_down(g2, mid_point)
             print "Distances: dimer_distance, between 1 and 2, x1 and new value"
