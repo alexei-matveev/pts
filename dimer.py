@@ -8,7 +8,7 @@ from pts.metric import Default, Metric_reduced, Metric
 from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 from numpy import arccos
 from sys import stdout
-from pts.memoize import Memoize
+from pts.trajectories import empty_traj
 """
 dimer method:
 
@@ -551,15 +551,6 @@ def main(args):
             params["trajectory"] = traj_last(atoms, funcart)
     else:
             params["trajectory"] = traj_last(atoms, funcart)
-
-    if "cache" in params.keys():
-        if params["cache"] == None:
-            pes = Memoize(pes, filename = "dimer.ResultDict.pickle")
-        else:
-            pes = Memoize(pes, filename = params["cache"])
-    else:
-        pes = Memoize(pes, filename = "dimer.ResultDict.pickle")
-
 
     start_mode = start_mode / metric.norm_up(start_mode, start_geo)
     geo, res = dimer(pes, start_geo, start_mode, metric, **params)
