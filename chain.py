@@ -392,6 +392,71 @@ class Spacing(Func):
 
         return array(c), array(cprime)
 
+from numpy import log
+
+class LogSpacing(Func):
+    """
+    For an array of n geometries x, return the n-2 differences:
+
+       c(x) = (d(x   , x ) - d(x , x  )) / 2, i = 1, ... n-2
+        i         i+1   i       i   i-1
+
+    and a (sparse)  array of their derivatives wrt x.  Here d(a, b) is
+    defined as the logarithm of the norm |a - b|.
+
+    An example:
+
+        >>> cg = LogSpacing()
+        >>> x = array([(1., 1.,), (2.01, 1.), (1.99, 2.), (3.,2.)])
+        >>> cg(x)
+        array([-0.00975037,  0.00975037])
+
+        >>> from func import NumDiff
+        >>> cg1 = NumDiff(cg)
+        >>> max(abs(cg.fprime(x) - cg1.fprime(x))) < 1.e-10
+        True
+    """
+    def __init__(self, dst=Norm2()):
+        # mesure of the distance between two geoms:
+        self.__dst = dst
+
+    def taylor(self, x):
+
+        # abbreviation for the (differentiable) distance function:
+        dst = self.__dst.taylor
+
+        n = len(x)
+
+        # compute the differences of distances:
+        c = []
+        cprime = []
+        for i in range(1, n - 1):
+
+            # [i] and [i+1] one gets from [i:i+2]:
+            dp, dpg = dst(x[i:i+2])
+
+            # log scale:
+            dp, dpg = log(dp), dpg / dp
+
+            # [i-1] and [i] one gets from [i-1:i+1]:
+            dm, dmg = dst(x[i-1:i+1])
+
+            # log scale:
+            dm, dmg = log(dm), dmg / dm
+
+            # constrain value:
+            c.append((dp - dm) / 2.0)
+
+            # constrain derivative:
+            sparse = zeros(shape(x))
+            sparse[i+1] =  dpg[1]           / 2.
+            sparse[i]   = (dpg[0] - dmg[1]) / 2.
+            sparse[i-1] =         - dmg[0]  / 2.
+
+            cprime.append(sparse)
+
+        return array(c), array(cprime)
+
 # python chain.py [-v]:
 if __name__ == "__main__":
     import doctest
