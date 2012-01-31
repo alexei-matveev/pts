@@ -169,7 +169,7 @@ def read_dimer_input(rest, name):
     from pts.common import file2str
     from pts.func import compose
     from pts.qfunc import QFunc
-    from pts.memoize import Memoize
+    from pts.memoize import Memoize, FileStore
     from pts.defaults import di_default_params, qn_default_params
     #This variables will be needed afterwards anyway
     # independent of beeing given by user
@@ -285,11 +285,11 @@ def read_dimer_input(rest, name):
 
     if "cache" in params_dict.keys():
           if params_dict["cache"] == None:
-                pes = Memoize(pes, filename = "%s.ResultDict.pickle" % (name))
+                pes = Memoize(pes, FileStore("%s.ResultDict.pickle" % (name)))
           else:
-                pes = Memoize(pes, filename = params_dict["cache"])
+                pes = Memoize(pes, FileStore(params_dict["cache"]))
     else:
-         pes = Memoize(pes, filename = "%s.ResultDict.pickle" % (name))
+         pes = Memoize(pes, FileStore("%s.ResultDict.pickle" % (name)))
 
     #Attention inital mode need not be normed (and cannot as metric is not yet known)
     return pes, start_geo, init_mode, params_dict, atoms, funcart
