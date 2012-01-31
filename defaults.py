@@ -355,7 +355,7 @@ trajectory       defines how much of the geometries and gradients will be given 
 """
 
 qn_default_params = {
-   "max_iterations" : 100000000, # Maximal number of steps
+   "max_iteration" : 100000000, # Maximal number of steps
    "converged" : 0.00016, # Convergence criteria, converged if max(abs(gradients)) < than it
    "max_step" : 0.1, # maximal allowed step lenght (translation)
     "logfile"  : None, # Where the output of dimer should go (None goes to standard output)
