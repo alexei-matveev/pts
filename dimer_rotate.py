@@ -476,6 +476,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
         # first angle approximation, (we need two picture for minimization)
         phi1 = phi_start(g0, g1, dir, mode, metric, mid_point)
 
+        phi1_1 = phi1
         l_ang = phi1
         if abs(phi1) < phi_tol:
             # FIRST BREAK POINT: first approximation did nearly not move dimer
@@ -529,14 +530,19 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
             print "Left Informations for Rotation iteration", i -1
             print "Left curvature", curv(g0, g1, old_mode, dimer_distance, metric, mid_point)
             print "For Rotation iteration", i
+            print "Norm of rotation force:",  metric.norm_down(fr,mid_point)
             print "Force projection: g1-gm, g2-gm both on dir and mode "
             print dot((g1 - g0), dir), dot((g2 - g0), dir), dot((g1 - g0), mode), dot((g2 - g0), mode)
+            print "Force projection in curvature direction:"
+            print dot((g1 - g0), mode), dot((g2 - g0), m2)
             print "Force difference between g1 and g2:", metric.norm_down(g1 -g2, mid_point)
             print "Force sizes (m, 1, 2):"
             print metric.norm_down(g0, mid_point), metric.norm_down(g1, mid_point), metric.norm_down(g2, mid_point)
             print "Distances: dimer_distance, between 1 and 2, x1 and new value"
             print dimer_distance, metric.norm_up(x2 -x, mid_point), metric.norm_up(xm -x, mid_point)
-            print "Rotation Angle:", phi_m
+            print "Variables for approximation"
+            print a0, a1, b1
+            print "Rotation Angle: real (first approximation)", phi_m, "(", phi1_1, ")"
             print "curvatures (1,2):", c1, c2
             print "curvature approximation for new point:", cm
 
