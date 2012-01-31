@@ -157,6 +157,7 @@ If it is wanted to change there something find out the name of the variable to c
  and add to your command:
   --<variable name> <new value>
 """
+import pts.metric as mt
 
 def read_dimer_input(rest, name):
     """
@@ -323,10 +324,13 @@ def read_from_pickle(file, ts_est, geo_dict):
     from ase import Atoms
     from ase.io import write
     from pts.io.read_COS import set_atoms
+    from pts.searcher import new_abscissa
     from numpy import savetxt
 
-    coord_b, energy_b, gradients_b, tangents, posonstring, symbols, funcart = unpickle_path(file) # v2
-    pt2 = PathTools(coord_b, energy_b, gradients_b, posonstring)
+    coord_b, energy_b, gradients_b, __, __, symbols, funcart = unpickle_path(file) # v2
+    mt.setup_metric(funcart)
+    startx =  new_abscissa(coord_b, mt.metric)
+    pt2 = PathTools(coord_b, energy_b, gradients_b, startx)
 
     if ts_est == "spline":
         ts_int = pt2.ts_spl()
