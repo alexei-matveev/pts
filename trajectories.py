@@ -1,7 +1,7 @@
 from ase.io import write
 from numpy import savetxt
 
-def empty_traj(geo, iter, values, names, texts):
+def empty_traj(geo, iter, adds):
     """
     Do nothing
     """
