@@ -41,7 +41,9 @@ from func import Func
 
 VERBOSE = False
 
-def limit(y, t0=0.0, tol=1.0e-7, maxiter=12):
+TOL = 1.0e-7
+
+def limit(y, t0=0.0, tol=TOL, maxiter=12):
     """
     Compute  the limit  of  y(t) at  t  = inf.  The  function y(t)  is
     supposed to be defined at least in the interval [t0, inf).
