@@ -170,7 +170,7 @@ def main(argv):
 
     at_object = (symbols, trafo)
     # calculate the (wanted) estimates
-    estms, stx1, stx2 = esttsandmd(coord_b, energy_b, gradients_b, at_object, posonstring, wanted)
+    estms, stx2 = esttsandmd(coord_b, energy_b, gradients_b, at_object, wanted)
     # show the result
     if printvectors:
         if dump:
@@ -179,10 +179,10 @@ def main(argv):
             print_estimates(estms, at_object, printwithmodes)
     if comparepath:
         newpath = Path(coord_b, stx2)
-        oldpath = Path(coord_b, stx1)
+        oldpath = Path(coord_b)
         comparepathes(oldpath, newpath, gradients_b, numinfile, filecomp)
 
-def esttsandmd(coord_b, energy_b, gradients_b, at_object, states = None,\
+def esttsandmd(coord_b, energy_b, gradients_b, at_object, \
                ts_wanted = [1, 2, 3, 4, 5, 6] ):
     """
     calculating of wanted TS-estimates and their modes
@@ -196,27 +196,17 @@ def esttsandmd(coord_b, energy_b, gradients_b, at_object, states = None,\
     # ( name, ts-estimate object, (modename, modevec) * number of modeapprox
     ts_all = []
 
-    # First the simple path
-    path = PathTools(coord_b, energy_b, gradients_b)
-    # get the wanted objects
-    estfrompathfirst(path, ts_all, at_object, " with coordinate distance of beads", ts_wanted)
-
-    statex1 = path.steps
     numbeads = len(energy_b)
     #ATTENTION: this needs to be consistent to the way abscissas are build for PathRepresentation
     startx =  new_abscissa(coord_b, mt.metric)
 
-    if not states == None:
-        startx = states
     # with the additional startvalue startx the same as for the other path
     path2 = PathTools(coord_b, energy_b, gradients_b, startx)
     statex2 = path2.steps
-    if states == None:
-        estfrompath(path2, ts_all, at_object, " with initial distance by string", ts_wanted )
-    else:
-        estfrompath(path2, ts_all, at_object, " with given distance by string", ts_wanted )
 
-    return (ts_all, statex1, statex2)
+    estfrompathfirst(path2, ts_all, at_object, " with given distance by string", ts_wanted )
+
+    return (ts_all, statex2)
 
 
 def estfrompathfirst(pt, ts_sum, cs, addtoname, which):
