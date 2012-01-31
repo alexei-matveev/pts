@@ -16,6 +16,8 @@ where CMD is one of the following:
                         dimer method for finding lowest eigenmode
     lanczos             transition state search with eigenmode using
                         lanczos algorithm to find lowest eigenmode
+    quasi-newton        Simple quasi Newton approach, with static step
+                        restriction
 
     dimer-rotate        using dimer rotation for finding lowest
                         eigenmode (no update steps for geometry)
@@ -168,6 +170,15 @@ def main(argv):
         argv1 = ["--method"] + argv
         # print "pts: call path_searcher_main(", argv1, ")"
         path_searcher_main(argv1)
+
+    if cmd in ("quasi-newton", "qn"):
+        valid_cmd = True
+
+        # import right here in order not to import everything,
+        # while using only one specific method:
+        from pts.simple_qn import main as qn
+
+        qn(argv)
 
     if cmd in ("dimer", "lanczos"):
         valid_cmd = True
