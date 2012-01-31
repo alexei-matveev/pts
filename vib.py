@@ -587,7 +587,8 @@ def main(argv):
     # stdout)
     if num_procs == None:
         # default values for paramap (pool_map does not need topology)
-        vibmodes(atoms, mask = mask, give_output = go, direction = direction, delta = delta, save = save_h)
+        vibmodes(atoms, mask = mask, give_output = go, direction = direction, delta = delta,\
+                    startdir="start_files", save = save_h)
     else:
         # use PMap with HCM strategy: num_procs should hold the number
         # of  procces available  for  the complete  job  they will  be
@@ -597,7 +598,8 @@ def main(argv):
         # specifications are put in environment variables, which could
         # be used by the qm-program
         pmap = PMap3(strat = sched)
-        vibmodes(atoms, pmap = pmap, mask = mask, give_output = go, direction = direction, delta = delta, save = save_h)
+        vibmodes(atoms, pmap = pmap, mask = mask, give_output = go, direction = direction, delta = delta,\
+                    startdir="start_files", save = save_h)
 
 # python vib.py [-v]:
 if __name__ == "__main__":
