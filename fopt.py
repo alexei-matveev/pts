@@ -375,7 +375,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
     g0 = None
 
     # initial value for the variable:
-    r = asarray(x).copy() # we are going to modify it!
+    r = asarray(x)
 
     # invoke objective function, also computes the gradient:
     e, g = fg(r)
@@ -411,15 +411,12 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
             print "fmin: dr=", dr
             print "fmin: dot(dr, g)=", dot(dr, g)
 
-        # save for later comparison, need a copy, see "r += dr" below:
-        r0 = r.copy()
+        # Save  for later  comparison. Assignment  e, g  =  fg(r) will
+        # re-bind (e, g), not modify them:
+        r0, e0, g0 = r, e, g
 
-        # "e, g = fg(r)" will re-bind (e, g), not modify them:
-        e0 = e # not used anywhere!
-        g0 = g
-
-        # actually update the variable:
-        r += dr
+        # rebind, do not update the variable:
+        r = r + dr
 
         # invoke objective function, also computes the gradient:
         e, g = fg(r)
