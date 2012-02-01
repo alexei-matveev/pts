@@ -602,7 +602,7 @@ def plot(argv):
         plt.plot(range(1, len(energies)+1), energies, "o--", color=colormap(i))
         plt.xlim((1, len(energies)))
 
-    def plot_energy_with_cubic_spline(geometries, energies, gradients, tangents, i=0):
+    def plot_energy_with_cubic_spline(geometries, energies, gradients, tangents, abscissas, i=0):
         """
         Plot the energy profile indicating  the slope of the energy at
         the vertices.
@@ -622,32 +622,39 @@ def plot(argv):
         plt.ylabel("Energy [eV]")
         plt.xlabel("Path point [arb. u.]")
 
-        # this will hold distances vectors between path points:
-        xdeltas =  empty(shape(geometries))
-        xdeltas[0] = geometries[1] - geometries[0]
-        xdeltas[-1] = geometries[-1] - geometries[-2]
-        xdeltas[1:-1] = (geometries[2:] - geometries[:-2]) / 2.0
+        if abscissas == None:
+            # this will hold distances vectors between path points:
+            xdeltas =  empty(shape(geometries))
+            xdeltas[0] = geometries[1] - geometries[0]
+            xdeltas[-1] = geometries[-1] - geometries[-2]
+            xdeltas[1:-1] = (geometries[2:] - geometries[:-2]) / 2.0
 
-        # this is the measure  of the real separatioin between images,
-        # each will correspond to one unit on the graph:
-        scales = array([sqrt(dot(x, x)) for x in xdeltas])
+            # this is the measure  of the real separatioin between images,
+            # each will correspond to one unit on the graph:
+            scales = array([sqrt(dot(x, x)) for x in xdeltas])
 
-        # re-normalize tangents:
-        tangents = array([s * t / sqrt(dot(t, t)) for s, t in zip(scales, tangents)])
+            # re-normalize tangents:
+            tangents = array([s * t / sqrt(dot(t, t)) for s, t in zip(scales, tangents)])
+            abscissas = range(1, len(energies)+1)
+        else:
+            # If the distances in s are explicitely given, expect also the tangents to be
+            # right
+            tangents = array(tangents)
+            abscissas = array(abscissas)
 
         # projection of the gradient on the new tangents, dE / ds:
         slopes = [dot(g, t) for g, t in zip(gradients, tangents)]
 
         # cubic spline
-        spline = CubicSpline(range(1, len(energies)+1), energies, slopes)
+        spline = CubicSpline(abscissas, energies, slopes)
 
         # spline will be plotted with that many points:
-        line = linspace(1.0, len(energies), 100)
+        line = linspace(abscissas[0], abscissas[-1], 100)
 
-        plt.plot(range(1, len(energies)+1), energies, "o",
+        plt.plot( abscissas, energies, "o",
                  line, map(spline, line), "-",
                  color = colormap(i))
-        plt.xlim((1, len(energies)))
+        plt.xlim((abscissas[0], abscissas[-1]))
 
     #
     # This is the main loop over the input files:
@@ -660,7 +667,7 @@ def plot(argv):
 
         # energy profile:
         if tangents is not None:
-            plot_energy_with_cubic_spline(geometries, energies, gradients, tangents, i)
+            plot_energy_with_cubic_spline(geometries, energies, gradients, tangents, abscissas, i)
         else:
             plot_energy(energies, i)
 
