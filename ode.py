@@ -122,6 +122,16 @@ class ODE(Func):
 
             >>> max(abs(y.fprime(2.0) - f(2.0, y(2.0)))) == 0.0
             True
+
+        Something is fishy with  integration into negative half. ODE()
+        tries to avoid relying on odeint() with non-increasing list of
+        arguments:
+
+            >>> dt = 1.0e-2
+            >>> z = ODE(t0 - dt, y(t0 - dt), f)
+            >>> z(t0)
+            array([[  80.        ,  120.00000447],
+                   [  20.        ,  200.        ]])
         """
 
         # make a copy of the input (paranoya):
@@ -135,29 +145,31 @@ class ODE(Func):
         self.__ysize = y0.size
 
         # odeint() from scipy expects f(y, t) and flat array y:
-        def f1(y, t):
+        def fp(y, t):
 
-            # restore shape:
-            y.shape = self.__yshape
+            # call original function, restore original shape:
+            yp = f(t, y.reshape(self.__yshape), *args)
 
-            # call original function:
-            yp = f(t, y, *args)
+            return yp.reshape(-1)
 
-            # flatten:
-            y.shape = self.__ysize
-            yp.shape = self.__ysize
+        def fm(y, t):
 
-            return yp
+            # call original function, restore original shape:
+            yp = -f(-t, y.reshape(self.__yshape), *args)
+
+            return yp.reshape(-1)
 
         # this 1D-array valued function will be integrated:
-        self.__f1 = f1
+        self.__fp = fp
+        self.__fm = fm
 
     def f(self, t):
 
         # aliases:
         ts = self.__ts
         ys = self.__ys
-        f1 = self.__f1
+        fp = self.__fp
+        fm = self.__fm
 
         # return cached value, if possible (ys is a dict):
         if t in ys:
@@ -166,21 +178,28 @@ class ODE(Func):
         i = searchsorted(ts, t)
 
         # FIXME: t >= t0:
-        assert i > 0
+        # assert i > 0
 
-        # integrate from t0 < t:
-        t0 = ts[i-1]
-        y0 = ys[t0]
-
-        assert t > t0
+        if i > 0:
+            # integrate from t0 < t:
+            t0 = ts[i-1]
+            y0 = ys[t0]
+        else:
+            t0 = ts[i]
+            y0 = ys[t0]
 
         # reshape temporarily:
         y0.shape = self.__ysize
 
         #
-        # compute y(t):
+        # compute y(t), odeint() seems to be confused when t0 > t:
         #
-        _y0, y = odeint(f1, y0, [t0, t])
+        if t >= t0:
+            assert t > t0
+            _y0, y = odeint(fp, y0, [t0, t])
+        else:
+            assert t < t0
+            _y0, y = odeint(fm, y0, [t0, -t])
 
         # restore original shape:
         y0.shape = self.__yshape
@@ -200,13 +219,9 @@ class ODE(Func):
 
         y = self.f(t)
 
-        y.shape = self.__ysize
+        yp = self.__fp(y.reshape(-1), t)
 
-        yp = self.__f1(y, t)
-
-        yp.shape = self.__yshape
-
-        return yp
+        return yp.reshape(self.__yshape)
 
 def rk45(t1, x1, f, h, args=()):
     """Returns RK4 and RK5 steps as a tuple.
