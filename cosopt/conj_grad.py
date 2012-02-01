@@ -25,18 +25,19 @@ class conj_grad_opt():
     The length of the step is determined with a quadratic interpolation with one
     trial step in the direction
     """
-    def __init__(self, atoms, maxstep = 0.1, respace = True,\
+    def __init__(self, reaction_pathway, maxstep = 0.1, respace = True,\
       trial_step = 0.001, \
       reduce_to_steepest_decent = False, **kwargs):
-        # Atoms to give forces/tangents
-        self.atoms = atoms
+        # Reaction_Pathway is an object that gives forces/tangents for
+        # all beads:
+        self.atoms = reaction_pathway
 
         # flags on how conjugate gradient behaves
         self.respace = respace
         self.reduce = reduce_to_steepest_decent
 
         # metric cannot handle more than one bead (in general) at the same time
-        self.size = atoms.beads_count
+        self.size = reaction_pathway.beads_count
 
         # Maximal and start step size
         self.ms = maxstep * self.size
