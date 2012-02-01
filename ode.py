@@ -223,6 +223,138 @@ class ODE(Func):
 
         return yp.reshape(self.__yshape)
 
+from numpy import sqrt, dot, inf
+
+class Radius(Func):
+    """
+    For a Func  y(t) a Radius(y) is a Func, R(t),  defined as a length
+    of the vector:
+
+        R(t) = |y(t) - y(0)|
+
+    if R = Radius(y).
+    """
+
+    def __init__(self, y):
+        self.Y = y
+
+    def taylor(self, t):
+        y, yprime = self.Y.taylor(t)
+
+        dy = y - self.Y(0.0)
+
+        r = sqrt(dot(dy, dy))
+
+        if r == 0.0:
+            rprime = sqrt(dot(yprime, yprime))
+        else:
+            rprime = dot(dy, yprime) / r
+
+        return r, rprime
+
+class Clip(Func):
+    """
+    A Func Y = Clip(y) is a function, Y(R), of a radius, R, that finds
+    and returns a y(t) <= R.
+
+        >>> def f(t, y):
+        ...     yp = - (y - 100.0)
+        ...     yp[0] *= 0.01
+        ...     yp[1] *= 100.
+        ...     return yp
+
+        >>> t0 = 0.0
+        >>> y0 = [80., 120]
+        >>> y = ODE(t0, y0, f)
+
+    Instead of  a funciton  of time, y(t),  make a function,  Y(R), of
+    radius R:
+
+        >>> Y = Clip(y)
+
+    This, in effect, integrates dy/dt = f(t, y) as long as |y - y0| <=
+    R. This is how norm is defined here:
+
+        >>> norm = lambda x: sqrt(dot(x, x))
+
+    Note the norm of the change, Y(R) - Y(0), is equal to the argument
+    R:
+
+        >>> rs = [0.0, 1.0, 10., 20.0]
+        >>> [abs(R - norm(Y(R) - Y(0.0))) < 1.0e-13 for R in rs]
+        [True, True, True, True]
+
+    If  the y(t)  has  a limit,  then  Y(R) becomes  constant at  some
+    (trust) radius:
+
+        >>> limit(y)
+        array([ 100.,  100.])
+
+        >>> Y(28.0)
+        array([  99.59591794,  100.        ])
+
+        >>> Y(29.0)
+        array([ 100.,  100.])
+
+        >>> Y(30.0)
+        array([ 100.,  100.])
+    """
+
+    def __init__(self, y):
+        self.Y = y
+        self.R = Radius(y)
+
+    def taylor(self, R):
+
+        converged = False
+
+        # intial range for the root:
+        ta, tb = 0.0, inf
+        ra, rb = 0.0, inf
+
+        t = 0.0
+        while not converged:
+            r, rprime = self.R.taylor(t)
+
+            if r <= R:
+                ta, ra = t, r
+
+            if r >= R:
+                tb, rb = t, r
+
+            # print "ta, t, tb =", ta, t, tb, "ra, r, rb =", ra, r, rb
+            assert ta <= t <= tb
+            assert ra <= r <= rb
+            assert ra <= R <= rb
+
+            if rprime != 0:
+                dr = r - R
+                dt = - dr / rprime
+                # print "t=", t, "r=", r, "rprime=", rprime, "dt=", dt
+                if ta < t + dt < tb:
+                    # this accepts the Newton step:
+                    t = t + dt
+                elif rb - ra > 0.0:
+                    # FIXME: specialized (Ridders) interpolation?
+                    t = ta + dr * (tb - ta) / (rb - ra)
+                else:
+                    # already converged:
+                    assert ra == r == rb
+            else:
+                # Jumped too far to the  right, t is so big that dy/dt
+                # vanishes. FIXME: what if dy/dt is just orthogonal to
+                # y(t) - y(0)?
+                pass
+
+            assert ta <= t <= tb
+
+            if abs(r - R) <= 1.0e-13 * R or rprime == 0.0:
+                converged = True
+
+        y, yprime = self.Y.taylor(t)
+
+        return y, yprime / self.R.fprime(t)
+
 def rk45(t1, x1, f, h, args=()):
     """Returns RK4 and RK5 steps as a tuple.
 
