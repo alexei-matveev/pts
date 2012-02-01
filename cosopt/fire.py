@@ -21,7 +21,7 @@ class fire_opt():
      Another difference is the respacing for the beads at the end (if
      found necessary by the searcher routine)
     """
-    def __init__(self, atoms, maxstep = 0.1, respace = True,\
+    def __init__(self, reaction_pathway, maxstep = 0.1, respace = True,\
       n_min = 5, f_inc = 1.1, f_dec = 0.5, alpha = 0.1, f_alpha = 0.99,\
       dt_max = 1.0, dt = 0.1, \
       **kwargs):
@@ -33,14 +33,15 @@ class fire_opt():
 
         FIXME: do we really need aditional a maximal step?
         """
-        # Atoms to give forces/tangents
-        self.atoms = atoms
+        # Reaction_Pathway is an object that gives forces/tangents for
+        # all beads:
+        self.atoms = reaction_pathway
 
         # flags on how conjugate gradient behaves
         self.respace = respace
 
         # metric cannot handle more than one bead (in general) at the same time
-        self.size = atoms.beads_count
+        self.size = reaction_pathway.beads_count
 
         # Maximal and start step size
         self.ms = maxstep * self.size
