@@ -127,7 +127,7 @@ class ODE(Func):
         # make a copy of the input (paranoya):
         y0 = array(y0)
 
-        # table of know results:
+        # table of known results:
         self.__ts = [t0]
         self.__ys = {t0 : y0}
 
@@ -159,7 +159,7 @@ class ODE(Func):
         ys = self.__ys
         f1 = self.__f1
 
-        # return cached value, if possible:
+        # return cached value, if possible (ys is a dict):
         if t in ys:
             return ys[t].copy()
 
