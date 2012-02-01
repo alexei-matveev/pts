@@ -30,7 +30,7 @@ import pts.metric as mt
 # DONT: from numpy import array
 
 # needed as global variable
-cb_count_debug = 0
+cb_count_debug = -1
 
 def pathsearcher(atoms, init_path, trafo, **kwargs):
     """
@@ -249,6 +249,7 @@ def find_path(pes, init_path
     # Has also  set global,  as the callback  function wants  this but
     # here  it is  explictly  reset.  FIXME: should  we  count from  1
     # instead?
+    global cb_count_debug
     cb_count_debug = -1
 
     #
