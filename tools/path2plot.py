@@ -602,7 +602,7 @@ def plot(argv):
         plt.plot(range(1, len(energies)+1), energies, "o--", color=colormap(i))
         plt.xlim((1, len(energies)))
 
-    def plot_energy_with_cubic_spline(geometries, energies, tangents, i=0):
+    def plot_energy_with_cubic_spline(geometries, energies, gradients, tangents, i=0):
         """
         Plot the energy profile indicating  the slope of the energy at
         the vertices.
@@ -660,7 +660,7 @@ def plot(argv):
 
         # energy profile:
         if tangents is not None:
-            plot_energy_with_cubic_spline(geometries, energies, tangents, i)
+            plot_energy_with_cubic_spline(geometries, energies, gradients, tangents, i)
         else:
             plot_energy(energies, i)
 
