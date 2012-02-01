@@ -66,13 +66,13 @@ informations:
 
         length of gradient component parallel to the path
 
-    --gperp
+    --grperp
 
         length of gradient component perpendicular to the path
 
     --grangle
 
-        angle (in degree) between path and gradients, should be 90 for
+        angle (in degree) between path  and gradients, should be 0 for
         convergence
 
 Easiest  input is  by path.pickle  files which  can be  given directly
