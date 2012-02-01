@@ -282,9 +282,10 @@ def find_path(pes, init_path
             geometries = CoS.state_vec.reshape(CoS.beads_count, -1)
             energies = CoS.bead_pes_energies.reshape(-1)
             gradients = CoS.bead_pes_gradients.reshape(CoS.beads_count, -1)
+            tangents = CoS.update_tangents()
             abscissas = CoS.pathpos()
 
-            cb1(geometries, energies, gradients, abscissas=abscissas)
+            cb1(geometries, energies, gradients, tangents, abscissas)
 
     # print out initial path
     cb(init_path)
