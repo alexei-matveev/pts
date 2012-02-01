@@ -62,7 +62,7 @@ def qn(pes, start_geo, metric, max_iteration = 100000000, \
          # calculate one step of the qausi_newton, also update dimer direction
          step = - hess.inv(grad)
 
-         step_len = metric.norm_down(step, start_geo)
+         step_len = metric.norm_up(step, start_geo)
          if step_len > max_step:
              assert step_len > 0
              step *= max_step / step_len
@@ -101,7 +101,7 @@ def main(args):
     pes, start_geo, __, params, atoms, funcart = read_dimer_input(args[1:], args[0] )
     metric = Default()
 
-    if "trajectory" in params.keys():
+    if "trajectory" in params:
         if params["trajectory"] in ["empty", "None", "False"]:
             params["trajectory"] = empty_traj
         elif params["trajectory"] == "every":
