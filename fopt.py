@@ -145,7 +145,7 @@ from numpy.linalg import solve #, eigh
 from scipy.optimize import fmin_l_bfgs_b as minimize1D
 from bfgs import LBFGS, BFGS
 
-VERBOSE = False
+VERBOSE = 0
 
 TOL = 1.e-6
 
@@ -389,9 +389,11 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
         if VERBOSE:
             if e0 is not None:
                 print "fmin: e - e0=", e - e0
-            print "fmin: r=", r
             print "fmin: e=", e
-            print "fmin: g=", g
+            print "fmin: max(abs(g))=", max(abs(g))
+            if VERBOSE > 1:
+                print "fmin: r=\n", r
+                print "fmin: g=\n", g
 
         # update the hessian representation:
         if iteration > 0: # only then r0 and g0 are meaningfull!
@@ -404,12 +406,13 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
         longest = max(abs(dr))
         if longest > maxstep:
             if VERBOSE:
-                print "fmin: dr=", dr, "(too long, scaling down)"
+                print "fmin: max(abs(dr))=", longest, ">", maxstep, "(too long, scaling down)"
             dr *= maxstep / longest
 
         if VERBOSE:
-            print "fmin: dr=", dr
             print "fmin: dot(dr, g)=", dot(dr, g)
+            if VERBOSE > 1:
+                print "fmin: dr=\n", dr
 
         # Save  for later  comparison. Assignment  e, g  =  fg(r) will
         # re-bind (e, g), not modify them:
