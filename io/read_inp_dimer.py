@@ -283,7 +283,7 @@ def read_dimer_input(rest, name):
     # Build up the qfunc, calculator is included in atoms already
     pes = compose(QFunc(atoms, calc = atoms.get_calculator()), funcart)
 
-    if "cache" in params_dict.keys():
+    if "cache" in params_dict:
           if params_dict["cache"] == None:
                 pes = Memoize(pes, FileStore("%s.ResultDict.pickle" % (name)))
           else:
@@ -435,10 +435,10 @@ def from_params_file_dimer( lines ):
     geo_dict = {}
 
     glob_olds = locals().copy()
-    print glob_olds.keys()
+    #print glob_olds.keys()
     exec(lines)
     glob = locals()
-    print glob.keys()
+    #print glob.keys()
 
     for param in glob:
         if param not in glob_olds:
