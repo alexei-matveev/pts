@@ -287,6 +287,7 @@ def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, give_ou
     The hessian is calculated by derivatef
     qfunc.fwrapper is used as a wrapper to calulate the gradients
     """
+    from pts.memoize import Memoize, DirStore
     coord = atoms.get_positions()
 
     if mask == None:
@@ -299,7 +300,11 @@ def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, give_ou
 
     xcenter = fun.pinv(coord)
 
-    myfunc = compose( QFunc(atoms, atoms.get_calculator()), fun)
+    myfunc = QFunc(atoms, atoms.get_calculator())
+
+    myfunc = Memoize(myfunc, DirStore("cache.d"))
+
+    myfunc = compose( myfunc, fun)
 
     pmapc = pwrapper(pmap)
     func = fwrapper(myfunc, startdir = startdir, mask = mask, workhere = workhere)
