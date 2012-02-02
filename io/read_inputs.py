@@ -485,6 +485,10 @@ def ensure_short_way(init_path_raw, dih, quats, lengt):
 
     return init_path
 
+VERBOSE = 0
+
+import sys
+import getopt
 
 def interpret_sysargs(rest):
     """
@@ -494,16 +498,66 @@ def interpret_sysargs(rest):
     Transforms them to parameter and input for pathsearcher.
     """
 
-    if "--help" in rest:
-        if "geometries" in rest:
+    if VERBOSE:
+        print "argv=", rest
+
+    long_opts = ["help",
+                 "defaults",
+                 "method=",      # must die use, argv[0]
+                 "paramfile=",   # FIXME: obligatory, not an option
+                 "zmatrix=",
+                 "init_path=",
+                 "cache=",
+                 "mask=",
+                 "cell=",
+                 "pbc=",
+                 "pmap=",
+                 "workhere=",    # type? Boolean, then why "="?
+                 "format=",
+                 "zmt_format=",
+                 "old_results="] # must die, use --cache instead
+
+    # take over long options from other sources:
+    for o in ps_default_params:
+        long_opts.append(o + "=")
+    del o
+
+    if VERBOSE:
+        print "long_opts=", long_opts
+
+    try:
+        opts, args = getopt.gnu_getopt(rest, "", long_opts)
+    except getopt.GetoptError, e:
+        print >> sys.stderr, "ERROR:", e
+        print >> sys.stderr, ""
+        print >> sys.stderr, __doc__
+        raise e
+
+    # Strip the leading "--" form the options, keep values as is:
+    opts = [(o[2:], a) for o, a in opts]
+    del o, a
+
+    # "opts"  is  an order  list  of (op,  val)  pairs,  "optd" is  an
+    # *unordered* dictionary containing the same key-value pairs:
+    optd = dict(opts)
+
+    if VERBOSE:
+        print "opts=", opts
+        print "optd=", optd
+        print "args=", args
+
+    # FIXME: should we rather  use "help=" and treat GetOpt exceptions
+    # separately?
+    if "help" in optd:
+        if "geometries" in args:
             info_geometries()
-        elif "parameter" in rest:
+        elif "parameter" in args:
             info_ps_params()
         else:
             print __doc__
         exit()
 
-    if "--defaults" in rest:
+    if "defaults" in optd:
         print "The default parameters for the path searching algorithm are:"
         for param, value in ps_default_params.iteritems():
             print "    %s = %s" % (str(param), str(value))
@@ -518,12 +572,8 @@ def interpret_sysargs(rest):
 
     # Now loop  over the  arguments.  As one  reads in usually  two at
     # once, one might run out of arguements before the loop is over:
-    while len(rest) > 0:
-        if rest[0].startswith("--"):
-            # this are the options given as
-            # --option argument
-            o = rest[0][2:]
-            a = rest[1]
+    for o, a in opts:
+        # FIXME: indent:
             # filter out the special ones
             if o == "paramfile":
                 # file containing parameters
@@ -563,11 +613,8 @@ def interpret_sysargs(rest):
                 else:
                     add_param[o] = a
 
-            rest = rest[2:]
-        else:
-            # all other things are supposed to be geometries
-            geos.append(rest[0])
-            rest = rest[1:]
+    # all other things are supposed to be geometries:
+    geos = args
 
     return geos, geo_dict, zmatrix, add_param, direct_path, paramfile
 
