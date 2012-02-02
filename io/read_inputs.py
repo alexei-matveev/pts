@@ -488,10 +488,10 @@ def ensure_short_way(init_path_raw, dih, quats, lengt):
 
 def interpret_sysargs(rest):
     """
-    Gets the arguments out of the sys arguments if pathsearcher
-    is called interactively
+    Gets the  arguments out  of the sys  arguments if  pathsearcher is
+    called interactively.
 
-    transforms them to parameter and input for pathsearcher
+    Transforms them to parameter and input for pathsearcher.
     """
 
     if "--help" in rest:
