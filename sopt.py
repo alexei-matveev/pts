@@ -1387,7 +1387,7 @@ def test1(n):
 
     vol = compose(Volume(), z)
 
-    def callback(x, e, g):
+    def callback(x, e, g, t):
         # from pts.tools.jmol import jmol_view_path
         print "energies=", e # map(pes, x)
         print "volume=", map(vol, x)
@@ -1395,13 +1395,13 @@ def test1(n):
         pass
 
     print "BEFORE:"
-    callback(x0, map(pes, x0), map(pes.fprime, x0))
+    callback(x0, map(pes, x0), map(pes.fprime, x0), None)
 
     x1, info = soptimize(pes, x0, tangent1, rc=vol, callback=callback)
     # print "info=", info
 
     print "AFTER:"
-    callback(x1, map(pes, x1), map(pes.fprime, x1))
+    callback(x1, map(pes, x1), map(pes.fprime, x1), None)
 
     # from pts.tools.jmol import jmol_view_path
     # jmol_view_path(map(z, x1), syms=["Ar"]*4)
