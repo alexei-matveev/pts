@@ -424,11 +424,85 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
         # re-bind (e, g), not modify them:
         r0, e0, g0 = r, e, g
 
-        # rebind, do not update the variable:
-        r = r + dr
+        #
+        # Investigate objective function  along the descent direction,
+        # also  computing  gradient at  every  point.   It may  become
+        # problematic  to rely on  the small  energy changes  close to
+        # convergence because of finite accuracy of QM energies.
+        #
+        # Thus, for  the moment, instead of making  sure the objective
+        # function is indeed reduced (First Wolfe condition) make sure
+        # that the gradient is not becoming too big while changing the
+        # sign. Remeber that  dot(dr, g(r0)) is negative as  dr is the
+        # descent direction:
+        #
+        #     dot(dr, g(r0 + alpha * dr)) <= - C2 * dot(dr, g(r0))
+        #
+        # For that  choose a scale  factor alpha small enough  so that
+        # gradient projection does not grow  much on the other side of
+        # the minumum.
+        #
+        # This is a somewhat  weakened second Wolfe condition.  FIXME:
+        # one might  decide for relaxing the condition  of the maximal
+        # step length if one wants an additional requirement,
+        #
+        #      C2 * dot(dr, g(r0)) <= dot(dr, g(r0 + alpha * dr))
+        #
+        # that together with the first correspond to strong version of
+        # the second Wolfe condition.
+        #
 
-        # invoke objective function, also computes the gradient:
-        e, g = fg(r)
+        #
+        # First- and second Wolfe (Armijo) parameters:
+        #
+        C1, C2 = 1.0e-4, 0.9
+
+        #
+        # Try  the full QN  step first,  if the  step was  not already
+        # scaled down, of course:
+        #
+        alpha = 1.0
+
+        e, g = fg(r + alpha * dr)
+
+        if VERBOSE:
+            print "fmin: dot(dr, g1)=", dot(dr, g)
+
+        #
+        # First Wolfe  (Armijo) condition is difficult  to satisfy for
+        # noisy VASP energies, when close to convergence. FIXME: maybe
+        # make it active only if dot(dr, g0) >> etol?
+        #
+        # while e > e0 + C1 * alpha * dot(dr, g0):
+        #
+        while dot(dr, g) > - C2 * dot(dr, g0) and alpha > 0.5**10:
+
+            #
+            # With the condition above this  scales the step size by a
+            # factor that  is below 1/(1+C2)  < 1.  With C2=0.9  it is
+            # 0.53. So  practically, this  reduces the step  by factor
+            # 1.9 or more:
+            #
+            alpha = alpha * (-dot(dr, g0)) / (dot(dr, g) - dot(dr, g0))
+
+            if VERBOSE:
+                # print "fmin: retry with alpha=", alpha,\
+                #     "energy e=", e, "too high"
+                print "fmin: retry with alpha=", alpha, \
+                    "dot(dr, g)=", dot(dr, g), "too high"
+
+            # compute them again:
+            e, g = fg(r + alpha * dr)
+
+            if VERBOSE:
+                print "fmin: dot(dr, g1)=", dot(dr, g)
+
+        # FIXME: Wolfe-2 unsatisfied!"
+        assert alpha > 0.5**10
+
+        # rebind, do not update the variables:
+        dr = alpha * dr
+        r = r + dr
 
         # check convergence, if any:
         criteria = 0
