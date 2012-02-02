@@ -2,77 +2,87 @@
 """
 GEOMETRY
 
-Geometries can be provided as files, which can be interpreted by ASE. This
-includes xyz-, POSCAR, and gx-files. File format is in part determied from the
-file name or extension, e.g. POSCAR and gx-files by the presence of "POSCAR" or
-"gx" substrings. If the format is not extractable from the filename it can be
-given as an addtional parameter as --format <format> . The Values for <format>
-are gx or are in the list of short names in the ASE documentation.
+Geometries  can be  provided as  files,  which can  be interpreted  by
+ASE. This includes xyz-, POSCAR,  and gx-files. File format is in part
+determied from the file name or extension, e.g. POSCAR and gx-files by
+the  presence of "POSCAR"  or "gx"  substrings. If  the format  is not
+extractable  from  the  filename  it  can be  given  as  an  addtional
+parameter as --format <format> . The Values for <format> are gx or are
+in the list of short names in the ASE documentation.
 
-If the calculation should be done in internal (or mixed coordinate system) one gives
-the geometries in cartesians  and specifies additionally the zmatrix/zmatrices
-They will then be given by writing --zmatrix zmat_file. It is supposed that the first atom
-of each zmatrix is the uppermost not yet used atom of all atoms given.
+If the  calculation should  be done in  internal (or  mixed coordinate
+system)  one   gives  the  geometries  in   cartesians  and  specifies
+additionally the zmatrix/zmatrices They  will then be given by writing
+
+    --zmatrix  zmat_file
+
+It is  supposed that the first  atom of each zmatrix  is the uppermost
+not yet used atom of all atoms given.
 
 ZMATRIX
 
 A zmatrix may look something like:
 
-""
-C
-H 1 var1
-H 1 var2 2 var3
-H 1 var4 2 var5 3 var6
-H 1 var7 2 var8 4 var9
-""
+    ""
+    C
+    H 1 var1
+    H 1 var2 2 var3
+    H 1 var4 2 var5 3 var6
+    H 1 var7 2 var8 4 var9
+    ""
 
-The first element of each line is supposed to be the name of the atom. Then
-follows the connectivity matrix, where for each appearing variable a name is
-given. The connectivities are given by the line number of the atom, starting
-with 1. First variable is always the length, second the angle and third the
-dihedral angle. If variable names appear more than once these variables are set
-to the same value. Giving a variable name as another variable name with a
-"-" in front of it, the values are always set to the negative of the other
+The  first element of  each line  is supposed  to be  the name  of the
+atom. Then  follows the connectivity matrix, where  for each appearing
+variable a  name is  given. The connectivities  are given by  the line
+number  of the atom,  starting with  1. First  variable is  always the
+length, second  the angle  and third the  dihedral angle.  If variable
+names  appear more  than  once these  variables  are set  to the  same
+value. Giving a  variable name as another variable name  with a "-" in
+front of  it, the values are always  set to the negative  of the other
 variable.
 
 ZMATRIX VIA GXFILE
 
-Additional it is possible to provide the zmatrix in a gxfile. Currently even if
-the connectivities are set in a gxfile as input for the geometries they are ignored.
-They have to be given separately. This is done by giving gxfile's of any name
-instead of the zmatrix files specified above and set the parameter:
---zmt_format gx
+Additional   it   is   possible   to   provide  the   zmatrix   in   a
+gxfile. Currently  even if the connectivities  are set in  a gxfile as
+input  for the geometries  they are  ignored.  They  have to  be given
+separately. This is done by giving gxfile's of any name instead of the
+zmatrix files specified above and set the parameter:
 
-This is more supposed to be an option for ParaGauss user, which want to reuse
-their connectivities already specified in their gx input files, thus a description
-how to build up a gxfile is not given here. It is recommended to use rather the zmat
-format given above in case a new zmatrix has to be build.
+    --zmt_format gx
 
-For those having gxfiles ParaTools will read in the connectivity matrix specified
-in them and also the variable names. They are used to find equal variables which
-use the same value (mind that ParaTools does not check if it makes sense to
-use the same value for these variables). If variables are specified with a 0 as fixed
-and there is exactly one gxfile for the parameter covering the complete system
-this is used to fix the special coordinates. In all the other cases it is not
-used. A direct mask given separately always overwrites any mask specified in the
-gxfile.
+This is more  supposed to be an option for  ParaGauss user, which want
+to  reuse their  connectivities already  specified in  their  gx input
+files,  thus a  description how  to  build up  a gxfile  is not  given
+here. It is  recommended to use rather the zmat  format given above in
+case a new zmatrix has to be build.
+
+For  those having  gxfiles  ParaTools will  read  in the  connectivity
+matrix specified in them and also the variable names. They are used to
+find equal  variables which  use the same  value (mind  that ParaTools
+does  not check if  it makes  sense to  use the  same value  for these
+variables). If variables are specified with  a 0 as fixed and there is
+exactly one gxfile for the parameter covering the complete system this
+is used to  fix the special coordinates. In all the  other cases it is
+not used.  A direct mask  given separately always overwrites  any mask
+specified in the gxfile.
 
 ADDITIONAL GEOMETRY RELATED INFORMATIONS:
 
-Additional informations can be taken from the minima ASE inputs. The ASE atoms
-objects may contain more informations than only the chemical symbols and the
-geometries of the wanted object. For example if reading in POSCARs there are
-additional informations as about the cell (pbc would be also set automatically
-to true in all directions). This informations can also be read in,
-if they are available. Then they can be used for specifiying the quantum chemical
-calculator. So VASP for instance needs a proper cell.
-They are only used, if these variables are not provided another way (by direct
-setting them for instance).
+Additional informations can  be taken from the minima  ASE inputs. The
+ASE atoms objects may contain more informations than only the chemical
+symbols  and the  geometries  of  the wanted  object.  For example  if
+reading in POSCARs there are additional informations as about the cell
+(pbc would be also set  automatically to true in all directions). This
+informations can also be read in, if they are available. Then they can
+be used for  specifiying the quantum chemical calculator.  So VASP for
+instance needs a proper cell.   They are only used, if these variables
+are not provided another way (by direct setting them for instance).
 
-Additionally ASE can hold some constraints, which may be
-taken from a POSCAR or set directly. Some of them can be also used to generate
-a mask. This is only done if cartesian coordinates are used further on. They are
-not used if a mask is specified directely.
+Additionally ASE can hold some  constraints, which may be taken from a
+POSCAR or  set directly. Some of them  can be also used  to generate a
+mask.  This is  only done  if cartesian  coordinates are  used further
+on. They are not used if a mask is specified directely.
 """
 from ase.io import read as read_ase
 from pts.common import file2str
