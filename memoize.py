@@ -470,7 +470,7 @@ class DirStore(object):
         self.filename = filename
 
         if os.path.exists(filename):
-            print >> sys.stderr, "WARNING: DirStore: found ", filename
+            print >> sys.stderr, "WARNING: DirStore: found", filename
 
     def __setitem__(self, key, val):
         """Needs to update on-disk state."""
