@@ -490,7 +490,7 @@ VERBOSE = 0
 import sys
 import getopt
 
-def interpret_sysargs(rest):
+def interpret_sysargs(argv):
     """
     Gets the  arguments out  of the sys  arguments if  pathsearcher is
     called interactively.
@@ -499,7 +499,7 @@ def interpret_sysargs(rest):
     """
 
     if VERBOSE:
-        print "argv=", rest
+        print "argv=", argv
 
     long_opts = ["help",
                  "defaults",
@@ -526,7 +526,7 @@ def interpret_sysargs(rest):
         print "long_opts=", long_opts
 
     try:
-        opts, args = getopt.gnu_getopt(rest, "", long_opts)
+        opts, args = getopt.gnu_getopt(argv, "", long_opts)
     except getopt.GetoptError, e:
         print >> sys.stderr, "ERROR:", e
         print >> sys.stderr, ""
