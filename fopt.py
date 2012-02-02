@@ -402,6 +402,12 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
         # Quasi-Newton step: df = - H * g, H = B^-1:
         dr = - hessian.inv(g)
 
+        #
+        # This  should better  be  the descent  direction, holds  when
+        # hessian is positive definite, H > 0:
+        #
+        assert dot(dr, g) <= 0.0
+
         # restrict the maximum component of the step:
         longest = max(abs(dr))
         if longest > maxstep:
