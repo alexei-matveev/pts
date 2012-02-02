@@ -516,13 +516,10 @@ def interpret_sysargs(rest):
     add_param = {}
     zmatrix = []
 
-    # Now loop over the arguments
-    for i in range(len(rest)):
-        if rest == []:
-            # As one reads in usually two at once, one might run out of
-            # arguements before the loop is over
-            break
-        elif rest[0].startswith("--"):
+    # Now loop  over the  arguments.  As one  reads in usually  two at
+    # once, one might run out of arguements before the loop is over:
+    while len(rest) > 0:
+        if rest[0].startswith("--"):
             # this are the options given as
             # --option argument
             o = rest[0][2:]
