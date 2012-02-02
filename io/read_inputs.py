@@ -573,45 +573,44 @@ def interpret_sysargs(rest):
     # Now loop  over the  arguments.  As one  reads in usually  two at
     # once, one might run out of arguements before the loop is over:
     for o, a in opts:
-        # FIXME: indent:
-            # filter out the special ones
-            if o == "paramfile":
-                # file containing parameters
-                paramfile = file2str(a)
-            elif o in ("old_results", "cache"):
-                # file to take results from previous calculations from
-                add_param["cache"] = a
-            elif o in ("zmatrix"):
-                # zmatrix if given separate to the geometries
-                zmatrix.append(a)
-            elif o in ("init_path"):
-                # zmatrix if given separate to the geometries
-                direct_path = loadtxt(a)
-            elif o in geo_params:
-                # only needed to build up the geometry
-              if o in ("mask"):
-                   # needed to build up the geometry and wanted for params output
-                  geo_dict[o] = get_mask(a)
-              elif o in ("cell", "pbc"):
-                  geo_dict[o] = eval(a)
-              else:
-                  geo_dict[o] = a
-            elif o in ("pmap"):
-                add_param[o] = eval(a)
-            elif o in ("workhere"):
-                add_param[o] = int(a)
+        # filter out the special ones
+        if o == "paramfile":
+            # file containing parameters
+            paramfile = file2str(a)
+        elif o in ("old_results", "cache"):
+            # file to take results from previous calculations from
+            add_param["cache"] = a
+        elif o in ("zmatrix"):
+            # zmatrix if given separate to the geometries
+            zmatrix.append(a)
+        elif o in ("init_path"):
+            # zmatrix if given separate to the geometries
+            direct_path = loadtxt(a)
+        elif o in geo_params:
+            # only needed to build up the geometry
+            if o in ("mask"):
+                # needed to build up the geometry and wanted for params output
+                geo_dict[o] = get_mask(a)
+            elif o in ("cell", "pbc"):
+                geo_dict[o] = eval(a)
             else:
-                assert(o in ps_default_params), o
-                # suppose that the rest are setting parameters
-                # compare the default_params
-                if o in ps_are_floats:
-                    add_param[o] = float(a)
-                elif o in ps_are_ints:
-                    add_param[o] = int(a)
-                elif o in ps_are_complex:
-                    add_param[o] = eval(a)
-                else:
-                    add_param[o] = a
+                geo_dict[o] = a
+        elif o in ("pmap"):
+            add_param[o] = eval(a)
+        elif o in ("workhere"):
+            add_param[o] = int(a)
+        else:
+            assert(o in ps_default_params), o
+            # suppose that the rest are setting parameters
+            # compare the default_params
+            if o in ps_are_floats:
+                add_param[o] = float(a)
+            elif o in ps_are_ints:
+                add_param[o] = int(a)
+            elif o in ps_are_complex:
+                add_param[o] = eval(a)
+            else:
+                add_param[o] = a
 
     # all other things are supposed to be geometries:
     geos = args
