@@ -151,6 +151,7 @@ def interprete_input(args):
     """
     # first read in geometries and sort parameter
     geos, geo_dict2, zmat, add_param, direct_path, paramfile = interpret_sysargs(args)
+
     # noverwrite by those given in parameter file
     if not paramfile == None:
         params_dict, geo_dict = from_params_file( paramfile, ps_default_params)
@@ -158,25 +159,34 @@ def interprete_input(args):
         params_dict = {}
         geo_dict = {}
 
-    # this way dirct paramter have preferance (will overwrite the ones from the file)
+    # this way dirct paramter have preferance (will overwrite the ones
+    # from the file)
     params_dict.update(add_param)
     geo_dict.update(geo_dict2)
-    # geometries are given in Cartesian, here transform them to internals
-    # calculator for forces, internal start path, function to transform internals to Cartesian coordinates,
-    # the numbers where dihedrals are, which of the function parts have global positions, how many
-    # variables belong to the function part
+
+    # geometries  are  given  in  Cartesian, here  transform  them  to
+    # internals calculator  for forces, internal  start path, function
+    # to  transform internals  to Cartesian  coordinates,  the numbers
+    # where  dihedrals are, which  of the  function parts  have global
+    # positions, how many variables belong to the function part
     atoms, init_path, funcart, dih, quats, lengt, mask1 = get_geos(geos, geo_dict, zmat)
-    # dihedrals and quaternions have 2pi periodicity, adapt them if needed
+
+    # dihedrals and  quaternions have  2pi periodicity, adapt  them if
+    # needed
     init_path = ensure_short_way(init_path, dih, quats, lengt)
+
     # if a mask has been provided, some variables are not optimized
     funcart, init_path = get_masked(funcart, atoms, geo_dict, zmat == [], init_path, mask1)
+
     # leave no constraints at the atoms:
     for con in atoms.constraints:
        atoms.constraints.remove(con)
 
-    # if the path in interals is given directly, this should be respected:
+    # if  the path  in  interals  is given  directly,  this should  be
+    # respected:
     if direct_path is not None:
        init_path = direct_path
+
     # this is everything that is needed for a pathsearcher calculation
     return atoms, init_path, funcart, params_dict
 
