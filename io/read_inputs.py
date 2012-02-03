@@ -508,17 +508,15 @@ def interpret_sysargs(argv):
                  "zmatrix=",
                  "init_path=",
                  "cache=",
-                 "mask=",
-                 "cell=",
-                 "pbc=",
                  "pmap=",
                  "workhere=",    # type? Boolean, then why "="?
-                 "format=",
-                 "zmt_format=",
                  "old_results="] # must die, use --cache instead
 
     # take over long options from other sources:
     for o in ps_default_params:
+        long_opts.append(o + "=")
+
+    for o in geo_params:
         long_opts.append(o + "=")
     del o
 
