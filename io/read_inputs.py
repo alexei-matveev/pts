@@ -536,7 +536,9 @@ def interpret_sysargs(argv):
     del o, a
 
     # "opts"  is  an order  list  of (op,  val)  pairs,  "optd" is  an
-    # *unordered* dictionary containing the same key-value pairs:
+    # *unordered* dictionary containing the same key-value pairs. This
+    # is probably not a good  approach if repeated options are allowed
+    # in the command line:
     optd = dict(opts)
 
     if VERBOSE:
