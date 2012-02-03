@@ -599,8 +599,7 @@ def interpret_sysargs(argv):
             add_param[o] = eval(a)
         elif o in ("workhere"):
             add_param[o] = int(a)
-        else:
-            assert(o in ps_default_params), o
+        elif o in ps_default_params:
             # suppose that the rest are setting parameters
             # compare the default_params
             if o in ps_are_floats:
@@ -611,6 +610,8 @@ def interpret_sysargs(argv):
                 add_param[o] = eval(a)
             else:
                 add_param[o] = a
+        else:
+            assert False, "getopt accepted something we dont know: " + o
 
     # all other things are supposed to be geometries:
     geos = args
