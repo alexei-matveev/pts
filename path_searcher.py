@@ -30,7 +30,7 @@ import pts.metric as mt
 # DONT: from numpy import array
 
 # needed as global variable
-cb_count_debug = -1
+cb_count_debug = 0
 
 def pathsearcher(atoms, init_path, trafo, **kwargs):
     """
@@ -250,7 +250,7 @@ def find_path(pes, init_path
     # here  it is  explictly  reset.  FIXME: should  we  count from  1
     # instead?
     global cb_count_debug
-    cb_count_debug = -1
+    cb_count_debug = 0
 
     #
     # Callback function, communicate variables through argument list:
@@ -272,13 +272,14 @@ def find_path(pes, init_path
             filename = "%s/%s.state_vec%03d.txt" % (output_path, name, cb_count_debug)
             savetxt(filename, geometries)
 
-    #
-    # Callback  function  for  optimizers  using  the  CoS  object  to
-    # communicate between  subsystems. All  data will be  fetched from
-    # there. I would say, this is an abuse and must die.
-    #
-    def cb(x, tol=None): # FIXME: x is unused, do we still need tol?
-        if CoS is not None:
+
+    if method != 'sopt':
+        #
+        # Callback  function  for  optimizers  using  the  CoS  object  to
+        # communicate between  subsystems. All  data will be  fetched from
+        # there. I would say, this is an abuse and must die.
+        #
+        def cb(x ): # FIXME: x is unused, do we still need tol?
             geometries = CoS.state_vec.reshape(CoS.beads_count, -1)
             energies = CoS.bead_pes_energies.reshape(-1)
             gradients = CoS.bead_pes_gradients.reshape(CoS.beads_count, -1)
@@ -287,16 +288,38 @@ def find_path(pes, init_path
 
             cb1(geometries, energies, gradients, tangents, abscissas)
 
-    # print out initial path
-    cb(init_path)
+        # print out initial path, if output_level alows it
+        if output_level > 1:
+            # read data from object, they might be changed from our starting values,
+            # e.g. by respacing. Be aware that the values for energies and gradients
+            # are not yet set. Read them out to reuse their start values (None).
+            abscissas  = CoS.pathpos()
+            geometries, energies, gradients = CoS.state_vec, CoS.bead_pes_energies, CoS.bead_pes_gradients
+            tangents = CoS.update_tangents()
+            pickle_path("%s/%s.inital.path.pickle" % (output_path ,name),
+                        geometries.reshape(CoS.beads_count, -1) , energies.reshape(-1) ,\
+                        gradients.reshape(CoS.beads_count, -1) ,
+                        tangents, abscissas,
+                        symbols, trafo)
 
-    if method != 'sopt':
         #
         # Main optimisation loop:
         #
         converged = runopt(opt_type, CoS, callback=cb, **kwargs)
         abscissa  = CoS.pathpos()
         geometries, energies, gradients = CoS.state_vec, CoS.bead_pes_energies, CoS.bead_pes_gradients
+
+        if output_level > 0:
+            # Path needs additonal tangents as input.
+            tangents = CoS.update_tangents()
+            #Create output of path once more. This time it is the first result "output".
+            #Its name is independant of the last iteration and it will be given both
+            #for smaller output_level as to the original folder.
+            pickle_path("%s.path.pickle" % (name), # v2
+                        geometries.reshape(CoS.beads_count, -1) , energies.reshape(-1) ,\
+                        gradients.reshape(CoS.beads_count, -1) ,
+                        tangents, abscissa,
+                        symbols, trafo)
     else:
         #
         # Alternative optimizer:
@@ -314,12 +337,6 @@ def find_path(pes, init_path
         energies = info["energies"]
         gradients = info["gradients"]
         abscissa = None
-
-    #
-    # Write out final path to  a file. The corresponding file name has
-    # the largest index:
-    #
-    cb1(geometries, energies, gradients, abscissas=abscissa)
 
     # Return  (hopefully)  converged  discreete  path  representation.
     # Return  convergence   status,  internal  coordinates,  energies,
