@@ -494,7 +494,10 @@ class difference():
         self.b = b
 
     def give(self, line):
-        return line[self.a] - line[self.b]
+        diff=[]
+        for i in range(len(line[self.a])):
+            diff.append(line[self.a][i]-line[self.b][i])
+        return diff
 
 
 class testsymmetric():
