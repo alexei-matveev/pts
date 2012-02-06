@@ -290,12 +290,19 @@ def find_path(pes, init_path
 
         # print out initial path, if output_level alows it
         if output_level > 1:
-            # read data from object, they might be changed from our starting values,
-            # e.g. by respacing. Be aware that the values for energies and gradients
-            # are not yet set. Read them out to reuse their start values (None).
+            # read data  from object, they  might be changed  from our
+            # starting values,  e.g. by  respacing. Be aware  that the
+            # values for energies and  gradients are not yet set. Read
+            # them out to reuse their start values (None).
             abscissas  = CoS.pathpos()
             geometries, energies, gradients = CoS.state_vec, CoS.bead_pes_energies, CoS.bead_pes_gradients
             tangents = CoS.update_tangents()
+
+            #
+            # Write out initial path to  a file. The location and file
+            # name are different from  those used in callback function
+            # cb1():
+            #
             pickle_path("%s/%s.inital.path.pickle" % (output_path ,name),
                         geometries.reshape(CoS.beads_count, -1) , energies.reshape(-1) ,\
                         gradients.reshape(CoS.beads_count, -1) ,
@@ -309,12 +316,17 @@ def find_path(pes, init_path
         abscissa  = CoS.pathpos()
         geometries, energies, gradients = CoS.state_vec, CoS.bead_pes_energies, CoS.bead_pes_gradients
 
+        #
+        # Write out final  path to a file. The  location and file name
+        # are different from those used in callback function cb1():
+        #
         if output_level > 0:
             # Path needs additonal tangents as input.
             tangents = CoS.update_tangents()
-            #Create output of path once more. This time it is the first result "output".
-            #Its name is independant of the last iteration and it will be given both
-            #for smaller output_level as to the original folder.
+            # Create output  of path  once more. This  time it  is the
+            # first result  "output".  Its name is  independant of the
+            # last  iteration and it  will be  given both  for smaller
+            # output_level as to the original folder.
             pickle_path("%s.path.pickle" % (name), # v2
                         geometries.reshape(CoS.beads_count, -1) , energies.reshape(-1) ,\
                         gradients.reshape(CoS.beads_count, -1) ,
