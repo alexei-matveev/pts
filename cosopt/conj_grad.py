@@ -26,7 +26,7 @@ class conj_grad_opt():
     trial step in the direction
     """
     def __init__(self, reaction_pathway, maxstep = 0.1, respace = True,\
-      trial_step = 0.005, \
+      trial_step = 0.01, \
       reduce_to_steepest_decent = False, **kwargs):
         # Reaction_Pathway is an object that gives forces/tangents for
         # all beads:
