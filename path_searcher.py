@@ -279,7 +279,7 @@ def find_path(pes, init_path
         # communicate between  subsystems. All  data will be  fetched from
         # there. I would say, this is an abuse and must die.
         #
-        def cb(x ): # FIXME: x is unused, do we still need tol?
+        def cb(x):
             geometries = CoS.state_vec.reshape(CoS.beads_count, -1)
             energies = CoS.bead_pes_energies.reshape(-1)
             gradients = CoS.bead_pes_gradients.reshape(CoS.beads_count, -1)
