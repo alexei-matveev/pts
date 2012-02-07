@@ -40,7 +40,7 @@ from sys import argv as arg
 from sys import exit
 import numpy as np
 from matplotlib.pyplot import plot, show, legend, rcParams, xlabel, ylabel, xscale, yscale
-from matplotlib.pyplot import gca
+from matplotlib.pyplot import gca,figure
 from matplotlib.pyplot import title as set_title
 from scipy.interpolate import splrep, splev
 from copy import copy
@@ -186,6 +186,7 @@ def main(argv):
     ytil = None
     til = None
     log = []
+    outputfile = None
     option2 = None
     xrange = None
     yrange = None
@@ -211,6 +212,8 @@ def main(argv):
             elif option.startswith("log"):
                 opts = option.split()
                 log.append(opts[1])
+            elif option.startswith("output"):
+                outputfile = option[6:]
             elif option.startswith("xrange"):
                 opts = option.split()
                 xrange = [float(op) for op in opts[1:3]]
@@ -234,13 +237,14 @@ def main(argv):
        tablep, pname, tableb, bname, tabelr, rname = read_tab(file)
        pl.prepare_plot(tablep, pname, tableb, bname, tabelr, rname, option2)
 
-    pl.plot_data(xrange = xrange, yrange = yrange)
+    pl.plot_data(xrange = xrange, yrange = yrange, savefile = outputfile)
 
 
 class plot_tabs:
     def __init__(self, title = None, x_label = None, y_label = None, log = []):
         # set some parameters for the legend, as it would be
         # to big else
+        self.fig=figure()
         rcParams['font.size'] = 8
         # the lines may be a bit wider than the default
         rcParams['lines.linewidth'] = 2
@@ -326,7 +330,7 @@ class plot_tabs:
         if tabelr is not None:
             makeplotter(tabelr, xfun, yfuns, rname, 'o:')
 
-    def plot_data(self, xrange = None, yrange = None):
+    def plot_data(self, xrange = None, yrange = None, savefile = None):
         a = gca()
         if xrange != None:
             a.set_xlim(xrange)
@@ -337,8 +341,13 @@ class plot_tabs:
         # prepare the legend, should be placed at the best position
         # available
         legend( loc = "best")
-        # Now to the actual plots (legend and plots)
-        show()
+        # Now to the actual plots (legend and plots), show on screen
+        # or save as file
+        if savefile == None:
+            show();
+        else:
+            self.fig.savefig(savefile)
+        
 
 def decide_which_values(option, tlen):
     """
@@ -495,7 +504,7 @@ class difference():
 
     def give(self, line):
     #in case line[self.a] is a list, which cannot do substract directly
-	    diff=[]
+	diff=[]
         for i in range(len(line[self.a])):
             diff.append(line[self.a][i]-line[self.b][i])
         return diff

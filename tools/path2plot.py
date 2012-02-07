@@ -166,6 +166,10 @@ der are other options which may be set:
         defined) and  returns the  derivative to symmetry  around midx
         instead of the value if midx is not given, 0 is used, symmetry
         is calculated by: 0.5 * (f(midx + x) - f(midx - x))
+
+    --output filename
+
+        save the figure as a file and do NOT show it on screen
 """
 import sys
 
@@ -241,12 +245,13 @@ def main(argv):
     log_x_num = []
     xfiles = -1
 
-    #
-    # Read all the arguments in.  Stop  cycle if all input is read in.
-    # Some iterations consume more than one item.
-    #
-    while len(argv) > 0:
-         if argv[0].startswith("--"):
+    # read all the arguments in
+    for i in range(len(argv)):
+         if argv == []:
+             # stop cycle if all input is read in (sometimes more than
+             # one is read in at the same time)
+             break
+         elif argv[0].startswith("--"):
              # differenciate between options and files
              option = argv[0][2:]
              if option == "num":
@@ -363,6 +368,9 @@ def main(argv):
                  argv = argv[3:]
              elif option in ["abscissa", "pathpos"]:
                 abcis.append(argv[1])
+                argv = argv[2:]
+             elif option == "output":
+                outputfile = argv[1]
                 argv = argv[2:]
              else:
                  # For everything that does not fit in
@@ -494,7 +502,7 @@ def main(argv):
                                logs_find[j] + ', iteration %i' % (logs_num[j]) , optlog)
 
     # now plot
-    pl.plot_data(xrange = xran, yrange = yran)
+    pl.plot_data(xrange = xran, yrange = yran )
 
 def makeoption(num_i, diff, symm, symshift, withs):
      """
