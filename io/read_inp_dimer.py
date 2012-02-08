@@ -1,93 +1,120 @@
 #!/usr/bin/env python
 """
-This function performs a transition state search with the "dimer method" or the "lanczos method"
-They represent different strategies for obtaining the lowest eigenmode of the hessian. 
-As the usage is the same for both methods in the following all the commands are explained only
-for the dimer method, the lanczos method can be used the same way. Only in DIFFERENCES BETWEEN
-DIMER AND LANCZOS the laczos method will be addressed explicitely again.
+This  function performs  a  transition state  search  with the  "dimer
+method" or  the "lanczos  method" They represent  different strategies
+for obtaining  the lowest eigenmode of  the hessian.  As  the usage is
+the  same for  both  methods in  the  following all  the commands  are
+explained only  for the dimer method,  the lanczos method  can be used
+the same way. Only in DIFFERENCES BETWEEN DIMER AND LANCZOS the laczos
+method will be addressed explicitely again.
 
 USAGE:
+
    paratools dimer --calculator <calculator_file> <geometry file> <start mode_vector file>
+
    paratools lanczos --calculator <calculator_file> <geometry file> <start mode_vector file>
 
 It needs at least three input files:
- * one containing the quantum chemical calculator
-   (<calculator_file>) which is given via the parameter --calculator
- * one containing some kind of Cartesian geometry. This file (<geometry file>) should be
-   ASE readable, meaning being in a format that ASE could understand (or be a gxfile having
-   gx in its name)
- * one should contain a mode vector. This should be as near as possible to the expected
-   negative eigenmode at the position specified by the geometry file. It can be given in internal
-   coordinates (than each entry needs a new line) or in Cartesian coordinates (where each atom has
-   a line with three entries).
+
+ * one containing the  quantum chemical calculator (<calculator_file>)
+   which is given via the parameter --calculator
+
+ * one  containing   some  kind  of  Cartesian   geometry.  This  file
+   (<geometry file>) should be ASE readable, meaning being in a format
+   that ASE could understand (or be a gxfile having gx in its name)
+
+ * one  should  contain a  mode  vector. This  should  be  as near  as
+   possible  to  the  expected  negative  eigenmode  at  the  position
+   specified  by  the geometry  file.  It  can  be given  in  internal
+   coordinates  (than each  entry needs  a new  line) or  in Cartesian
+   coordinates (where each atom has a line with three entries).
 
 ALTERNATE USAGE:
-This is supposed if the calculation just follows after any of the paratools pathsearcher runs
-Here a patch.pickle file of the pathsearcher calculation is used for starting the dimer:
+
+This  is supposed if  the calculation  just follows  after any  of the
+paratools  pathsearcher   runs  Here   a  patch.pickle  file   of  the
+pathsearcher calculation is used for starting the dimer:
 
    paratools dimer --calculator <calculator_file> --pickle <ts estimate choice> <path.pickle file>
 
-Here the <ts estimate choice> is one of the possible choices of transition state estimate from
-a given path. So for example "cubic" for the spline and cubic method or "highest" for the
-highest bead.
+Here  the <ts  estimate  choice> is  one  of the  possible choices  of
+transition state  estimate from a  given path. So for  example "cubic"
+for the spline and cubic method or "highest" for the highest bead.
 
-As inital mode the vector along the path at position of transition state estimate is taken.
+As inital  mode the  vector along the  path at position  of transition
+state estimate is taken.
 
-Be aware that here all the settings for the quantum chemical calculator (like cell) have to be
-given explicitely as there is no geometry file to read them from.
+Be  aware  that  here  all  the  settings  for  the  quantum  chemical
+calculator (like  cell) have  to be given  explicitely as there  is no
+geometry file to read them from.
 
 
 GEOMETRIES AND COORDINATE SYSTEMS:
 
-There are more options to the coordinate system choice (for example using internal coordinates for
-optimization). To find more about them do:
+There are  more options to  the coordinate system choice  (for example
+using internal coordinates for  optimization). To find more about them
+do:
+
    paratools dimer --help geometries
 
 FURTHER OPTIONS:
 
 There are some more variables specifying the way the dimer method run.
 To find out more about them do:
+
    paratools dimer --help parameter
 
 For getting a list with all their defaults do:
    paratools dimer --defaults
 
-If it is wanted to change there something find out the name of the variable to change
- and add to your command:
+If it  is wanted to  change there something  find out the name  of the
+variable to change and add to your command:
+
   --<variable name> <new value>
 
-Just to mention one: the maximum number of translation step defaults to a very large number. To reduce it
-add to the paratools command:
+Just to mention  one: the maximum number of  translation step defaults
+to a very large number. To reduce it add to the paratools command:
+
   --max_translation <number of translation iterations>
 
 So for example to have only 100 of them:
+
   --max_translation 100
 
-It is also possible to reuse calculations from older runs. They will be stored in a pickle file (only
-readable by current paratools version). If it is given in another calculation as:
+It is also  possible to reuse calculations from  older runs. They will
+be  stored  in a  pickle  file  (only  readable by  current  paratools
+version). If it is given in another calculation as:
 
     --cache <file name>
-The results in this file will be used if possible instead of doing a new calculation with the caluclator.
-The parameter can be also used to name or redirect the storage of the results. As default it will go to
-dimer.ResultDict.pickle. Be aware that ParaTools does not test if the results are belonging to the current
-system settings. If the geometry fits it takes the result.
+
+The results in  this file will be used if possible  instead of doing a
+new calculation with  the caluclator.  The parameter can  be also used
+to name or redirect the storage  of the results. As default it will go
+to dimer.ResultDict.pickle.  Be aware that ParaTools does  not test if
+the  results are  belonging to  the  current system  settings. If  the
+geometry fits it takes the result.
 
 DIFFERENCES BETWEEN DIMER AND LANCZOS METHOD:
 
-Each of the methods represent a different way of getting the lowest eigenmode of an second derivative
-Hessian approximation at the current point. The methods themselves are described elsewhere, here only their
-differences in performance and recommendations which one too choose are given.
+Each of  the methods represent a  different way of  getting the lowest
+eigenmode of an second derivative Hessian approximation at the current
+point. The methods themselves are described elsewhere, here only their
+differences in  performance and  recommendations which one  too choose
+are given.
 
-The translation method uses the special mode to find its best step. Both methods
-will try to update the result from the last iteration. As this is usually not changing much in most cases
-there is not much to gain. For rough rotational convergence criteria and a good starting mode the results
-should be more or less equivalent. But if the mode should be gotten with a high accuracy the lanczos method
-is supposed to be better.
+The  translation  method  uses  the  special mode  to  find  its  best
+step.  Both  methods will  try  to update  the  result  from the  last
+iteration. As this is usually not changing much in most cases there is
+not much to gain. For rough rotational convergence criteria and a good
+starting mode  the results should be  more or less  equivalent. But if
+the mode should  be gotten with a high accuracy  the lanczos method is
+supposed to be better.
 
 EXAMPLES:
 
-Having in a directory the geometry file (POSCAR) POSCAR.start as well as the mode vector file MODE_START
-and a valid caluclator file calc.py do to start a 20 translation steps dimer optimization:
+Having in a directory the  geometry file (POSCAR) POSCAR.start as well
+as the mode vector file MODE_START and a valid caluclator file calc.py
+do to start a 20 translation steps dimer optimization:
 
   paratools dimer --calculator calc.py  --max_translation 20 POSCAR.start MODE_START
 
@@ -98,63 +125,82 @@ rot_info = """
 This is a function only for the rotation part of dimer/lanczos:
 
 Usage:
+
   paratools dimer-rotate --calculator <calculator file> <start geometry> <start mode vector>
+
   paratools lanczos-rotate --calculator <calculator file> <start geometry> <start mode vector>
 
 GEOMETRIES AND COORDINATE SYSTEMS:
 
-There are more options to the coordinate system choice (for example using internal coordinates for
-optimization). To find more about them do:
+There are  more options to  the coordinate system choice  (for example
+using internal coordinates for  optimization). To find more about them
+do:
+
    paratools dimer-rotate --help geometries
 
-Be aware that this is the same help function then for the plain dimer/lanczos. Thus it will be
-explained with these commands. dimer-rotate and lanczos-rotate will work the same way.
+Be  aware that  this is  the  same help  function then  for the  plain
+dimer/lanczos.    Thus    it   will    be    explained   with    these
+commands. dimer-rotate and lanczos-rotate will work the same way.
 
 FURTHER OPTIONS:
 
 There are some more variables specifying the way the dimer method run.
-To find out more about them do (help function of complete dimer/lanczos):
+To  find   out  more  about   them  do  (help  function   of  complete
+dimer/lanczos):
+
    paratools dimer-rotate --help parameter
 
 For getting a list with all their defaults do:
+
    paratools dimer-rotate --defaults
 
-If it is wanted to change there something find out the name of the variable to change
- and add to your command:
+If it  is wanted to  change there something  find out the name  of the
+variable to change and add to your command:
+
   --<variable name> <new value>
 
-The function uses only the rotation part of the dimer/lanczos methods. Therefore all things said there, which
-are not dealing with translation are valid here also. The only differences so far is that there is
-a reduced and changed set of parameters. They should default to a much tighter convergence of the only
-rotatin step. Output will be the new mode and the curvature, approximated for it.
+The  function  uses  only  the  rotation  part  of  the  dimer/lanczos
+methods. Therefore all  things said there, which are  not dealing with
+translation are valid  here also. The only differences  so far is that
+there is a reduced and  changed set of parameters. They should default
+to a much tighter convergence of the only rotatin step. Output will be
+the new mode and the curvature, approximated for it.
 """
 
 qn_info = """
-This is a simple Quasi Newton method. For more complex ones use the ASE functionalities (over the
-interface paratools minimize, for example). The only advantage of this one is that it can use
-all the coordinate systems available and that it can go towards transition states, if it is near
-enough as it does not enforce a positive definite hessian.
+This is  a simple Quasi Newton  method. For more complex  ones use the
+ASE  functionalities  (over  the  interface  paratools  minimize,  for
+example). The  only advantage of this one  is that it can  use all the
+coordinate  systems available and  that it  can go  towards transition
+states,  if it  is  near enough  as  it does  not  enforce a  positive
+definite hessian.
 
 Usage:
+
   paratools quasi-newton --calculator <calculator file> <start geometry>
 
 GEOMETRIES AND COORDINATE SYSTEMS:
 
-There are more options to the coordinate system choice (for example using internal coordinates for
-optimization). To find more about them do:
+There are  more options to  the coordinate system choice  (for example
+using internal coordinates for  optimization). To find more about them
+do:
+
    paratools quasi-newton --help geometries
 
 FURTHER OPTIONS:
 
-There are some more variables specifying the way the Quasi Newton method run.
-To find out more about them do:
+There  are some  more variables  specifying the  way the  Quasi Newton
+method run.  To find out more about them do:
+
    paratools quasi-newton --help parameter
 
 For getting a list with all their defaults do:
+
    paratools quasi-newton --defaults
 
-If it is wanted to change there something find out the name of the variable to change
- and add to your command:
+If it  is wanted to  change there something  find out the name  of the
+variable to change and add to your command:
+
   --<variable name> <new value>
 """
 import pts.metric as mt
