@@ -504,7 +504,7 @@ class difference():
 
     def give(self, line):
     #in case line[self.a] is a list, which cannot do substract directly
-	diff=[]
+        diff=[]
         for i in range(len(line[self.a])):
             diff.append(line[self.a][i]-line[self.b][i])
         return diff
