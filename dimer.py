@@ -229,7 +229,7 @@ class translate_lbfgs():
                 # Be aware that the direction goes from middle point
                 # to the dimer end point, while the forces are from
                 # the dimer end point  minus the middle point.
-                self.hess.update( -dr, dg)
+                self.hess.update(dr, dg)
 
         if not self.old_grad == None:
             # This is the update of the Hessian with the gradient
