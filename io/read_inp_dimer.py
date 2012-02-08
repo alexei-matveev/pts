@@ -432,7 +432,7 @@ def from_params_file_dimer( lines ):
 
     # execute the string, the variables should be set in the locals
     from pts.io.read_COS import geo_params
-    
+
     params_dict = {}
     geo_dict = {}
 
