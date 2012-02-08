@@ -245,13 +245,15 @@ def main(argv):
     log_x_num = []
     xfiles = -1
 
-    # read all the arguments in
-    for i in range(len(argv)):
-         if argv == []:
-             # stop cycle if all input is read in (sometimes more than
-             # one is read in at the same time)
-             break
-         elif argv[0].startswith("--"):
+    # output the figure as a file
+    outputfile = None
+
+    #
+    # Read all the arguments in.  Stop  cycle if all input is read in.
+    # Some iterations consume more than one item.
+    #
+    while len(argv) > 0:
+         if argv[0].startswith("--"):
              # differenciate between options and files
              option = argv[0][2:]
              if option == "num":
@@ -502,7 +504,7 @@ def main(argv):
                                logs_find[j] + ', iteration %i' % (logs_num[j]) , optlog)
 
     # now plot
-    pl.plot_data(xrange = xran, yrange = yran )
+    pl.plot_data(xrange = xran, yrange = yran, savefile = outputfile )
 
 def makeoption(num_i, diff, symm, symshift, withs):
      """
