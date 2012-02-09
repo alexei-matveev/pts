@@ -162,27 +162,10 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     # ensure that the start value will not pass the test
     old_mode = zeros(new_mode.shape)
 
-    conv = False
-    i = 1
-    while i < max_rotations:
-       # check if we are (approximately) in direction of eigenvector
-       n_mode_down = met.lower(new_mode, mid_point)
+    conv = test_lanczos_convergence(new_mode, new_g, old_mode, phi_tol, met, mid_point)
 
-       # If the new gradient is parallel to its mode (= eigenmode)
-       # or if the new mode did not differ much from the one from the previous
-       # calculation convergence has been reached
-       f_phi = dot(new_mode, new_g) / met.norm_down(new_g, mid_point)
-       conv1 = abs(f_phi)
-       c_phi1 = dot(n_mode_down, old_mode)
-       conv2 = abs(c_phi1)
-       if (conv1 > cos(phi_tol)) or \
-          (conv2 > cos(phi_tol)) :
-           # not arccos(conv2) < phi_tol to allow rounding errors like
-           # conv2 = 1.0000000000001
-           #print "Convergence criteria 1", 1.0 - conv1, arccos(conv1)
-           #print "Convergence criteria 2", 1.0 - conv2, arccos(conv2)
-           conv = True
-           break
+    i = 1
+    while i < max_rotations and not conv:
 
        i = i + 1
        # New basis vector from the interpolation of the last iteration:
@@ -231,17 +214,15 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
        new_gi = new_gi / mode_len
 
        if VERBOSE > 0:
-           print "Change in modes"
-           print c_phi1
            print ""
            print "For Lanczos iteration", i
            print "New Force: norm, projection "
            print met.norm_down(new_g, mid_point), dot(m_basis[-1], g_for_mb[-1]), dot(m_basis[-2], g_for_mb[-1])
            print "Force difference between g and last g:", met.norm_down(g_for_mb[-1] - g_for_mb[-2], mid_point)
-           print "Distances: dimer_distance, between last adn current position"
+           print "Distances: dimer_distance, between last and current position"
            print dimer_distance, met.norm_up(m_basis[-1] - m_basis[-2], mid_point) * dimer_distance
            print "Eigenvalues:"
-           print a
+           print a / dimer_distance
 
        if interpolate_grad:
           # need restarts means: we have only one vector in
@@ -249,7 +230,17 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
           new_g = new_gi
        else:
           new_g = grad(new_mode)
-          #print "Differences in grads", dot(new_g - new_gi, new_g - new_gi)
+          if VERBOSE > 0:
+              print "Differences in grads", sqrt(dot(new_g - new_gi, new_g - new_gi))
+              print "Difference in curvature approximations", min_curv - (dot(new_g, new_mode) / dimer_distance)
+
+          # We know an exacter approximation for the curvature:
+          min_curv = dot(new_g, new_mode) / dimer_distance
+
+       # Check for convergence
+       conv = test_lanczos_convergence(new_mode, new_g, old_mode, phi_tol, met, mid_point)
+       if conv:
+           break
 
        if need_restart(restart, i):
            m_basis, g_for_mb, H = start_setting(new_mode, grad)
@@ -286,6 +277,39 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
             "rot_gradient_calculations": grad_calc}
 
     return min_curv, mode, res
+
+def test_lanczos_convergence(mode, grad, old_mode, phi_tol, met, mid_point):
+     """
+     If the new gradient is parallel to its mode (= eigenmode)
+     or if the new mode did not differ much from the one from the previous
+     calculation convergence has been reached.
+     """
+     fr = rot_force(zeros(len(grad)), grad, mode, met, mid_point)
+     fr = fr /met.norm_down(fr, mid_point)
+     phi1 = phi_start(zeros(len(grad)), grad, fr, mode, met, mid_point)
+
+     f_phi = dot(mode, grad) / met.norm_down(grad, mid_point)
+     mode_down = met.lower(mode, mid_point)
+     conv1 = abs(f_phi)
+     c_phi1 = dot(mode_down, old_mode)
+     conv2 = abs(c_phi1)
+
+     if VERBOSE > 0:
+         print "Angle expectation", phi1
+         print "Change in modes"
+         print c_phi1
+         print "Convergence criterias", conv1, conv2, cos(phi_tol)
+
+     if (conv1 > cos(phi_tol)) or \
+        (conv2 > cos(phi_tol)) :
+         # not arccos(conv2) < phi_tol to allow rounding errors like
+         # conv2 = 1.0000000000001
+         if VERBOSE > 0:
+             print "Rotation convergence criteria 1 (forces parallel to mode):", 1.0 - conv1, arccos(conv1)
+             print "Rotation convergence criteria 2 (change in mode approximations):", 1.0 - conv2, arccos(conv2)
+         return True
+     else:
+         return False
 
 def start_setting(mode, grad):
     m_basis = [mode]
