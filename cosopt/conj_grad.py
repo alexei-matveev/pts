@@ -3,6 +3,8 @@ from numpy import zeros, dot, sqrt
 import pts.metric as mt
 from copy import deepcopy
 
+VERBOSE = 0
+
 class conj_grad_opt():
     """
     Optimizer for the string/neb methods of path_searcher
@@ -74,10 +76,14 @@ class conj_grad_opt():
 
            if old_norm != 0.0:
                gamma = max((dot(g.flatten() - self.old_g.flatten(), -dir.flatten()) / old_norm), 0.0)
-               #if gamma == 0.0: print "Reseted conjugate gradient"
+               if VERBOSE > 0:
+                   if gamma == 0.0: print "RESETED conjugate gradient"
            else:
                gamma = 0.0
                #print "Old Norm is zero"
+
+           if VERBOSE > 0:
+               print "gamma = ", gamma
 
            for i in range(self.size):
                dir[i] = dir[i] + gamma * self.old_dir[i]
@@ -166,9 +172,28 @@ def line_search(r, dir, g, atoms, trial_step, default_step):
     c = dot(g2 - g, dir) / trial_step
     g3 = dot(g2 + g, dir) / 2.
 
+   #atoms.state_vec = r + dir * trial_step / 2.
+   #g4 = atoms.obj_func_grad()
+   #c2 = dot(g4 -g, dir)/trial_step * 2.
+   #if abs(c2 - c)/c > 1e-4:
+   #    print "Different curvature", c, c2
+   #atoms.state_vec = r + dir * trial_step * 2.
+   #g4 = atoms.obj_func_grad()
+   #c2 = dot(g4 -g, dir)/trial_step / 2.
+   #if abs(c2 - c)/c > 1e-4:
+   #    print "Different curvature 2", c, c2
+
+    if VERBOSE > 0:
+        print "CG: Curvature, interpolated force, force projections"
+        print c, g3, dot(g, dir), dot(g2, dir)
+
     if c > 0:
         step_len = trial_step / 2. - g3 / c
+        if VERBOSE > 0:
+            print "CG: Step_length", step_len, trial_step
     else:
+        if VERBOSE > 0:
+            print "CG: Use DEFAULT step", default_step
         step_len = default_step
 
     return step_len
