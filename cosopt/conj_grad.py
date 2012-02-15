@@ -28,7 +28,7 @@ class conj_grad_opt():
     trial step in the direction
     """
     def __init__(self, reaction_pathway, maxstep = 0.1, respace = True,\
-      trial_step = 0.01, \
+      trial_step = 0.01, backtrack_border = 0.9, dummy_backtracking = False,\
       reduce_to_steepest_decent = False, **kwargs):
         # Reaction_Pathway is an object that gives forces/tangents for
         # all beads:
@@ -49,6 +49,13 @@ class conj_grad_opt():
         self.nsteps = 0
         self.observers = []
         self.old_g = None
+
+        self.old_dir = None
+        # For backtracking
+        self.dummy_backtracking = dummy_backtracking
+        self.bt_border = backtrack_border
+        self.old_length = 0.0
+        self.second = False
 
     def step(self, g):
         """
@@ -77,16 +84,41 @@ class conj_grad_opt():
            if old_norm != 0.0:
                gamma = max((dot(g.flatten() - self.old_g.flatten(), -dir.flatten()) / old_norm), 0.0)
                if VERBOSE > 0:
-                   if gamma == 0.0: print "RESETED conjugate gradient"
+                   if gamma == 0.0: print "CG: RESETED conjugate gradient"
            else:
                gamma = 0.0
-               #print "Old Norm is zero"
+               if VERBOSE > 0:
+                   print "CG: Old Norm is zero"
 
            if VERBOSE > 0:
-               print "gamma = ", gamma
+               print "CG: gamma = ", gamma
 
            for i in range(self.size):
                dir[i] = dir[i] + gamma * self.old_dir[i]
+
+        need_backtracking = test_for_backtrack( g.flatten(), self.old_dir, self.old_g, self.bt_border, self.second)
+        if VERBOSE and not self.old_dir == None:
+            print "CG B: projections: (old/new)", dot(self.old_g.flatten(), self.old_dir.flatten())\
+              / sqrt(dot(self.old_dir.flatten(), self.old_dir.flatten())), \
+              dot(g.flatten(), self.old_dir.flatten()) / sqrt(dot(self.old_dir.flatten(), self.old_dir.flatten()))
+        self.second = False
+
+        if need_backtracking:
+            length_bt = backtrack( g.flatten(), self.old_dir, self.old_g, self.old_length)
+            self.second = True
+            if VERBOSE > 0:
+                print "BACKTRACKING: in iteration", self.nsteps + 1
+                print "BACKTRACKING: projections: (old/new)", dot(self.old_g.flatten(), self.old_dir.flatten())\
+                  / sqrt(dot(self.old_dir.flatten(), self.old_dir.flatten())), \
+                  dot(g.flatten(), self.old_dir.flatten()) / sqrt(dot(self.old_dir.flatten(), self.old_dir.flatten()))
+                print "BACKTRACKING: reduced length / old length", length_bt, self.old_length
+
+            if not self.dummy_backtracking:
+                #Return to previous iteration, which is still stored in the old results.
+                r = self.old_r
+                dir = self.old_dir
+                g = self.old_g
+
 
         self.old_g = deepcopy(g)
         self.old_dir = deepcopy(dir)
@@ -107,12 +139,20 @@ class conj_grad_opt():
 
         # SECOND PART: find step length
 
-        # line search like algorithm
-        length = line_search(r, dir, g, self.atoms, self.trial_step, self.ms)
+        if self.dummy_backtracking or not need_backtracking:
+            # line search like algorithm
+            length = line_search(r, dir, g, self.atoms, self.trial_step, self.ms)
 
-        # but do not forget step length restriction
-        if length > self.ms:
-            length = self.ms
+            # but do not forget step length restriction
+            if length > self.ms:
+                length = self.ms
+        else:
+            # This is a backtracking step. The step length has already been
+            # calculated.
+            length = length_bt
+
+        # Remember the length in case the next step is a backtracking step.
+        self.old_length = length
 
         self.atoms.state_vec = (r + dir * length)
 
@@ -154,6 +194,43 @@ class conj_grad_opt():
 
     def get_number_of_steps(self):
         return self.nsteps
+
+def test_for_backtrack( g, old_dir, old_g, required, second):
+    """
+    Tests if a backtracking might be desiable.
+    Backtrack if the projection changed its sign and
+    did not loose more than 1 - required of its
+    size.
+    """
+    if old_dir == None:
+        # First iteration, nothing to backtrack to.
+        return False
+    else:
+        new_proj = dot(g.flatten(), old_dir.flatten())
+        old_proj = dot(old_g.flatten(), old_dir.flatten())
+        change_sign = new_proj < 0 <  old_proj or old_proj < 0 < new_proj
+
+        want_backtrack = abs(new_proj) > abs(old_proj) * required and change_sign
+        if VERBOSE > 0:
+            if second and want_backtrack:
+               print "CG WARNING: backtrack rejected: Last step was already a backtrack!"
+
+        return want_backtrack and not second
+
+def backtrack( g, old_dir, old_g, length_old):
+    """
+    Find direction and step length for backtracking.
+    """
+    old_proj = dot(old_g.flatten(), old_dir.flatten())
+    curv = dot(g, old_dir.flatten()) - old_proj
+    length = - length_old * old_proj / curv
+    if VERBOSE > 0:
+        print "Old projection, curvature, old length"
+        print old_proj, curv, length_old
+
+    assert abs(length) < abs(length_old)
+
+    return length
 
 def line_search(r, dir, g, atoms, trial_step, default_step):
     """
