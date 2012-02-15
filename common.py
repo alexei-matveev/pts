@@ -3,8 +3,6 @@
 import copy
 import os
 import sys
-import random
-import time
 import logging
 import numpy
 from numpy import finfo
