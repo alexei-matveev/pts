@@ -4,12 +4,14 @@
 
 __all__ = ["Bezier"]
 
-from numpy import array, asarray, shape, ones, empty
+from numpy import asarray, shape, ones, empty
 from npz import outer
 from func import Func
 
 class Bezier(Func):
     """
+        >>> from numpy import array
+
         >>> b = Bezier()
 
         >>> p = array([[10.,  5., 3.],
@@ -87,6 +89,8 @@ def bernstein(t, n):
 
     t: (j), n: (),  bernstein(t, p): (j, n)
 
+        >>> from numpy import array
+
         >>> t = [0.0, 0.25, 0.5, 0.75, 1.0]
 
         >>> bernstein(t, 3)
@@ -134,6 +138,8 @@ def casteljau(t, p):
     Should also work for array valued (e.g. 2D) points.
     Here an array of shape (2, 3) parametrizing a Bezier
     line in 2D by three parameters:
+
+        >>> from numpy import array
 
         >>> p = array([[10.,  5., 3.],
         ...            [ 3., 10., 5.]])
