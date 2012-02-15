@@ -39,7 +39,7 @@ See also:
 
 __all__ = ["matmul", "outer", "dots", "sums"]
 
-from numpy import asarray, empty, shape, dot, sum
+from numpy import asarray, empty, shape, dot, sum, transpose
 
 def prod(ns): # name clash with numpy.prod
 
