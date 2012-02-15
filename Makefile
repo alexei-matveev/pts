@@ -47,7 +47,7 @@ src =	\
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.pyflakes) $(src:.py=.doctest) phony-targets
 
-phony-targets: srcio srcpes srccosopt srctools
+phony-targets: srcio srccosopt srctools
 
 manual :
 	$(MAKE) -C ./doc
@@ -61,9 +61,6 @@ manual :
 
 srcio:
 	$(MAKE) -C $(IO)
-
-srcpes:
-	$(MAKE) -C $(PES)
 
 srccosopt:
 	$(MAKE) -C $(COSOPT)
