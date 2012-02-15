@@ -1,6 +1,5 @@
 from numpy import sqrt, dot, array, zeros, vstack
-import pts.metric as mt
-from pts.metric import Metric, Metric_reduced, Default
+from pts.metric import Default
 from copy import deepcopy
 from pts.steepest_decent import steepest_decent_path, start_values
 #from ase.optimize.oldqn import GoodOldQuasiNewton as QN
