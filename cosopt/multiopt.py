@@ -1,13 +1,7 @@
 # -*- coding: utf-8 -*-
-import sys
 import numpy as np
-from scipy.optimize.optimize import fminbound
-
-from pts.func import Func
 from pts.common import ObjLog
 import pts.metric as mt
-from numpy import sqrt
-from time import localtime
 from pts.bfgs import Hughs_Hessian
 
 def disp_step(dr, f):
