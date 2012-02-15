@@ -155,8 +155,8 @@ def test_leps(A1=0.2, A2=3.0, B1=0.2, B2=3.0, N1=50, N2=50):
         print
 
 def show_chain(p=None, style="ro-", save=None, clear=False):
-    from pylab import hold, contour, plot, xlim, ylim, show, savefig, clf #, imshow
-    from numpy import linspace, empty, transpose
+    from pylab import contour, plot, xlim, ylim, show, savefig, clf #, imshow, hold
+    from numpy import linspace, empty, transpose, asarray
 
     # intervals:
     x_range = (1.5, 2.5)
