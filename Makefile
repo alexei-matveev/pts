@@ -12,7 +12,6 @@ TOOL = ./tools
 
 src =	\
 	common.py \
-	sched.py \
 	searcher.py \
 	ridders.py \
 	npz.py \
@@ -27,22 +26,23 @@ src =	\
 	bezier.py \
 	chebyshev.py \
 	zmat.py \
-	memoize.py \
 	bfgs.py \
-	fopt.py \
-	qfunc.py \
 	chain.py \
         steepest_decent.py \
         simple_decent.py \
 	rc.py \
-        dct.py \
-	paramap.py \
 	vib.py \
 	metric.py \
         threepointmin.py \
 	cfunc.py \
-	dimer.py \
 	dimer_rotate.py \
+	qfunc.py \
+	dct.py \
+	paramap.py \
+	dimer.py \
+	sched.py \
+	memoize.py \
+	fopt.py \
 
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.pyflakes) $(src:.py=.doctest) phony-targets
