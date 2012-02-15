@@ -43,13 +43,11 @@ src =	\
 	cfunc.py \
 	dimer.py \
 	dimer_rotate.py \
-	srcio \
-	srcpes \
-	srccosopt \
-	srctools \
 
 # dont call it "test" as we have a directory called so:
-test-all: $(src:.py=.pyflakes) $(src:.py=.doctest)
+test-all: $(src:.py=.pyflakes) $(src:.py=.doctest) phony-targets
+
+phony-targets: srcio srcpes srccosopt srctools
 
 manual :
 	$(MAKE) -C ./doc
