@@ -1,8 +1,7 @@
 #!/usr/bin/python
-from numpy import dot, array, sqrt, arctan, sin, cos, pi, zeros
-from numpy import tan, arccos
+from numpy import dot, array, arctan, sin, cos, pi, zeros
 from copy import deepcopy
-from scipy.linalg import eig, eigh
+from scipy.linalg import eigh
 from pts.func import NumDiff
 from pts.metric import Default
 
