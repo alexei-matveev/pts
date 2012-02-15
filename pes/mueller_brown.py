@@ -471,7 +471,7 @@ def show_path(p, n=10):
     show_chain(ch, style="g-")
 
 def show_chain(p=None, style="ro-", save=None, clear=False):
-    from pylab import hold, contour, plot, xlim, ylim, show, savefig, clf #, imshow
+    from pylab import contour, plot, xlim, ylim, show, savefig, clf #, imshow, hold
     from numpy import linspace, empty, transpose
 
     # intervals:
