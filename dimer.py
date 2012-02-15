@@ -1,10 +1,8 @@
 #!/usr/bin/python
-from numpy import dot, array, sqrt, arctan, sin, cos, pi, zeros
+from numpy import dot, sqrt, pi
 from copy import deepcopy
 from pts.bfgs import LBFGS, BFGS, SR1
-from scipy.linalg import eigh
-from pts.func import NumDiff
-from pts.metric import Default, Metric_reduced, Metric
+from pts.metric import Default
 from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 from numpy import arccos
 from sys import stdout
@@ -24,6 +22,7 @@ class translate_cg():
         use conjugate gradient to determine in which direction to do the next step
         conjugate gradient update as Polak Ribiere with reset for negative values
 
+        >>> from numpy import array
         >>> from pts.pes.mueller_brown import MB
         >>> from pts.metric import Default
 
@@ -180,6 +179,7 @@ class translate_lbfgs():
 
         Consider metric
 
+        >>> from numpy import array
         >>> from pts.pes.mueller_brown import MB
         >>> from pts.metric import Default
 
@@ -305,6 +305,7 @@ class translate_sd():
         """
         use steepest decent to determine in which direction to do the next step
 
+        >>> from numpy import array
         >>> from pts.pes.mueller_brown import MB
 
         >>> tr_step = 0.3
