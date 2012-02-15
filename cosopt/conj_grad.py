@@ -261,8 +261,9 @@ def line_search(r, dir, g, atoms, trial_step, default_step):
    #if abs(c2 - c)/c > 1e-4:
    #    print "Different curvature 2", c, c2
     if dot(g, dir) > 0. :
-        print >> stderr, "WARNING: positive curvature", dot(g, dir)
-        print "WARNING: positive curvature", dot(g, dir)
+        print >> stderr, "WARNING: positive gradient projection", dot(g, dir)
+        if VERBOSE > 0:
+            print "WARNING: positive gradient projection", dot(g, dir)
 
     if VERBOSE > 0:
         print "CG: Curvature, interpolated force, force projections"
@@ -274,8 +275,16 @@ def line_search(r, dir, g, atoms, trial_step, default_step):
             print "CG: Step_length", step_len, trial_step
     else:
         if VERBOSE > 0:
-            print "CG: Use DEFAULT step", default_step
-        step_len = default_step
+            print "CG WARNING: Use DEFAULT step", default_step
+
+        if dot(g, dir) > 0:
+            print >> stderr, "WARNING: negative curvature and positive gradient projection", c, dot(g, dir)
+            print >> stderr, "WARNING: This should happen seldom and is not very well explored. Take care!"
+            if VERBOSE > 0:
+                print "WARNING: positive curvature and gradeint projection",c , dot(g, dir)
+            step_len = -default_step
+        else:
+            step_len = default_step
 
     return step_len
 
