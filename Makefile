@@ -17,6 +17,8 @@ src =	\
 	ridders.py \
 	npz.py \
 	func.py \
+	pes/mueller_brown.py \
+	pes/rosenbrock.py \
 	test/testfuns.py \
 	ode.py \
 	path.py \
