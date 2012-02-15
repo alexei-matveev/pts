@@ -335,6 +335,8 @@ class ReactionPathway(object):
                 if clim:
                     print "Turned image", self.ci_num, " into climbing image"
                     assert not self.ci_num == None
+                    # convergence check will raise this unwanted again:
+                    self.opt_iter = self.opt_iter - 1
                     # eventually the new convergence criteria are already met.
                     conv = self.test_convergence( etol, ftol, xtol)
                 else:
