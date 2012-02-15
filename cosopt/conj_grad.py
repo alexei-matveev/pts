@@ -2,6 +2,7 @@
 from numpy import zeros, dot, sqrt
 import pts.metric as mt
 from copy import deepcopy
+from sys import stderr
 
 VERBOSE = 0
 
@@ -259,6 +260,9 @@ def line_search(r, dir, g, atoms, trial_step, default_step):
    #c2 = dot(g4 -g, dir)/trial_step / 2.
    #if abs(c2 - c)/c > 1e-4:
    #    print "Different curvature 2", c, c2
+    if dot(g, dir) > 0. :
+        print >> stderr, "WARNING: positive curvature", dot(g, dir)
+        print "WARNING: positive curvature", dot(g, dir)
 
     if VERBOSE > 0:
         print "CG: Curvature, interpolated force, force projections"
