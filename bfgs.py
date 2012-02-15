@@ -572,7 +572,7 @@ class Hughs_Hessian:
         "update" in initializing
         """
         if self.B is None:
-            self.B = eye(len(s)) * self.B0
+            self.B = eye(len(dr)) * self.B0
 
         # do nothing if the step is tiny (and probably hasn't changed at all)
         if abs(dr).max() < 1e-7: # FIXME: Is this really tiny (enough)?
