@@ -131,7 +131,7 @@ You can visualize the path by executing:
 __all__ = ["smin", "Chain", "Spacing", "RCDiff"]
 
 from func import Func
-from numpy import array, asarray, zeros, shape, sum, max, abs
+from numpy import array, asarray, zeros, shape, sum
 from numpy import sqrt
 from fopt import cmin, _flatten
 
@@ -224,6 +224,7 @@ class Norm2(Func):
 
     Note that x[0:2] stays for *two* adjacent geometries!
 
+        >>> from numpy import max, abs
         >>> from func import NumDiff
         >>> N2 = NumDiff(n2)
         >>> max(abs(n2.fprime(x[1:3]) - N2.fprime(x[1:3]))) < 1.e-10
@@ -276,6 +277,7 @@ class Norm(Func):
 
     Note that x[0:2] stays for *two* adjacent geometries!
 
+        >>> from numpy import max, abs
         >>> from func import NumDiff
         >>> N2 = NumDiff(n2)
         >>> max(abs(n2.fprime(x[1:3]) - N2.fprime(x[1:3]))) < 1.e-10
@@ -352,6 +354,7 @@ class Spacing(Func):
         >>> cg(x)
         array([-0.00985,  0.00985])
 
+        >>> from numpy import max, abs
         >>> from func import NumDiff
         >>> cg1 = NumDiff(cg)
         >>> max(abs(cg.fprime(x) - cg1.fprime(x))) < 1.e-10
@@ -411,6 +414,7 @@ class LogSpacing(Func):
         >>> cg(x)
         array([-0.00975037,  0.00975037])
 
+        >>> from numpy import max, abs
         >>> from func import NumDiff
         >>> cg1 = NumDiff(cg)
         >>> max(abs(cg.fprime(x) - cg1.fprime(x))) < 1.e-10
