@@ -361,6 +361,20 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
     hess: "LBFGS" or "BFGS"
         A name of the class implementing hessian update scheme.
         Has to support |update| and |inv| methods.
+
+    Example:
+
+        >>> from pes.rosenbrock import Rosenbrock
+
+        >>> f = Rosenbrock()
+
+        >>> x0, info = fmin(f.taylor, [-1.2, 1.], gtol=1e-12, maxstep=1.0)
+
+        >>> x0
+        array([ 1.,  1.])
+
+        >>> info["iterations"]
+        25
         """
 
     # interpret a string as a constructor name:
