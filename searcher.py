@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from sys import stderr, maxint, exit
-import inspect # unused?
 
 import logging
 from copy import deepcopy
