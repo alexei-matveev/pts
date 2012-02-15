@@ -19,6 +19,7 @@ src =	\
 	func.py \
 	pes/mueller_brown.py \
 	pes/rosenbrock.py \
+	pes/leps.py \
 	test/testfuns.py \
 	ode.py \
 	path.py \
