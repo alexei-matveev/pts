@@ -36,6 +36,8 @@ src =	\
         threepointmin.py \
 	cfunc.py \
 	dimer_rotate.py \
+	cosopt/multiopt.py \
+	cosopt/conj_grad.py \
 	qfunc.py \
 	dct.py \
 	paramap.py \
