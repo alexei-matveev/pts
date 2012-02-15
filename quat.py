@@ -77,10 +77,9 @@ Rotmat has also an analytical derivative:
     >>> max(abs(derivative2 - derivative1)) < 1e-10
     True
 """
-from numpy import asarray, empty, dot, sqrt, sin, cos, abs, array, eye, diag, zeros
+from numpy import asarray, empty, dot, sqrt, sin, cos, abs, array, eye, zeros
 from numpy import arccos
-from numpy import trace, pi, finfo, cross
-from numpy import max
+from numpy import trace, finfo, cross
 from numpy import outer
 from func import Func
 
@@ -188,7 +187,7 @@ def rotvec(m):
 
     Examples:
 
-        >>> from numpy import pi, round, max
+        >>> from numpy import pi, round, max, abs
 
         >>> v = array((0.5, -0.3, 1.0))
 
@@ -325,7 +324,7 @@ def rot2quat(mat):
     there should be two different quaternions belonging
     to the same matrix, we take the positive one
 
-    >>> from numpy import max, abs
+    >>> from numpy import pi, max, abs
 
     >>> m = eye(3)
     >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
@@ -388,6 +387,8 @@ def cart2quat(v1, v2):
     v1 onto v2, where v1 and v2 are each three points, defining an
     plane (and the top of the plane)
 
+    >>> from numpy import max, abs
+
     >>> vec1 = array([[0., 0., 0.], [0., 0., 1.], [0., 1., 0.]])
     >>> vec2 = array([[0., 0., 0.], [1., 0., 0.], [0., 1., 0.]])
 
@@ -405,6 +406,8 @@ def quat2vec(q):
     Gives back a vector, as specified by the quaternion q,
     in the representation of length(vec) = rot_angle,
     v / |v| is vector to rotate around
+
+    >>> from numpy import pi, max, abs
 
     >>> v = [0., 0., pi/2.]
     >>> max(abs(v - quat2vec(uquat(v)))) < 1e-12
@@ -445,6 +448,8 @@ def cart2vec(vec1, vec2):
     given two three point objects vec1 and vec2
     calculates the vector representing the rotation
 
+    >>> from numpy import max, abs
+
     >>> vec1 = array([[0.,0,0],[0,0,1],[0,1,0]])
     >>> vec2 = array([[0.,0,0],[1,0,0],[0,1,0]])
 
@@ -470,6 +475,8 @@ def cart2veclin(v1, v2):
     v1 on v2
     (For the coordinate objects we have:
     C2 = MAT * C1.T)
+
+    >>> from numpy import max, abs
 
     >>> vec1 = array([[0.,0,0],[0,0,1]])
     >>> vec2 = array([[0.,0,0],[1,0,0]])
@@ -864,6 +871,7 @@ reper = _Reper()
 class _R3(Func):
     """Spherical to cartesian transformation.
 
+        >>> from numpy import pi, max, abs
         >>> from func import NumDiff
 
         >>> r3 = _R3()
