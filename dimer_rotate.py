@@ -465,11 +465,15 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
     l_curv = None
     l_ang = None
     grad_calc = 0
+    m_basis = []
+    g_for_mb = []
 
-    i = 0
+    i = 1
     while i < max_rotations: # ATTENTION: two break points
         g1 = pes.fprime(x)
         grad_calc += 1
+        m_basis.append(x - mid_point)
+        g_for_mb.append(g1 -g0)
 
         #"rotation force"
         fr = rot_force(g0, g1, mode, metric, mid_point)
@@ -518,6 +522,8 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
         x2, m2  = rotate_phi(mid_point, mode, dir, phi1, dimer_distance, metric)
         g2 = pes.fprime(x2)
         grad_calc += 1
+        m_basis.append(x2 - mid_point )
+        g_for_mb.append(g2 -g0)
 
         # curvature approximations
         c1 = curv(g0, g1, mode, dimer_distance, metric, mid_point)
@@ -590,6 +596,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
 
     res = { "rot_convergence" : conv, "rot_iteration" : i,
             "curvature" : l_curv, "rot_abs_forces" : metric.norm_down(fr, mid_point),
+            "rot_updates" : zip(m_basis, g_for_mb),
             "rot_last_angle": l_ang, "rot_gradient_calculations": grad_calc}
 
     return l_curv, mode, res
