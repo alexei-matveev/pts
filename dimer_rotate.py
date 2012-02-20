@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from numpy import dot, array, arctan, sin, cos, pi, zeros
+from numpy import sqrt, arccos
 from copy import deepcopy
 from scipy.linalg import eigh
 from pts.func import NumDiff
