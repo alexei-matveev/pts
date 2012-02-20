@@ -436,7 +436,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
               traj_content = [( grad, "grads", "Gradients"),(mode, "modes", "Mode")]
               trajectory(geo, i, traj_content )
               selflogfile.write("Trans. Infos:   %12.5f       %12.5f       %12.5f\n" % \
-               (energy, abs_force, error)
+               (energy, abs_force, error))
               selflogfile.write("Calculation is converged with max(abs(force)) %8.5f < %8.5f \n" % \
                (error, trans_converged))
               break
