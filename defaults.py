@@ -291,7 +291,8 @@ di_default_params = {
     "phi_tol"  : 0.1, # Rotation stops if rotation angle would be smaller
     "logfile"  : None, # Where the output of dimer should go (None goes to standard output)
     "dimer_distance" : 0.01, #Distance between dimer end and middle point
-    "cache"    : None # Making results of calculator reusable
+    "cache"    : None, # Making results of calculator reusable
+    "pickle_log" : None  #recording each structure in calculation
 }
 
 di_default_params_rot = {
@@ -363,7 +364,7 @@ qn_default_params = {
    "update_method" : "SR1" # Hessian update method, choose SR1 for transition state seach
 }
 
-are_strings = ["trajectory", "trans_method", "rot_method", "cache"]
+are_strings = ["trajectory", "trans_method", "rot_method", "cache","pickle_log"]
 
 
 def info_qn_params():

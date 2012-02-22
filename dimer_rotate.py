@@ -8,7 +8,7 @@ from pts.metric import Default
 
 VERBOSE = 0
 
-def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distance = 0.01, \
+def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, pickle_log, dimer_distance = 0.01, \
     max_rotations = 10, phi_tol = 0.1, interpolate_grad = True, restart = None, **params):
     """
     Rotates  the  dimer  while  keeping  its old  results  in  memory,
@@ -144,7 +144,9 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     def grad(vm):
         global grad_calc
         grad_calc = grad_calc + 1
-        return pes.fprime(mid_point + dimer_distance * vm) - g0
+        x = mid_point + dimer_distance *vm
+        pickle_log("Lanczos", x)
+        return pes.fprime(x) - g0
 
     # keep all the basis vectors and their forces
     m_basis = [mode]
@@ -247,6 +249,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
            m_basis, g_for_mb, H = start_setting(new_mode, grad)
 
     mode = new_mode
+    pickle_log("Lowest_Mode", mode)
     # this was the shape of the starting mode vector
     mode.shape = shape
 
@@ -331,8 +334,8 @@ def need_restart(restart, i):
        res = (i % restart == 0)
     return res
 
-def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance = 0.0001, \
-    max_rotations = 10, phi_tol = 0.1, rot_conj_gradient = True, **params):
+def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, pickle_log, \
+    dimer_distance = 0.0001, max_rotations = 10, phi_tol = 0.1, rot_conj_gradient = True, **params):
     """
     Rotate the dimer to the mode of lowest curvature
 
@@ -471,6 +474,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
 
     i = 1
     while i < max_rotations: # ATTENTION: two break points
+        pickle_log("Dimer", x)
         g1 = pes.fprime(x)
         grad_calc += 1
         m_basis.append(x - mid_point)
@@ -521,6 +525,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
 
         # calculate values for dimer rotated for phi1
         x2, m2  = rotate_phi(mid_point, mode, dir, phi1, dimer_distance, metric)
+        pickle_log("Rot_Trial", x2)
         g2 = pes.fprime(x2)
         grad_calc += 1
         m_basis.append(x2 - mid_point )
@@ -586,6 +591,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, dimer_distance
 
     # this was the shape of the starting mode vector
     mode.shape = shape
+    pickle_log("Lowest_Mode", mode)
 
     if VERBOSE > 1:
         grad = NumDiff(pes.fprime)

@@ -1,5 +1,6 @@
 from ase.io import write
 from numpy import savetxt
+from pickle import dump
 
 def empty_traj(geo, iter, adds):
     """
@@ -86,3 +87,41 @@ class traj_long:
             f_out.write(line)
             f_out.write(gs)
             f_out.close()
+
+class empty_log:
+    def __init__(self):
+        pass
+
+    def __call__(self, key, geo, mode = None):
+        pass
+
+    def record(self):
+        pass
+
+class dimer_log:
+    def __init__(self, atoms, filename = "dimer.log.pickle"):
+        from os import remove
+        self.atoms = atoms
+        self.filename = filename
+        self.dict = {}
+
+        try:
+            remove(filename)
+        except OSError:
+            pass
+
+        logfile = open(filename, "w")
+        dump(self.atoms, logfile)
+        logfile.close()
+
+    def __call__(self, key, geo):
+        if key in self.dict:
+            self.dict[key].append(geo)
+        else:
+            self.dict[key] = [geo]
+
+    def record(self):
+        logfile = open(self.filename, "a")
+        dump(self.dict, logfile)
+        logfile.close()
+        self.dict.clear()

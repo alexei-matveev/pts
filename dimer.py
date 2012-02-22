@@ -6,7 +6,7 @@ from pts.metric import Default
 from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 from numpy import arccos
 from sys import stdout
-from pts.trajectories import empty_traj
+from pts.trajectories import empty_traj, empty_log
 """
 dimer method:
 
@@ -52,7 +52,7 @@ class translate_cg():
         self.trial_step = trial_step
         self.old_geo = None
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, pickle_log, unused):
         """
         the actual step
         """
@@ -100,7 +100,7 @@ class translate_cg():
         else:
             # find how far to go
             # line search, first trial
-            trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
+            trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force, pickle_log)
 
         step = trial_step * step
 
@@ -112,7 +112,7 @@ class translate_cg():
 
         return step, info
 
-def line_search( start_geo, direction, trial_step, pes, metric, mode_vector, force ):
+def line_search( start_geo, direction, trial_step, pes, metric, mode_vector, force, pickle_log):
         """
         Find the minimum in direction from strat_geo on, uses second point
         makes quadratic approximation with the "forces" of these two points
@@ -125,6 +125,7 @@ def line_search( start_geo, direction, trial_step, pes, metric, mode_vector, for
         t_s = deepcopy(trial_step)
 
         geo = start_geo + direction * t_s
+        pickle_log("Trans_Trial", geo)
         mode_vec_down = metric.lower(mode_vector, start_geo).flatten()
         grad_calc += 1
         force_r = trans_force( -pes.fprime(geo), mode_vector, mode_vec_down)
@@ -207,7 +208,7 @@ class translate_lbfgs():
         self.old_geo = None
         self.metric = metric
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, info):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused, info):
         """
         the actual step
         """
@@ -328,7 +329,7 @@ class translate_sd():
         self.metric = metric
         self.trial_step = trial_step
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, pickle_log, unused):
         """
         the actual step
         """
@@ -354,7 +355,7 @@ class translate_sd():
         else:
             # find how far to go
             # line search, first trial
-            trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
+            trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force, pickle_log)
         step = trial_step * step
 
         step.shape = shape
@@ -376,7 +377,7 @@ rot_dict = {
            }
 
 
-def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_gradients = None, \
+def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_translation = 100000000, max_gradients = None, \
        trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.001, \
        rot_method = "dimer", trajectory = empty_traj, logfile = None, **params):
     """ The complete dimer algorithm
@@ -424,6 +425,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          #        additional break point
          #        it is only checked for only maximum number of gradient calls
          #        if max_translation > maximum number of gradient calls
+         pickle_log("Center", geo)
          energy, grad = pes.taylor(geo)
          grad_calc += 1
 
@@ -443,8 +445,9 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
 
          # calculate one step of the dimer, also update dimer direction
          # res is dictionary with additional results
-         step, mode, res = _dimer_step(pes, geo, grad, mode, trans, rot, metric, **params)
+         step, mode, res = _dimer_step(pes, geo, grad, mode, trans, rot, metric, pickle_log, **params)
          grad_calc += res["rot_gradient_calculations"] + res["trans_gradient_calculations"]
+         pickle_log.record()
          #print "iteration", i, error, metric.norm_down(step, geo)
 
          #collect things for output
@@ -514,17 +517,17 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
 
     return geo, res
 
-def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, max_step = 0.1, scale_step = 1.0, **params):
+def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, pickle_log, max_step = 0.1, scale_step = 1.0, **params):
     """
     Calculates the step the dimer should take
     First improves the mode start_mode to mode_vec to identify the dimer direction
     Than calculates the step for the modified force
     Scales the step (if required)
     """
-    curv, mode_vec, info = rot(pes, start_geo, geo_grad, start_mode, metric, **params)
+    curv, mode_vec, info = rot(pes, start_geo, geo_grad, start_mode, metric, pickle_log, **params)
 
     info["max_step"] = max_step
-    step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv, info)
+    step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv, pickle_log, info)
 
     info.update(info_t)
 
