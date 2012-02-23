@@ -337,7 +337,7 @@ def read_dimer_input(rest, name):
                 pes = Memoize(pes, FileStore(params_dict["cache"]))
     else:
          pes = Memoize(pes, FileStore("%s.ResultDict.pickle" % (name)))
-    
+
     if "pickle_log" in params_dict:
         if params_dict["pickle_log"] == None:
             params_dict["pickle_log"] = empty_log()

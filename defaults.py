@@ -364,7 +364,7 @@ qn_default_params = {
    "update_method" : "SR1" # Hessian update method, choose SR1 for transition state seach
 }
 
-are_strings = ["trajectory", "trans_method", "rot_method", "cache","pickle_log"]
+are_strings = ["trajectory", "trans_method", "rot_method", "cache", "pickle_log"]
 
 
 def info_qn_params():
