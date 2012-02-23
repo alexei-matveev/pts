@@ -95,9 +95,6 @@ class empty_log:
     def __call__(self, key, geo, mode = None):
         pass
 
-    def record(self):
-        pass
-
 class dimer_log:
     def __init__(self, atoms, filename = "dimer.log.pickle"):
         from os import remove
@@ -115,13 +112,6 @@ class dimer_log:
         logfile.close()
 
     def __call__(self, key, geo):
-        if key in self.dict:
-            self.dict[key].append(geo)
-        else:
-            self.dict[key] = [geo]
-
-    def record(self):
         logfile = open(self.filename, "a")
-        dump(self.dict, logfile)
+        dump((key, geo), logfile)
         logfile.close()
-        self.dict.clear()
