@@ -58,7 +58,7 @@ class traj_long:
             remove("all_geos")
         except OSError:
             pass
-       
+
         for name in names:
             try:
                 remove("all" + name)
