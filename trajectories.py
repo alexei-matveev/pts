@@ -1,3 +1,4 @@
+from __future__ import with_statement
 from ase.io import write
 from numpy import savetxt
 from pickle import dump
@@ -88,30 +89,51 @@ class traj_long:
             f_out.write(gs)
             f_out.close()
 
-class empty_log:
-    def __init__(self):
+def empty_log():
+    """
+    Returns a  callback funciton  that implements a  general interface
+    but does nothing.
+    """
+
+    def callback(key, geo, mode = None):
+        """
+        Does nothing  but has to adhere  to the same  interface as the
+        callback prepared by dimer_log()
+        """
         pass
 
-    def __call__(self, key, geo, mode = None):
+    return callback
+
+def dimer_log(atoms, filename = "dimer.log.pickle"):
+    """
+    Returns a  callback funciton  that implements a  general interface
+    that  appends dimer state  to a  file. Removes  the file,  if that
+    exists.
+    """
+
+    from os import remove
+
+    # FIXME: I think this remove is  redundant as the tile is open for
+    # writing as the next step:
+    try:
+        remove(filename)
+    except OSError:
         pass
 
-class dimer_log:
-    def __init__(self, atoms, filename = "dimer.log.pickle"):
-        from os import remove
-        self.atoms = atoms
-        self.filename = filename
-        self.dict = {}
+    #
+    # A valid logfile  will contain pickled Atoms object  as the first
+    # record:
+    #
+    with open(filename, "w") as logfile:
+        dump(atoms, logfile)
 
-        try:
-            remove(filename)
-        except OSError:
-            pass
+    def callback(key, geo, mode = None):
+        """
+        Append geometry to  a file, prepending the key.  Has to adhere
+        to the same interface as the callback prepared by empty_log()
+        """
 
-        logfile = open(filename, "w")
-        dump(self.atoms, logfile)
-        logfile.close()
+        with open(filename, "a") as logfile:
+            dump((key, geo), logfile)
 
-    def __call__(self, key, geo):
-        logfile = open(self.filename, "a")
-        dump((key, geo), logfile)
-        logfile.close()
+    return callback
