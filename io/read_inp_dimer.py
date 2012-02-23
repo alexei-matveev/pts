@@ -340,7 +340,7 @@ def read_dimer_input(rest, name):
 
     if "pickle_log" in params_dict:
         if params_dict["pickle_log"] == None:
-            params_dict["pickle_log"] = empty_log()
+            params_dict["pickle_log"] = empty_log
         else:
             params_dict["pickle_log"] = dimer_log(atoms, filename = params_dict["pickle_log"])
     else:
