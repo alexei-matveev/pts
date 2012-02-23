@@ -5,10 +5,11 @@ from copy import deepcopy
 from scipy.linalg import eigh
 from pts.func import NumDiff
 from pts.metric import Default
+from pts.trajectories import empty_log
 
 VERBOSE = 0
 
-def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, pickle_log, dimer_distance = 0.01, \
+def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, pickle_log = empty_log, dimer_distance = 0.01, \
     max_rotations = 10, phi_tol = 0.1, interpolate_grad = True, restart = None, **params):
     """
     Rotates  the  dimer  while  keeping  its old  results  in  memory,
@@ -334,7 +335,7 @@ def need_restart(restart, i):
        res = (i % restart == 0)
     return res
 
-def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, pickle_log, \
+def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, pickle_log = empty_log, \
     dimer_distance = 0.0001, max_rotations = 10, phi_tol = 0.1, rot_conj_gradient = True, **params):
     """
     Rotate the dimer to the mode of lowest curvature
