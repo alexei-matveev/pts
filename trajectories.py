@@ -89,20 +89,12 @@ class traj_long:
             f_out.write(gs)
             f_out.close()
 
-def empty_log():
+def empty_log(key, geo):
     """
-    Returns a  callback funciton  that implements a  general interface
-    but does nothing.
+    Does nothing  but has to adhere  to the same  interface as the
+    callback prepared by dimer_log()
     """
-
-    def callback(key, geo, mode = None):
-        """
-        Does nothing  but has to adhere  to the same  interface as the
-        callback prepared by dimer_log()
-        """
-        pass
-
-    return callback
+    pass
 
 def dimer_log(atoms, filename = "dimer.log.pickle"):
     """
@@ -110,16 +102,6 @@ def dimer_log(atoms, filename = "dimer.log.pickle"):
     that  appends dimer state  to a  file. Removes  the file,  if that
     exists.
     """
-
-    from os import remove
-
-    # FIXME: I think this remove is  redundant as the tile is open for
-    # writing as the next step:
-    try:
-        remove(filename)
-    except OSError:
-        pass
-
     #
     # A valid logfile  will contain pickled Atoms object  as the first
     # record:
@@ -127,7 +109,7 @@ def dimer_log(atoms, filename = "dimer.log.pickle"):
     with open(filename, "w") as logfile:
         dump(atoms, logfile)
 
-    def callback(key, geo, mode = None):
+    def callback(key, geo):
         """
         Append geometry to  a file, prepending the key.  Has to adhere
         to the same interface as the callback prepared by empty_log()
