@@ -361,6 +361,7 @@ qn_default_params = {
    "max_step" : 0.1, # maximal allowed step lenght (translation)
     "logfile"  : None, # Where the output of dimer should go (None goes to standard output)
     "trajectory" :  "newest", # Update method
+    "pickle_log" : None, # Recording each structure in calculation
    "update_method" : "SR1" # Hessian update method, choose SR1 for transition state seach
 }
 

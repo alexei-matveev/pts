@@ -9,10 +9,10 @@ from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 from numpy import arccos
 from sys import stdout
 from pts.memoize import Memoize
-from pts.trajectories import empty_traj
+from pts.trajectories import empty_traj, empty_log
 
 def qn(pes, start_geo, metric, max_iteration = 100000000, \
-       converged = 0.00016, max_step = 0.1,\
+       converged = 0.00016, max_step = 0.1, pickle_log = empty_log, \
        update_method = "SR1", trajectory = empty_traj, logfile = None, **params):
     """ A simple quasi Newton method
     pes :  potential surface to calculate on, needs f and fprime function
@@ -43,6 +43,7 @@ def qn(pes, start_geo, metric, max_iteration = 100000000, \
     i = 0
     # main loop:
     while i < max_iteration:
+         pickle_log("Center", geo)
          energy, grad = pes.taylor(geo)
 
          # Test for convergence, converged if saddle point is reached
