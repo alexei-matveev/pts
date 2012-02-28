@@ -8,9 +8,10 @@ from numpy import arccos
 from sys import stdout
 from pts.trajectories import empty_traj, empty_log
 """
-dimer method:
+Dimer method:
 
 References:
+
 J. K\{a"}stner, P. Sherwood; J. Chem. Phys. 128 (2008), 014106
 A. Heyden, A. T. Bell, F. J. Keil; J. Chem. Phys. 123 (2005), 224101
 G. Henkelman, H. J\{o'}nsson; J. Chem. Phys. 111 (1999), 7010
@@ -19,8 +20,9 @@ G. Henkelman, H. J\{o'}nsson; J. Chem. Phys. 111 (1999), 7010
 class translate_cg():
     def __init__(self, metric, trial_step):
         """
-        use conjugate gradient to determine in which direction to do the next step
-        conjugate gradient update as Polak Ribiere with reset for negative values
+        Use conjugate  gradient to determine in which  direction to do
+        the next step conjugate  gradient update as Polak Ribiere with
+        reset for negative values
 
         >>> from numpy import array
         >>> from pts.pes.mueller_brown import MB
@@ -62,7 +64,8 @@ class translate_cg():
         #print "Forces raw PTS", dot(geo_grad.flatten(), geo_grad.flatten())
 
         if curv > 0.0:
-            # No negative curvature found, go in direction of lowest mode then
+            # No negative  curvature found, go in  direction of lowest
+            # mode then
             force = negpara_force( -geo_grad.flatten(), mode_vector.flatten(), mode_vec_down)
         else:
             force = trans_force( -geo_grad.flatten(), mode_vector.flatten(), mode_vec_down)
@@ -84,8 +87,9 @@ class translate_cg():
         #print "Direction", step
 
         # store for the next iteration:
-        # FIXME: make copy else the next iteration will have for at least one of them wrong
-        # value and convert this to a steepest decent calculation
+        # FIXME: make  copy else the  next iteration will have  for at
+        # least one of them wrong value and convert this to a steepest
+        # decent calculation
         self.old_force = deepcopy(force)
         self.old_step = deepcopy(step)
         self.old_geo = deepcopy(start_geo)
@@ -93,13 +97,12 @@ class translate_cg():
         step /= self.metric.norm_up(step, start_geo)
 
         if curv > 0.0:
-            # We are (supposely) in complete wrong region
-            # Take maximal step out of here
+            # We  are  (supposely)  in  complete wrong  region.   Take
+            # maximal step out of here
             trial_step = self.trial_step
             grad_calc = 0
         else:
-            # find how far to go
-            # line search, first trial
+            # find how far to go line search, first trial
             trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force, pickle_log)
 
         step = trial_step * step
@@ -114,8 +117,9 @@ class translate_cg():
 
 def line_search( start_geo, direction, trial_step, pes, metric, mode_vector, force, pickle_log):
         """
-        Find the minimum in direction from strat_geo on, uses second point
-        makes quadratic approximation with the "forces" of these two points
+        Find the  minimum in direction from strat_geo  on, uses second
+        point makes quadratic approximation with the "forces" of these
+        two points
         """
         assert abs(metric.norm_up(direction, start_geo) - 1.0) < 1e-7
 
@@ -129,11 +133,15 @@ def line_search( start_geo, direction, trial_step, pes, metric, mode_vector, for
         mode_vec_down = metric.lower(mode_vector, start_geo).flatten()
         grad_calc += 1
         force_r = trans_force( -pes.fprime(geo), mode_vector, mode_vec_down)
+
         # interpolate force in middle between two steps
         f_mid = dot(force_r + force_l, direction) /2.
+
         # estimate curvature in middle between two steps
         cr = dot(force_r - force_l, direction) / t_s
-        # search 0 = f_mid + t_s1 * cr (t_s1 starting from middle between two points)
+
+        # search  0 = f_mid  + t_s1  * cr  (t_s1 starting  from middle
+        # between two points)
         t_s = (- f_mid / cr + t_s/ 2.0)
 
         return t_s, grad_calc
@@ -159,23 +167,27 @@ def negpara_force(force_raw_trial, mode_vector, mode_vector_down):
 class translate_lbfgs():
     def __init__(self, metric, unused):
         """
-        The parameter unused is there for consistence, as the other
-        translation steps needs a parameter more
+        The parameter  unused is there  for consistence, as  the other
+        translation steps needs a parameter more.
 
-        Calculates a translation step of the dimer (not scaled)
-        Uses an approximated hessian hess
+        Calculates a translation step of the dimer (not scaled).  Uses
+        an approximated hessian hess.
 
-        Combination of a Dimer\Lanczos and a L-BFGS quasi-Newton algorithm:
-           * A (positive definite) L-BFGS update maintans an approximate
-           hessian. A quasi-Newton step with this is done the usual way.
-           * Additionally the mode and curvature of the dimer is used to
-           generate an Hessian update of SR1 kind (should keep negative
-           curvature). A step modification using this "Matrix" is added
-           to the normal step.
+        Combination  of  a  Dimer/Lanczos  and a  L-BFGS  quasi-Newton
+        algorithm:
 
-        If the Dimer\Lanczos curvature is positive instead the usual
-        step for the Dimer/Lanczos method is done to get as fast away
-        from the minima as possible (maximal step along negative of
+        * A (positive definite)  L-BFGS update maintans an approximate
+          hessian.  A quasi-Newton step  with this  is done  the usual
+          way.
+
+        * Additionally the mode and curvature  of the dimer is used to
+          generate an Hessian update of SR1 kind (should keep negative
+          curvature).   A  step modification  using  this "Matrix"  is
+          added to the normal step.
+
+        If the  Dimer/Lanczos curvature is positive  instead the usual
+        step for the Dimer/Lanczos method  is done to get as fast away
+        from the  minima as possible  (maximal step along  negative of
         Dimer/Lanczos mode vector).
 
         Consider metric
@@ -193,12 +205,14 @@ class translate_lbfgs():
         >>> step, info = trans(MB, start, MB.fprime(start), mode, -1000., {})
         >>> print step
         [-0.07293125 -0.0950339 ]
+
         >>> step, info = trans(MB, start + step, MB.fprime(start + step), mode, -1000., {})
         >>> print step
         [-0.07935383  0.0896875 ]
 
         >>> trans = translate_lbfgs(met, None)
         >>> start = array([-0.25, 0.75])
+
         >>> step, info = trans(MB, start, MB.fprime(start), mode, -100., {})
         >>> print step
         [-0.02558608 -3.58730495]
@@ -223,73 +237,84 @@ class translate_lbfgs():
         force_perp = force_raw - force_para
 
         if "rot_updates" in info:
-            # Lanczos method keeps some informations for our update.
-            # If it created the mode, we can now use them for the
-            # step hessian.
+            # Lanczos method  keeps some informations  for our update.
+            # If it created the mode, we can now use them for the step
+            # hessian.
             for dr, dg in info["rot_updates"]:
-                # Be aware that the direction goes from middle point
-                # to the dimer end point, while the forces are from
-                # the dimer end point  minus the middle point.
+                # Be aware  that the direction goes  from middle point
+                # to the  dimer end point,  while the forces  are from
+                # the dimer end point minus the middle point.
                 self.hess.update(dr, dg)
 
         if not self.old_grad == None:
-            # This is the update of the Hessian with the gradient
-            # change from the last step. It is always the last
-            # update as it is the most relevant one.
+            # This  is the  update of  the Hessian  with  the gradient
+            # change from the last step.  It is always the last update
+            # as it is the most relevant one.
             dr = start_geo - self.old_geo
             dg = geo_grad - self.old_grad
             self.hess.update(dr, dg)
 
-        # BFGS hessian is positive definite. Thus it has the wrong
-        # eigenvalue in direction of the mode (when it has as desired
+        # BFGS  hessian is positive  definite. Thus  it has  the wrong
+        # eigenvalue in direction of the  mode (when it has as desired
         # a negative direction).
         step_hess = self.hess.inv(force_raw)
 
-        # Like SR1 update on the hessian with the mode vector:
-        # result is (H* - H) * tau.
+        # Like SR1 update on the  hessian with the mode vector: result
+        # is (H* - H) * tau.
         def H_times_tau(tau):
              y_k = curv * mode_vector
              # y_k = curv * mode_vector is a gradient.
              u_k = mode_vector.flatten() - self.hess.inv(y_k)
              return u_k / (dot(u_k, y_k)) * dot(u_k, tau)
 
-        # Like a SR1 update step, using mode and curvature of
+        # Like  a  SR1  update  step,  using  mode  and  curvature  of
         # dimer/lanczos method.
         step_add = H_times_tau(force_raw)
 
         # step = H_BFGS * f + update(SR1) * f
         step = step_hess + step_add
 
+        # FIXME:  this  branch  will  overwrite  variables  that  were
+        # already set above, and define a few more:
         if curv > 0:
-            # Undesired Hessian, there is no negative eigenmode.
-            # Therefore do a maximal step away. Relax as long as relaxation
-            # might be going, additionally do rest of the step along mode
-            # (should become negative eigenvalue direction). Go there
-            # opposite to the forces (climb)
+            # Undesired  Hessian,  there  is  no  negative  eigenmode.
+            # Therefore  do a  maximal  step away.  Relax  as long  as
+            # relaxation might  be going, additionally do  rest of the
+            # step  along  mode  (should  become  negative  eigenvalue
+            # direction). Go there opposite to the forces (climb)
             step_relax = step - dot( step, mode_vec_down) * mode_vector
             length_relax = self.metric.norm_up(step_relax, start_geo)
             if length_relax > info["max_step"]:
                 # will be scaled down later
                 step = step_relax
             else:
-                # The step climbing along mode_vector should have the opposite
-                # direction than the force.
+                # The step climbing  along mode_vector should have the
+                # opposite direction than the force.
                 sign = 1.
                 if dot(mode_vector, force_raw) > 0:
                     sign = -1.
 
                 step = step_relax + sign * mode_vector * sqrt(info["max_step"]**2 - length_relax**2)
 
-        # Test if the perpendicular part of the force is perpendicular to the mode
-        # (Angle == pi/2)
-        #test_step = H_times_tau(force_raw - dot(force_raw, mode_vector) * mode_vec_down )
-        #print "Angle", dot(test_step, mode_vector)
+        # FIXME: an "if" without an "else" branch has a huge potential
+        # for confusion!
+
+        #
+        # Test if the perpendicular part of the force is perpendicular
+        # to the mode (Angle == pi/2)
+        #
+        # test_step = H_times_tau(force_raw - dot(force_raw, mode_vector) * mode_vec_down )
+        # print "Angle", dot(test_step, mode_vector)
 
         self.old_grad = geo_grad
         self.old_geo = start_geo
 
-        #print "Forces mod BFGS",self.metric.norm_down(force_raw, start_geo), self.metric.norm_down(force_para, start_geo), self.metric.norm_down(force_perp, start_geo)
-        #print "Steps mod BFGS", self.metric.norm_up(step, start_geo) ,self.metric.norm_up(step_hess, start_geo), self.metric.norm_up(step_add, start_geo)
+        # print "Forces mod BFGS", self.metric.norm_down(force_raw, start_geo), \
+        #     self.metric.norm_down(force_para, start_geo), \
+        #     self.metric.norm_down(force_perp, start_geo)
+        # print "Steps mod BFGS", self.metric.norm_up(step, start_geo), \
+        #     self.metric.norm_up(step_hess, start_geo), \
+        #     self.metric.norm_up(step_add, start_geo)
 
         info_out = {"trans_perp_force" : self.metric.norm_down(force_perp, start_geo),
                 "trans_para_force": self.metric.norm_down(force_para, start_geo),
@@ -304,7 +329,8 @@ class translate_lbfgs():
 class translate_sd():
     def __init__(self, metric, trial_step):
         """
-        use steepest decent to determine in which direction to do the next step
+        Use steepest decent to determine  in which direction to do the
+        next step.
 
         >>> from numpy import array
         >>> from pts.pes.mueller_brown import MB
@@ -322,6 +348,7 @@ class translate_sd():
 
         >>> trans = translate_sd(met, tr_step)
         >>> start = array([-0.25, 0.75])
+
         >>> step, info = trans(MB, start, MB.fprime(start), mode, -1., {})
         >>> print step
         [-0.00256136 -0.25138143]
@@ -338,7 +365,8 @@ class translate_sd():
         force_raw = force_raw.flatten()
         mode_vec_down = self.metric.lower(mode_vector, start_geo).flatten()
         if curv > 0.0:
-            # No negative curvature found, go in direction of lowest mode then
+            # No negative  curvature found, go in  direction of lowest
+            # mode then
             force = negpara_force( force_raw, mode_vector.flatten(), mode_vec_down)
         else:
             force = trans_force( force_raw, mode_vector.flatten(), mode_vec_down)
@@ -348,13 +376,12 @@ class translate_sd():
         step /= sqrt(dot(step, force))
 
         if curv > 0.0:
-            # We are (supposely) in complete wrong region
-            # Take maximal step out of here
+            # We  are  (supposely)  in  complete wrong  region.   Take
+            # maximal step out of here
             trial_step = self.trial_step
             grad_calc = 0
         else:
-            # find how far to go
-            # line search, first trial
+            # find how far to go.  line search, first trial
             trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force, pickle_log)
         step = trial_step * step
 
@@ -380,14 +407,31 @@ rot_dict = {
 def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_translation = 100000000, max_gradients = None, \
        trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.001, \
        rot_method = "dimer", trajectory = empty_traj, logfile = None, **params):
-    """ The complete dimer algorithm
-    Parameters for rotation and translation are handed over together. Each of the two
-    grabs what it needs.
+    """
+    The complete dimer algorithm.
+
+    Parameters   for  rotation   and  translation   are   handed  over
+    together. Each of the two grabs what it needs.
+
     Required input is:
-    pes :  potential surface to calculate on, needs f and fprime function
-    start_geo : one geometry on pes, as start for search
-    start_mode : first mdoe_vector suggestion
-    metric     : might affect everything, as defines distances and angles, from pts.metric module
+
+        pes
+
+            potential  surface to  calculate  on, needs  f and  fprime
+            function
+
+        start_geo
+
+            one geometry on pes, as start for search
+
+        start_mode
+
+            first mode_vector suggestion
+
+        metric
+
+            might affect everything,  as defines distances and angles,
+            from pts.metric module
     """
     # for translation
 
@@ -419,12 +463,13 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
     i = 0
     # main loop:
     while i < max_translation:
-         #ATTENTION: 2 break points, first for convergence, second at end
-         # two ways of maximum iteration: as max_translation or
-         #        as count of gradient calls, second case needs
-         #        additional break point
-         #        it is only checked for only maximum number of gradient calls
-         #        if max_translation > maximum number of gradient calls
+         # ATTENTION: 2 break points, first for convergence, second at
+         #            end   two   ways   of  maximum   iteration:   as
+         #            max_translation or  as count of  gradient calls,
+         #            second case  needs additional break  point it is
+         #            only checked for only maximum number of gradient
+         #            calls  if max_translation  >  maximum number  of
+         #            gradient calls
          pickle_log("Center", geo)
          energy, grad = pes.taylor(geo)
          grad_calc += 1
@@ -443,8 +488,8 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
                (error, trans_converged))
               break
 
-         # calculate one step of the dimer, also update dimer direction
-         # res is dictionary with additional results
+         # calculate  one  step  of   the  dimer,  also  update  dimer
+         # direction res is dictionary with additional results
          step, mode, res = _dimer_step(pes, geo, grad, mode, trans, rot, metric, pickle_log, **params)
          grad_calc += res["rot_gradient_calculations"] + res["trans_gradient_calculations"]
          #print "iteration", i, error, metric.norm_down(step, geo)
@@ -518,10 +563,10 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
 
 def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, pickle_log = empty_log, max_step = 0.1, scale_step = 1.0, **params):
     """
-    Calculates the step the dimer should take
-    First improves the mode start_mode to mode_vec to identify the dimer direction
-    Than calculates the step for the modified force
-    Scales the step (if required)
+    Calculates  the step the  dimer should  take.  First  improves the
+    mode start_mode  to mode_vec to identify the  dimer direction Than
+    calculates the  step for  the modified force  Scales the  step (if
+    required)
     """
     curv, mode_vec, info = rot(pes, start_geo, geo_grad, start_mode, metric, pickle_log, **params)
 
