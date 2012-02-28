@@ -115,7 +115,7 @@ class translate_cg():
 
         return step, info
 
-def line_search( start_geo, direction, trial_step, pes, metric, mode_vector, force, pickle_log):
+def line_search(start_geo, direction, trial_step, pes, metric, mode_vector, force, pickle_log):
         """
         Find the  minimum in direction from strat_geo  on, uses second
         point makes quadratic approximation with the "forces" of these
