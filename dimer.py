@@ -117,7 +117,7 @@ def line_search( start_geo, direction, trial_step, pes, metric, mode_vector, for
         Find the minimum in direction from strat_geo on, uses second point
         makes quadratic approximation with the "forces" of these two points
         """
-        assert ( abs(metric.norm_up(direction, start_geo) -1.) < 1e-7)
+        assert abs(metric.norm_up(direction, start_geo) - 1.0) < 1e-7
 
         grad_calc = 0
         force_l = deepcopy(force)
