@@ -96,7 +96,7 @@ def empty_log(key, geo):
     """
     pass
 
-def dimer_log(atoms, filename = "dimer.log.pickle"):
+def dimer_log(atoms, funcart, filename = "dimer.log.pickle"):
     """
     Returns a  callback funciton  that implements a  general interface
     that  appends dimer state  to a  file. Removes  the file,  if that
@@ -108,6 +108,7 @@ def dimer_log(atoms, filename = "dimer.log.pickle"):
     #
     with open(filename, "w") as logfile:
         dump(atoms, logfile)
+        dump(funcart, logfile)
 
     def callback(key, geo):
         """
