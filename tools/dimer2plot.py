@@ -10,6 +10,8 @@ Usage:
 
 """
 import sys
+import numpy as np
+from pts.path import Path
 
 def main(argv):
 
@@ -20,8 +22,7 @@ def main(argv):
     from pts.memoize import FileStore, DirStore, Store
     from pts.cfunc import Justcarts
     from pts.tools.path2tab import path_to_int, beads_to_int
-    from pts.tools.path2tab import energy_from_path, grads_from_path, grads_from_beads
-    import numpy as np
+    from pts.tools.path2tab import energy_from_path
 
     if len(argv) <= 1:
         # errors go to STDERR:
@@ -226,12 +227,15 @@ def main(argv):
         atoms, geos, modes = read_from_pickle_log(geo_file, info)
         obj = atoms.get_chemical_symbols(), Justcarts()
         x = list(np.linspace(0,1,len(geos["Center"])))
+
         beads = beads_to_int(geos["Center"], x, obj, allval, cell, tomove, howmove, withs)
         beads = np.asarray(beads)
         beads = beads.T
+
         path = path_to_int(x, geos["Center"], obj, num, allval, cell, tomove, howmove, withs)
         path = np.asarray(path)
         path = path.T
+
         name_p = str(i + 1)
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
@@ -248,12 +252,12 @@ def main(argv):
             for s_val in special_val:
                 # use the options for x and plot the data gotten from
                 # the file directly
+
                 optlog = optx + " t %i" % (xnum_opts + 1)
                 log_points = beads
                 log_points = log_points[:xnum_opts + 1,:]
                 log_points = log_points.tolist()
-                # till here  the x-data  should be copied  and ready,
-                # now add also the logdata
+
                 if s_val.startswith("en"):
                     log_points.append(energy)
                 else:
@@ -263,6 +267,7 @@ def main(argv):
                 log_path = path
                 log_path = log_path[:xnum_opts + 1,:]
                 log_path = log_path.tolist()
+
                 if s_val.startswith("en"):
                     log_path.append(energy_from_path(x, energy, num))
                 log_points = np.asarray(log_points)
@@ -295,6 +300,7 @@ def read_from_pickle_log(filename, additional_points = set([])):
     # always extract center and lowest mode, addtional points can be
     # specified
     from pickle import load
+
     geos = {"Center": []}
     for name in additional_points:
         geos[name] = []
