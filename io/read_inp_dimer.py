@@ -342,9 +342,9 @@ def read_dimer_input(rest, name):
         if params_dict["pickle_log"] == None:
             params_dict["pickle_log"] = empty_log
         else:
-            params_dict["pickle_log"] = dimer_log(atoms, filename = params_dict["pickle_log"])
+            params_dict["pickle_log"] = dimer_log(atoms, funcart, filename = params_dict["pickle_log"])
     else:
-        params_dict["pickle_log"] = dimer_log(atoms, filename = "%s.log.pickle" % (name))
+        params_dict["pickle_log"] = dimer_log(atoms, funcart, filename = "%s.log.pickle" % (name))
 
     #Attention inital mode need not be normed (and cannot as metric is not yet known)
     return pes, start_geo, init_mode, params_dict, atoms, funcart
