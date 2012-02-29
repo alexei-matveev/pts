@@ -224,8 +224,8 @@ def main(argv):
         names_of_lines.append([])
 
     for i, geo_file in enumerate(log_file):
-        atoms, geos, modes = read_from_pickle_log(geo_file, info)
-        obj = atoms.get_chemical_symbols(), Justcarts()
+        atoms, funcart, geos, modes = read_from_pickle_log(geo_file, info)
+        obj = atoms.get_chemical_symbols(), funcart
         x = list(np.linspace(0,1,len(geos["Center"])))
 
         beads = beads_to_int(geos["Center"], x, obj, allval, cell, tomove, howmove, withs)
@@ -249,6 +249,8 @@ def main(argv):
             else:
                 resdict = FileStore(dict_file[i])
             energy, grad = read_from_store(resdict, geos)
+            geos, modes = cart_convert(geos, modes, funcart)
+
             for s_val in special_val:
                 # use the options for x and plot the data gotten from
                 # the file directly
@@ -310,6 +312,8 @@ def read_from_pickle_log(filename, additional_points = set([])):
 
     #First item is the atoms object
     atoms = load(logfile)
+    #second item is the transform function to Cartesian
+    funcart = load(logfile)
 
     while True:
         try:
@@ -326,7 +330,25 @@ def read_from_pickle_log(filename, additional_points = set([])):
             geos["Center"].append(item[1])
 
     logfile.close()
-    return atoms, geos, modes
+
+    return atoms, funcart, geos, modes
+
+def cart_convert(geos, modes, funcart):
+
+    new_geos = {}
+    new_modes = []
+
+    for key in geos:
+        new_geos[key] = []
+        for item in geos[key]:
+            new_geos[key].append(funcart(item))
+
+    for i in range(len(modes)):
+        new_modes.append(np.dot(funcart.fprime(geos["Center"][i]), modes[i]))
+        new_modes[i] = new_modes[i] / np.sqrt(np.dot(new_modes[i].flatten(), new_modes[i].flatten()))
+    new_modes.append(np.array([]))
+
+    return new_geos, new_modes
 
 def read_from_store(store, geos):
     # energy only available at center points, so return a list of energy
