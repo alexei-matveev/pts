@@ -55,6 +55,10 @@ def main(argv):
     howmove = None
     withs = False
     info = set([])
+    iter_flag = set([])    # because some of the parameters to be plotted are
+                           # available only between iterations, eg. trans. step
+                           # size, or only in iterations before converge, eg.
+                           # mode vector, this flag is used to consider such situation
 
     # default for plotting options
     num = 100
@@ -100,13 +104,24 @@ def main(argv):
                 value = "vec"
                 argv = argv[1:]
                 for j in range(0, 2):
+                    if argv[0].endswith("after") or argv[0] == "mode":
+                        # use only first n-1 iterations
+                        iter_flag.add(-1)
+                    elif argv[0].endswith("before"):
+                        # use only last n-1 iterations
+                        iter_flag.add(1)
+                    elif argv[0] == "stepchange":
+                        # use only n-2 iterations in the middle
+                        iter_flag.update([1,-1])
                     value += interestingdirection(argv[0]).string()
                     argv = argv[1:]
                     if value[3] == "s":
                         break
-                print value
                 special_val.append(value)
-            elif option in ["grabs", "gramax", "graperp", "grapara"]:
+            elif option in ["grabs", "grmax", "grperp", "grpara", "grangle"]:
+                if option in ["grperp", "grpara", "grangle"]:
+                    iter_flag.add(-1)    # because mode is not available for
+                                            # the last point.
                 special_val.append(option)
                 argv = argv[1:]
             elif option in ["gr", "gradients"]:
@@ -118,12 +133,20 @@ def main(argv):
                 argv = argv[1:]
             elif option in ["curv", "curvature"]:
                 assert name in ["dimer", "lanczos"]
+                iter_flag.add(-1)
                 special_val.append("curvature")
                 info.add(name.capitalize())
                 argv = argv[1:]
-            elif option in ["step_before", "step_after"]:
-                # step size of translation step before/after interesting variables
+            elif option in ["step_before"]:
+                # step size of translation step before interesting variables
                 # of specific iteration
+                iter_flag.add(1)
+                special_val.append(option)
+                argv = argv[1:]
+            elif option in ["step_after"]:
+                # step size of translation step after interesting variables
+                # of specific iteration
+                iter_flag.add(-1)
                 special_val.append(option)
                 argv = argv[1:]
             elif option in ["dis", "2", "ang","3", "ang4", "4", "dih", "5", "dp", "6", "dl", "7"]:
@@ -147,6 +170,7 @@ def main(argv):
                  argv = argv[3:]
             elif option == "arrow":
                 assert name in ["dimer", "lanczos"]
+                iter_flag.add(-1)
                 arrow = True
                 info.add(name.capitalize())
                 argv = argv[1:]
@@ -226,13 +250,19 @@ def main(argv):
     for i, geo_file in enumerate(log_file):
         atoms, funcart, geos, modes = read_from_pickle_log(geo_file, info)
         obj = atoms.get_chemical_symbols(), funcart
-        x = list(np.linspace(0,1,len(geos["Center"])))
+        ifplot = [None, None]
+        for index, s in enumerate([1, -1]):
+            if s in iter_flag:
+                ifplot[index] = s;
+        x = list(np.linspace(0,1,len(geos["Center"])))[ifplot[0]: ifplot[1]]
 
-        beads = beads_to_int(geos["Center"], x, obj, allval, cell, tomove, howmove, withs)
+        beads = beads_to_int(geos["Center"][ifplot[0]: ifplot[1]], x, obj, \
+                        allval, cell, tomove, howmove, withs)
         beads = np.asarray(beads)
         beads = beads.T
 
-        path = path_to_int(x, geos["Center"], obj, num, allval, cell, tomove, howmove, withs)
+        path = path_to_int(x, geos["Center"][ifplot[0]: ifplot[1]], obj, num, \
+                        allval, cell, tomove, howmove, withs)
         path = np.asarray(path)
         path = path.T
 
@@ -249,7 +279,6 @@ def main(argv):
             else:
                 resdict = FileStore(dict_file[i])
             energy, grad = read_from_store(resdict, geos)
-            geos, modes = cart_convert(geos, modes, funcart)
 
             for s_val in special_val:
                 # use the options for x and plot the data gotten from
@@ -260,19 +289,24 @@ def main(argv):
                 log_points = log_points[:xnum_opts + 1,:]
                 log_points = log_points.tolist()
 
-                if s_val.startswith("en"):
-                    log_points.append(energy)
-                else:
-                    print "ERROR: function still not availabe"
-                    exit
-
                 log_path = path
                 log_path = log_path[:xnum_opts + 1,:]
                 log_path = log_path.tolist()
 
                 if s_val.startswith("en"):
+                    log_points.append(energy)
                     log_path.append(energy_from_path(x, energy, num))
+                elif s_val.startswith("gr"):
+                    val = s_val[2:]
+                    log_points.append(grads_from_beads_dimer(modes, \
+                            grad["Center"][ifplot[0]: ifplot[1]], val))
+                    log_path.append(grads_from_path_dimer(x, modes, \
+                            grad["Center"][ifplot[0]: ifplot[1]], num, val))
+                else:
+                    print "Sorry, the function is still not available now!"
+
                 log_points = np.asarray(log_points)
+
                 pl.prepare_plot( log_path, s_val + " %i" % (i + 1), \
                                log_points, "_nolegend_", None, None, optlog)
 
@@ -281,8 +315,10 @@ def main(argv):
 class interestingdirection:
     def __init__(self, option):
         self.variable = ["mode", "grad", "step_before", "step_after", "translation"]
+            # translation means accumulated translation from initial point 
         self.constant = ["init2final", "initmode", "finalmode"]
-        self.special = ["modechg_before", "modechg_after", "stepchg_before", "stepchg_after"]
+        # generally the special parameters are only intended to visualize versus steps
+        self.special = ["modechange_before", "modechange_after", "stepchange"]
         self.name = option
         if option in self.variable:
             self.type = "variable"
@@ -321,7 +357,8 @@ def read_from_pickle_log(filename, additional_points = set([])):
         except EOFError:
             break
         if item[0] == "Lowest_Mode":
-            modes.append(item[1])
+            # normalize when read in
+            modes.append(item[1] / np.sqrt(np.dot(item[1], item[1])))
         elif item[0] in additional_points:
             geos[item[0]][-1].append(item[1])
         elif item[0] == "Center":
@@ -332,23 +369,6 @@ def read_from_pickle_log(filename, additional_points = set([])):
     logfile.close()
 
     return atoms, funcart, geos, modes
-
-def cart_convert(geos, modes, funcart):
-
-    new_geos = {}
-    new_modes = []
-
-    for key in geos:
-        new_geos[key] = []
-        for item in geos[key]:
-            new_geos[key].append(funcart(item))
-
-    for i in range(len(modes)):
-        new_modes.append(np.dot(funcart.fprime(geos["Center"][i]), modes[i]))
-        new_modes[i] = new_modes[i] / np.sqrt(np.dot(new_modes[i].flatten(), new_modes[i].flatten()))
-    new_modes.append(np.array([]))
-
-    return new_geos, new_modes
 
 def read_from_store(store, geos):
 
@@ -370,4 +390,101 @@ def read_from_store(store, geos):
     # Attention: here the returned gradients are in the same coordinates as
     # geometry, needing revision before visualization 
     return energy, grad
+
+def grads_from_beads_dimer(mode, gr, allval):
+    """
+    Gives back the values of the gradients as decided in allval
+    which appear on the beads, path informations are needed
+    for finding the mode along the path
+    """
+    grs = []
+
+    for i, gr_1 in enumerate(gr):
+        if allval == "abs":
+            #Total forces, absolute value
+            grs.append(np.sqrt(np.dot(gr_1, gr_1)))
+        elif allval == "max":
+            #Total forces, maximal value
+            grs.append(max(abs(gr_1)))
+        elif allval == "para":
+            # parallel part of forces along the lowest modes
+            mode_1 = mode[i]
+            gr_2 = np.dot(mode_1, gr_1)
+            grs.append(gr_2)
+        elif allval == "perp":
+            # absolute value of perp. part of forces along the lowet modes
+            mode_1 = mode[i]
+            gr_2 = np.dot(mode_1, gr_1)
+            gr_1 = gr_1 - gr_2 * mode_1
+            grs.append(np.sqrt(np.dot(gr_1, gr_1)))
+        elif allval == "angle":
+            # angle between forces and path
+            mode_1 = mode[i]
+            gr_1 = gr_1 / np.sqrt( np.dot(gr_1, gr_1))
+            ang = abs(np.dot(mode_1, gr_1))
+            if ang > 1.:
+                ang = 1.
+            grs.append(np.arccos(ang) * 180. / np.pi)
+        else:
+            print >> stderr, "Illegal operation for gradients", allval
+            exit()
+    return grs
+
+def grads_from_path_dimer(x, mode, gr, num, allval ):
+    """
+    Gives back the values of the gradients as decided in allval
+    which appear on num equally spaced (in x-direction) on
+    the path
+    """
+    path1 = Path(gr, x)
+    if allval in ["para", "perp", "angle"]:
+        path2 = Path(mode, x)
+    grs = []
+
+    # to decide how long x is, namely what
+    # coordinate does the end x have
+    # if there is no x at all, the path has
+    # distributed the beads equally from 0 to 1
+    # thus in this case the end of x is 1
+    if x is None:
+        endx = 1.0
+    else:
+        endx = float(x[-1])
+
+    for i in range(num):
+        # this is one of the frames, with its gradients
+        # Make it the saem way than for the coordinates
+        x_1 = (endx / (num -1) * i)
+        gr_1 = path1(x_1).flatten()
+
+        if allval == "abs":
+            #Total forces, absolute value
+            grs.append(np.sqrt(np.dot(gr_1, gr_1)))
+        elif allval == "max":
+            #Total forces, maximal value
+            grs.append(max(abs(gr_1)))
+        elif allval == "para":
+            # parallel part of forces along modes
+            mode_1 = path2(x_1).flatten()
+            gr_2 = np.dot(mode_1, gr_1)
+            grs.append(gr_2)
+        elif allval == "perp":
+            # absolute value of perp. part of forces along modes
+            mode_1 = path2(x_1).flatten()
+            gr_2 = np.dot(mode_1, gr_1)
+            gr_1 = gr_1 - gr_2 * mode_1
+            grs.append(np.sqrt(np.dot(gr_1, gr_1)))
+        elif allval == "angle":
+            # angle between forces and modes
+            mode_1 = path2(x_1).flatten()
+            gr_1 = gr_1 / np.sqrt(np.dot(gr_1, gr_1))
+            ang = abs(np.dot(mode_1, gr_1))
+            if ang > 1.:
+                ang = 1.
+            grs.append(np.arccos(ang) * 180. / np.pi)
+        else:
+            print >> stderr, "Illegal operation for gradients", allval
+            exit()
+
+    return grs
 
