@@ -558,7 +558,7 @@ class MetricPath(Func):
         # assumed that s(0) = 0.
         #
 
-        # Pass  integration criteria  to  scipy.integrate.quad() via
+        # Pass  integration  criteria  to  scipy.integrate.quad()  via
         # **kwargs if desired:
         arc = Arc(p, norm)
         arg = Inverse(arc)
