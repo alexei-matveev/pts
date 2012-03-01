@@ -351,22 +351,23 @@ def cart_convert(geos, modes, funcart):
     return new_geos, new_modes
 
 def read_from_store(store, geos):
+
+    from pts.memoize import Memoize
+
     # energy only available at center points, so return a list of energy
     # and a dictionary of gradients
-    energy = []
     grad = {}
-    for key in geos:
-        if key == "Center":
-            grad["Center"] = []
-            for geo in geos["Center"]:
-                energy.append(store[((tuple(geo),),0)])
-                grad["Center"].append(store[((tuple(geo),),1)])
-        else:
-            grad[key] = []
-            for iter in geos[key]:
-                grad[key].append([])
-                for geo in iter:
-                    grad[key][-1].append(store[((tuple(geo),),1)])
 
+    # None is a fake Func that cannot compute anything,
+    # only stored values can be accessed without failure: 
+    pes = Memoize(None, store)
+    energy = [pes(x) for x in geos["Center"]]
+    grad["Center"] = [pes.fprime(x) for x in geos["Center"]]
+    for key in geos:
+        if key != "Center":
+            grad[key] = [[pes.fprime(x) for x in iteration] for iteration in geos[key]]
+
+    # Attention: here the returned gradients are in the same coordinates as
+    # geometry, needing revision before visualization 
     return energy, grad
 
