@@ -35,7 +35,7 @@ def main(argv):
 
     #initialize
     #calculation type
-    name = argv[0]      #can be "dimer", "lanczos" or "qn"
+    name = argv[0][:-5]      #can be "dimer", "lanczos" or "qn"
     argv = argv[1:]
 
     #input files
