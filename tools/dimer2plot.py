@@ -261,16 +261,11 @@ def main(argv):
         beads = np.asarray(beads)
         beads = beads.T
 
-        path = path_to_int(x, geos["Center"][ifplot[0]: ifplot[1]], obj, num, \
-                        allval, cell, tomove, howmove, withs)
-        path = np.asarray(path)
-        path = path.T
-
         name_p = str(i + 1)
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
         if num_opts > 1:
-            pl.prepare_plot( path, name_p, beads, "_nolegend_", None, None, opt)
+            pl.prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt)
 
         if special_val != []:
             # Two kinds of store share the same methods interesting to us
@@ -289,26 +284,19 @@ def main(argv):
                 log_points = log_points[:xnum_opts + 1,:]
                 log_points = log_points.tolist()
 
-                log_path = path
-                log_path = log_path[:xnum_opts + 1,:]
-                log_path = log_path.tolist()
-
                 if s_val.startswith("en"):
                     log_points.append(energy)
-                    log_path.append(energy_from_path(x, energy, num))
                 elif s_val.startswith("gr"):
                     val = s_val[2:]
                     log_points.append(grads_from_beads_dimer(modes, \
                             grad["Center"][ifplot[0]: ifplot[1]], val))
-                    log_path.append(grads_from_path_dimer(x, modes, \
-                            grad["Center"][ifplot[0]: ifplot[1]], num, val))
                 else:
                     print "Sorry, the function is still not available now!"
 
                 log_points = np.asarray(log_points)
 
-                pl.prepare_plot( log_path, s_val + " %i" % (i + 1), \
-                               log_points, "_nolegend_", None, None, optlog)
+                pl.prepare_plot( None, None, None, "_nolegend_", log_points, \
+                               s_val + " %i" % (i + 1), optlog)
 
     pl.plot_data(xrange = xran, yrange = yran, savefile = outputfile )
 
@@ -429,62 +417,3 @@ def grads_from_beads_dimer(mode, gr, allval):
             print >> stderr, "Illegal operation for gradients", allval
             exit()
     return grs
-
-def grads_from_path_dimer(x, mode, gr, num, allval ):
-    """
-    Gives back the values of the gradients as decided in allval
-    which appear on num equally spaced (in x-direction) on
-    the path
-    """
-    path1 = Path(gr, x)
-    if allval in ["para", "perp", "angle"]:
-        path2 = Path(mode, x)
-    grs = []
-
-    # to decide how long x is, namely what
-    # coordinate does the end x have
-    # if there is no x at all, the path has
-    # distributed the beads equally from 0 to 1
-    # thus in this case the end of x is 1
-    if x is None:
-        endx = 1.0
-    else:
-        endx = float(x[-1])
-
-    for i in range(num):
-        # this is one of the frames, with its gradients
-        # Make it the saem way than for the coordinates
-        x_1 = (endx / (num -1) * i)
-        gr_1 = path1(x_1).flatten()
-
-        if allval == "abs":
-            #Total forces, absolute value
-            grs.append(np.sqrt(np.dot(gr_1, gr_1)))
-        elif allval == "max":
-            #Total forces, maximal value
-            grs.append(max(abs(gr_1)))
-        elif allval == "para":
-            # parallel part of forces along modes
-            mode_1 = path2(x_1).flatten()
-            gr_2 = np.dot(mode_1, gr_1)
-            grs.append(gr_2)
-        elif allval == "perp":
-            # absolute value of perp. part of forces along modes
-            mode_1 = path2(x_1).flatten()
-            gr_2 = np.dot(mode_1, gr_1)
-            gr_1 = gr_1 - gr_2 * mode_1
-            grs.append(np.sqrt(np.dot(gr_1, gr_1)))
-        elif allval == "angle":
-            # angle between forces and modes
-            mode_1 = path2(x_1).flatten()
-            gr_1 = gr_1 / np.sqrt(np.dot(gr_1, gr_1))
-            ang = abs(np.dot(mode_1, gr_1))
-            if ang > 1.:
-                ang = 1.
-            grs.append(np.arccos(ang) * 180. / np.pi)
-        else:
-            print >> stderr, "Illegal operation for gradients", allval
-            exit()
-
-    return grs
-
