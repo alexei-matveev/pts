@@ -250,10 +250,13 @@ def main(argv):
     for i, geo_file in enumerate(log_file):
         atoms, funcart, geos, modes = read_from_pickle_log(geo_file, info)
         obj = atoms.get_chemical_symbols(), funcart
-        ifplot = [None, None]
-        for index, s in enumerate([1, -1]):
-            if s in iter_flag:
-                ifplot[index] = s;
+        ifplot = [None, None]   # initial and final point to plot
+                                # used because arrays to be plotted may have
+                                # different length
+        if 1 in iter_flag:
+            ifplot[0] = 1
+        if -1 in iter_flag:
+            ifplot[1] = len(geos["Center"])-1
         x = list(np.linspace(0,1,len(geos["Center"])))[ifplot[0]: ifplot[1]]
 
         beads = beads_to_int(geos["Center"][ifplot[0]: ifplot[1]], x, obj, \
@@ -290,6 +293,10 @@ def main(argv):
                     val = s_val[2:]
                     log_points.append(grads_from_beads_dimer(modes, \
                             grad["Center"][ifplot[0]: ifplot[1]], val))
+                elif s_val.startswith("curvature"):
+                    log_points.append(curv_from_beads(modes, geos["Center"], \
+                            geos[name.capitalize()], grad["Center"], \
+                            grad[name.capitalize()], name, ifplot))
                 else:
                     print "Sorry, the function is still not available now!"
 
@@ -417,3 +424,37 @@ def grads_from_beads_dimer(mode, gr, allval):
             print >> stderr, "Illegal operation for gradients", allval
             exit()
     return grs
+
+def curv_from_beads(modes, geo_center, geo_dimer, gr_center, gr_dimer, name, ifplot = [None, None]):
+
+    """
+    Gives back the curvatures for each beads in the
+    refinement. For dimer methods use the gradient
+    of the last rotation step, while for lanczos it
+    is the combination of gradients of intermediate
+    steps.
+    """
+    curv = []
+    # calculate dimer distance
+    dis = np.sqrt(np.dot(geo_center[0]-geo_dimer[0][0], geo_center[0]-geo_dimer[0][0]))
+    # select slices which will be used to calculate curvature
+    modes = modes[ifplot[0]: ifplot[1]]
+    geo_center = geo_center[ifplot[0]: ifplot[1]]
+    geo_dimer = geo_dimer[ifplot[0]: ifplot[1]]
+    gr_center = gr_center[ifplot[0]: ifplot[1]]
+    gr_dimer = gr_dimer[ifplot[0]: ifplot[1]]
+    from scipy.linalg import eigh
+
+    for geo, geo_d, gr, gr_d, mode in zip(geo_center, geo_dimer, gr_center, gr_dimer, modes):
+        assert abs(np.dot(mode, mode) - 1) < 1.0e-7
+        if name == "dimer":
+            # for dimer calculations the last dimer point is
+            # in the mode direction 
+            curv.append(np.dot(gr_d[-1] - gr, mode) / dis)
+        elif name == "lanczos":
+            # for lanczos calcualtions the gradient needed in
+            # curvature calculation is approximated with the results of other
+            # points around the central point
+            g_approx = sum([(gr_d[i] -gr) * np.dot(geo_d[i] - geo, mode) / dis for i in range(len(geo_d))])
+            curv.append(np.dot(g_approx, mode) / dis)
+    return curv
