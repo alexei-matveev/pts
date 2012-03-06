@@ -929,7 +929,6 @@ class NumDiff(Func):
             # result:
             fx = asarray(f(x))
             fshape = fx.shape
-            fsize  = fx.size
 
             # Univariate  function of |y|  with parameter  |n| staying
             # for the  index of variable  component. Two views  of the
