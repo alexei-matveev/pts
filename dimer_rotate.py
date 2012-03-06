@@ -581,12 +581,12 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, pickle_log = e
             print "curvatures (1,2):", c1, c2
             print "curvature approximation for new point:", cm
 
-        x_old = x
+        # x_old = x
         x = xm
         old_mode = mode
         mode = mm
         l_curv = cm
-        #print i,  metric.norm_down(fr, mid_point), l_curv, metric.norm_down(x-x_old,mid_point)
+        # print i,  metric.norm_down(fr, mid_point), l_curv, metric.norm_down(x-x_old,mid_point)
         i += 1
 
     # this was the shape of the starting mode vector
