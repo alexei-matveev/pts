@@ -122,6 +122,15 @@ def read_geos_from_file_more(geom_files, format):
                r1 = read_ase(st1, format = format, index = index)
            except IndexError:
                break
+
+           if len(res) > 0:
+               # if the file does not provide the index option, always
+               # the only readable structure is returned. Without this
+               # break this would result into an infinity loop.
+               if res[-1] == r1:
+                   print >> stderr, "WARNING: found two times the same structure, stopping read"
+                   break
+
            res.append(r1)
            index += 1
     atom = res[0]
