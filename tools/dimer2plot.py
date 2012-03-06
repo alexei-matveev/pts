@@ -12,6 +12,7 @@ Usage:
 import sys
 import numpy as np
 from pts.path import Path
+from numpy.linalg import norm
 
 def main(argv):
 
@@ -250,13 +251,13 @@ def main(argv):
     for i, geo_file in enumerate(log_file):
         atoms, funcart, geos, modes, curv = read_from_pickle_log(geo_file, info)
         obj = atoms.get_chemical_symbols(), funcart
-        ifplot = [None, None]   # initial and final point to plot
+        ifplot = [0, len(geos["Center"])]   # initial and final point to plot
                                 # used because arrays to be plotted may have
                                 # different length
         if 1 in iter_flag:
-            ifplot[0] = 1
+            ifplot[0] += 1
         if -1 in iter_flag:
-            ifplot[1] = len(geos["Center"])-1
+            ifplot[1] -= 1
         x = list(np.linspace(0,1,len(geos["Center"])))[ifplot[0]: ifplot[1]]
 
         beads = beads_to_int(geos["Center"][ifplot[0]: ifplot[1]], x, obj, \
@@ -398,7 +399,7 @@ def grads_from_beads_dimer(mode, gr, allval):
     for i, gr_1 in enumerate(gr):
         if allval == "abs":
             #Total forces, absolute value
-            grs.append(np.sqrt(np.dot(gr_1, gr_1)))
+            grs.append(norm(gr_1))
         elif allval == "max":
             #Total forces, maximal value
             grs.append(max(abs(gr_1)))
@@ -412,11 +413,11 @@ def grads_from_beads_dimer(mode, gr, allval):
             mode_1 = mode[i]
             gr_2 = np.dot(mode_1, gr_1)
             gr_1 = gr_1 - gr_2 * mode_1
-            grs.append(np.sqrt(np.dot(gr_1, gr_1)))
+            grs.append(norm(gr_1))
         elif allval == "angle":
             # angle between forces and path
             mode_1 = mode[i]
-            gr_1 = gr_1 / np.sqrt( np.dot(gr_1, gr_1))
+            gr_1 = gr_1 / norm(gr_1)
             ang = abs(np.dot(mode_1, gr_1))
             if ang > 1.:
                 ang = 1.
