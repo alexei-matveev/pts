@@ -103,7 +103,7 @@ beads). One has to set addtionally at least the symbols.
         but if  there are some there  need to be exactly  one file for
         each coordinate file
 
-der are other options which may be set:
+There are other options which may be set:
 
     --diff
 
