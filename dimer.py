@@ -569,6 +569,8 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, pickle
     required)
     """
     curv, mode_vec, info = rot(pes, start_geo, geo_grad, start_mode, metric, pickle_log, **params)
+    pickle_log("Lowest_Mode", mode_vec)
+    pickle_log("Curvature", info["curvature"])
 
     info["max_step"] = max_step
     step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv, pickle_log, info)

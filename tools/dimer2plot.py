@@ -248,7 +248,7 @@ def main(argv):
         names_of_lines.append([])
 
     for i, geo_file in enumerate(log_file):
-        atoms, funcart, geos, modes = read_from_pickle_log(geo_file, info)
+        atoms, funcart, geos, modes, curv = read_from_pickle_log(geo_file, info)
         obj = atoms.get_chemical_symbols(), funcart
         ifplot = [None, None]   # initial and final point to plot
                                 # used because arrays to be plotted may have
@@ -294,9 +294,7 @@ def main(argv):
                     log_points.append(grads_from_beads_dimer(modes, \
                             grad["Center"][ifplot[0]: ifplot[1]], val))
                 elif s_val.startswith("curvature"):
-                    log_points.append(curv_from_beads(modes, geos["Center"], \
-                            geos[name.capitalize()], grad["Center"], \
-                            grad[name.capitalize()], name, ifplot))
+                    log_points.append(curv)
                 else:
                     print "Sorry, the function is still not available now!"
 
@@ -338,6 +336,7 @@ def read_from_pickle_log(filename, additional_points = set([])):
     for name in additional_points:
         geos[name] = []
     modes = []
+    curvatures = []
 
     logfile = open(filename, "r")
 
@@ -353,7 +352,9 @@ def read_from_pickle_log(filename, additional_points = set([])):
             break
         if item[0] == "Lowest_Mode":
             # normalize when read in
-            modes.append(item[1] / np.sqrt(np.dot(item[1], item[1])))
+            modes.append(item[1] / norm(item[1]))
+        if item[0] == "Curvature":
+            curvatures.append(item[1])
         elif item[0] in additional_points:
             geos[item[0]][-1].append(item[1])
         elif item[0] == "Center":
@@ -363,7 +364,7 @@ def read_from_pickle_log(filename, additional_points = set([])):
 
     logfile.close()
 
-    return atoms, funcart, geos, modes
+    return atoms, funcart, geos, modes, curvatures
 
 def read_from_store(store, geos):
 
@@ -424,37 +425,3 @@ def grads_from_beads_dimer(mode, gr, allval):
             print >> stderr, "Illegal operation for gradients", allval
             exit()
     return grs
-
-def curv_from_beads(modes, geo_center, geo_dimer, gr_center, gr_dimer, name, ifplot = [None, None]):
-
-    """
-    Gives back the curvatures for each beads in the
-    refinement. For dimer methods use the gradient
-    of the last rotation step, while for lanczos it
-    is the combination of gradients of intermediate
-    steps.
-    """
-    curv = []
-    # calculate dimer distance
-    dis = np.sqrt(np.dot(geo_center[0]-geo_dimer[0][0], geo_center[0]-geo_dimer[0][0]))
-    # select slices which will be used to calculate curvature
-    modes = modes[ifplot[0]: ifplot[1]]
-    geo_center = geo_center[ifplot[0]: ifplot[1]]
-    geo_dimer = geo_dimer[ifplot[0]: ifplot[1]]
-    gr_center = gr_center[ifplot[0]: ifplot[1]]
-    gr_dimer = gr_dimer[ifplot[0]: ifplot[1]]
-    from scipy.linalg import eigh
-
-    for geo, geo_d, gr, gr_d, mode in zip(geo_center, geo_dimer, gr_center, gr_dimer, modes):
-        assert abs(np.dot(mode, mode) - 1) < 1.0e-7
-        if name == "dimer":
-            # for dimer calculations the last dimer point is
-            # in the mode direction 
-            curv.append(np.dot(gr_d[-1] - gr, mode) / dis)
-        elif name == "lanczos":
-            # for lanczos calcualtions the gradient needed in
-            # curvature calculation is approximated with the results of other
-            # points around the central point
-            g_approx = sum([(gr_d[i] -gr) * np.dot(geo_d[i] - geo, mode) / dis for i in range(len(geo_d))])
-            curv.append(np.dot(g_approx, mode) / dis)
-    return curv

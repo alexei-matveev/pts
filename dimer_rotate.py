@@ -250,7 +250,6 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, pickle_log = 
            m_basis, g_for_mb, H = start_setting(new_mode, grad)
 
     mode = new_mode
-    pickle_log("Lowest_Mode", mode)
     # this was the shape of the starting mode vector
     mode.shape = shape
 
@@ -592,7 +591,6 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, pickle_log = e
 
     # this was the shape of the starting mode vector
     mode.shape = shape
-    pickle_log("Lowest_Mode", mode)
 
     if VERBOSE > 1:
         grad = NumDiff(pes.fprime)
