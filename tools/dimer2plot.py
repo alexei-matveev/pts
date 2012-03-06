@@ -47,6 +47,7 @@ def main(argv):
     xdict = 0
 
     #default values of interesting parameters
+    vec_angle = interestingdirection()
     diff = []
     arrow = False
     special_val = []
@@ -105,16 +106,9 @@ def main(argv):
                 value = "vec"
                 argv = argv[1:]
                 for j in range(0, 2):
-                    if argv[0].endswith("after") or argv[0] == "mode":
-                        # use only first n-1 iterations
-                        iter_flag.add(-1)
-                    elif argv[0].endswith("before"):
-                        # use only last n-1 iterations
-                        iter_flag.add(1)
-                    elif argv[0] == "stepchange":
-                        # use only n-2 iterations in the middle
-                        iter_flag.update([1,-1])
-                    value += interestingdirection(argv[0]).string()
+                    vec_angle.set_name(argv[0])
+                    iter_flag.update(vec_angle.get_range())
+                    value += vec_angle.get_string()
                     argv = argv[1:]
                     if value[3] == "s":
                         break
@@ -138,14 +132,8 @@ def main(argv):
                 special_val.append("curvature")
                 info.add(name.capitalize())
                 argv = argv[1:]
-            elif option in ["step_before"]:
-                # step size of translation step before interesting variables
-                # of specific iteration
-                iter_flag.add(1)
-                special_val.append(option)
-                argv = argv[1:]
-            elif option in ["step_after"]:
-                # step size of translation step after interesting variables
+            elif option in ["step"]:
+                # step size of translation step
                 # of specific iteration
                 iter_flag.add(-1)
                 special_val.append(option)
@@ -296,8 +284,11 @@ def main(argv):
                             grad["Center"][ifplot[0]: ifplot[1]], val))
                 elif s_val.startswith("curvature"):
                     log_points.append(curv)
-                else:
-                    print "Sorry, the function is still not available now!"
+                elif s_val.startswith("step"):
+                    log_points.append(stepsize(geos["Center"][ifplot[0]: ifplot[1]+1]))
+                elif s_val.startswith("vec"):
+                    val = s_val[3:]
+                    log_points.append(array_angles(*vec_angle(val, modes, geos["Center"], grad["Center"], ifplot)))
 
                 log_points = np.asarray(log_points)
 
@@ -307,23 +298,74 @@ def main(argv):
     pl.plot_data(xrange = xran, yrange = yran, savefile = outputfile )
 
 class interestingdirection:
-    def __init__(self, option):
-        self.variable = ["mode", "grad", "step_before", "step_after", "translation"]
-            # translation means accumulated translation from initial point 
-        self.constant = ["init2final", "initmode", "finalmode"]
-        # generally the special parameters are only intended to visualize versus steps
-        self.special = ["modechange_before", "modechange_after", "stepchange"]
-        self.name = option
-        if option in self.variable:
-            self.type = "variable"
-        elif option in self.constant:
-            self.type = "constant"
-        elif option in self.special:
-            self.type = "special"
+    def __init__(self):
+        self.direction_type = {
+                                   "variable": ["mode", "grad", "step", "translation"],
+                                       # translation means accumulated translation from initial point 
+                                   "constant": ["init2final", "initmode", "finalmode"],
+                                   "special": ["modechange", "stepchange"]
+                                       # generally the special parameters are 
+                                       # only intended to visualize versus steps
+                              }
+    def __call__(self, opt_string, modes, geos, grs, ifplot):
+        if opt_string.startswith("s"):
+            assert len(opt_string) == 2
+            if opt_string[1] == "0":
+                return [modes[ifplot[0] - 1: ifplot[1] - 1], modes[ifplot[0]: ifplot[1]]], True
+            if opt_string[1] == "1":
+                return [step_from_beads(geos)[ifplot[0] - 1: ifplot[1] - 1], \
+                            step_from_beads(geos)[ifplot[0]: ifplot[1]]], False
+        else:
+            assert len(opt_string) == 4 and opt_string[2] != "s"
+            directs = []
+            acute = False
+            for i in [0, 2]:
+                opt = opt_string[i:i+2]
+                if opt[0] == "v":
+                    if opt[1] == "0":
+                        directs.append(modes[ifplot[0]: ifplot[1]])
+                        acute = True
+                    elif opt[1] == "1":
+                        directs.append(grs[ifplot[0]: ifplot[1]])
+                    elif opt[1] == "2":
+                        directs.append(step_from_beads(geos[ifplot[0]: ifplot[1]+1]))
+                    elif opt[1] == "3":
+                        directs.append([geo - geos[0] for geo in geos[ifplot[0]: ifplot[1]]])
+                elif opt[0] == "c":
+                    if opt[1] == "0":
+                        directs.append([geos[-1] - geos[0]] * (ifplot[1] - ifplot[0]))
+                    if opt[1] == "1":
+                        directs.append([modes[0]] * (ifplot[1] - ifplot[0]))
+                    if opt[1] == "2":
+                        directs.append([modes[-1]] * (ifplot[1] - ifplot[0]))
+            return directs, acute
 
-    def string(self):
-        index = eval("self."+self.type+".index(self.name)")
+    def set_name(self, option):
+        valid_option = False
+        for key in self.direction_type:
+            if option in self.direction_type[key]:
+                self.type = key
+                valid_option = True
+        if valid_option:
+            self.name = option
+        else:
+            print "This input variable is not valid:"
+            print option
+            print "Please check your input"
+            exit()
+
+    def get_string(self):
+        index = self.direction_type[self.type].index(self.name)
         return self.type[0]+str(index)
+
+    def get_range(self):
+        range_1 = set([])
+        if self.name in ["mode", "step"]:
+            range_1.add(-1)
+        elif self.name in self.direction_type["special"]:
+            range_1.add(1)
+            range_1.add(-1)
+        return range_1
 
 def read_from_pickle_log(filename, additional_points = set([])):
     # read given points from pickle_log file.
@@ -426,3 +468,18 @@ def grads_from_beads_dimer(mode, gr, allval):
             print >> stderr, "Illegal operation for gradients", allval
             exit()
     return grs
+
+def stepsize(geo):
+    return [norm(step) for step in step_from_beads(geo)]
+
+def step_from_beads(geo):
+    return [geo[i + 1] - geo[i] for i in range(len(geo) - 1)]
+
+def array_angles(array_list, acute = False):
+    from scipy import arccos, pi
+    if acute:
+        return [arccos(abs(np.dot(array_list[0][i], array_list[1][i])) / (norm(array_list[0][i]) \
+                * norm(array_list[1][i]))) / pi * 180 for i in range(len(array_list[0]))]
+    else:
+        return [arccos(np.dot(array_list[0][i], array_list[1][i]) / (norm(array_list[0][i]) \
+                * norm(array_list[1][i]))) / pi * 180 for i in range(len(array_list[0]))]
