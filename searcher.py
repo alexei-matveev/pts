@@ -550,7 +550,6 @@ class ReactionPathway(object):
         barrier_fwd = e_max - e_reactant
         barrier_rev = e_max - e_product
 
-        tab = lambda l: '\t'.join([str(i) for i in l])
         format = lambda f, l: ' | '.join([f % i for i in l])
 
         all_coordinates = ("%-24s : %s\n" % ("    Coordinate %3d " % 1 , format('%10.4f',(self.state_vec[:,0]))))
@@ -831,7 +830,6 @@ class ReactionPathway(object):
     def set_positions(self, x):
         """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
 
-        tmp = x.flatten()[0:self.beads_count * self.dimension]
         self.state_vec = x.flatten()[0:self.beads_count * self.dimension]
 
     def get_positions(self):
@@ -1268,7 +1266,6 @@ def get_new_bead_number_grad(Es, gradients, tangents, ps):
         new_i = i_max
 
     else:
-        p_max = ps[i_max]
         dEdx = gradients[i_max]
 
         dxdp = tangents[i_max]
@@ -1648,9 +1645,6 @@ class GrowingString(ReactionPathway):
         # Set up vector of fractional positions along the string.
         # TODO: this function should be unified with the grow_string_search()
         # at some point.
-        fbc = self.__final_beads_count
-        all_bead_ps = arange(fbc) * 1.0 / (fbc - 1)
-        end = self.beads_count / 2.0
 
     def lengths_disparate(self, metric):
         """Returns true if the ratio between the (difference of longest and 
