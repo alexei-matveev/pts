@@ -17,25 +17,6 @@ LOGFILE_EXT = ".log"
 INPICKLE_EXT = ".in.pickle"
 OUTPICKLE_EXT = ".out.pickle"
 
-TMP_DIR_ENV_VAR = "AOF_TMP"
-def get_tmp_dir():
-    """Returns the absolute path to a temporary directory. If the environment
-    variable AOE_TMP is specified (can be relative or absolute), then this is
-    used. Otherwise the current working directory is used."""
-    if TMP_DIR_ENV_VAR in os.environ:
-        tmp_dir = os.path.abspath(os.environ[TMP_DIR_ENV_VAR])
-    else:
-        tmp_dir = os.path.abspath(os.getcwd())
-
-    if not os.path.exists(tmp_dir):
-        print "Attempting to create", tmp_dir
-        try:
-            os.mkdir(tmp_dir)
-        except OSError, err:
-            print >>sys.stderr, "Directory %s already created by another thread." % tmp_dir
-
-    return tmp_dir
-
 def exec_in_path(name):
     """Tests if executable called name is in the path already."""
     # TODO: is there a better way of doing this?
