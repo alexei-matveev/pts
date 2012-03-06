@@ -139,7 +139,6 @@ class Job(object):
     """
 
 def fname():
-    import sys
     return sys._getframe(1).f_code.co_name
 
 SAMENESS_THRESH_VECTORS = float(finfo(float).eps)
