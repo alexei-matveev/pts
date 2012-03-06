@@ -261,7 +261,6 @@ class MultiOpt(ObjLog):
         Use the given forces, update the history and calculate the next step --
         then take it"""
 
-        step_str = ""
         bs = self.bs
 
         r = self.atoms.state_vec.reshape(bs, -1)
@@ -290,12 +289,6 @@ class MultiOpt(ObjLog):
         if self.respace:
             self.slog("Respacing Respacing Respacing Respacing Respacing ")
             self.atoms.respace(mt.metric )
-
-            dr_respace = self.atoms.state_vec.reshape(bs,-1) - (r + dr)
-
-        dr_total = self.atoms.state_vec - r
-
-        #dr_total.shape = (bs, -1)
 
     def _scale_step(self, dr, step_scales):
         """Determine step to take according to the given trust radius
