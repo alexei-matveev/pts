@@ -23,6 +23,7 @@ def readxyz(file, n ):
 def main(argv):
    '''performs all the calculations
    '''
+   from  pts.io.read_COS import read_geos_from_file_more
    # these variable may be used but need not
    # they need be there for check anyway
    filein = []
@@ -134,16 +135,15 @@ def main(argv):
          write("ERROR: No input file given\n")
          helpfun()
     # loop over all inputfiles
+    # Process only one file after another, as they
+    # belong to different tables.
      for filename in filein:
-        file = open(filename, "r")
         loop = 1
         write("#chart of internal coordinates in the run \n")
         write("#observed in file: %s  " % (filename) )
         if deg : write("#the following values were calculated, distances are in Angstroms; angles in degrees\n")
         else : write("#the following values were calculated, distances are in Angstroms; angles in radiens\n")
         # xyz file starts with number of atoms
-        nnull = file.readline()
-        n = nnull
         if allval == []:
         # by now there should be a list of what values are wanted to be calculated
             print "ERROR: program needs more input"
@@ -157,13 +157,10 @@ def main(argv):
                 write("%i " % number )
             write(";")
         write("\n")
-        while nnull == n :
-           # goes through the whole xyz file, which may contain several geometries
-           #( like in a jmol movie)
-           # the next line is of no interest
-           random = file.readline()
-           # read in the positions, give them back as a list
-           positionslist = list(readxyz(file, n))
+        __, geom = read_geos_from_file_more([filename], None)
+
+        for geo in geom:
+           positionslist = list(geo)
            # expand number of atoms if some of different cells are wanted
            if (expand): expandlist(positionslist, cell, tomove, howmove)
            # make an array of the positions
@@ -172,7 +169,6 @@ def main(argv):
            # the actual writing of the programm
            results = returnall(allval, positions, deg, loop)
            writeall(write, results, loop)
-           n = file.readline()
            loop += 1
 
 def writeall(write, results, loop):
