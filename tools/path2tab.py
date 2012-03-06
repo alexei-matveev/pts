@@ -94,7 +94,6 @@ from pickle import load
 from pts.tools.path2xyz import read_in_path
 from pts.tools.pathtools import read_path_fix, read_path_coords
 from pts.tools.xyz2tabint import returnall, interestingvalue, expandlist, writeall
-from pts.cfunc import Pass_through
 from pts.io.read_COS import read_geos_from_file_more
 import numpy as np
 from sys import stdout
@@ -139,13 +138,43 @@ def path_to_int(x, y, cs, num, allval, cell, tomove, howmove, withs):
 
     return path
 
+def ts_estimates_in_int(x, y, cs, en_and_grad, estimates, allval, cell, tomove, howmove, withs, see_all):
+    """
+    Gives back the internal values for allval
+    which appear on transition state estimates "estimates"
+    on the path
+    """
+    from pts.tools.tsestandmods import esttsandmd
+    en, gr = en_and_grad
+    __, trafo = cs
+    ts_all, __ = esttsandmd(y,  en, gr, cs, see_all, estimates)
+
+    ts_estims = []
+    ts_places = []
+    for i, ts_one in enumerate(ts_all):
+         __, est, __, __ = ts_one
+         __, coords, __, __,s_ts,  __, __ = est
+         cart = trafo(coords)
+         if cell != None:
+             cart2 = list(cart)
+             expandlist(cart2, cell, tomove, howmove)
+             cart = np.array(cart2)
+
+         new_val = returnall(allval, cart, True, i)
+         if withs:
+             ts_estims.append([new_val[0]] + [s_ts] + new_val[1:])
+         else:
+             ts_estims.append(new_val)
+         ts_places.append(s_ts)
+
+    return ts_estims, ts_places
+
+
 def energy_from_path(x, E, num):
     """
     Gives back the values of  the Energies which appear on num equally
     spaced (in x-direction) on the path
     """
-    path1 = Path(E, x)
-    energies = []
 
     # to decide how  long x is, namely what coordinate  does the end x
     # have if there is no x at all, the path has distributed the beads
@@ -155,13 +184,59 @@ def energy_from_path(x, E, num):
     else:
         endx = float(x[-1])
 
+    xs = []
     for i in range(num):
          # this is one  of the frames, with its  gradients Make it the
          # saem way than for the coordinates
-         x_1 = (endx / (num -1) * i)
-         energies.append(path1(x_1))
+         xs.append((endx / (num -1) * i))
 
-    return energies
+    return energy_from_path_points(x, E, xs)
+
+def energy_from_path_points(x, E, ss):
+    """
+    Gives back the values of  the Energies which appear at the
+    positions ss on the interpolated path
+    """
+    path1 = Path(E, x)
+
+    return map(path1, ss)
+
+def energy2_from_path(x, y, E, gr, num):
+    """
+    Gives back the values of  the Energies which appear at the
+    positions ss on the interpolated path
+    """
+    # to decide how  long x is, namely what coordinate  does the end x
+    # have if there is no x at all, the path has distributed the beads
+    # equally from 0 to 1 thus in this case the end of x is 1
+    if x is None:
+        endx = 1.0
+    else:
+        endx = float(x[-1])
+
+    xs = []
+    for i in range(num):
+         # this is one  of the frames, with its  gradients Make it the
+         # saem way than for the coordinates
+         xs.append((endx / (num -1) * i))
+
+    return energy2_from_path_points(x, y, E, gr, xs)
+
+
+def energy2_from_path_points(x, y, E, gr, ss):
+    """
+    Gives back the values of  the Energies which appear at the
+    positions ss on the interpolated path
+    """
+    from pts.func import CubicSpline
+    from numpy import dot
+    path2 = Path(y, x)
+
+    tangents = [path2.fprime(x1) for x1 in x]
+    slopes = [dot(g, t) for g, t in zip(gr, tangents)]
+    spline = CubicSpline(x, E, slopes)
+
+    return map(spline, ss)
 
 def grads_from_path(x, y, gr, num, allval ):
     """
@@ -169,10 +244,6 @@ def grads_from_path(x, y, gr, num, allval ):
     which appear on num equally spaced (in x-direction) on
     the path
     """
-    path1 = Path(gr, x)
-    path2 = Path(y, x)
-    grs = []
-
     # to decide how long x is, namely what
     # coordinate does the end x have
     # if there is no x at all, the path has
@@ -183,10 +254,27 @@ def grads_from_path(x, y, gr, num, allval ):
     else:
         endx = float(x[-1])
 
+    xs = []
     for i in range(num):
          # this is one of the frames, with its gradients
          # Make it the saem way than for the coordinates
-         x_1 = (endx / (num -1) * i)
+         xs.append((endx / (num -1) * i))
+
+    return grads_from_path_points(x, y, gr, xs, allval )
+
+def grads_from_path_points(x, y, gr, ss, allval ):
+    """
+    Gives back the values of the gradients as decided in allval
+    which appear on num equally spaced (in x-direction) on
+    the path
+    """
+    path1 = Path(gr, x)
+    path2 = Path(y, x)
+    grs = []
+
+    for x_1 in ss:
+         # this is one of the frames, with its gradients
+         # Make it the saem way than for the coordinates
          gr_1 = path1(x_1).flatten()
 
          if allval == "abs":
@@ -292,8 +380,22 @@ def beads_to_int(ys, xs, cs, allval, cell, tomove, howmove, withs):
     beads = []
     syms, trafo = cs
 
-    for i,y in enumerate(ys):
-         cart = trafo(y)
+    ys2 = [trafo(y) for y in ys]
+
+    return carts_to_int(ys2, xs, allval, cell, tomove, howmove, withs)
+
+def carts_to_int(ys, xs, allval, cell, tomove, howmove, withs):
+    """
+    This does exactly the same as above, but
+    without the calculation of the path, this
+    ensures that not only exactly the number of
+    bead positions is taken but also that it's
+    exactly the beads which are used to create
+    the frames
+    """
+    beads = []
+
+    for i,cart in enumerate(ys):
          if cell != None:
              cart2 = list(cart)
              expandlist(cart2, cell, tomove, howmove)
@@ -307,20 +409,21 @@ def beads_to_int(ys, xs, cs, allval, cell, tomove, howmove, withs):
 
     return beads
 
-def main(argv):
-    """
-    Reads in stuff from the sys.argv if not
-    provided an other way
-
-    Then calculate according to the need
-    the result will be a picture showing
-    for each inputfile a path of the given
-    coordinates with beads marked on them
-    """
-    if argv[0] == '--help':
+def helpfun(name):
+    if name == "path2tab":
         print __doc__
-        exit()
+    elif name == "path2plot":
+        path2plot_help()
+    else:
+        print >> stderr, "No help text available for current function!"
+    exit()
 
+def read_input(name, argv, num):
+    """
+    Reads in the options for the path2plot and path2tab function.
+    Be aware that some of the options are only valid for path2plot. If called with
+    name = path2tab they will cause an assert.
+    """
     # store the files containing the pathes somewhere
     filenames = []
     # input need not to be path.pickle
@@ -335,7 +438,6 @@ def main(argv):
     format = None
 
     # the default values for the parameter
-    num = -1
     diff = []
     symm = []
     symshift = []
@@ -346,6 +448,24 @@ def main(argv):
     tomove = None
     howmove = None
     withs = False
+
+    # estimates and reference
+    ts_estimates = []
+
+    ## This part is for path2plot
+    reference = None
+    reference_data = None
+
+    # axes and title need not be given for plot
+    title = None
+    xlab = None
+    ylab = None
+    xran = None
+    yran = None
+    names_of_lines = []
+    # output the figure as a file
+    outputfile = None
+    ## end only path2plot
 
     # count up to know which coordinates are special
     num_i = 1
@@ -459,13 +579,50 @@ def main(argv):
              elif option in ["abscissa", "pathpos"]:
                 abcis.append(argv[1])
                 argv = argv[2:]
+             elif option == "title":
+                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
+                 title = argv[1]
+                 argv = argv[2:]
+             elif option == "xlabel":
+                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
+                 xlab = argv[1]
+                 argv = argv[2:]
+             elif option == "ylabel":
+                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
+                 ylab = argv[1]
+                 argv = argv[2:]
+             elif option == "ts_estimate":
+                 ts_estimates.append(int(argv[1]))
+                 argv = argv[2:]
+             elif option == "reference":
+                 reference = argv[1]
+                 reference_data = argv[2]
+                 argv = argv[3:]
+             elif option == "name":
+                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
+                 names_of_lines.append(argv[1])
+                 argv = argv[2:]
+             elif option == "xrange":
+                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
+                 xran = [ float(argv[1]), float(argv[2])]
+                 argv = argv[3:]
+             elif option == "yrange":
+                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
+                 yran = [ float(argv[1]), float(argv[2])]
+                 argv = argv[3:]
+             elif option.startswith("logscale"):
+                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
+                 logscale.append(argv[1])
+                 argv = argv[2:]
+             elif option == "output":
+                outputfile = argv[1]
+                argv = argv[2:]
              else:
                  # For everything that does not fit in
                  print "This input variable is not valid:"
                  print argv[0]
                  print "Please check your input"
-                 print __doc__
-                 exit()
+                 helpfun(name)
          else:
              # if it is no option is has to be a file
              filenames.append(argv[0])
@@ -476,51 +633,145 @@ def main(argv):
         next.append(len(filenames)+1)
         filenames = reorder_files(filenames, next)
 
+    for i in range(len(filenames)):
+        # ensure that there will be no error message if calling
+        # names_of_lines[i]
+        names_of_lines.append([])
+
+    obj = None
     if symbfile is not None:
         symb, i2c = read_path_fix( symbfile, zmats, mask, maskgeo )
         obj = symb, i2c
 
+    other_input = (symbfile, abcis, obj)
+
+    return filenames, (ase, format), other_input, \
+           (withs, allval, special_vals, ts_estimates, (logs, logs_find, logs_num, log_x_num, xfiles)), \
+           num, (diff, symm, symshift), (cell, tomove, howmove),\
+          ( num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile)
+
+def extract_data(filename, data_ase, other_input, values, appender, num ):
+    """
+    Extract the data for the beads, if not ase read for paths, and if demanded
+    for the transition state estimates.
+    """
+    from pts.cfunc import Pass_through
+    symbfile, abcis, obj = other_input
+    ase, format  = data_ase
+    withs, allval, special_vals, ts_estimates, __ =  values
+    cell, tomove, howmove = appender
+
+    e_a_gr = None
+    if ase:
+        # Geos are in ASE readable files.
+        atoms, y = read_geos_from_file_more(filename, format=format)
+        obj =  atoms.get_chemical_symbols(), Pass_through()
+
+    elif symbfile is None:
+        # path.pickle files.
+        x, y, obj, e_a_gr = read_in_path(filename)
+    else:
+        # User readable input.
+        patf = None
+        if len(abcis) > 0:
+            patf = abcis[i]
+        y, x, __, __ = read_path_coords(filename, patf, None, None)
+
+    # extract the internal coordinates, for path and beads
+    beads = beads_to_int(y, x, obj, allval, cell, tomove, howmove, withs)
+    beads = np.asarray(beads)
+    beads = beads.T
+    beads = beads.tolist()
+
+    if ase:
+        path = None
+    else:
+        path = path_to_int(x, y, obj, num, allval, cell, tomove, howmove, withs)
+        # they are wanted as arrays and the other way round
+        path = np.asarray(path)
+        path = path.T
+        path = path.tolist()
+
+        if not ts_estimates == []:
+            # Some TS estimates have been requested. Extract also the data for them.
+            assert not e_a_gr == None, "ERROR: No energies and forces given but required for TS estimate"
+            ts_ests_geos, ts_places = ts_estimates_in_int(x, y, obj, e_a_gr, ts_estimates, allval, cell, tomove, howmove, withs, False)
+            ts_ests_geos = np.array(ts_ests_geos)
+            ts_ests_geos = ts_ests_geos.T
+            ts_ests_geos = ts_ests_geos.tolist()
+        else:
+            ts_ests_geos = None
+
+    # special_vals requests energy or gradient results. They are only available
+    # in path.pickle files. then e_a_gr contains energies and gradients. There
+    # will be created a spline over them.
+    if special_vals != []:
+        assert (e_a_gr is not None)
+        for s_val in special_vals:
+             # use the options for x and plot the data gotten from
+             # the file directly
+             en, gr = e_a_gr
+             if s_val.startswith("en"):
+                beads.append(en)
+             elif s_val.startswith("gr"):
+                val = s_val[2:]
+                beads.append(grads_from_beads(x, y, gr, val))
+
+             if path is not None:
+                if s_val.startswith("en"):
+                    if s_val in ["energy2", "energy_slope"]:
+                        path.append(energy2_from_path(x, y, en, gr, num))
+                    else:
+                        path.append(energy_from_path(x, en, num))
+                elif s_val.startswith("gr"):
+                    val = s_val[2:]
+                    path.append(grads_from_path(x, y, gr, num, val))
+
+             if not ts_estimates == []:
+                if s_val.startswith("en"):
+                    if s_val in ["energy2", "energy_slope"]:
+                        ts_ests_geos.append(energy2_from_path_points(x, y, en, gr, ts_places))
+                    else:
+                        ts_ests_geos.append(energy_from_path_points(x, en, ts_places))
+                elif s_val.startswith("gr"):
+                    val = s_val[2:]
+                    ts_ests_geos.append(grads_from_path_points(x, y, gr, ts_places, val))
+
+    return beads, path, ts_ests_geos
+
+
+def main( argv):
+    """
+    Reads in stuff from the sys.argv if not
+    provided an other way
+
+    Then calculate according to the need
+    the result will be a picture showing
+    for each inputfile a path of the given
+    coordinates with beads marked on them
+    """
+    from pts.tools.path2plot import path2plot_help
+    from sys import stderr
+
+    name = "path2tab"
+
+    if argv[0] == '--help':
+        helpfun(name)
+
+    filenames, data_ase, other_input, values, num, special_opt, appender, for_plot =  read_input(name, argv, -1)
+
+    ase, __ = data_ase
+    __, __, __, __, (logs, logs_find, logs_num, log_x_num, xfiles) =  values
+
     # For each file prepare the plot
     for i, filename in enumerate(filenames):
-        # read in the path
-        e_a_gr = None
-        if ase:
-            atoms, y = read_geos_from_file_more(filename, format=format)
-            obj =  atoms.get_chemical_symbols(), Pass_through()
 
-        elif symbfile is None:
-            x, y, obj, e_a_gr = read_in_path(filename)
+        if num > 0:
+            beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, appender, num)
+            coords = path
         else:
-            patf = None
-            if len(abcis) > 0:
-                patf = abcis[i]
-            y, x, __, __ = read_path_coords(filename, patf, None, None)
-
-        # extract the internal coordinates, for path and beads
-        if num < 0:
-            coords = beads_to_int(y, x, obj, allval, cell, tomove, howmove, withs)
-        else:
-            assert(logs == [])
-            coords = path_to_int(x, y, obj, num, allval, cell, tomove, howmove, withs)
-        coords = np.asarray(coords)
-        coords = coords.T
-        coords = list(coords)
-
-        if special_vals != []:
-            assert (e_a_gr is not None)
-            for s_val in special_vals:
-                 en, gr = e_a_gr
-                 if s_val.startswith("en"):
-                    if num < 0:
-                        coords.append(en)
-                    else:
-                        coords.append(energy_from_path(x, en, num ))
-                 elif s_val.startswith("gr"):
-                    val = s_val[2:]
-                    if num < 0:
-                        coords.append(grads_from_beads(x, y, gr, val))
-                    else:
-                        coords.append(grads_from_path(x, y, gr, num, val))
+            beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, appender, 2)
+            coords = beads
 
         if logs != []:
             for j, log in enumerate(logs):

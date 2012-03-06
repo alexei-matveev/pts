@@ -173,6 +173,10 @@ There are other options which may be set:
 """
 import sys
 
+def path2plot_help():
+    print __doc__
+
+
 def main(argv):
     """
     Reads in stuff from the sys.argv if not provided an other way
@@ -181,258 +185,77 @@ def main(argv):
     showing for  each inputfile a  path of the given  coordinates with
     beads marked on them
     """
-    from pts.tools.path2xyz import read_in_path
-    from pts.tools.path2tab import energy_from_path, grads_from_path, grads_from_beads
-    from pts.tools.pathtools import read_path_fix, read_path_coords
-    from pts.tools.xyz2tabint import interestingvalue
-    from pts.tools.path2tab import path_to_int, beads_to_int, reorder_files, get_expansion
-    from pts.tools.path2tab import read_line_from_log
+    from pts.tools.path2tab import read_line_from_log, carts_to_int
     from pts.tools.tab2plot import plot_tabs
-    from pts.cfunc import Pass_through
-    from pts.io.read_COS import read_geos_from_file_more
+    from pts.io.read_COS import read_geos_from_file
+    from pts.tools.path2tab import helpfun, read_input, extract_data
     import numpy as np
+    from copy import copy
 
-    if len(argv) <= 0:
-        # errors go to STDERR:
-        print >> sys.stderr, __doc__
-        exit()
-    elif argv[0] == '--help':
-        # normal (requested) output goes to STDOUT:
-        print __doc__
-        exit()
+    name = "path2plot"
 
-    # store the files containing the pathes somewhere
-    filenames = []
-    # input need not to be path.pickle
-    symbfile = None
-    zmats = []
-    mask = None
-    maskgeo = None
-    abcis = []
-    # ase inputs:
-    ase = False
-    next = [0]
-    format = None
+    if argv[0] == '--help':
+        helpfun(name)
 
-    # the default values for the parameter
-    num = 100
-    diff = []
-    symm = []
-    symshift = []
-    logscale = []
-    allval = []
-    special_vals = []
-    cell = None
-    tomove = None
-    howmove = None
-    withs = False
+    # interprete arguments, shared interface with path2tab.
+    filenames, data_ase, other_input, values, num, special_opt, appender, for_plot =  read_input(name, argv, 100)
 
-    # axes and title need not be given for plot
-    title = None
-    xlab = None
-    ylab = None
-    xran = None
-    yran = None
-    names_of_lines = []
-
-    # count up to know which coordinates are special
-    num_i = 1
-
-    # possibility of taking values from a logfile
-    logs = []
-    logs_find = []
-    logs_num = []
-    log_x_num = []
-    xfiles = -1
-
-    # output the figure as a file
-    outputfile = None
-
-    #
-    # Read all the arguments in.  Stop  cycle if all input is read in.
-    # Some iterations consume more than one item.
-    #
-    while len(argv) > 0:
-         if argv[0].startswith("--"):
-             # differenciate between options and files
-             option = argv[0][2:]
-             if option == "num":
-                 # change number  of frames in  path from 100  to next
-                 # argument
-                 num = int(argv[1])
-                 argv = argv[2:]
-             elif option == "diff":
-                 # of the next  twoo coordinates the difference should
-                 # be taken, store the number of the first of them
-                 diff.append(num_i)
-                 argv = argv[1:]
-             elif option == "symm":
-                 # test if the  following coordinate (or coord. diffs)
-                 # follow the same symmetry as the x-coordinate
-                 symm.append(num_i)
-                 try:
-                     m = float(argv[1])
-                     symshift.append([num_i, m])
-                     argv = argv[1:]
-                 except:
-                     pass
-                 argv = argv[1:]
-             elif option in ["dis", "2", "ang","3", "ang4", "4", "dih", "5", "dp", "6", "dl", "7"]:
-                 # this are the possible coordinates, store them
-                 value = interestingvalue(option)
-                 # partners are the atomnumbers of the partners, which
-                 # create the coordinate
-                 value.partners = []
-                 for j in range(1, value.lengthneeded() + 1):
-                      value.partners.append(int(argv[j]))
-                 allval.append(value)
-                 argv = argv[value.lengthneeded() + 1:]
-                 # count up,  to know how many and  more important for
-                 # let diff easily know what is the next
-                 num_i += 1
-             elif option in ["s", "t"]:
-                 withs = True
-                 argv = argv[1:]
-             elif option in ["en", "energy", "grabs", "grmax" \
-                                  ,"grpara", "grperp", "grangle" ]:
-                 special_vals.append(option)
-                 argv = argv[1:]
-             elif option in ["gr", "gradients"]:
-                 special_vals.append("grabs")
-                 argv = argv[1:]
-             elif option in ["fromlog", "log"]:
-                 logs.append(argv[1])
-                 logs_find.append(argv[2])
-                 logs_num.append(int(argv[3]))
-                 argv = argv[4:]
-                 log_x_num.append(xfiles)
-             elif option in ["fromlognextfile", "lognf"]:
-                 logs.append(argv[1])
-                 logs_find.append(logs_find[-1])
-                 logs_num.append(logs_num[-1])
-                 argv = argv[2:]
-                 log_x_num.append(xfiles)
-             elif option in ["fromlognextnum", "lognn"]:
-                 logs.append(logs[-1])
-                 logs_find.append(logs_find[-1])
-                 logs_num.append(int(argv[1]))
-                 argv = argv[2:]
-                 log_x_num.append(xfiles)
-             elif option == "expand":
-                 # done  like in  xyz2tabint, expand  the  cell FIXME:
-                 # There should  be a better way to  consider atoms to
-                 # be shifted to other cells
-                 cell, tomove, howmove = get_expansion(argv[1], argv[2])
-                 argv = argv[3:]
-             elif option == "title":
-                 title = argv[1]
-                 argv = argv[2:]
-             elif option == "xlabel":
-                 xlab = argv[1]
-                 argv = argv[2:]
-             elif option == "ylabel":
-                 ylab = argv[1]
-                 argv = argv[2:]
-             elif option == "ase":
-                 ase = True
-                 argv = argv[1:]
-             elif option == "format":
-                 format = argv[1]
-                 argv = argv[2:]
-             elif option == "next":
-                 ase = True
-                 next.append(xfiles)
-                 argv = argv[1:]
-             elif option == "ylabel":
-                 ylab = argv[1]
-                 argv = argv[2:]
-             elif option == "name":
-                 names_of_lines.append(argv[1])
-                 argv = argv[2:]
-             elif option == "xrange":
-                 xran = [ float(argv[1]), float(argv[2])]
-                 argv = argv[3:]
-             elif option == "yrange":
-                 yran = [ float(argv[1]), float(argv[2])]
-                 argv = argv[3:]
-             elif option.startswith("logscale"):
-                 logscale.append(argv[1])
-                 argv = argv[2:]
-             elif option == "symbols":
-                 symbfile = argv[1]
-                 argv = argv[2:]
-             elif option == "zmat":
-                 zmats.append(argv[1])
-                 argv = argv[2:]
-             elif option == "mask":
-                 mask = argv[1]
-                 maskgeo = argv[2]
-                 argv = argv[3:]
-             elif option in ["abscissa", "pathpos"]:
-                abcis.append(argv[1])
-                argv = argv[2:]
-             elif option == "output":
-                outputfile = argv[1]
-                argv = argv[2:]
-             else:
-                 # For everything that does not fit in
-                 print "This input variable is not valid:"
-                 print argv[0]
-                 print "Please check your input"
-                 print __doc__
-                 exit()
-         else:
-             # if it is no option is has to be a file
-             filenames.append(argv[0])
-             argv = argv[1:]
-             xfiles += 1
-
-    if ase:
-        next.append(len(filenames)+1)
-        filenames = reorder_files(filenames, next)
+    # Expand the output, we need it further.
+    ase, format_ts = data_ase
+    withs, allval, special_vals, __, (logs, logs_find, logs_num, log_x_num, xfiles) =  values
+    diff, symm, symshift =  special_opt
+    num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
+    cell, tomove, howmove = appender
 
     # plot environment
     pl = plot_tabs(title = title, x_label = xlab, y_label = ylab, log = logscale)
 
     # extract which options to take
-    opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, symm, symshift, withs)
+    optraw, num_opts, xnum_opts, optx = makeoption(num_i, diff, symm, symshift, withs)
+    num_opts_raw = copy(num_opts)
+    opt = copy(optraw)
 
-    for i in range(len(filenames)):
-        # ensure that there will be no error message if calling
-        # names_of_lines[i]
-        names_of_lines.append([])
+    if special_vals != []:
+        for s_val in special_vals:
+             # use the options for x and plot the data gotten from
+             # the file directly
+             opt = opt + " t %i" % (num_opts + 1)
+             num_opts = num_opts + 1
 
-    if symbfile is not None:
-        symb, i2c = read_path_fix( symbfile, zmats, mask, maskgeo )
-        obj = symb, i2c
+    if not reference == None:
+       # Reference point (geometry, energy) to compare the rest data to it.
+       # geometry is supposed to be in a ASE readable format, energy in a separate file.
+       atom_ref, y_ref = read_geos_from_file([reference], format=format_ts)
+       reference = y_ref
+
+       # Reference data for the geometries. The Abscissa is supposed to be on 0.5
+       reference_int_geos = np.array(carts_to_int(reference, [0.5], allval, cell, tomove, howmove, withs))
+       reference_int_geos = reference_int_geos.T
+       reference_int_geos = reference_int_geos.tolist()
+
+       optref = optraw
+       num_opts_ref = num_opts
+       if special_vals != []:
+           # From the special vals only the energies can be displaced. Therefore special
+           # treatment is required.
+           for s_val in special_vals:
+               if s_val.startswith("en") and not reference_data == "None":
+                   optref = optraw + " t %i" % (num_opts_raw + 1)
+                   reference_data = np.loadtxt(reference_data)
+                   reference_int_geos.append([reference_data.tolist()])
+               else:
+                   num_opts_ref = num_opts_ref - 1
+
+       if num_opts_ref > 1:
+           pl.prepare_plot( None, None, None, "_nolegend_", reference_int_geos, "Reference", opt)
 
     # For each file prepare the plot
     for i, filename in enumerate(filenames):
-        # read in the path
-	e_a_gr = None
-        if ase:
-            atoms, y = read_geos_from_file_more(filename, format=format)
-            obj =  atoms.get_chemical_symbols(), Pass_through()
 
-        elif symbfile is None:
-            x, y, obj, e_a_gr = read_in_path(filename)
-        else:
-            patf = None
-            if len(abcis) > 0:
-                patf = abcis[i]
-            y, x, __, __ = read_path_coords(filename, patf, None, None)
+        # Extract the data for beads, path if availabe and TS estimates if requested (else None).
+        beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, appender, num)
 
-        # extract the internal coordiantes, for path and beads
-        beads = beads_to_int(y, x, obj, allval, cell, tomove, howmove, withs)
-        beads = np.asarray(beads)
-        beads = beads.T
-        if ase:
-            path = None
-        else:
-            path = path_to_int(x, y, obj, num, allval, cell, tomove, howmove, withs)
-            # they are wanted as arrays and the other way round
-            path = np.asarray(path)
-            path = path.T
+        # The name belonging to filename.
         name_p = str(i + 1)
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
@@ -443,55 +266,20 @@ def main(argv):
             if ase:
                pl.prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt)
             else:
-               pl.prepare_plot( path, name_p, beads, "_nolegend_", None, None, opt)
+               pl.prepare_plot( path, name_p, beads, "_nolegend_", ts_ests_geos, "_nolegend_", opt)
 
         # if some data  has been extracted from a  logfile, after this
         # file i has been used it  has to be plotted here, as here the
         # x values of the files  are valid the log_points should be at
         # the beads
-	if special_vals != []:
-            assert (e_a_gr is not None)
-            for s_val in special_vals:
-                 # use the options for x and plot the data gotten from
-                 # the file directly
-                 optlog = optx + " t %i" % (xnum_opts + 1)
-                 log_points = beads
-                 log_points = log_points[:xnum_opts + 1,:]
-                 log_points = log_points.tolist()
-                 # till here  the x-data  should be copied  and ready,
-                 # now add also the logdata
-		 en, gr = e_a_gr
-                 if s_val.startswith("en"):
-                    log_points.append(en)
-                 elif s_val.startswith("gr"):
-                    val = s_val[2:]
-                    log_points.append(grads_from_beads(x, y, gr, val))
-
-                 log_points = np.asarray(log_points)
-
-                 if path is not None:
-                    log_path = path
-                    log_path = log_path[:xnum_opts + 1,:]
-                    log_path = log_path.tolist()
-                    if s_val.startswith("en"):
-                        log_path.append(energy_from_path(x, en, num))
-                    elif s_val.startswith("gr"):
-                        val = s_val[2:]
-                        log_path.append(grads_from_path(x, y, gr, num, val))
-                 if ase:
-                    pl.prepare_plot( None, None, None, "_nolegend_", log_points,
-                               s_val + " %i" % (i + 1), optlog)
-                 else:
-                    pl.prepare_plot( log_path, s_val + " %i" % (i + 1),
-                               log_points, "_nolegend_", None, None, optlog)
-
         if logs != []:
             for j, log in enumerate(logs):
                 if log_x_num[j] == i:
                  # use the options for x and plot the data gotten from
                  # the file directly
                  optlog = optx + " t %i" % (xnum_opts + 1)
-                 log_points = beads
+                 log_points = np.array(beads)
+                 print xnum_opts, optlog
                  log_points = log_points[:xnum_opts + 1,:]
                  log_points = log_points.tolist()
                  # till here  the x-data  should be copied  and ready,
@@ -502,6 +290,7 @@ def main(argv):
                  # right?
                  pl.prepare_plot( None, None, None, None, log_points,\
                                logs_find[j] + ', iteration %i' % (logs_num[j]) , optlog)
+
 
     # now plot
     pl.plot_data(xrange = xran, yrange = yran, savefile = outputfile )
