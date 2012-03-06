@@ -151,35 +151,6 @@ def is_same_e(e1, e2):
 def line():
     return "=" * 80
 
-def opt_gd(f, x0, fprime, callback = lambda x: None):
-    """A gradient descent optimiser."""
-
-    i = 0
-    x = copy.deepcopy(x0)
-    prevx = numpy.zeros(len(x))
-    while 1:
-        g = fprime(x)
-        dx = x - prevx
-        if numpy.linalg.norm(g, ord=2) < 0.05:
-            print "***CONVERGED after %d iterations" % i
-            break
-
-        i += 1
-        prevx = x
-        if callback != None:
-            x = callback(x)
-        x -= g * 0.2
-
-        # DON't DELETE
-        if False:
-            print line()
-            print "x = ", x
-            print "g =", g
-            print line()
-
-    x = callback(x)
-    return x
-
 # tests whether all items in a list are equal or not
 def all_equal(l):
     if len(l) <= 1:
