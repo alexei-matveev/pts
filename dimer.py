@@ -125,7 +125,7 @@ def line_search(start_geo, direction, trial_step, pes, metric, mode_vector, forc
 
         grad_calc = 0
         force_l = deepcopy(force)
-        i = 0
+
         t_s = deepcopy(trial_step)
 
         geo = start_geo + direction * t_s
@@ -441,11 +441,11 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
     # do not change them
     geo = deepcopy(start_geo) # of dimer middle point
     mode = deepcopy(start_mode) # direction of dimer
-    old_force = None
-    step_old = 0
+
+    # step_old = 0
     conv = False
     grad_calc = 0
-    error_old = 0
+    # error_old = 0
     mode_old = deepcopy(mode)
 
     if logfile == None or logfile == "-":
@@ -522,12 +522,12 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
         #if i > 0:
         #    if dot(step, metric.lower(step_old, geo)) < 0:
         #       print "Step changed direction"
-         step_old = step
+         # step_old = step
          mode_old = mode
          geo = geo + step
          #print "Step",i , pes(geo-step), abs_force, max(grad), res["trans_last_step_length"], res["curvature"], res["rot_gradient_calculations"]
          i += 1
-         error_old = error
+         # error_old = error
          traj_content = [( grad, "grads", "Gradients"),(mode, "modes", "Mode")]
          trajectory(geo, i, traj_content )
 
