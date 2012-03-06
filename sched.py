@@ -1,19 +1,10 @@
 from __future__ import with_statement
 import time
-from collections import deque
 
-import random
 import threading
-import thread
-from Queue import Queue
-import time
 import logging
 import numpy as np
 from config import DEFAULT_TOPOLOGY, DEFAULT_PMIN, DEFAULT_PMAX
-from sys import exit
-
-
-import pts
 
 # setup logging
 lg = logging.getLogger("pts.sched")
