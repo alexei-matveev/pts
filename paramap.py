@@ -448,7 +448,7 @@ class PMap2():
 pmap2 = PMap2()
 pmap3 = PMap3()
 
-from os import system, getenv
+from os import getenv # system
 def test(x, num = None):
   # system("echo $PTS_SCHED_JOB_HOST")
   # system("echo $PTS_SCHED_JOB_NPROCS")
