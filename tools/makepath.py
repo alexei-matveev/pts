@@ -87,7 +87,7 @@ def main(args):
 
     zmts = []
     mis = []
-    dc = { "format" : None}
+    dc = { "format" : None, "zmt_format" : "direct"}
 
     for k in range(len(args)):
         if args == []:
