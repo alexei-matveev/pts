@@ -625,7 +625,7 @@ def plot(argv):
         re-normalization of the tangents.
         """
         # energy profile:
-        from numpy import dot, linspace, sqrt, array, vstack, shape, empty
+        from numpy import dot, linspace, sqrt, array, shape, empty
         from pts.func import CubicSpline
 
         plt.title("Energy profile", fontsize="large")
