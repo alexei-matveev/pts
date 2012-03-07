@@ -584,7 +584,7 @@ def plot(argv):
     from matplotlib import pyplot as plt
     from matplotlib import cm # color management
 
-    def colormap(i):
+    def colormap(i, n):
         """
         Returns a color understood by color keyword of plt.plot().
 
@@ -594,7 +594,7 @@ def plot(argv):
         """
 
         # we want to map i=0 to 0.0 and i=imax to 1.0
-        imax = len(args) - 1
+        imax = n - 1
         if imax == 0:
             imax = 1
 
@@ -604,15 +604,15 @@ def plot(argv):
         # return cm.hsv(float(i) / imax)
         return cm.jet(float(i) / imax)
 
-    def plot_energy(energies, i=0):
+    def plot_energy(energies, color):
         # energy profile:
         plt.title("Energy profile", fontsize="large")
         plt.ylabel("Energy [eV]")
         plt.xlabel("Path point [arb. u.]")
-        plt.plot(range(1, len(energies)+1), energies, "o--", color=colormap(i))
+        plt.plot(range(1, len(energies)+1), energies, "o--", color=color)
         plt.xlim((1, len(energies)))
 
-    def plot_energy_with_cubic_spline(geometries, energies, gradients, tangents, abscissas, i=0):
+    def plot_energy_with_cubic_spline(geometries, energies, gradients, tangents, abscissas, color):
         """
         Plot the energy profile indicating  the slope of the energy at
         the vertices.
@@ -663,8 +663,11 @@ def plot(argv):
 
         plt.plot( abscissas, energies, "o",
                  line, map(spline, line), "-",
-                 color = colormap(i))
+                 color = color)
         plt.xlim((abscissas[0], abscissas[-1]))
+
+    # number of curves on the same graph:
+    N = len(args)
 
     #
     # This is the main loop over the input files:
@@ -677,9 +680,9 @@ def plot(argv):
 
         # energy profile:
         if tangents is not None:
-            plot_energy_with_cubic_spline(geometries, energies, gradients, tangents, abscissas, i)
+            plot_energy_with_cubic_spline(geometries, energies, gradients, tangents, abscissas, colormap(i, N))
         else:
-            plot_energy(energies, i)
+            plot_energy(energies, colormap(i, N))
 
     if cmd == "show":
         # Display the plot, needs X11:
