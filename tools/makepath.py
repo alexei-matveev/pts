@@ -110,7 +110,7 @@ def main(args):
         elif args[0] == "--format":
              dc["format"] = args[1]
              args = args[2:]
-        elif args[0] == "--zmat":
+        elif args[0] in ["--zmat", "zmatrix"]:
              #Then read in the zmatrix in ag form
              zmts1 = args[1]
              #print "interpolation in internal coordinates"
