@@ -54,7 +54,7 @@ class translate_cg():
         self.trial_step = trial_step
         self.old_geo = None
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, pickle_log, unused):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused, pickle_log = empty_log):
         """
         the actual step
         """
@@ -115,7 +115,7 @@ class translate_cg():
 
         return step, info
 
-def line_search(start_geo, direction, trial_step, pes, metric, mode_vector, force, pickle_log):
+def line_search(start_geo, direction, trial_step, pes, metric, mode_vector, force, pickle_log = empty_log):
         """
         Find the  minimum in direction from strat_geo  on, uses second
         point makes quadratic approximation with the "forces" of these
@@ -356,7 +356,7 @@ class translate_sd():
         self.metric = metric
         self.trial_step = trial_step
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, pickle_log, unused):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused, pickle_log = empty_log):
         """
         the actual step
         """
@@ -573,7 +573,7 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, pickle
     pickle_log("Curvature", info["curvature"])
 
     info["max_step"] = max_step
-    step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv, pickle_log, info)
+    step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv, info, pickle_log)
 
     info.update(info_t)
 
