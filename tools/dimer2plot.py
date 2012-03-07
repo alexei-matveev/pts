@@ -17,7 +17,9 @@ from numpy.linalg import norm
 def main(argv):
 
     from pts.tools.xyz2tabint import interestingvalue
-    from pts.tools.tab2plot import plot_tabs
+    # FIXME: plot_color, plot_style, decide_which_values, increase_color are used temporarily,
+    # after the tab_plot class is ready, they should be removed
+    from pts.tools.tab2plot import plot_tabs, plot_color, plot_style, decide_which_values, increase_color
     from pts.tools.path2plot import makeoption
     from pts.tools.path2tab import get_expansion
     from pts.memoize import FileStore, DirStore, Store
@@ -50,6 +52,7 @@ def main(argv):
     vec_angle = interestingdirection()
     diff = []
     arrow = False
+    arrow_len = None
     special_val = []
     allval = []
     cell = None
@@ -158,11 +161,21 @@ def main(argv):
                  cell, tomove, howmove = get_expansion(argv[1], argv[2])
                  argv = argv[3:]
             elif option == "arrow":
+                # arrow option is only designed for
+                # plot involving only internal coordinates
+                # otherwise it will be ignored
                 assert name in ["dimer", "lanczos"]
                 iter_flag.add(-1)
                 arrow = True
-                info.add(name.capitalize())
-                argv = argv[1:]
+                try:
+                    # if not input explicitly, the arrow length
+                    # will be set automatically
+                    arrow_len = float(argv[1])
+                    argv = argv[2:]
+                except ValueError:
+                    argv = argv[1:]
+                except IndexError:
+                    argv = argv[1:]
             # output as file or on screen
             elif option == "output":
                 outputfile = argv[1]
@@ -259,6 +272,36 @@ def main(argv):
         if num_opts > 1:
             pl.prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt)
 
+            # FIXME: the following line is temporarily used to give right plot
+            # color and style for arrows, should be removed after tab_plot
+            # class ready.
+            plot_color, plot_style = increase_color(plot_color, plot_style, False)
+
+            if arrow:
+                if special_val != []:
+                    print "Involving special variables other than internal coordinates"
+                    print "Ignore arrow option!"
+                    break
+                # the following line should also be removed when tab_plot class is ready and used
+                from matplotlib.pyplot import plot
+                for j in range(ifplot[0], ifplot[1]):
+                    # for each beads we plotted, a line is added to the center point
+                    # indicating the dimer mode direction projected in internal coordinates
+                    arrows = beads_to_int([geos["Center"][j] - modes[j] * 0.005, geos["Center"][j] + modes[j] * 0.005], \
+                                [x[j]] * 2, obj, allval, cell, tomove, howmove, withs)
+                    arrows = np.asarray(arrows)
+                    arrows = arrows.T
+
+                    if arrow_len == None:
+                        arrow_len = norm([arrows[k][0] - arrows[k][1] for k in range(1, len(arrows))]) * 5
+                    arrows = rescale(arrows, arrow_len)
+
+                    # FIXME: The following lines are temporarily used to plot
+                    # arrows, should be replaced after tab_plot class ready.
+                    xfun, yfuns = decide_which_values(opt, len(arrows))
+                    for fun in yfuns:
+                        plot(xfun(arrows), fun(arrows), plot_style, color = plot_color, label= "_nolegend_")
+
         if special_val != []:
             # Two kinds of store share the same methods interesting to us
             if i in dict_dir:
@@ -296,6 +339,16 @@ def main(argv):
                                s_val + " %i" % (i + 1), optlog)
 
     pl.plot_data(xrange = xran, yrange = yran, savefile = outputfile )
+
+def rescale(arrow, arrow_len):
+    from copy import deepcopy
+    length = norm([arrow[i][0] - arrow[i][1] for i in range(1, len(arrow))])
+    for i in range(1, len(arrow)):
+        add = sum(arrow[i]) / 2
+        minus = (arrow[i][1] - arrow[i][0]) / 2
+        arrow[i][0] = add + minus / length * arrow_len
+        arrow[i][1] = add - minus / length * arrow_len
+    return arrow
 
 class interestingdirection:
     def __init__(self):
