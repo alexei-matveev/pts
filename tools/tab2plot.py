@@ -322,7 +322,10 @@ class plot_tabs:
             makeplotter(tableb, xfun, yfuns, bname, 'o', repeat = True)
 
         if tabelr is not None:
-            makeplotter(tabelr, xfun, yfuns, rname, 'o:')
+            if tableb is not None:
+                makeplotter(tabelr, xfun, yfuns, rname, 'D', repeat = True)
+            else:
+                makeplotter(tabelr, xfun, yfuns, rname, 'o:')
 
     def plot_data(self, xrange = None, yrange = None, savefile = None):
         a = gca()
