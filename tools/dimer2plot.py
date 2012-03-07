@@ -320,7 +320,7 @@ def main(argv):
                 log_points = log_points.tolist()
 
                 if s_val.startswith("en"):
-                    log_points.append(energy)
+                    log_points.append(energy[ifplot[0]: ifplot[1]])
                 elif s_val.startswith("gr"):
                     val = s_val[2:]
                     log_points.append(grads_from_beads_dimer(modes, \
