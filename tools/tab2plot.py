@@ -47,10 +47,8 @@ from copy import copy
 
 global plot_style
 global plot_color
-global plot_color_mp
-plot_style = "-"
-plot_color = (0,0,0,0)
-plot_color_mp = plot_color
+plot_style = ":"
+plot_color = (0, 1, 1, 0)
 
 def increase_color(color, style, repeat):
     """
@@ -281,11 +279,9 @@ class plot_tabs:
              # and files
              global plot_style
              global plot_color
-             global plot_color_mp
-             if repeat: # for having beads in the same color than their lines
-               plot_color = plot_color_mp
-             else:
-               plot_color_mp = plot_color
+             if not repeat: # for having beads in the same color than their lines
+                 # now change global variables to make sure that the next plot will be different
+                 plot_color, plot_style = increase_color(plot_color, plot_style, repeat)
 
              x = funx(tab)
              for i, fun in enumerate(funcs):
@@ -304,8 +300,6 @@ class plot_tabs:
                     opt = option
 
                  plot(x, y, opt, color = plot_color, label= lab)
-                 # now change global variables to make sure that the next plot will be different
-                 plot_color, plot_style = increase_color(plot_color, plot_style, repeat)
 
 
         # one of them should at least be there
