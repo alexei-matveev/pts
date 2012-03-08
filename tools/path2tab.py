@@ -644,6 +644,8 @@ def extract_data(filename, data_ase, other_input, values, appender, num ):
     for the transition state estimates.
     """
     from pts.cfunc import Pass_through
+    from numpy import linspace
+
     symbfile, abcis, obj = other_input
     ase, format  = data_ase
     withs, allval, special_vals, ts_estimates, __ =  values
@@ -652,8 +654,9 @@ def extract_data(filename, data_ase, other_input, values, appender, num ):
     e_a_gr = None
     if ase:
         # Geos are in ASE readable files.
-        atoms, y = read_geos_from_file_more(filename, format=format)
+        atoms, y = read_geos_from_file_more([filename], format=format)
         obj =  atoms.get_chemical_symbols(), Pass_through()
+        x = linspace(1, len(y))
 
     elif symbfile is None:
         # path.pickle files.
@@ -673,6 +676,7 @@ def extract_data(filename, data_ase, other_input, values, appender, num ):
 
     if ase:
         path = None
+        ts_ests_geos = None
     else:
         path = path_to_int(x, y, obj, num, allval, cell, tomove, howmove, withs)
         # they are wanted as arrays and the other way round
