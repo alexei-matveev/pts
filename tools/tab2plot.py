@@ -288,44 +288,53 @@ def setup_plot( title = None, x_label = None, y_label = None, log = []):
              if lg in ['y', 'z', 2, '2']:
                  yscale('log')
 
+def makeplotter(tab, funx, funcs, name, color, option = None):
+     """
+     A wrapper aoround the plot function, which uses
+     the table tab from which its extract via funx the
+     x values, and then giving name to distinguish between
+     different input files (only for the pathes, beads are
+     without name)
+     option may telling that instead of a line, points should
+     be used (for beads)
+     """
+     x = funx(tab)
+     for i, fun in enumerate(funcs):
+         y = fun(tab)
+         lab = '%i' % (i)
+         if name is not None:
+             if i > 0:
+                 lab = name + ' ' + lab
+             else:
+                 lab = name
+
+         # use style for the line or the one given directly
+         if option is None:
+            opt = plot_style
+         else:
+            opt = option
+
+         plot(x, y, opt, color = color, label = lab)
 
 def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option):
+    """
+    Generates plot for a path plotting object. Dependent on what
+    is not None of the given parameters different things are plottet.
+    Different availabilities of the path interpreting tools can thus
+    be handled by the same function.
 
-    def makeplotter(tab, funx ,funcs, name, option = None, repeat = False):
-         # A wrapper aoround the plot function, which uses
-         # the table tab from which its extract via funx the
-         # x values, and then giving name to distinguish between
-         # different input files (only for the pathes, beads are
-         # without name)
-         # option may telling that instead of a line, points should
-         # be used (for beads)
+    tablep: Table of points on a path, will be given as a line.
+    tableb: Table of bead points, thus given as points.
+    tabler: Table of random points, when given alone connect them with
+            a dotted line, else give them as points but a different kind
+            than the beads.
+    """
 
-         # global variable to make colors changes over both lines to plot
-         # and files
-         global plot_style
-         global plot_color
-         if not repeat: # for having beads in the same color than their lines
-             # now change global variables to make sure that the next plot will be different
-             plot_color, plot_style = increase_color(plot_color, plot_style, repeat)
+    global plot_style
+    global plot_color
+    plot_color, plot_style = increase_color(plot_color, plot_style, False)
 
-         x = funx(tab)
-         for i, fun in enumerate(funcs):
-             y = fun(tab)
-             lab = '%i' % (i)
-             if name is not None:
-                 if i > 0:
-                     lab = name + ' ' + lab
-                 else:
-                     lab = name
-
-             # use style for the line or the one given directly
-             if option is None:
-                opt = plot_style
-             else:
-                opt = option
-
-             plot(x, y, opt, color = plot_color, label= lab)
-
+    col = plot_color
 
     # one of them should at least be there
     if tablep is not None:
@@ -341,16 +350,18 @@ def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option):
 
     # for each table which is there, make it run
     if tablep is not None:
-        makeplotter(tablep, xfun, yfuns, pname)
+        makeplotter(tablep, xfun, yfuns, pname, col)
 
     if tableb is not None:
-        makeplotter(tableb, xfun, yfuns, bname, 'o', repeat = True)
+        makeplotter(tableb, xfun, yfuns, bname, col, 'o')
 
     if tabelr is not None:
         if tableb is not None:
-            makeplotter(tabelr, xfun, yfuns, rname, 'D', repeat = True)
+            r_opt = 'D'
         else:
-            makeplotter(tabelr, xfun, yfuns, rname, 'o:')
+            r_opt = 'o:'
+
+        makeplotter(tabelr, xfun, yfuns, rname, col, r_opt)
 
 def plot_data( xrange = None, yrange = None, savefile = None):
     """
