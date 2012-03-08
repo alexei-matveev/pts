@@ -394,6 +394,7 @@ def plot(argv):
     """
     import getopt
     from pathtools import unpickle_path
+    from pts.tools.tab2plot import colormap
     # from numpy import linspace #, empty, transpose
     # from numpy import array
 
@@ -415,27 +416,6 @@ def plot(argv):
         matplotlib.use("Agg")
 
     from matplotlib import pyplot as plt
-    from matplotlib import cm # color management
-
-    def colormap(i, n):
-        """
-        Returns a color understood by color keyword of plt.plot().
-
-        To choose most appropriate color map see
-
-            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
-        """
-
-        # we want to map i=0 to 0.0 and i=imax to 1.0
-        imax = n - 1
-        if imax == 0:
-            imax = 1
-
-        #
-        # Color maps map the interval [0, 1] ontoto a color palette:
-        #
-        # return cm.hsv(float(i) / imax)
-        return cm.jet(float(i) / imax)
 
     def plot_energy(energies, color):
         # energy profile:

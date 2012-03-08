@@ -50,6 +50,28 @@ global plot_color
 plot_style = ":"
 plot_color = (0, 1, 1, 0)
 
+def colormap(i, n):
+    """
+    Returns a color understood by color keyword of plt.plot().
+
+    To choose most appropriate color map see
+
+        http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps
+    """
+    from matplotlib import cm # color management
+
+    # we want to map i=0 to 0.0 and i=imax to 1.0
+    imax = n - 1
+    if imax == 0:
+        imax = 1
+
+    #
+    # Color maps map the interval [0, 1] ontoto a color palette:
+    #
+    # return cm.hsv(float(i) / imax)
+    return cm.jet(float(i) / imax)
+
+
 def increase_color(color, style, repeat):
     """
     Changes the color (and if the list of them is finished
