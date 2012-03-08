@@ -50,27 +50,23 @@ def main(argv):
           to be given in coordinate files, all others are extracted from geo_raw
 
     Other possible arguments:
-    --p : print the resulting transition state estimates (is also the default
-          if no other argument is set
-    --m : print also available mode vector estimates
-          (can also be given by any combination of p and m)
-    --c : for comparing the strings with the previous ones
-          the output are relevant data from the approximated string
-          the --p option is set to false by default
-          if the next argument is a file name (for a logfile)
-          the program search in it for data to compare the results
-          from
+    --mc : prints also available mode vector estimates in Cartesian coordinates
+    --m  : prints the mode vector as tangent on the path in direct coordinates,
+           should be the same as "Approximation of mode in way  frompath", only
+           without the transformation into Cartesian coordinates.
+    --all: As the default will only give the highest transition state. This way
+           request for all found transition states of an estimation method.
 
     All output goes by default to the standard output
     """
 
     printwithmodes = False
-    printvectors = True
+    print_direct_modes = False
     wanted = []
     fileout = "-"
     fileout2 = None
-    comparepath = False
     dump = False
+    see_all = False
 
 
     # for other way of input:
@@ -86,7 +82,7 @@ def main(argv):
     # structure of inputs, has to be improved later
     # The --help option is handled seperatly
     # The first input argument has to be the path.pickle object
-    if argv[0] == '--help':
+    if '--help' in argv:
         print main.__doc__
         sys.exit()
     else:
@@ -99,64 +95,51 @@ def main(argv):
             print main.__doc__
             sys.exit()
 
-    if len(argv)>1:
-        argv = argv[1:]
+    argv = argv[1:]
+    while len(argv) > 0:
         # cycle over all the remaining arguments, they
         # are moved to the beginning, so argv[0] is always the
         # first argument not yet interpreted
-        for i in range(len(argv)):
-            if argv[0].startswith('--'):
-                # the options start with --
-                # sometimes the following argument(s) belong
-                # also to the option and are read in also
-                arg = argv[0][2:]
-                if arg in ['m','pm', 'mp'] :
-                     printwithmodes = True
-                     printvectors = True
-                elif arg == 'p':
-                     printvectors = True
-                elif arg == 'd':
-                     print "Only special output"
-                     dump = True
-                elif arg == "s":
-                    symbfile = argv[1]
-                    energies = argv[2]
-                    forces = argv[3]
-                    argv = argv[3:]
-                elif arg =="zmat":
-                    zmats.append(argv[1])
-                    argv = argv[1:]
-                elif arg == "mask":
-                    mask = argv[1]
-                    maskgeo = argv[2]
-                    argv = argv[2:]
-                elif arg == "a":
-                   abcis = argv[1]
-                   argv = argv[1:]
-                elif arg == 'c':
-                     comparepath = True
-                     printvectors = False
-                     filecomp = None
-                     try:
-                         filecomp =  open(argv[1], "r")
-                         argv = argv[1:]
-                         numinfile = int(argv[1])
-                         argv = argv[1:]
-                     except:
-                         numinfile = -1
+        if argv[0].startswith('--'):
+            # the options start with --
+            # sometimes the following argument(s) belong
+            # also to the option and are read in also
+            arg = argv[0][2:]
+            if arg in ['mc','cm'] :
+                 printwithmodes = True
+            elif arg in ['m'] :
+                 print_direct_modes = True
+            elif arg == 'all':
+                 see_all = True
+            elif arg == 'd':
+                 print "Only special output"
+                 dump = True
+            elif arg == "s":
+                symbfile = argv[1]
+                energies = argv[2]
+                forces = argv[3]
+                argv = argv[3:]
+            elif arg =="zmat":
+                zmats.append(argv[1])
                 argv = argv[1:]
-            else:
-                try:
-                   # the arguments not starting with --, may be the number
-                   # of the transition state approximation wanted
-                   for a in argv:
-                       wanted.append(int(a))
-                except:
-                    #FIXME: is it okay to ignore everything else?
-                    pass
-                argv = argv[len(wanted):]
-            if argv == []:
-                break
+            elif arg == "mask":
+                mask = argv[1]
+                maskgeo = argv[2]
+                argv = argv[2:]
+            elif arg == "a":
+               abcis = argv[1]
+               argv = argv[1:]
+            argv = argv[1:]
+        else:
+            try:
+               # the arguments not starting with --, may be the number
+               # of the transition state approximation wanted
+               for a in argv:
+                  wanted.append(int(a))
+            except:
+                #FIXME: is it okay to ignore everything else?
+                pass
+            argv = argv[len(wanted):]
 
     # if none is choosen, all are selected
     if wanted == []:
@@ -170,20 +153,15 @@ def main(argv):
 
     at_object = (symbols, trafo)
     # calculate the (wanted) estimates
-    estms, stx2 = esttsandmd(coord_b, energy_b, gradients_b, at_object, wanted)
+    estms, stx2 = esttsandmd(coord_b, energy_b, gradients_b, at_object, see_all, wanted )
     # show the result
-    if printvectors:
-        if dump:
-            print_estimatesdump(estms, at_object)
-        else:
-            print_estimates(estms, at_object, printwithmodes)
-    if comparepath:
-        newpath = Path(coord_b, stx2)
-        oldpath = Path(coord_b)
-        comparepathes(oldpath, newpath, gradients_b, numinfile, filecomp)
+    if dump:
+        print_estimatesdump(estms, at_object)
+    else:
+        print_estimates(estms, at_object, printwithmodes, print_direct_modes)
 
 def esttsandmd(coord_b, energy_b, gradients_b, at_object, \
-               ts_wanted = [1, 2, 3, 4, 5, 6] ):
+               see_all, ts_wanted = [1, 2, 3, 4, 5, 6] ):
     """
     calculating of wanted TS-estimates and their modes
     This is done in two different ways of parametrizing the string:
@@ -192,154 +170,80 @@ def esttsandmd(coord_b, energy_b, gradients_b, at_object, \
     (should be the same as opptimized)
     """
 
-    # in this variable the estimates will be stored as
-    # ( name, ts-estimate object, (modename, modevec) * number of modeapprox
-    ts_all = []
 
     numbeads = len(energy_b)
     #ATTENTION: this needs to be consistent to the way abscissas are build for PathRepresentation
     startx =  new_abscissa(coord_b, mt.metric)
 
-    # with the additional startvalue startx the same as for the other path
+    # with the startvalue startx create the path
     path2 = PathTools(coord_b, energy_b, gradients_b, startx)
     statex2 = path2.steps
 
-    estfrompathfirst(path2, ts_all, at_object, " with given distance by string", ts_wanted )
+    # in this variable the estimates will be stored as
+    # ( name, ts-estimate object, (modename, modevec) * number of modeapprox
+    ts_all = estfrompathfirst(path2, at_object, " with given distance by string", ts_wanted, see_all )
 
     return (ts_all, statex2)
 
 
-def estfrompathfirst(pt, ts_sum, cs, addtoname, which):
+def estfrompathfirst(pt, cs, addtoname, which, see_all):
     """
     Some approximations are independent of the path,
     thus this wrapper calculates all, while
     estfrompath only calculates the one depending on a path
     """
+    from numpy import sqrt, dot
     ts_est = []
+    ts_sum = []
     __, trafo = cs
     #cs_c = cs.copy()
     if 1 in which:
         ts_est.append(('Highest', pt.ts_highest()[-1]))
     if 5 in which:
         ts_int = pt.ts_threepoints()
-        if len(ts_int) > 0:
+        if see_all:
+            for ts_int_1 in ts_int:
+                ts_est.append(('Three points', ts_int_1))
+        elif len(ts_int) > 0:
             ts_est.append(('Three points', ts_int[-1]))
     if 6 in which:
         ts_int = pt.ts_bell()
-        if len(ts_int) > 0:
+        if see_all:
+            for ts_int_1 in ts_int:
+                ts_est.append(('Bell Method',ts_int_1))
+        elif len(ts_int) > 0:
             ts_est.append(('Bell Method',ts_int[-1]))
+    if 2 in which:
+        ts_int = pt.ts_spl()
+        if see_all:
+            for ts_int_1 in ts_int:
+                ts_est.append(('Spline only',ts_int_1))
+        elif len(ts_int) > 0:
+            ts_est.append(('Spline only',ts_int[-1]))
+    if 3 in which:
+        ts_int = pt.ts_splavg()
+        if see_all:
+            for ts_int_1 in ts_int:
+                ts_est.append(('Spline and average', ts_int_1))
+        elif len(ts_int) > 0:
+             ts_est.append(('Spline and average', ts_int[-1]))
+    if 4 in which:
+        ts_int = pt.ts_splcub()
+        if see_all:
+            for ts_int_1 in ts_int:
+                ts_est.append(('Spling and cubic', ts_int_1))
+        elif len(ts_int) > 0:
+            ts_est.append(('Spling and cubic', ts_int[-1]))
     # generates modevectors to the given TS-estimates
     for name, est in ts_est:
          energy, coords, s0, s1,s_ts,  l, r = est
          modes =  pt.modeandcurvature(s_ts, l, r, trafo)
+         mode_direct = pt.xs.fprime(s_ts)
+         mode_direc = mode_direct / sqrt(dot(mode_direct, mode_direct))
          addforces = neighborforces(pt, l, r)
-         ts_sum.append((name, est, modes, addforces))
+         ts_sum.append((name, est, modes, mode_direct, addforces))
 
-    estfrompath(pt, ts_sum, cs, addtoname, which)
-
-
-
-def estfrompath(pt2, ts_sum, cs, addtoname, which ):
-    """
-    Calculates the TS-estimates and their modevectors
-    which are choosen and put them back together
-    """
-    ts_est = []
-    __, trafo = cs
-    #cs_c = cs.copy()
-    if 2 in which:
-        ts_int = pt2.ts_spl()
-        if len(ts_int) > 0:
-            ts_est.append(('Spline only',ts_int[-1]))
-    if 3 in which:
-        ts_int = pt2.ts_splavg()
-        if len(ts_int) > 0:
-             ts_est.append(('Spline and average', ts_int[-1]))
-    if 4 in which:
-        ts_int = pt2.ts_splcub()
-        if len(ts_int) > 0:
-            ts_est.append(('Spling and cubic', ts_int[-1]))
-
-    # generates modevectors to the given TS-estimates
-    for name, est in ts_est:
-         energy, coords, s0, s1,s_ts,  l, r = est
-         modes =  pt2.modeandcurvature(s_ts, l, r, trafo)
-         addforces = neighborforces(pt2, l, r)
-         ts_sum.append((name + addtoname , est, modes, addforces))
-
-def comparepathes(oldpath, path, gradients, num, file):
-
-    print "Data of new path"
-    xs, project = projpath(path, gradients)
-
-    print "Data of old path"
-    xso, projecto = projpath(oldpath, gradients)
-
-    if not file==None:
-        print
-        print "==========================================================="
-        print "      Comparision of the different path approximations:"
-        print "==========================================================="
-        if num < 0 :
-            num = 0
-        rightnum = False
-        for line in file:
-             if line.startswith('Chain of States Summary'):
-                 fields = line.split()
-                 if str(num) in fields:
-                     rightnum = True
-                 else:
-                     rightnum = False
-             if rightnum:
-                 if line.startswith('Para Forces'):
-                     fields = line.split()
-                     dataline = []
-                     datapoints = (len(fields) - 2) / 2
-                     for i in range(datapoints):
-                         dataline.append(float(fields[3 +2 * i]))
-                     print "Difference in the projection of the force on the string:"
-                     diff1 = [project[i] - dataline[i] for i in range(len(dataline))]
-                     diff2 = [projecto[i] - dataline[i] for i in range(len(dataline))]
-                     diff3 = [projecto[i] - project[i] for i in range(len(dataline))]
-                     print "the values from the path approximations (old/new)  and the values stored in the logfile"
-                     for i in range(len(dataline)):
-                          print "%-d    %-12.7f  %-12.7f | %-12.7f" %  (i, projecto[i], project[i], dataline[i])
-                     print "The differences are (logfile to old/new):"
-                     for i in range(len(dataline)):
-                          print "%-d    %-12.7f  %-12.7f " % (i, diff2[i], diff1[i])
-                     print "The differences between the projections:"
-                     print "old - new"
-                     differ = '   '.join(['%12.7f' % i for i in diff3])
-                     print differ
-                 if line.startswith('Bead Path Position'):
-                     fields = line.split()
-                     dataline = []
-                     datapoints = (len(fields) - 3) / 2
-                     for i in range(datapoints):
-                         dataline.append(float(fields[4 +2 * i]))
-                     print "Difference of the stored bead positions (to old/new):"
-                     diff1 = [xso[i]/xso[-1] - dataline[i] for i in range(len(dataline))]
-                     diff2 = [xs[i] - dataline[i] for i in range(len(dataline))]
-                     differ1 = '   '.join(['%12.7f' % i for i in diff1])
-                     differ2 = '   '.join(['%12.7f' % i for i in diff2])
-                     print differ1
-                     print differ2
-
-
-def projpath(path, gradients):
-    print path.get_nodes()
-    xs, ys = path.get_nodes()
-    print xs
-    print "Forces on String"
-    project = []
-    for i, x in enumerate(xs):
-         grad = gradients[i].flatten()
-         mode = -path.fprime(x).flatten()
-         mode = mode / norm(mode)
-         proj = np.dot(mode, grad)
-         print proj
-         project.append(proj)
-    return xs, project
+    return ts_sum
 
 
 def neighborforces(pt, il, ir):
@@ -514,7 +418,7 @@ def reloadfande(file, name, num):
      return energy, grads
 
 
-def print_estimates(ts_sum, cs, withmodes = False ):
+def print_estimates(ts_sum, cs, withmodes = False, print_direct_modes = False):
      """
      Prints the transition state estimates with their geometry
      in xyz-style, and their mode vectors if wanted
@@ -523,12 +427,14 @@ def print_estimates(ts_sum, cs, withmodes = False ):
      print "==================================================="
      print "printing all available transition state estimates"
      print "---------------------------------------------------"
-     for name, est, modes, addforces in ts_sum:
+     for name, est, modes, mode_direct, addforces in ts_sum:
           print "TRANSITION STATE ESTIMATE:", name
           energy, coords, s0, s1,s_ts,  l, r = est
           print "Energy was approximated as:", energy
           print "This gives the positition:"
-          print trafo(coords)
+          pos = trafo(coords)
+          for line in pos:
+              print "   %12.8f  %12.8f  %12.8f" % (line[0], line[1], line[2])
           print
           if withmodes:
               print "The possible modes are:"
@@ -538,24 +444,31 @@ def print_estimates(ts_sum, cs, withmodes = False ):
                        print "   %12.8f  %12.8f  %12.8f" % (line[0], line[1], line[2])
 
               print
+          if print_direct_modes:
+              print "Direct modes in internal coordinates:"
+              for md in mode_direct:
+                  print "   %12.8f " % md
+              print
 
 def print_estimatesdump(ts_sum, cs ):
      """
      Prints all the geometries as a (jmol) xyz file
      """
+     from ase.atoms import Atoms
+     from ase.io import write
      symbs, trafo = cs
+     at = Atoms(symbs)
      print
-     for name, est, modes, addforces in ts_sum:
+     for name, est, modes, mode_direct, addforces in ts_sum:
           numats = len(symbs)
           print numats
           energy, coords, s0, s1,s_ts,  l, r = est
           print "Energy was approximated as:", energy
           carts = trafo(coords)
+          at.set_positions(carts)
           for s, c in zip(symbs, carts):
               x, y, z = c
               print '%-2s %22.15f %22.15f %22.15f' % (s, x, y, z)
-
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])
