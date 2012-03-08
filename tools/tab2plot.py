@@ -48,8 +48,9 @@ from copy import copy
 
 global plot_style
 global plot_color
-plot_style = ":"
-plot_color = (0, 1, 1, 0)
+global color_num
+color_num = 0
+plot_style = "-"
 
 def colormap(i, n):
     """
@@ -72,45 +73,19 @@ def colormap(i, n):
     # return cm.hsv(float(i) / imax)
     return cm.jet(float(i) / imax)
 
+plot_color = colormap(color_num, 20)
 
 def increase_color(color, style, repeat):
     """
     Changes the color (and if the list of them is finished
     also the style) of the output line
     """
-    new_color = list(copy(color))
-    new_style = copy(style)
+    global color_num
 
-    if new_color == [0,1,1,0]: # this seems to be the last different colr
-        # of the output, if there should be somewhere else more available
-        # change this
-        new_color = [0,0,0,0]
-        # start again, therefore change also the style cyclic
-        if not repeat:
-            new_style = change_style(new_style)
-    else:
-        # increasing the color with bit operations
-        add = 1
-        for i, a in enumerate(new_color):
-            new_color[i] = add ^ a # exclusive or
-            add = add & a # and, for the next color
+    color_num = color_num + 1 % 20
+    new_color = colormap(color_num, 20)
 
-    return tuple(new_color), new_style
-
-def change_style(style):
-    """
-    Cyclic setting of the four usefull
-    styles for our path
-    """
-    if style == "-":
-        return "--"
-    elif style == "--":
-        return "-."
-    elif style == "-.":
-        return ":"
-    else:
-        return "-"
-
+    return new_color, copy(style)
 
 def read_tab(filename):
     """
@@ -252,11 +227,12 @@ def main(argv):
 
     setup_plot(x_label = xtil, y_label = ytil, title = til, log = log)
 
-    for file in files:
+    n = len(files)
+    for i, file in enumerate(files):
        # make the plots ready for all files given
        # first get the data from there
        tablep, pname, tableb, bname, tabelr, rname = read_tab(file)
-       prepare_plot(tablep, pname, tableb, bname, tabelr, rname, option2)
+       prepare_plot(tablep, pname, tableb, bname, tabelr, rname, option2, colormap(i,n))
 
     plot_data(xrange = xrange, yrange = yrange, savefile = outputfile)
 
@@ -316,7 +292,7 @@ def makeplotter(tab, funx, funcs, name, color, option = None):
 
          plot(x, y, opt, color = color, label = lab)
 
-def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option):
+def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option, color):
     """
     Generates plot for a path plotting object. Dependent on what
     is not None of the given parameters different things are plottet.
@@ -329,12 +305,10 @@ def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option):
             a dotted line, else give them as points but a different kind
             than the beads.
     """
-
-    global plot_style
+    # FIXME: some methods still depend on prepare_plot to change the
+    #        color by itsself. Therefore still keep the global plot_color.
     global plot_color
-    plot_color, plot_style = increase_color(plot_color, plot_style, False)
-
-    col = plot_color
+    plot_color, __ = increase_color(plot_color, "-", False)
 
     # one of them should at least be there
     if tablep is not None:
@@ -350,18 +324,17 @@ def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option):
 
     # for each table which is there, make it run
     if tablep is not None:
-        makeplotter(tablep, xfun, yfuns, pname, col)
+        makeplotter(tablep, xfun, yfuns, pname, color)
 
     if tableb is not None:
-        makeplotter(tableb, xfun, yfuns, bname, col, 'o')
+        makeplotter(tableb, xfun, yfuns, bname, color, 'o')
 
     if tabelr is not None:
         if tableb is not None:
             r_opt = 'D'
         else:
             r_opt = 'o:'
-
-        makeplotter(tabelr, xfun, yfuns, rname, col, r_opt)
+        makeplotter(tabelr, xfun, yfuns, rname, color, r_opt)
 
 def plot_data( xrange = None, yrange = None, savefile = None):
     """

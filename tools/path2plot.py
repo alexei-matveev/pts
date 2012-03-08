@@ -184,7 +184,7 @@ def xyz2plot( argv):
     Not all options of the other plot functions are available.
     """
     from pts.tools.path2tab import helpfun, read_input, extract_data
-    from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot
+    from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
 
     name = "xyz"
 
@@ -202,6 +202,7 @@ def xyz2plot( argv):
     # extract which options to take
     opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, symm, symshift, withs)
 
+    n = len(filenames)
     for i, filename in enumerate(filenames):
 
         # Extract the data for beads, path if availabe and TS estimates if requested (else None).
@@ -214,7 +215,7 @@ def xyz2plot( argv):
 
         # prepare plot  from the tables  containing the "beads" = coordinate points of the xyz file
         # there are better at least two coordinates, as there will be nothing else.
-        prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt)
+        prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt, colormap(i, n))
 
     # now plot
     plot_data(xrange = xran, yrange = yran, savefile = outputfile )
@@ -228,7 +229,7 @@ def main( argv):
     beads marked on them
     """
     from pts.tools.path2tab import read_line_from_log, carts_to_int
-    from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot
+    from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
     from pts.io.read_COS import read_geos_from_file
     from pts.tools.path2tab import helpfun, read_input, extract_data
     import numpy as np
@@ -265,6 +266,8 @@ def main( argv):
              opt = opt + " t %i" % (num_opts + 1)
              num_opts = num_opts + 1
 
+    n = len(filenames)
+
     if not reference == None:
        # Reference point (geometry, energy) to compare the rest data to it.
        # geometry is supposed to be in a ASE readable format, energy in a separate file.
@@ -290,7 +293,8 @@ def main( argv):
                    num_opts_ref = num_opts_ref - 1
 
        if num_opts_ref > 1:
-           prepare_plot( None, None, None, "_nolegend_", reference_int_geos, "Reference", opt)
+           prepare_plot( None, None, None, "_nolegend_", reference_int_geos, "Reference", opt, colormap(0, n))
+
 
     # For each file prepare the plot
     for i, filename in enumerate(filenames):
@@ -311,9 +315,9 @@ def main( argv):
         # data only if there are enough for x AND y values
         if num_opts > 1:
             if ase:
-               prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt)
+               prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt, colormap(i, n))
             else:
-               prepare_plot( path, name_p, beads, "_nolegend_", ts_ests_geos, "_nolegend_", opt)
+               prepare_plot( path, name_p, beads, "_nolegend_", ts_ests_geos, "_nolegend_", opt, colormap(i, n))
 
         # if some data  has been extracted from a  logfile, after this
         # file i has been used it  has to be plotted here, as here the
@@ -336,7 +340,7 @@ def main( argv):
                  # The name should be the name of the data line taken,
                  # right?
                  prepare_plot( None, None, None, None, log_points,\
-                               logs_find[j] + ', iteration %i' % (logs_num[j]) , optlog)
+                               logs_find[j] + ', iteration %i' % (logs_num[j]) , optlog, colormap(i, n))
 
 
     # now plot

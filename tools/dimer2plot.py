@@ -269,7 +269,7 @@ def main(argv):
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
         if num_opts > 1:
-            prepare_plot( None, None, None, None, beads, name_p, opt)
+            prepare_plot( None, None, None, None, beads, name_p, opt, plot_color)
 
             # FIXME: the following line is temporarily used to give right plot
             # color and style for arrows, should be removed after tab_plot
