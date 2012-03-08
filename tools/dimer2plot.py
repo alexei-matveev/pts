@@ -19,7 +19,7 @@ def main(argv):
     from pts.tools.xyz2tabint import interestingvalue
     # FIXME: plot_color, plot_style, decide_which_values, increase_color are used temporarily,
     # after the tab_plot class is ready, they should be removed
-    from pts.tools.tab2plot import plot_tabs, plot_color, plot_style, decide_which_values, increase_color
+    from pts.tools.tab2plot import setup_plot,prepare_plot, plot_data, plot_color, plot_style, decide_which_values, increase_color
     from pts.tools.path2plot import makeoption
     from pts.tools.path2tab import get_expansion
     from pts.memoize import FileStore, DirStore, Store
@@ -238,7 +238,7 @@ def main(argv):
         exit
 
     # plot environment
-    pl = plot_tabs(title = title, x_label = xlab, y_label = ylab, log = logscale)
+    setup_plot(title = title, x_label = xlab, y_label = ylab, log = logscale)
 
     # extract which options to take
     opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, [], [], withs)
@@ -269,7 +269,7 @@ def main(argv):
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
         if num_opts > 1:
-            pl.prepare_plot( None, None, None, None, beads, name_p, opt)
+            prepare_plot( None, None, None, None, beads, name_p, opt)
 
             # FIXME: the following line is temporarily used to give right plot
             # color and style for arrows, should be removed after tab_plot
@@ -334,10 +334,10 @@ def main(argv):
 
                 log_points = np.asarray(log_points)
 
-                pl.prepare_plot( None, None, None, "_nolegend_", log_points, \
+                prepare_plot( None, None, None, "_nolegend_", log_points, \
                                s_val + " " + name_p, optlog)
 
-    pl.plot_data(xrange = xran, yrange = yran, savefile = outputfile )
+    plot_data(xrange = xran, yrange = yran, savefile = outputfile )
 
 def rescale(arrow, arrow_len):
     from copy import deepcopy

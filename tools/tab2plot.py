@@ -42,6 +42,7 @@ import numpy as np
 from matplotlib.pyplot import plot, show, legend, rcParams, xlabel, ylabel, xscale, yscale
 from matplotlib.pyplot import gca,figure
 from matplotlib.pyplot import title as set_title
+from matplotlib.pyplot import savefig
 from scipy.interpolate import splrep, splev
 from copy import copy
 
@@ -249,124 +250,130 @@ def main(argv):
         print "ERROR: table needed to get the values to print from!"
         exit()
 
-    pl = plot_tabs(x_label = xtil, y_label = ytil, title = til, log = log)
+    setup_plot(x_label = xtil, y_label = ytil, title = til, log = log)
 
     for file in files:
        # make the plots ready for all files given
        # first get the data from there
        tablep, pname, tableb, bname, tabelr, rname = read_tab(file)
-       pl.prepare_plot(tablep, pname, tableb, bname, tabelr, rname, option2)
+       prepare_plot(tablep, pname, tableb, bname, tabelr, rname, option2)
 
-    pl.plot_data(xrange = xrange, yrange = yrange, savefile = outputfile)
-
-
-class plot_tabs:
-    def __init__(self, title = None, x_label = None, y_label = None, log = []):
-        # set some parameters for the legend, as it would be
-        # to big else
-        self.fig=figure()
-        rcParams['font.size'] = 8
-        # the lines may be a bit wider than the default
-        rcParams['lines.linewidth'] = 2
-
-        if title is not None:
-             set_title(str(title), fontsize = 'large')
-
-        if x_label is not None:
-             xlabel(x_label)
-
-        if y_label is not None:
-             ylabel(y_label)
-
-        if log != []:
-             for lg in log:
-                 if lg in ['x', 1, '1']:
-                     xscale('log')
-                 if lg in ['y', 'z', 2, '2']:
-                     yscale('log')
+    plot_data(xrange = xrange, yrange = yrange, savefile = outputfile)
 
 
-    def prepare_plot(self, tablep, pname, tableb, bname, tabelr, rname, option):
+def setup_plot( title = None, x_label = None, y_label = None, log = []):
+    """
+    A function which prepares everything for a plot: sets title and labels
+    and changes to logarithmic scale if required.
+    """
+    # set some parameters for the legend, as it would be
+    # to big else
+    rcParams['font.size'] = 8
+    # the lines may be a bit wider than the default
+    rcParams['lines.linewidth'] = 2
 
-        def makeplotter(tab, funx ,funcs, name, option = None, repeat = False):
-             # A wrapper aoround the plot function, which uses
-             # the table tab from which its extract via funx the
-             # x values, and then giving name to distinguish between
-             # different input files (only for the pathes, beads are
-             # without name)
-             # option may telling that instead of a line, points should
-             # be used (for beads)
+    if title is not None:
+         set_title(str(title), fontsize = 'large')
 
-             # global variable to make colors changes over both lines to plot
-             # and files
-             global plot_style
-             global plot_color
-             if not repeat: # for having beads in the same color than their lines
-                 # now change global variables to make sure that the next plot will be different
-                 plot_color, plot_style = increase_color(plot_color, plot_style, repeat)
+    if x_label is not None:
+         xlabel(x_label)
 
-             x = funx(tab)
-             for i, fun in enumerate(funcs):
-                 y = fun(tab)
-                 lab = '%i' % (i)
-                 if name is not None:
-                     if i > 0:
-                         lab = name + ' ' + lab
-                     else:
-                         lab = name
+    if y_label is not None:
+         ylabel(y_label)
 
-                 # use style for the line or the one given directly
-                 if option is None:
-                    opt = plot_style
+    if log != []:
+         for lg in log:
+             if lg in ['x', 1, '1']:
+                 xscale('log')
+             if lg in ['y', 'z', 2, '2']:
+                 yscale('log')
+
+
+def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option):
+
+    def makeplotter(tab, funx ,funcs, name, option = None, repeat = False):
+         # A wrapper aoround the plot function, which uses
+         # the table tab from which its extract via funx the
+         # x values, and then giving name to distinguish between
+         # different input files (only for the pathes, beads are
+         # without name)
+         # option may telling that instead of a line, points should
+         # be used (for beads)
+
+         # global variable to make colors changes over both lines to plot
+         # and files
+         global plot_style
+         global plot_color
+         if not repeat: # for having beads in the same color than their lines
+             # now change global variables to make sure that the next plot will be different
+             plot_color, plot_style = increase_color(plot_color, plot_style, repeat)
+
+         x = funx(tab)
+         for i, fun in enumerate(funcs):
+             y = fun(tab)
+             lab = '%i' % (i)
+             if name is not None:
+                 if i > 0:
+                     lab = name + ' ' + lab
                  else:
-                    opt = option
+                     lab = name
 
-                 plot(x, y, opt, color = plot_color, label= lab)
+             # use style for the line or the one given directly
+             if option is None:
+                opt = plot_style
+             else:
+                opt = option
+
+             plot(x, y, opt, color = plot_color, label= lab)
 
 
-        # one of them should at least be there
-        if tablep is not None:
-            tlen = len(tablep)
-        elif tableb is not None:
-            tlen = len(tableb)
-        else:
-            tlen = len(tabelr)
+    # one of them should at least be there
+    if tablep is not None:
+        tlen = len(tablep)
+    elif tableb is not None:
+        tlen = len(tableb)
+    else:
+        tlen = len(tabelr)
 
-        # the functions which should operate on the table
-        # have been given in the option
-        xfun, yfuns = decide_which_values(option, tlen)
+    # the functions which should operate on the table
+    # have been given in the option
+    xfun, yfuns = decide_which_values(option, tlen)
 
-        # for each table which is there, make it run
-        if tablep is not None:
-            makeplotter(tablep, xfun, yfuns, pname)
+    # for each table which is there, make it run
+    if tablep is not None:
+        makeplotter(tablep, xfun, yfuns, pname)
 
+    if tableb is not None:
+        makeplotter(tableb, xfun, yfuns, bname, 'o', repeat = True)
+
+    if tabelr is not None:
         if tableb is not None:
-            makeplotter(tableb, xfun, yfuns, bname, 'o', repeat = True)
-
-        if tabelr is not None:
-            if tableb is not None:
-                makeplotter(tabelr, xfun, yfuns, rname, 'D', repeat = True)
-            else:
-                makeplotter(tabelr, xfun, yfuns, rname, 'o:')
-
-    def plot_data(self, xrange = None, yrange = None, savefile = None):
-        a = gca()
-        if xrange != None:
-            a.set_xlim(xrange)
-        if yrange != None:
-            a.set_ylim(yrange)
-
-
-        # prepare the legend, should be placed at the best position
-        # available
-        legend( loc = "best")
-        # Now to the actual plots (legend and plots), show on screen
-        # or save as file
-        if savefile == None:
-            show();
+            makeplotter(tabelr, xfun, yfuns, rname, 'D', repeat = True)
         else:
-            self.fig.savefig(savefile)
-        
+            makeplotter(tabelr, xfun, yfuns, rname, 'o:')
+
+def plot_data( xrange = None, yrange = None, savefile = None):
+    """
+    Make the last settings before the actual plot. Then
+    plot (or put into a file).
+    """
+    a = gca()
+    if xrange != None:
+        a.set_xlim(xrange)
+    if yrange != None:
+        a.set_ylim(yrange)
+
+
+    # prepare the legend, should be placed at the best position
+    # available
+    legend( loc = "best")
+    # Now to the actual plots (legend and plots), show on screen
+    # or save as file
+    if savefile == None:
+        show()
+    else:
+        savefig(savefile)
+
 
 def decide_which_values(option, tlen):
     """
