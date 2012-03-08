@@ -761,6 +761,16 @@ def main( argv):
             beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, appender, 2)
             coords = beads
 
+        if not ts_ests_geos == None:
+            coords = ts_ests_geos
+            text = "#Given are the values for the chosen transition state estimates of the path\n"
+        elif num > 0:
+            coords = path
+            text = "#Given are the values for %i interpolated geometries on the path\n" % (num)
+        else:
+            text = "#Given are the values for the beads of the path\n"
+            coords = beads
+
         if logs != []:
             for j, log in enumerate(logs):
                 if log_x_num[j] == i:
@@ -772,16 +782,17 @@ def main( argv):
         coords = np.asarray(coords)
         coords = coords.T
         coords = list(coords)
-        write_results(coords, allval, special_vals, logs, filename)
+        write_results(coords, allval, special_vals, logs, filename, text)
 
 
-def write_results(coords, allval, special_vals, logs, filename):
+def write_results(coords, allval, special_vals, logs, filename, text):
      """
      Writes the results out as a table
      """
      write = stdout.write
      write("#chart of internal coordinates in the run \n")
-     write("#observed in file: %s  " % (filename) )
+     write("#observed in file: %s  \n" % (filename) )
+     write(text)
      write("#the following values were calculated, distances are in Angstroms; angles in degrees;\n")
      write("#                                      energies in eV and forces in eV/ Angstroms\n")
      for k in range(len(allval)):
