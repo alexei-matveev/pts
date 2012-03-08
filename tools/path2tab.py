@@ -410,9 +410,9 @@ def carts_to_int(ys, xs, allval, cell, tomove, howmove, withs):
     return beads
 
 def helpfun(name):
-    if name == "path2tab":
+    if name == "table":
         print __doc__
-    elif name == "path2plot":
+    elif name in ["plot", "show"]:
         path2plot_help()
     else:
         print >> stderr, "No help text available for current function!"
@@ -728,7 +728,7 @@ def extract_data(filename, data_ase, other_input, values, appender, num ):
     return beads, path, ts_ests_geos
 
 
-def main( argv):
+def main(name, argv):
     """
     Reads in stuff from the sys.argv if not
     provided an other way
@@ -741,14 +741,19 @@ def main( argv):
     from pts.tools.path2plot import path2plot_help
     from sys import stderr
 
-    name = "path2tab"
-
-    if argv[0] == '--help':
+    if '--help' in argv:
         helpfun(name)
 
     filenames, data_ase, other_input, values, num, special_opt, appender, for_plot =  read_input(name, argv, -1)
 
-    ase, __ = data_ase
+    ase, format = data_ase
+
+    if name == "xyz":
+        ase = True
+        format = "xyz"
+        data_ase = ase, format
+        num = -1
+
     __, allval, special_vals, __, (logs, logs_find, logs_num, log_x_num, xfiles) =  values
 
     # For each file prepare the plot
@@ -887,5 +892,5 @@ def read_line_from_log(filename, whichline, num):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    main( sargv[1:])
+    main( "path", sargv[1:])
 

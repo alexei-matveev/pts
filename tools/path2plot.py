@@ -177,7 +177,49 @@ def path2plot_help():
     print __doc__
 
 
-def main(argv):
+def xyz2plot( argv):
+    """
+    Should do the same stuff as for path2plot. But expects the input files
+    to be xyz files.
+    Not all options of the other plot functions are available.
+    """
+    from pts.tools.path2tab import helpfun, read_input, extract_data
+    from pts.tools.tab2plot import plot_tabs
+
+    name = "xyz"
+
+    filenames, __, __, values, __, special_opt, appender, for_plot =  read_input(name, argv, -1)
+
+    # Expand the output, we need it further.
+    withs, allval, special_vals, __, __ =  values
+    diff, symm, symshift =  special_opt
+    num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
+    cell, tomove, howmove = appender
+
+    # plot environment
+    pl = plot_tabs(title = title, x_label = xlab, y_label = ylab, log = logscale)
+
+    # extract which options to take
+    opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, symm, symshift, withs)
+
+    for i, filename in enumerate(filenames):
+
+        # Extract the data for beads, path if availabe and TS estimates if requested (else None).
+        beads, path, ts_ests_geos = extract_data(filename, (True, "xyz"), (None, None, None ), values, appender, 0)
+
+        # The name belonging to filename.
+        name_p = str(i + 1)
+        if names_of_lines[i] != []:
+             name_p = names_of_lines[i]
+
+        # prepare plot  from the tables  containing the "beads" = coordinate points of the xyz file
+        # there are better at least two coordinates, as there will be nothing else.
+        pl.prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt)
+
+    # now plot
+    pl.plot_data(xrange = xran, yrange = yran, savefile = outputfile )
+
+def main( argv):
     """
     Reads in stuff from the sys.argv if not provided an other way
 
@@ -192,9 +234,9 @@ def main(argv):
     import numpy as np
     from copy import copy
 
-    name = "path2plot"
+    name = "path"
 
-    if argv[0] == '--help':
+    if '--help' in argv:
         helpfun(name)
 
     # interprete arguments, shared interface with path2tab.
@@ -360,7 +402,9 @@ def plot(argv):
     # of the method, usually just "plot":
     #
     cmd = argv[0]
-    opts, args = getopt.getopt(argv[1:], "", [])
+
+    # skip argv[1], it just tells that this precious function has been selected.
+    opts, args = getopt.getopt(argv[2:], "", [])
     # print "opts=", opts
     # print "args=", args
 

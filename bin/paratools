@@ -39,11 +39,6 @@ where CMD is one of the following:
 
     find-limit-path     Find first appearance where some limits are
                         met in the output logfile
-    path2plot           internal coordinate plot for some path
-    path2tab            internal coordinates from path
-    path2xyz            convert path to xyz file(s)
-    xyz2tab             get internal coordinates from xyz-file(s)
-    tab2plot            plots a tabular as given by xyz2tab
     ts-and-mods         Shows TS estimates and mode vector for a path
     pp2ts-err           see error of ts_estimates of path to real TS
                         (given also as input)
@@ -59,6 +54,30 @@ Examples:
     paratools string --calculator default_vasp POSCAR-A POSCAR-B
 
 Search transition path between A and B using default VASP settings.
+
+The following CMDs are for exctracing information from the output:
+    plot                gives output to an output file
+    show                show output in a pop-up window
+    table               gives the data in a table
+
+One has to select what should be displaced by them, thus
+the next element for the plot/show/table command needs to
+be one of the following:
+    path                information from a global path calculation
+                        most certainly in path.pickle format
+    progress            extract the data from a local transition
+                        state method, thus for example dimer or quasi-newton
+    xyz                 geometries are given as a xyz-file
+
+See subcommand + input specific help for syntax details.
+
+Examples:
+
+   paratools plot path --help
+   paratools plot xyz --dis 1 2 --dis 1 3 XYZ-file
+
+Plots the distances of 1th to 3th atom against the distance of 1th to
+2th atom for all the geometries in the XYZ file.
 """
 import sys
 from ase.optimize import *  # to recognise the optimizers lateron
@@ -66,8 +85,6 @@ import pts.tools.findlimitpath
 import pts.tools.jmol
 import pts.tools.makepath
 import pts.tools.pathmin
-import pts.tools.path2xyz
-import pts.tools.path2tab
 import pts.tools.pp2tserr
 import pts.tools.tsestandmods
 import pts.tools.xyz2tabint
@@ -75,10 +92,6 @@ import pts.vib
 import pts.path_searcher
 import pts.tools.compare_geos
 
-optic_methods = {
-   "tab2plot"        : True       ,
-   "path2plot"       : True       ,
-}
 
 methods = {
    "path-searcher"   : pts.path_searcher.main  ,
@@ -89,8 +102,6 @@ methods = {
    "jmol"            : pts.tools.jmol.main           ,
    "make-path"       : pts.tools.makepath.main       ,
    "make_path"       : pts.tools.makepath.main       ,
-   "path2xyz"        : pts.tools.path2xyz.main       ,
-   "path2tab"        : pts.tools.path2tab.main       ,
    "pp2ts-err"       : pts.tools.pp2tserr.main       ,
    "pp2ts_err"       : pts.tools.pp2tserr.main       ,
    "ts-and-mods"     : pts.tools.tsestandmods.main   ,
@@ -98,7 +109,6 @@ methods = {
    "min_iter"        : pts.tools.pathmin.main   ,
    "min-iter"        : pts.tools.pathmin.main   ,
    "compare_geos"    : pts.tools.compare_geos.main   ,
-   "xyz2tab"         : pts.tools.xyz2tabint.main
 }
 
 def main(argv):
@@ -212,24 +222,10 @@ def main(argv):
         cmd_main = methods[cmd]
         cmd_main(argv[1:])
 
-    if cmd in optic_methods:
-        from pts.tools.path2plot import main as path2plot
-        from pts.tools.tab2plot import main as tab2plot
-        valid_cmd = True
-        cmd_main = eval(cmd)
-        cmd_main(argv[1:])
-
-    if cmd in ("dimer2plot", "lanczos2plot", "qn2plot"):
-        from pts.tools.dimer2plot import main as dimer2plot
-        valid_cmd = True
-        dimer2plot(argv)
-
-    if cmd in ("show", "plot"):
+    if cmd in ("show", "plot", "table"):
         valid_cmd = True
 
-        from pts.tools.path2plot import plot
-
-        plot(argv)
+        sort_plotting(argv)
 
     if not valid_cmd:
         print >> sys.stderr, "pts: no such command:", cmd
@@ -239,6 +235,78 @@ def main(argv):
 #
 # Example: calculations of energy/forces:
 #
+def sort_plotting( argv):
+    """
+    Decides which function should generate the output.
+    The output can be a table of data, a plot file
+    or go directly on the screen.
+
+    The input (path files, progress files, or a
+    xyz file) are given as second argument.
+    """
+    output = argv[0]
+    input = argv[1]
+
+    if input == "energy":
+        from pts.tools.path2plot import plot
+        # short cut for a special energy plot
+
+        plot(argv )
+
+    elif output == "table":
+        from  pts.tools.path2tab import main
+        assert not input == "progress"
+        # Gives the output of a path or xyz pickle
+        # as a table
+
+        main(input, argv[2:])
+
+    elif input == "progress":
+        from pts.tools.dimer2plot import main
+        # shows the progress of local transition state
+        # searching tools like the dimer methods.
+
+        argv2 = ["dimer2plot"]
+
+        if output == "plot":
+            argv2 = argv2 + ["--output", "progress.png"]
+
+        argv2 = argv2 + argv[2:]
+
+        main(argv2 )
+
+    elif input == "xyz":
+        from pts.tools.path2plot import xyz2plot
+        # plot or show geometry information of
+        # xyz files, might contain more than one
+        # geometry in each file.
+
+        argv2 = argv[2:]
+
+        if output == "plot":
+            argv2 = ["--output", "xyz.png"] + argv2
+
+        xyz2plot(argv2 )
+
+    elif input == "path":
+        from pts.tools.path2plot import main
+        # plots or shows the content of a path.pickle file.
+        # can display geometries, energy/gradient information
+        # or other special values.
+
+        argv2 = argv[2:]
+
+        if output == "plot":
+            argv2 = ["--output", "path.png"] + argv2
+
+        main(argv2 )
+
+    else:
+        from sys import stderr
+        print >> stderr, "ERROR: not allowed plotting combination"
+        print >> stderr, " the combination", output, input, " is illegal"
+
+
 def single_point(pes, geometries, method="energy", pmap=map, **kw):
     """Usage:
 
