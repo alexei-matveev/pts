@@ -133,7 +133,6 @@ def main(argv):
                 assert name in ["dimer", "lanczos"]
                 iter_flag.add(-1)
                 special_val.append("curvature")
-                info.add(name.capitalize())
                 argv = argv[1:]
             elif option in ["step"]:
                 # step size of translation step
