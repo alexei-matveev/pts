@@ -478,13 +478,8 @@ def read_input(name, argv, num):
     xfiles = -1
 
     # read all the arguments in
-    for i in range(len(argv)):
-         if argv == []:
-             # stop cycle if all input is read in
-             # (sometimes more than one is read in
-             # at the same time)
-             break
-         elif argv[0].startswith("--"):
+    while len(argv) > 0:
+         if argv[0].startswith("--"):
              # differenciate between options and files
              option = argv[0][2:]
              if option == "num":
@@ -580,15 +575,12 @@ def read_input(name, argv, num):
                 abcis.append(argv[1])
                 argv = argv[2:]
              elif option == "title":
-                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
                  title = argv[1]
                  argv = argv[2:]
              elif option == "xlabel":
-                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
                  xlab = argv[1]
                  argv = argv[2:]
              elif option == "ylabel":
-                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
                  ylab = argv[1]
                  argv = argv[2:]
              elif option == "ts_estimate":
@@ -599,19 +591,15 @@ def read_input(name, argv, num):
                  reference_data = argv[2]
                  argv = argv[3:]
              elif option == "name":
-                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
                  names_of_lines.append(argv[1])
                  argv = argv[2:]
              elif option == "xrange":
-                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
                  xran = [ float(argv[1]), float(argv[2])]
                  argv = argv[3:]
              elif option == "yrange":
-                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
                  yran = [ float(argv[1]), float(argv[2])]
                  argv = argv[3:]
              elif option.startswith("logscale"):
-                 assert name == "path2plot", "Only valid for Pat2plot %s" % option
                  logscale.append(argv[1])
                  argv = argv[2:]
              elif option == "output":
@@ -761,7 +749,7 @@ def main( argv):
     filenames, data_ase, other_input, values, num, special_opt, appender, for_plot =  read_input(name, argv, -1)
 
     ase, __ = data_ase
-    __, __, __, __, (logs, logs_find, logs_num, log_x_num, xfiles) =  values
+    __, allval, special_vals, __, (logs, logs_find, logs_num, log_x_num, xfiles) =  values
 
     # For each file prepare the plot
     for i, filename in enumerate(filenames):
