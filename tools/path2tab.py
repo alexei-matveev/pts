@@ -887,5 +887,5 @@ def read_line_from_log(filename, whichline, num):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    main(sargv[1:])
+    main( sargv[1:])
 
