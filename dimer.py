@@ -54,7 +54,7 @@ class translate_cg():
         self.trial_step = trial_step
         self.old_geo = None
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused, pickle_log = empty_log):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused):
         """
         the actual step
         """
@@ -103,7 +103,7 @@ class translate_cg():
             grad_calc = 0
         else:
             # find how far to go line search, first trial
-            trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force, pickle_log)
+            trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
 
         step = trial_step * step
 
@@ -115,7 +115,7 @@ class translate_cg():
 
         return step, info
 
-def line_search(start_geo, direction, trial_step, pes, metric, mode_vector, force, pickle_log = empty_log):
+def line_search(start_geo, direction, trial_step, pes, metric, mode_vector, force):
         """
         Find the  minimum in direction from strat_geo  on, uses second
         point makes quadratic approximation with the "forces" of these
@@ -129,7 +129,6 @@ def line_search(start_geo, direction, trial_step, pes, metric, mode_vector, forc
         t_s = deepcopy(trial_step)
 
         geo = start_geo + direction * t_s
-        pickle_log("Trans_Trial", geo)
         mode_vec_down = metric.lower(mode_vector, start_geo).flatten()
         grad_calc += 1
         force_r = trans_force( -pes.fprime(geo), mode_vector, mode_vec_down)
@@ -222,7 +221,7 @@ class translate_lbfgs():
         self.old_geo = None
         self.metric = metric
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused, info):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, info):
         """
         the actual step
         """
@@ -356,7 +355,7 @@ class translate_sd():
         self.metric = metric
         self.trial_step = trial_step
 
-    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused, pickle_log = empty_log):
+    def __call__(self, pes, start_geo, geo_grad, mode_vector, curv, unused):
         """
         the actual step
         """
@@ -382,7 +381,7 @@ class translate_sd():
             grad_calc = 0
         else:
             # find how far to go.  line search, first trial
-            trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force, pickle_log)
+            trial_step, grad_calc = line_search(start_geo, step, self.trial_step, pes, self.metric, mode_vector, force)
         step = trial_step * step
 
         step.shape = shape
@@ -568,12 +567,12 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, pickle
     calculates the  step for  the modified force  Scales the  step (if
     required)
     """
-    curv, mode_vec, info = rot(pes, start_geo, geo_grad, start_mode, metric, pickle_log, **params)
+    curv, mode_vec, info = rot(pes, start_geo, geo_grad, start_mode, metric, **params)
     pickle_log("Lowest_Mode", mode_vec)
     pickle_log("Curvature", info["curvature"])
 
     info["max_step"] = max_step
-    step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv, info, pickle_log)
+    step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv, info)
 
     info.update(info_t)
 

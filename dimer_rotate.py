@@ -9,7 +9,7 @@ from pts.trajectories import empty_log
 
 VERBOSE = 0
 
-def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, pickle_log = empty_log, dimer_distance = 0.01, \
+def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distance = 0.01, \
     max_rotations = 10, phi_tol = 0.1, interpolate_grad = True, restart = None, **params):
     """
     Rotates  the  dimer  while  keeping  its old  results  in  memory,
@@ -146,7 +146,6 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, pickle_log = 
         global grad_calc
         grad_calc = grad_calc + 1
         x = mid_point + dimer_distance *vm
-        pickle_log("Lanczos", x)
         return pes.fprime(x) - g0
 
     # keep all the basis vectors and their forces
@@ -334,7 +333,7 @@ def need_restart(restart, i):
        res = (i % restart == 0)
     return res
 
-def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, pickle_log = empty_log, \
+def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, \
     dimer_distance = 0.0001, max_rotations = 10, phi_tol = 0.1, rot_conj_gradient = True, **params):
     """
     Rotate the dimer to the mode of lowest curvature
@@ -474,7 +473,6 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, pickle_log = e
 
     i = 1
     while i < max_rotations: # ATTENTION: two break points
-        pickle_log("Dimer", x)
         g1 = pes.fprime(x)
         grad_calc += 1
         m_basis.append(x - mid_point)
@@ -525,7 +523,6 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, pickle_log = e
 
         # calculate values for dimer rotated for phi1
         x2, m2  = rotate_phi(mid_point, mode, dir, phi1, dimer_distance, metric)
-        pickle_log("Rot_Trial", x2)
         g2 = pes.fprime(x2)
         grad_calc += 1
         m_basis.append(x2 - mid_point )
