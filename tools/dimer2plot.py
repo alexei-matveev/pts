@@ -269,7 +269,7 @@ def main(argv):
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
         if num_opts > 1:
-            pl.prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt)
+            pl.prepare_plot( None, None, None, None, beads, name_p, opt)
 
             # FIXME: the following line is temporarily used to give right plot
             # color and style for arrows, should be removed after tab_plot
@@ -335,7 +335,7 @@ def main(argv):
                 log_points = np.asarray(log_points)
 
                 pl.prepare_plot( None, None, None, "_nolegend_", log_points, \
-                               s_val + " %i" % (i + 1), optlog)
+                               s_val + " " + name_p, optlog)
 
     pl.plot_data(xrange = xran, yrange = yran, savefile = outputfile )
 
