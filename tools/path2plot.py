@@ -233,6 +233,7 @@ def main( argv):
     from pts.tools.path2tab import helpfun, read_input, extract_data
     import numpy as np
     from copy import copy
+    from sys import stderr
 
     name = "path"
 
@@ -296,6 +297,10 @@ def main( argv):
 
         # Extract the data for beads, path if availabe and TS estimates if requested (else None).
         beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, appender, num)
+
+        if ts_ests_geos == []:
+            print >> stderr, "WARNING: No transition state found for file", filename
+            ts_ests_geos = None
 
         # The name belonging to filename.
         name_p = str(i + 1)

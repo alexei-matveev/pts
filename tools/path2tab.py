@@ -152,7 +152,7 @@ def ts_estimates_in_int(x, y, cs, en_and_grad, estimates, allval, cell, tomove, 
     ts_estims = []
     ts_places = []
     for i, ts_one in enumerate(ts_all):
-         __, est, __, __ = ts_one
+         __, est, __, __, __ = ts_one
          __, coords, __, __,s_ts,  __, __ = est
          cart = trafo(coords)
          if cell != None:
