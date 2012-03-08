@@ -198,12 +198,8 @@ def main(argv):
     # how many points in between or exactly the beads?
     # as default there will be a path , giving back beadnumber
     # of frames
-    if len(argv)>1:
-       argv = argv[1:]
-       for i in range(len(argv)):
-           if argv == []:
-              break
-
+    argv = argv[1:]
+    while len(argv) > 0:
            if argv[0] in ["beads", "bd", "b", "-b"]:
                 beads = True
                 argv = argv[1:]
