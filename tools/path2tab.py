@@ -410,6 +410,7 @@ def carts_to_int(ys, xs, allval, cell, tomove, howmove, withs):
     return beads
 
 def helpfun(name):
+    from pts.tools.path2plot import path2plot_help
     if name == "table":
         print __doc__
     elif name in ["plot", "show"]:
@@ -742,7 +743,6 @@ def main(name, argv):
     for each inputfile a path of the given
     coordinates with beads marked on them
     """
-    from pts.tools.path2plot import path2plot_help
     from sys import stderr
 
     if '--help' in argv:
