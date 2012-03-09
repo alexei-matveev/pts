@@ -180,11 +180,12 @@ def main(argv):
     Reads in stuff from the sys.argv  if not provided an other way set
     up a path and gives back positions on it
     """
-    if argv[0] == '--help':
+    from sys import stderr
+    if '--help' in argv:
         print __doc__
         exit()
-    else:
-        filename = argv[0]
+
+    filename =  None
 
     beads = False
     num = None
@@ -198,31 +199,42 @@ def main(argv):
     # how many points in between or exactly the beads?
     # as default there will be a path , giving back beadnumber
     # of frames
-    argv = argv[1:]
     while len(argv) > 0:
-           if argv[0] in ["beads", "bd", "b", "-b"]:
-                beads = True
+        if argv[0].startswith("-"):
+            if argv[0] in ["-b", "--b", "--beads"]:
+                 beads = True
+                 argv = argv[1:]
+            elif argv[0] in ["--num"]:
+                 num = int(argv[1])
+                 argv = argv[2:]
+            elif argv[0] in ["--symbols", "--symbol", "-s", "--s"]:
+                 symbfile = argv[1]
+                 argv = argv[2:]
+            elif argv[0].startswith("--zmat"):
+                 zmats.append(argv[1])
+                 argv = argv[2:]
+            elif argv[0] in ["--mask", "-m", "--m"]:
+                 mask = argv[1]
+                 maskgeo = argv[2]
+                 argv = argv[3:]
+            elif argv[0] in ["--abscissa", "--a", "--pathpos"]:
+                 abcis = argv[1]
+                 argv = argv[2:]
+            else:
+                 print "ERROR: Could not read in the argument", argv[0]
+                 print __doc__
+                 exit()
+        else:
+            if filename == None:
+                filename = argv[0]
                 argv = argv[1:]
-           elif argv[0] in ["--num"]:
-                num = int(argv[1])
-                argv = argv[2:]
-           elif argv[0] in ["--symbols", "--symbol", "-s"]:
-                symbfile = argv[1]
-                argv = argv[2:]
-           elif argv[0].startswith("--zmat"):
-                zmats.append(argv[1])
-                argv = argv[2:]
-           elif argv[0] in ["--mask", "-m"]:
-                mask = argv[1]
-                maskgeo = argv[2]
-                argv = argv[3:]
-           elif argv[0] in ["--abscissa", "--pathpos"]:
-                abcis = argv[1]
-                argv = argv[2:]
-           else:
-                print "Could not read in the argument", argv[0]
-                print __doc__
-                exit()
+            else:
+                 print >> stderr, "ERROR: Could not read in the argument", argv[0]
+                 print >> stderr,  "ERROR: Or got two filenames, but I can only process one at a time"
+                 print __doc__
+                 exit()
+
+    assert not filename == None
 
     if symbfile == None:
         x, y, obj, __ = read_in_path(filename)
