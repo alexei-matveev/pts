@@ -59,6 +59,9 @@ The following CMDs are for exctracing information from the output:
     plot                gives output to an output file
     show                show output in a pop-up window
     table               gives the data in a table
+    xyz                 Prints geometries as xyz stream, only valid
+                        together with path as argument for
+                        displacement
 
 One has to select what should be displaced by them, thus
 the next element for the plot/show/table command needs to
@@ -222,7 +225,7 @@ def main(argv):
         cmd_main = methods[cmd]
         cmd_main(argv[1:])
 
-    if cmd in ("show", "plot", "table"):
+    if cmd in ("show", "plot", "table", "xyz"):
         valid_cmd = True
 
         sort_plotting(argv)
@@ -252,6 +255,11 @@ def sort_plotting( argv):
         # short cut for a special energy plot
 
         plot(argv )
+
+    elif output == "xyz":
+        from pts.tools.path2xyz import main
+
+        main(argv[2:])
 
     elif output == "table":
         from  pts.tools.path2tab import main
