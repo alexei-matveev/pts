@@ -423,7 +423,7 @@ def print_estimates(ts_sum, cs, withmodes = False, print_direct_modes = False):
      Prints the transition state estimates with their geometry
      in xyz-style, and their mode vectors if wanted
      """
-     __, trafo = cs
+     symbs, trafo = cs
      print "==================================================="
      print "printing all available transition state estimates"
      print "---------------------------------------------------"
@@ -433,8 +433,8 @@ def print_estimates(ts_sum, cs, withmodes = False, print_direct_modes = False):
           print "Energy was approximated as:", energy
           print "This gives the positition:"
           pos = trafo(coords)
-          for line in pos:
-              print "   %12.8f  %12.8f  %12.8f" % (line[0], line[1], line[2])
+          for s, line in zip(symbs, pos):
+              print "%-2s  %12.8f  %12.8f  %12.8f" % (s, line[0], line[1], line[2])
           print
           if withmodes:
               print "The possible modes are:"
