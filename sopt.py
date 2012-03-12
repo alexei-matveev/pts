@@ -335,7 +335,6 @@ def test(A, B, trafo=None):
             break
 
 from func import Reshape, Elemental
-from memoize import Memoize, DirStore
 
 def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, callback=None, **kwargs):
     """
@@ -376,13 +375,6 @@ def soptimize(pes, x0, tangent=tangent1, rc=None, constraints=None, pmap=map, ca
 
     # (2) "reshape" provided PES Func to make it accept 1D arrays:
     pes = Reshape(pes, xshape=vshape)
-
-    #
-    # For restarts and post-analysis. FIXME:  we keep it here for some
-    # time for  accessing cached  result of the  PES as a  function of
-    # internal coordinates. Otherwise it must die in favor of cache.d:
-    #
-    pes = Memoize(pes, DirStore("soptimize.d"))
 
     # (3) if present, "reshape" the constraint Func:
     if constraints is not None:
