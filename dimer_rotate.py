@@ -96,6 +96,7 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
 
     This is far of:
     >>> mode = array([-1., 5.])
+    >>> mode = mode / sqrt(dot(mode, mode))
 
     >>> curv, n_mode2, info = rotate_dimer_mem(p1, start, p1.fprime(start), mode, met1, dimer_distance = d*0.01,
     ...                       restart = 1, phi_tol = 1e-7, max_rotations = 10 )
@@ -287,10 +288,6 @@ def test_lanczos_convergence(mode, grad, old_mode, phi_tol, met, mid_point):
      or if the new mode did not differ much from the one from the previous
      calculation convergence has been reached.
      """
-     fr = rot_force(zeros(len(grad)), grad, mode, met, mid_point)
-     fr = fr /met.norm_down(fr, mid_point)
-     phi1 = phi_start(zeros(len(grad)), grad, fr, mode, met, mid_point)
-
      f_phi = dot(mode, grad) / met.norm_down(grad, mid_point)
      mode_down = met.lower(mode, mid_point)
      conv1 = abs(f_phi)
@@ -298,6 +295,10 @@ def test_lanczos_convergence(mode, grad, old_mode, phi_tol, met, mid_point):
      conv2 = abs(c_phi1)
 
      if VERBOSE > 0:
+         fr = rot_force(zeros(len(grad)), grad, mode, met, mid_point)
+         fr = fr /met.norm_down(fr, mid_point)
+
+         phi1 = phi_start(zeros(len(grad)), grad, met.raises(fr, mid_point), mode, met, mid_point)
          print "Angle expectation", phi1
          print "Change in modes"
          print c_phi1
