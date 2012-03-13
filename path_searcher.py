@@ -29,6 +29,20 @@ import pts.metric as mt
 # FIXME: really?
 # DONT: from numpy import array
 
+def pes_method(pes, path, **kw):
+    """
+    Has the interface of the most general PES method.
+    """
+
+    convergence, optimized_path = find_path(pes, path, **kw)
+
+    # Command  line verison  of the  path searcher  used  to print
+    # user-friendly output, including cartesian geometries:
+    output(optimized_path, kw["trafo"], kw["output_level"], kw["output_geo_format"], kw["atoms"])
+
+    # Command line version used to return this:
+    return convergence, optimized_path
+
 # needed as global variable
 cb_count_debug = 0
 
@@ -560,20 +574,6 @@ def main(args):
 
     Uses the arguments of the standard input for setting the parameters
     """
-
-    def pes_method(pes, path, **kw):
-        """
-        Has the interface of the most general PES method.
-        """
-
-        convergence, optimized_path = find_path(pes, path, **kw)
-
-        # Command  line verison  of the  path searcher  used  to print
-        # user-friendly output, including cartesian geometries:
-        output(optimized_path, kw["trafo"], kw["output_level"], kw["output_geo_format"], kw["atoms"])
-
-        # Command line version used to return this:
-        return convergence, optimized_path
 
     # Interprete args and call a PES method:
     return call_with_pes(pes_method, args)
