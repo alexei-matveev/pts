@@ -479,7 +479,7 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
          if error < trans_converged:
               # Breakpoint 1: calculation has converged
               conv = True
-              traj_content = [( grad, "grads", "Gradients"),(mode, "modes", "Mode")]
+              traj_content = [( grad, "grads", "Gradients"),(mode, "modes", "Mode"), ([energy], "energies", "Energy")]
               trajectory(geo, i, traj_content )
               selflogfile.write("Trans. Infos:   %12.5f       %12.5f       %12.5f\n" % \
                (energy, abs_force, error))
@@ -516,19 +516,14 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
              selflogfile.write("Rot. Infos: False %5i     %12.5f       %12.5f       %12.5f\n" % \
                ( res["rot_iteration"] , res["curvature"], res["rot_abs_forces"], arccos(angle2) * 180 /pi))
          selflogfile.flush()
-        #if i > 0 and error_old - error < 0:
-        #    print "Error is growing"
-        #if i > 0:
-        #    if dot(step, metric.lower(step_old, geo)) < 0:
-        #       print "Step changed direction"
-         # step_old = step
+         traj_content = [( grad, "grads", "Gradients"),(mode, "modes", "Mode"), ([energy], "energies", "Energy")]
+         trajectory(geo, i, traj_content )
+
          mode_old = mode
          geo = geo + step
          #print "Step",i , pes(geo-step), abs_force, max(grad), res["trans_last_step_length"], res["curvature"], res["rot_gradient_calculations"]
          i += 1
          # error_old = error
-         traj_content = [( grad, "grads", "Gradients"),(mode, "modes", "Mode")]
-         trajectory(geo, i, traj_content )
 
          if not max_gradients == None and max_gradients <= grad_calc:
               # Breakpoint 2: for counting gradient calculations instead of translation steps

@@ -52,6 +52,7 @@ def qn(pes, start_geo, metric, max_iteration = 100000000, \
          if error < converged:
              # Breakpoint 1: calculation has converged
              conv = True
+             trajectory(geo, i, [( grad, "grads", "Gradients")])
              selflogfile.write("Calculation is converged with max(abs(force)) %8.5f < %8.5f \n" % \
               (error, converged))
              break
@@ -75,11 +76,11 @@ def qn(pes, start_geo, metric, max_iteration = 100000000, \
                (i, energy, abs_force, error, step_len))
          selflogfile.flush()
 
+         trajectory(geo, i, [( grad, "grads", "Gradients")])
          old_grad = grad
          geo = geo + step
          i += 1
          error_old = error
-         trajectory(geo, i, [( grad, "grads", "Gradients")])
 
     if conv:
         print "Calculation is converged"
