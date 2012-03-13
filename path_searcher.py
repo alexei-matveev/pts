@@ -524,8 +524,14 @@ def call_with_pes(method, args):
         # calculator is not used below:
         del kw["calculator"]
 
-    # print parameters to STDOUT:
-    tell_params(kw)
+    #
+    # Print parameters  to STDOUT.  This  was a habit when  doing path
+    # searcher calculations.  So for  backwards compatibility do it in
+    # this  case, but  only in  this case  (unless a  yet non-existent
+    # command line option requires that explicitly):
+    #
+    if method is pes_method:
+        tell_params(kw)
 
     #
     # PES to be used for  energy, forces. FIXME: maybe adapt QFunc not
