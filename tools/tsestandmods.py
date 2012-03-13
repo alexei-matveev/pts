@@ -112,7 +112,7 @@ def main(argv):
             elif arg == 'all':
                  see_all = True
             elif arg == 'd':
-                 print "Only special output"
+#                print "Only special output"
                  dump = True
             elif arg == "s":
                 symbfile = argv[1]
@@ -423,6 +423,8 @@ def print_estimates(ts_sum, cs, withmodes = False, print_direct_modes = False):
      Prints the transition state estimates with their geometry
      in xyz-style, and their mode vectors if wanted
      """
+     from pts.io.write_COS import print_xyz_with_direction
+     write_s = sys.stdout.write
      symbs, trafo = cs
      print "==================================================="
      print "printing all available transition state estimates"
@@ -430,11 +432,8 @@ def print_estimates(ts_sum, cs, withmodes = False, print_direct_modes = False):
      for name, est, modes, mode_direct, addforces in ts_sum:
           print "TRANSITION STATE ESTIMATE:", name
           energy, coords, s0, s1,s_ts,  l, r = est
-          print "Energy was approximated as:", energy
-          print "This gives the positition:"
-          pos = trafo(coords)
-          for s, line in zip(symbs, pos):
-              print "%-2s  %12.8f  %12.8f  %12.8f" % (s, line[0], line[1], line[2])
+          text = "Energy was approximated as: %12.4f"  % (energy)
+          print_xyz_with_direction(write_s, coords, cs, text)
           print
           if withmodes:
               print "The possible modes are:"
@@ -456,19 +455,15 @@ def print_estimatesdump(ts_sum, cs ):
      """
      from ase.atoms import Atoms
      from ase.io import write
+     from pts.io.write_COS import print_xyz_with_direction
+
+     write_s = sys.stdout.write
      symbs, trafo = cs
      at = Atoms(symbs)
-     print
      for name, est, modes, mode_direct, addforces in ts_sum:
-          numats = len(symbs)
-          print numats
           energy, coords, s0, s1,s_ts,  l, r = est
-          print "Energy was approximated as:", energy
-          carts = trafo(coords)
-          at.set_positions(carts)
-          for s, c in zip(symbs, carts):
-              x, y, z = c
-              print '%-2s %22.15f %22.15f %22.15f' % (s, x, y, z)
+          text = "Energy was approximated as: %12.4f"  % (energy)
+          print_xyz_with_direction(write_s, coords, cs, text, direction = mode_direct)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

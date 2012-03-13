@@ -128,6 +128,9 @@ def print_xyz(x, y, cs, num):
     many frames as there have been geometries in y (but need not be at
     the same geometries)
     """
+    from pts.io.write_COS import print_xyz_with_direction
+    from sys import stdout
+
     if num is None:
        num = len(y)
 
@@ -143,19 +146,13 @@ def print_xyz(x, y, cs, num):
     else:
         endx = float(x[-1])
 
-    symbs, trafo = cs
-    numats = len(symbs)
-
     for i in range(num):
          # this is one of the frames,
          # the internal coordinates are converted
          # to Cartesian by the cs fake-Atoms object
-         print numats
-         print "This is the %i'th frame" % (i+1)
+         text = "This is the %i'th frame" % (i+1)
          coord = path1((endx / (num -1) * i))
-         carts = trafo(coord)
-         for sy, pos in zip(symbs, carts):
-             print '%-2s %22.15f %22.15f %22.15f' % (sy, pos[0], pos[1], pos[2])
+         print_xyz_with_direction(stdout.write, coord, cs, text = text)
 
 def print_beads(ys, cs):
     """
@@ -165,14 +162,12 @@ def print_beads(ys, cs):
     positions is taken but also  that it's exactly the beads which are
     used to create the frames
     """
-    symbs, trafo = cs
-    numats = len(symbs)
+    from pts.io.write_COS import print_xyz_with_direction
+    from sys import stdout
+
     for i,y in enumerate(ys):
-         print numats
-         print "This is the %i'th bead" % (i+1)
-         carts = trafo(y)
-         for sy, pos in zip(symbs, carts):
-             print '%-2s %22.15f %22.15f %22.15f' % (sy, pos[0], pos[1], pos[2])
+         text = "This is the %i'th bead" % (i+1)
+         print_xyz_with_direction(stdout.write, y, cs, text = text)
 
 
 def main(argv):
