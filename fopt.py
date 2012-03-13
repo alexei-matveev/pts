@@ -344,23 +344,28 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
 
     Parameters:
 
-    fg: objective function x -> (f, g)
-        returns the value f and the gradient g at x
+    fg: x -> (f, g)
+
+        Objective function  to be minimized,  returns the value  f and
+        the gradient g at x.
 
     maxstep: float
-        How far is a single atom allowed to move. This is useful for DFT
-        calculations where wavefunctions can be reused if steps are small.
-        Default is 0.04 Angstrom.
+
+        How far is  a single atom allowed to move.  This is useful for
+        DFT calculations  where wavefunctions  can be reused  if steps
+        are small.  Default is 0.04 Angstrom.
 
     alpha: float
+
         Initial guess for the Hessian (curvature of energy surface). A
-        conservative value of 70.0 is the default, but number of needed
-        steps to converge might be less if a lower value is used. However,
-        a lower value also means risk of instability.
+        conservative  value of  70.0  is the  default,  but number  of
+        needed steps  to converge  might be less  if a lower  value is
+        used. However, a lower value also means risk of instability.
 
     hess: "LBFGS" or "BFGS"
-        A name of the class implementing hessian update scheme.
-        Has to support |update| and |inv| methods.
+
+        A name  of the class implementing hessian  update scheme.  Has
+        to support |update| and |inv| methods.
 
     Example:
 
