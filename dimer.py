@@ -469,7 +469,6 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
          #            only checked for only maximum number of gradient
          #            calls  if max_translation  >  maximum number  of
          #            gradient calls
-         pickle_log("Center", geo)
          energy, grad = pes.taylor(geo)
          grad_calc += 1
 
@@ -479,6 +478,7 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
          if error < trans_converged:
               # Breakpoint 1: calculation has converged
               conv = True
+              pickle_log("Center", geo)
               traj_content = [( grad, "grads", "Gradients"),(mode, "modes", "Mode"), ([energy], "energies", "Energy")]
               trajectory(geo, i, traj_content )
               selflogfile.write("Trans. Infos:   %12.5f       %12.5f       %12.5f\n" % \
@@ -489,7 +489,7 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
 
          # calculate  one  step  of   the  dimer,  also  update  dimer
          # direction res is dictionary with additional results
-         step, mode, res = _dimer_step(pes, geo, grad, mode, trans, rot, metric, pickle_log, **params)
+         step, mode, res = _dimer_step(pes, geo, grad, mode, trans, rot, metric, **params)
          grad_calc += res["rot_gradient_calculations"] + res["trans_gradient_calculations"]
          #print "iteration", i, error, metric.norm_down(step, geo)
 
@@ -516,6 +516,9 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
              selflogfile.write("Rot. Infos: False %5i     %12.5f       %12.5f       %12.5f\n" % \
                ( res["rot_iteration"] , res["curvature"], res["rot_abs_forces"], arccos(angle2) * 180 /pi))
          selflogfile.flush()
+         pickle_log("Center", geo)
+         pickle_log("Lowest_Mode", mode)
+         pickle_log("Curvature", res["curvature"])
          traj_content = [( grad, "grads", "Gradients"),(mode, "modes", "Mode"), ([energy], "energies", "Energy")]
          trajectory(geo, i, traj_content )
 
@@ -555,7 +558,7 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
 
     return geo, res
 
-def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, pickle_log = empty_log, max_step = 0.1, scale_step = 1.0, **params):
+def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, max_step = 0.1, scale_step = 1.0, **params):
     """
     Calculates  the step the  dimer should  take.  First  improves the
     mode start_mode  to mode_vec to identify the  dimer direction Than
@@ -563,8 +566,6 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, pickle
     required)
     """
     curv, mode_vec, info = rot(pes, start_geo, geo_grad, start_mode, metric, **params)
-    pickle_log("Lowest_Mode", mode_vec)
-    pickle_log("Curvature", info["curvature"])
 
     info["max_step"] = max_step
     step_raw, info_t = trans(pes, start_geo, geo_grad, mode_vec, curv, info)

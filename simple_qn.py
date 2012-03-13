@@ -43,7 +43,6 @@ def qn(pes, start_geo, metric, max_iteration = 100000000, \
     i = 0
     # main loop:
     while i < max_iteration:
-         pickle_log("Center", geo)
          energy, grad = pes.taylor(geo)
 
          # Test for convergence, converged if saddle point is reached
@@ -52,6 +51,7 @@ def qn(pes, start_geo, metric, max_iteration = 100000000, \
          if error < converged:
              # Breakpoint 1: calculation has converged
              conv = True
+             pickle_log("Center", geo)
              trajectory(geo, i, [( grad, "grads", "Gradients")])
              selflogfile.write("Calculation is converged with max(abs(force)) %8.5f < %8.5f \n" % \
               (error, converged))
@@ -76,6 +76,7 @@ def qn(pes, start_geo, metric, max_iteration = 100000000, \
                (i, energy, abs_force, error, step_len))
          selflogfile.flush()
 
+         pickle_log("Center", geo)
          trajectory(geo, i, [( grad, "grads", "Gradients")])
          old_grad = grad
          geo = geo + step
