@@ -324,54 +324,91 @@ def rescale(arrow, arrow_len):
     return arrow
 
 class interestingdirection:
+    """
+    This class contains definitions and functions to deal with vector angles in
+    phase space
+    """
     def __init__(self):
         self.direction_type = {
                                    "variable": ["mode", "grad", "step", "translation"],
-                                       # translation means accumulated translation from initial point 
+                                       # mode direction, gradient direction, step direction
+                                       # and the direction of accumulated translation from
+                                       # initial point
                                    "constant": ["init2final", "initmode", "finalmode"],
+                                       # initial point to final point, initial mode, final mode
+                                       # these are constant for every step
                                    "special": ["modechange", "stepchange"]
-                                       # generally the special parameters are 
-                                       # only intended to visualize versus steps
+                                       # mode and step change with respect to the previous
+                                       # step, generally the special parameters are only
+                                       # used to visualize versus steps
                               }
+
     def __call__(self, opt_string, modes, geos, grs, ifplot):
+        """
+        call the class to give back required directions so that the angles can be calculated
+        in a uniform way
+        """
         if opt_string.startswith("s"):
+            # for special type, the two directions are specified by only one keyword
             assert len(opt_string) == 2
             if opt_string[1] == "0":
-                return [modes[ifplot[0] - 1: ifplot[1] - 1], modes[ifplot[0]: ifplot[1]]], True
+                # mode change, which should always be an acute angle, because mode has no
+                # orientation
+                directs = [modes[ifplot[0] - 1: ifplot[1] - 1], modes[ifplot[0]: ifplot[1]]]
+                acute = True
             if opt_string[1] == "1":
-                return [step_from_beads(geos)[ifplot[0] - 1: ifplot[1] - 1], \
-                            step_from_beads(geos)[ifplot[0]: ifplot[1]]], False
+                # step change
+                directs = [step_from_beads(geos)[ifplot[0] - 1: ifplot[1] - 1], \
+                            step_from_beads(geos)[ifplot[0]: ifplot[1]]]
+                acute = False
+
         else:
+            # there should be 4 characters to specify 2 directions,
+            # and none of them could be in the category of special
             assert len(opt_string) == 4 and opt_string[2] != "s"
             directs = []
             acute = False
             for i in [0, 2]:
+                # the former and later 2 characters in opt_string
+                # represents a variable, respectively
                 opt = opt_string[i:i+2]
                 if opt[0] == "v":
                     if opt[1] == "0":
+                        # mode has no directions
                         directs.append(modes[ifplot[0]: ifplot[1]])
                         acute = True
                     elif opt[1] == "1":
+                        # gradients
                         directs.append(grs[ifplot[0]: ifplot[1]])
                     elif opt[1] == "2":
+                        # translation steps
                         directs.append(step_from_beads(geos[ifplot[0]: ifplot[1]+1]))
                     elif opt[1] == "3":
+                        # accumulated translations
                         directs.append([geo - geos[0] for geo in geos[ifplot[0]: ifplot[1]]])
                 elif opt[0] == "c":
                     if opt[1] == "0":
+                        # initial to final structure
                         directs.append([geos[-1] - geos[0]] * (ifplot[1] - ifplot[0]))
                     if opt[1] == "1":
+                        # initial mode
                         directs.append([modes[0]] * (ifplot[1] - ifplot[0]))
                     if opt[1] == "2":
+                        # final mode
                         directs.append([modes[-1]] * (ifplot[1] - ifplot[0]))
             return directs, acute
 
     def set_name(self, option):
+        """
+        set what to extract according to input option
+        """
         valid_option = False
         for key in self.direction_type:
+            # first check whether the option is legal
             if option in self.direction_type[key]:
                 self.type = key
                 valid_option = True
+
         if valid_option:
             self.name = option
         else:
@@ -381,10 +418,17 @@ class interestingdirection:
             exit()
 
     def get_string(self):
+        """
+        generate the option string which will be used in plot
+        """
         index = self.direction_type[self.type].index(self.name)
         return self.type[0]+str(index)
 
     def get_range(self):
+        """
+        set the range of step for plot, some directions are not
+        available for certain steps
+        """
         range_1 = set([])
         if self.name in ["mode", "step"]:
             range_1.add(-1)
