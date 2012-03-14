@@ -1,13 +1,162 @@
 #!/usr/bin/env python
 """
 This tool helps to visualize the key variables in transition
-state refinement calculations, namely, Dimer, Lanczos and 
-quasi-Newton calculations.
+state refinement calculations, namely, dimer, lanczos and
+quasi-Newton calculations. It basically takes data from two
+pickled files, namely *.log.pickle which contains iteration
+information and *.dict.pickle which contains all the electronic
+structure calculation results.
+The variables includes internal coordinates, energy, gradients,
+step size, curvature, and angles between various special directions
+in phase space, eg. mode.
 
-Usage:
+The command line has to specify at least two coordinates or other
+variables to visualize, as well as input files.
 
-    paratools dimer2plot/lanczos2plot/qn2plot --<kind> n1 n2 ... log_files dict_files/cache directories
+Most variables are specified the same way as path2plot tool, with
 
+    --<kind> n1 n2 ...
+
+The names and short explanations are:
+
+for internal coordinates:
+
+    --dis n1 n2
+
+        atom distance
+
+    --ang n1 n2 n3
+
+        angle
+
+    --ang4 n1 n2 n3 n4
+
+        angle not connected
+
+    --dih n1 n2 n3 n4
+
+        dihedral angle
+
+    --dp n1 n2 n3 n4
+
+        distance to plane
+
+electronic structure variables (for center point):
+
+    --energy (or --en)
+
+        energy
+
+    --gradients (or --grabs)
+
+        absolute value of gradient (in the same coordination
+        as the calculation is done, the same for below)
+
+    --grmax
+
+        maximal component of gradient
+
+    --grpara
+
+        gradient component parallel to the mode
+
+    --grperp
+
+        gradient component perpendicular to the mode
+
+    --grangle
+
+        angle mode and gradient
+
+characteristics for dimer/lanczos:
+
+    --step
+
+        translation step size
+
+    --curvature (or --curv)
+
+        curvature along the lowest mode
+
+    --vec_angle dr1 dr2
+
+        this gives the angle between two directions,
+        dr1 and dr2, in phase space
+        these directions can be:
+            mode: lowest mode vector
+            grad: gradient
+            step: translation step
+            translation: accumulated translation from initial point
+            init2final: a constant vector from initial to final point
+            initmode: initial mode vector
+                (attention: this is the mode after the rotation
+                step, rather than the input one)
+            finalmode: mode of the last step
+        one could also give only one key word for direction, which can only
+        be modechange or stepchange, which means the angle between neighbouring
+        modes or steps.
+
+Other available options:
+
+    --diff
+
+        the difference of next two internal coordinates
+
+    --s (or --t)
+
+        step number
+
+    --expand cellfile expandfile
+
+        the atoms will be exanded  with atoms choosen as original ones
+        shifted  with  cell   vectors,  as  described  in  expandfile.
+        cellfile should  contain the three basis vectors  for the cell
+        expandfile contains the shifted atoms with: "number of origin"
+        "shift in i'th direction"*3
+
+    --title string
+
+        string will be the title of the picture
+
+    --xlabel (or ylabel) string
+
+        string will be the label in x (or y) direction
+
+    --xrange (or yrange) int1 int2
+
+        specify the range of x (or y) axis
+
+    --logscale z
+
+        for  z =  1,2  or z  = x,y  sets  scale of  this direction  to
+        logarithmic
+
+    --name string
+
+        string will be the name of the plot, for several files
+        the names could be given by repeatly setting --name string
+        but in this case  the name of the  i'th call of --name option
+        always refers to the i'th file, no matter in which order given
+
+    --output filename
+
+        save the figure as file and do NOT show it on screen
+
+    --arrow <len>
+
+        an arrow will be plotted in addition to each beads, indicating
+        the mode direction projected on the internal coordinates. Only
+        applicable to internal coordinates plot.
+
+Input files:
+
+    Input file names should be specified without "--". The calculation log
+    file (generally *.log.pickle and the dictionary store file (or directory)
+    (generally *.ResultDict.pickle or cache.d/) should both be indicated.
+    If multiple inputs are involved, the order of log and dictionary files
+    must be the same, though one can either first specify all log files then
+    dictionary files, or put the ones associated with the same calculation
+    together.
 """
 import sys
 import numpy as np
@@ -35,9 +184,9 @@ def main(argv):
     #input files
     log_file = []
     dict_file = []
-    dict_dir = []
-    xlog = 0
-    xdict = 0
+    dict_dir = []   # recording which dictionaries are directories
+    xlog = 0        # number of logfiles
+    xdict = 0       # number of dictionary files/directories
 
     #default values of interesting parameters
     vec_angle = interestingdirection()
@@ -50,7 +199,8 @@ def main(argv):
     tomove = None
     howmove = None
     withs = False
-    info = set([])
+    info = set([])         # which additional information should be read from
+                           # logfile
     iter_flag = set([])    # because some of the parameters to be plotted are
                            # available only between iterations, eg. trans. step
                            # size, or only in iterations before converge, eg.
@@ -123,7 +273,6 @@ def main(argv):
                 argv = argv[1:]
             elif option in ["step"]:
                 # step size of translation step
-                # of specific iteration
                 iter_flag.add(-1)
                 special_val.append(option)
                 argv = argv[1:]
@@ -195,14 +344,17 @@ def main(argv):
                  print __doc__
                  exit()
         elif "log" in argv[0]:
+            # read in log files
             log_file.append(argv[0])
             xlog += 1
             argv = argv[1:]
         elif "Result" in argv[0] or "Dict" in argv[0]:
+            # read in dict files
             dict_file.append(argv[0])
             xdict += 1
             argv = argv[1:]
         elif "cache" in argv[0] or ".d/" in argv[0]:
+            # read in dict directories
             dict_file.append(argv[0])
             dict_dir.append(xdict)
             xdict +=1
@@ -240,15 +392,16 @@ def main(argv):
         if -1 in iter_flag:
             ifplot[1] -= 1
         x = list(np.linspace(0,1,len(geos["Center"])))[ifplot[0]: ifplot[1]]
-
+        # internal coordinates for plotting
         beads = beads_to_int(geos["Center"][ifplot[0]: ifplot[1]], x, obj, \
                         allval, cell, tomove, howmove, withs)
         beads = np.asarray(beads)
         beads = beads.T
-
+        # name of the plot
         name_p = str(i + 1)
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
+        # make plot only when there are enough points
         if num_opts > 1:
             prepare_plot( None, None, None, None, beads, name_p, opt, colormap(i, n))
 
@@ -256,11 +409,14 @@ def main(argv):
                 for j in range(ifplot[0], ifplot[1]):
                     # for each beads we plotted, a line is added to the center point
                     # indicating the dimer mode direction projected in internal coordinates
+
+                    # use finite difference method to extract the projection of modes
                     arrows = beads_to_int([geos["Center"][j] - modes[j] * 0.005, geos["Center"][j] + modes[j] * 0.005], \
                                 [x[j]] * 2, obj, allval, cell, tomove, howmove, withs)
                     arrows = np.asarray(arrows)
                     arrows = arrows.T
 
+                    # rescale the arrow length to be clear
                     if arrow_len == None:
                         arrow_len = norm([arrows[k][0] - arrows[k][1] for k in range(1, len(arrows))]) * 5
                     arrows = rescale(arrows, arrow_len)
@@ -302,9 +458,16 @@ def main(argv):
                 prepare_plot( None, None, None, None, log_points, \
                                s_val + " " + name_p, optlog, colormap(i, n))
 
-    plot_data(xrange = xran, yrange = yran, savefile = outputfile )
+    # finally make the picture visible
+    plot_data(xrange = xran, yrange = yran, savefile = outputfile)
 
 def rescale(arrow, arrow_len):
+    """
+    this function rescale the arrow to the given length, while keeping the
+    direction and center point
+    """
+
+    # calculate initial length
     length = norm([arrow[i][0] - arrow[i][1] for i in range(1, len(arrow))])
     for i in range(1, len(arrow)):
         add = sum(arrow[i]) / 2
@@ -448,6 +611,7 @@ def read_from_pickle_log(filename, additional_points = set([])):
     #second item is the transform function to Cartesian
     funcart = load(logfile)
 
+    # read in data until reach the end of the file
     while True:
         try:
             item = load(logfile)
@@ -470,7 +634,9 @@ def read_from_pickle_log(filename, additional_points = set([])):
     return atoms, funcart, geos, modes, curvatures
 
 def read_from_store(store, geos):
-
+    """
+    read in the energies and gradients for given structures
+    """
     from pts.memoize import Memoize
 
     # energy only available at center points, so return a list of energy
@@ -530,13 +696,24 @@ def grads_dimer(mode, gr, allval):
     return grs
 
 def stepsize(geo):
+    """
+    Simply give back the norm of difference of neighbouring geometries
+    """
     return [norm(step) for step in step_from_beads(geo)]
 
 def step_from_beads(geo):
+    """
+    give back translation steps in vector form
+    """
     return [geo[i + 1] - geo[i] for i in range(len(geo) - 1)]
 
 def array_angles(array_list, acute = False):
+    """
+    given the two arrays of directions, return there angles
+    can be set to return the acute angles
+    """
     from scipy import arccos, pi
+    # use dot product to calculate the angles
     if acute:
         return [arccos(abs(np.dot(array_list[0][i], array_list[1][i])) / (norm(array_list[0][i]) \
                 * norm(array_list[1][i]))) / pi * 180 for i in range(len(array_list[0]))]
