@@ -17,9 +17,7 @@ from numpy.linalg import norm
 def main(argv):
 
     from pts.tools.xyz2tabint import interestingvalue
-    # FIXME: plot_color, plot_style, decide_which_values, increase_color are used temporarily,
-    # after the tab_plot class is ready, they should be removed
-    from pts.tools.tab2plot import setup_plot,prepare_plot, plot_data, plot_color, plot_style, decide_which_values, increase_color
+    from pts.tools.tab2plot import setup_plot,prepare_plot, plot_data, colormap
     from pts.tools.path2plot import makeoption
     from pts.tools.path2tab import get_expansion
     from pts.memoize import FileStore, DirStore, Store
@@ -227,12 +225,13 @@ def main(argv):
     # extract which options to take
     opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, [], [], withs)
 
-    for i in range(len(log_file)):
+    # decide how many color are used
+    n = len(log_file)
+    for i, geo_file in enumerate(log_file):
         # ensure that there will be no error message if calling
         # names_of_lines[i]
         names_of_lines.append([])
-
-    for i, geo_file in enumerate(log_file):
+        # extract refinement process information from log.pickle file
         atoms, funcart, geos, modes, curv = read_from_pickle_log(geo_file, info)
         obj = atoms.get_chemical_symbols(), funcart
         ifplot = [0, len(geos["Center"])]   # initial and final point to plot
@@ -253,12 +252,7 @@ def main(argv):
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
         if num_opts > 1:
-            prepare_plot( None, None, None, None, beads, name_p, opt, plot_color)
-
-            # FIXME: the following line is temporarily used to give right plot
-            # color and style for arrows, should be removed after tab_plot
-            # class ready.
-            plot_color, plot_style = increase_color(plot_color, plot_style, False)
+            prepare_plot( None, None, None, None, beads, name_p, opt, colormap(i, n))
 
             if arrow:
                 if special_val != []:
@@ -279,11 +273,7 @@ def main(argv):
                         arrow_len = norm([arrows[k][0] - arrows[k][1] for k in range(1, len(arrows))]) * 5
                     arrows = rescale(arrows, arrow_len)
 
-                    # FIXME: The following lines are temporarily used to plot
-                    # arrows, should be replaced after tab_plot class ready.
-                    xfun, yfuns = decide_which_values(opt, len(arrows))
-                    for fun in yfuns:
-                        plot(xfun(arrows), fun(arrows), plot_style, color = plot_color, label= "_nolegend_")
+                    prepare_plot(arrows, "_nolegend_", None, None, None, None, opt, colormap(i, n))
 
         if special_val != []:
             # Two kinds of store share the same methods interesting to us
@@ -318,8 +308,8 @@ def main(argv):
 
                 log_points = np.asarray(log_points)
 
-                prepare_plot( None, None, None, "_nolegend_", log_points, \
-                               s_val + " " + name_p, optlog)
+                prepare_plot( None, None, None, None, log_points, \
+                               s_val + " " + name_p, optlog, colormap(i, n))
 
     plot_data(xrange = xran, yrange = yran, savefile = outputfile )
 
