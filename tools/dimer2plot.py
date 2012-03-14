@@ -21,9 +21,7 @@ def main(argv):
     from pts.tools.path2plot import makeoption
     from pts.tools.path2tab import get_expansion
     from pts.memoize import FileStore, DirStore, Store
-    from pts.cfunc import Justcarts
-    from pts.tools.path2tab import path_to_int, beads_to_int
-    from pts.tools.path2tab import energy_from_path
+    from pts.tools.path2tab import beads_to_int
 
     if len(argv) <= 1:
         # errors go to STDERR:
@@ -255,12 +253,6 @@ def main(argv):
             prepare_plot( None, None, None, None, beads, name_p, opt, colormap(i, n))
 
             if arrow:
-                if special_val != []:
-                    print "Involving special variables other than internal coordinates"
-                    print "Ignore arrow option!"
-                    break
-                # the following line should also be removed when tab_plot class is ready and used
-                from matplotlib.pyplot import plot
                 for j in range(ifplot[0], ifplot[1]):
                     # for each beads we plotted, a line is added to the center point
                     # indicating the dimer mode direction projected in internal coordinates
@@ -296,9 +288,8 @@ def main(argv):
                     log_points.append(energy[ifplot[0]: ifplot[1]])
                 elif s_val.startswith("gr"):
                     val = s_val[2:]
-                    log_points.append(grads_from_beads_dimer(modes, \
-                            grad["Center"][ifplot[0]: ifplot[1]], val))
-                elif s_val.startswith("curvature"):
+                    log_points.append(grads_dimer(modes, grad["Center"][ifplot[0]: ifplot[1]], val))
+                elif s_val.startswith("curv"):
                     log_points.append(curv)
                 elif s_val.startswith("step"):
                     log_points.append(stepsize(geos["Center"][ifplot[0]: ifplot[1]+1]))
@@ -314,7 +305,6 @@ def main(argv):
     plot_data(xrange = xran, yrange = yran, savefile = outputfile )
 
 def rescale(arrow, arrow_len):
-    from copy import deepcopy
     length = norm([arrow[i][0] - arrow[i][1] for i in range(1, len(arrow))])
     for i in range(1, len(arrow)):
         add = sum(arrow[i]) / 2
@@ -500,7 +490,7 @@ def read_from_store(store, geos):
     # geometry, needing revision before visualization 
     return energy, grad
 
-def grads_from_beads_dimer(mode, gr, allval):
+def grads_dimer(mode, gr, allval):
     """
     Gives back the values of the gradients as decided in allval
     which appear on the beads, path informations are needed
