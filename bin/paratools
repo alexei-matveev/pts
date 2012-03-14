@@ -274,14 +274,14 @@ def sort_plotting( argv):
         # shows the progress of local transition state
         # searching tools like the dimer methods.
 
-        argv2 = ["dimer2plot"]
+        argv2 = []
 
         if output == "plot":
             argv2 = argv2 + ["--output", "progress.png"]
 
         argv2 = argv2 + argv[2:]
 
-        main(argv2 )
+        main(argv2)
 
     elif input == "xyz":
         from pts.tools.path2plot import xyz2plot

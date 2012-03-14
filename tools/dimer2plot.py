@@ -36,11 +36,6 @@ def main(argv):
         print __doc__
         exit()
 
-    #initialize
-    #calculation type
-    name = argv[0][:-5]      #can be "dimer", "lanczos" or "qn"
-    argv = argv[1:]
-
     #input files
     log_file = []
     dict_file = []
@@ -66,7 +61,6 @@ def main(argv):
                            # mode vector, this flag is used to consider such situation
 
     # default for plotting options
-    num = 100
     title = None
     xlab = None
     ylab = None
@@ -89,10 +83,8 @@ def main(argv):
         if argv[0].startswith("--"):
             #distinguish options from files
             option = argv[0][2:]
-            if option == "num":
-                num = int(argv[1])
-                argv = argv[2:]
-            elif option in ["s", "t"]:
+            if option in ["s", "t"]:
+                # use step number as x-axis
                 withs = True
                 argv = argv[1:]
             elif option == "diff":
@@ -130,7 +122,6 @@ def main(argv):
                 special_val.append("energy")
                 argv = argv[1:]
             elif option in ["curv", "curvature"]:
-                assert name in ["dimer", "lanczos"]
                 iter_flag.add(-1)
                 special_val.append("curvature")
                 argv = argv[1:]
@@ -163,7 +154,6 @@ def main(argv):
                 # arrow option is only designed for
                 # plot involving only internal coordinates
                 # otherwise it will be ignored
-                assert name in ["dimer", "lanczos"]
                 iter_flag.add(-1)
                 arrow = True
                 try:
@@ -221,12 +211,6 @@ def main(argv):
             dict_dir.append(xdict)
             xdict +=1
             argv = argv[1:]
-
-    # if no pickle file is specified, use the default
-    if xlog == 0 or xdict == 0:
-        # two pickle files are always used together
-        log_file = ["%s.log.pickle" % (name)]
-        dict_file = ["%s.ResultDict.pickle" % (name)]
 
     # input file validation:
     # FIXME: may not be needed, because for some plot, no ResultDict
