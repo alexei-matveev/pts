@@ -221,13 +221,13 @@ def main(argv):
     # output the figure as a file
     outputfile = None
 
-    #
-    # Read all the arguments in.  Stop  cycle if all input is read in.
-    # Some iterations consume more than one item.
-    #
+    """
+    Read in all the arguments.  Stop  cycle if all input is read in.
+    Some iterations consume more than one item.
+    """
     while len(argv) > 0:
         if argv[0].startswith("--"):
-            #distinguish options from files
+            # distinguish options from input files
             option = argv[0][2:]
             if option in ["s", "t"]:
                 # use step number as x-axis
@@ -257,7 +257,7 @@ def main(argv):
             elif option in ["grabs", "grmax", "grperp", "grpara", "grangle"]:
                 if option in ["grperp", "grpara", "grangle"]:
                     iter_flag.add(-1)    # because mode is not available for
-                                            # the last point.
+                                         # the last point.
                 special_val.append(option)
                 argv = argv[1:]
             elif option in ["gr", "gradients"]:
@@ -310,8 +310,8 @@ def main(argv):
                     argv = argv[1:]
                 except IndexError:
                     argv = argv[1:]
-            # output as file or on screen
             elif option == "output":
+                # output as file or on screen
                 outputfile = argv[1]
                 argv = argv[2:]
             # plot options
@@ -361,8 +361,7 @@ def main(argv):
             argv = argv[1:]
 
     # input file validation:
-    # FIXME: may not be needed, because for some plot, no ResultDict
-    # file is needed.
+    # FIXME: for some plot, no dict file is needed, this may not be neccesary
     if not xlog == xdict:
         print "Number of log file and dictionary file are unequal!"
         print "Please check your input"
@@ -384,9 +383,9 @@ def main(argv):
         # extract refinement process information from log.pickle file
         atoms, funcart, geos, modes, curv = read_from_pickle_log(geo_file, info)
         obj = atoms.get_chemical_symbols(), funcart
-        ifplot = [0, len(geos["Center"])]   # initial and final point to plot
-                                # used because arrays to be plotted may have
-                                # different length
+        # initial and final point to plot used because arrays to be plotted may have
+        # different lengths
+        ifplot = [0, len(geos["Center"])]
         if 1 in iter_flag:
             ifplot[0] += 1
         if -1 in iter_flag:
@@ -407,7 +406,7 @@ def main(argv):
 
             if arrow:
                 for j in range(ifplot[0], ifplot[1]):
-                    # for each beads we plotted, a line is added to the center point
+                    # for each bead we plotted, a line is added to the center point
                     # indicating the dimer mode direction projected in internal coordinates
 
                     # use finite difference method to extract the projection of modes
@@ -424,7 +423,7 @@ def main(argv):
                     prepare_plot(arrows, "_nolegend_", None, None, None, None, opt, colormap(i, n))
 
         if special_val != []:
-            # Two kinds of store share the same methods interesting to us
+            # Two kinds of dictionary store share the same interface
             if i in dict_dir:
                 resdict = DirStore(dict_file[i])
             else:
@@ -469,11 +468,13 @@ def rescale(arrow, arrow_len):
 
     # calculate initial length
     length = norm([arrow[i][0] - arrow[i][1] for i in range(1, len(arrow))])
+
     for i in range(1, len(arrow)):
         add = sum(arrow[i]) / 2
         minus = (arrow[i][1] - arrow[i][0]) / 2
         arrow[i][0] = add + minus / length * arrow_len
         arrow[i][1] = add - minus / length * arrow_len
+
     return arrow
 
 class interestingdirection:
@@ -591,11 +592,12 @@ class interestingdirection:
         return range_1
 
 def read_from_pickle_log(filename, additional_points = set([])):
-    # read given points from pickle_log file.
-    # FIXME: if there are several functions considering the pickle_log
-    # file, may consider putting them in a single file
-    # always extract center and lowest mode, addtional points can be
-    # specified
+    """
+    read the geometry of given points as well as modes, curvaturese
+    from log.pickle file.
+    always extract center curvature and lowest mode, addtional 
+    points can be specified
+    """
     from pickle import load
 
     geos = {"Center": []}
@@ -606,9 +608,9 @@ def read_from_pickle_log(filename, additional_points = set([])):
 
     logfile = open(filename, "r")
 
-    #First item is the atoms object
+    # first item is the atoms object
     atoms = load(logfile)
-    #second item is the transform function to Cartesian
+    # second item is the transformation function to Cartesian
     funcart = load(logfile)
 
     # read in data until reach the end of the file
@@ -644,7 +646,7 @@ def read_from_store(store, geos):
     grad = {}
 
     # None is a fake Func that cannot compute anything,
-    # only stored values can be accessed without failure: 
+    # only stored values can be accessed without failure:
     pes = Memoize(None, store)
     energy = [pes(x) for x in geos["Center"]]
     grad["Center"] = [pes.fprime(x) for x in geos["Center"]]
@@ -653,7 +655,7 @@ def read_from_store(store, geos):
             grad[key] = [[pes.fprime(x) for x in iteration] for iteration in geos[key]]
 
     # Attention: here the returned gradients are in the same coordinates as
-    # geometry, needing revision before visualization 
+    # geometry
     return energy, grad
 
 def grads_dimer(mode, gr, allval):
@@ -666,10 +668,10 @@ def grads_dimer(mode, gr, allval):
 
     for i, gr_1 in enumerate(gr):
         if allval == "abs":
-            #Total forces, absolute value
+            # Total forces, absolute value
             grs.append(norm(gr_1))
         elif allval == "max":
-            #Total forces, maximal value
+            # Total forces, maximal value
             grs.append(max(abs(gr_1)))
         elif allval == "para":
             # parallel part of forces along the lowest modes
