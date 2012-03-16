@@ -218,6 +218,7 @@ def read_dimer_input(rest, name):
     from pts.memoize import Memoize, FileStore
     from pts.defaults import di_default_params, qn_default_params
     from pts.trajectories import dimer_log
+    from pts.defaults import di_default_params, qn_default_params, di_default_params_rot
     #This variables will be needed afterwards anyway
     # independent of beeing given by user
     geo_dict = {"format" : None, "zmt_format" : "direct"}
@@ -237,8 +238,10 @@ def read_dimer_input(rest, name):
         accept_all = True
 
     defaults_available = True
-    if name in ["lanczos", "dimer", "lanczos-rotate", "dimer-rotate"]:
+    if name in ["lanczos", "dimer"]:
         default_params = di_default_params
+    elif name in ["lanczos-rotate", "dimer-rotate"]:
+        default_params = di_default_params_rot
     elif name in ["qn", "simple_qn", "quasi-newton"]:
         default_params = qn_default_params
     else:
