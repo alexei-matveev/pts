@@ -75,26 +75,24 @@ class traj_long:
     def __call__(self, geo, iter, adds_files, adds_only_pickle):
         self.atoms.set_positions(self.fun(geo))
         write("actual_geo", self.atoms, format = "xyz")
-        f_in = open("actual_geo", "r")
-        gs = f_in.read()
-        f_in.close()
-        f_out = open("all_geos", "a")
-        f_out.write(gs)
-        f_out.close()
+
+        with open("actual_geo", "r") as f_in:
+            gs = f_in.read()
+
+        with open("all_geos", "a") as f_out:
+            f_out.write(gs)
 
         for item in adds_files:
             val, name, text = item
             savetxt("actual_" + name, val)
 
+            with open("actual_" + name, "r") as f_in:
+                gs = f_in.read()
 
-            f_in = open("actual_" + name, "r")
-            gs = f_in.read()
-            f_in.close()
-            f_out = open("all_" + name, "a")
-            line = text + " of iteration " + str(iter) + "\n"
-            f_out.write(line)
-            f_out.write(gs)
-            f_out.close()
+            with open("all_" + name, "a") as f_out:
+                line = text + " of iteration " + str(iter) + "\n"
+                f_out.write(line)
+                f_out.write(gs)
 
         self.logger([(geo, None, "Center")] + adds_files + adds_only_pickle)
 
