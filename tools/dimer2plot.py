@@ -82,6 +82,9 @@ characteristics for dimer/lanczos:
 
         this gives the angle between two directions,
         dr1 and dr2, in phase space
+        If dr1 and dr2 are the same the angle between
+        succeding steps will be taken.
+
         these directions can be:
             mode: lowest mode vector
             grad: gradient
@@ -92,9 +95,6 @@ characteristics for dimer/lanczos:
                 (attention: this is the mode after the rotation
                 step, rather than the input one)
             finalmode: mode of the last step
-        one could also give only one key word for direction, which can only
-        be modechange or stepchange, which means the angle between neighbouring
-        modes or steps.
 
 Other available options:
 
@@ -233,7 +233,6 @@ def main(argv):
                 # also special angles, like rotation angle (mode change),
                 # angles between present and last translation step
                 value = "vec"
-                argv = argv[1:]
                 for j in range(0, 2):
                     vec_angle.set_name(argv[0])
                     range_v = vec_angle.get_range()
@@ -241,10 +240,8 @@ def main(argv):
                          if not j == 0:
                             decrease[i] = j
                     value += vec_angle.get_string()
-                    argv = argv[1:]
-                    if value[3] == "s":
-                        break
 
+                argv = argv[3:]
                 if value[3:5] == value[5:]:
                     decrease[0] = -1
                 special_val.append(value)
@@ -451,10 +448,6 @@ class interestingdirection:
                                    "constant": ["init2final", "initmode", "finalmode"],
                                        # initial point to final point, initial mode, final mode
                                        # these are constant for every step
-                                   "special": ["modechange", "stepchange"]
-                                       # mode and step change with respect to the previous
-                                       # step, generally the special parameters are only
-                                       # used to visualize versus steps
                               }
 
     def __call__(self, opt_string, modes, geos, grs, ifplot):
@@ -462,57 +455,60 @@ class interestingdirection:
         call the class to give back required directions so that the angles can be calculated
         in a uniform way
         """
-        if opt_string.startswith("s"):
-            # for special type, the two directions are specified by only one keyword
-            assert len(opt_string) == 2
-            if opt_string[1] == "0":
-                # mode change, which should always be an acute angle, because mode has no
-                # orientation
-                directs = [modes[ifplot[0] - 1: ifplot[1] - 1], modes[ifplot[0]: ifplot[1]]]
-                acute = True
-            if opt_string[1] == "1":
-                # step change
-                directs = [step_from_beads(geos)[ifplot[0] - 1: ifplot[1] - 1], \
-                            step_from_beads(geos)[ifplot[0]: ifplot[1]]]
-                acute = False
+        # there should be 4 characters to specify 2 directions,
+        # and none of them could be in the category of special
+        assert len(opt_string) == 4 and opt_string[2] != "s"
+        directs = []
+        acute = False
 
-        else:
-            # there should be 4 characters to specify 2 directions,
-            # and none of them could be in the category of special
-            assert len(opt_string) == 4 and opt_string[2] != "s"
-            directs = []
-            acute = False
-            for i in [0, 2]:
-                # the former and later 2 characters in opt_string
-                # represents a variable, respectively
-                if opt[0] == "v":
-                    if opt[1] == "0":
-                        # mode has no directions
-                        directs.append(modes[start: end])
-                        acute = True
-                    elif opt[1] == "1":
-                        # gradients
-                        directs.append(grs[start: end])
-                    elif opt[1] == "2":
-                        # translation steps
-                        directs.append(step_from_beads(geos[start: end + 1]))
-                    elif opt[1] == "3":
-                        # accumulated translations
-                        directs.append([geo - geos[0] for geo in geos[start: end]])
-                    else:
-                        print >> sys.std_err, "ERROR: invalid vector choice", opt[1]
-                        sys.exit()
-                elif opt[0] == "c":
-                    if opt[1] == "0":
-                        # initial to final structure
-                        directs.append([geos[-1] - geos[0]] * (end - start))
-                    if opt[1] == "1":
-                        # initial mode
-                        directs.append([modes[0]] * (end - start))
-                    if opt[1] == "2":
-                        # final mode
-                        directs.append([modes[-1]] * (ifplot[1] - ifplot[0]))
-            return directs, acute
+        a = opt_string[:2]
+        b = opt_string[2:]
+
+        start = ifplot[0]
+        end = ifplot[1]
+
+        for opt in a, b:
+            # the former and later 2 characters in opt_string
+            # represents a variable, respectively
+            if opt[0] == "v":
+                if opt[1] == "0":
+                    # mode has no directions
+                    directs.append(modes[start: end])
+                    acute = True
+                elif opt[1] == "1":
+                    # gradients
+                    directs.append(grs[start: end])
+                elif opt[1] == "2":
+                    # translation steps
+                    directs.append(step_from_beads(geos[start: end + 1]))
+                elif opt[1] == "3":
+                    # accumulated translations
+                    directs.append([geo - geos[0] for geo in geos[start: end]])
+                else:
+                    print >> sys.std_err, "ERROR: invalid vector choice", opt[1]
+                    sys.exit()
+            elif opt[0] == "c":
+                if opt[1] == "0":
+                    # initial to final structure
+                    directs.append([geos[-1] - geos[0]] * (end - start))
+                if opt[1] == "1":
+                    # initial mode
+                    directs.append([modes[0]] * (end - start))
+                if opt[1] == "2":
+                    # final mode
+                    directs.append([modes[-1]] * (end - start))
+                else:
+                    print >> sys.std_err, "ERROR: invalid vector choice", opt[1]
+                    sys.exit()
+            else:
+                print >> sys.std_err, "ERROR: invalid option"
+                sys.exit()
+
+            if a == b:
+                start = start - 1
+                end = end - 1
+
+        return directs, acute
 
     def set_name(self, option):
         """
