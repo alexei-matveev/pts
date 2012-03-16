@@ -30,6 +30,7 @@ def main(argv):
    deg = False
    expand = False
    allval = []
+   length_needed = 0
    # read in parameters needed ones are a xyz file
    # and a list what is wanted to be calculated
    if len(argv) < 1:
@@ -73,10 +74,13 @@ def main(argv):
                 for num, line  in enumerate(fileval):
                     #print line, line[0]
                     fields = line.split()
-                    allval.append(interestingvalue(fields[0]))
-                    allval[num].partners = []
+                    id, length_needed = interestingvalue(fields[0])
+                    partners = []
                     for xval in fields[1:]:
-                        allval[num].partners.append(int(xval))
+                        partners.append(int(xval))
+                    assert len(partners) == length_needed
+                    allval.append((id, partners))
+                    length_needed = 0
                     #print allval[num].partners
             # directly
              elif opt2 == 'd':
@@ -92,15 +96,19 @@ def main(argv):
          # order see helpfun()
          elif second == 2:
              if kfinish:
-                 allval.append(interestingvalue(argv[num]))
-                 allval[kiter -1].partners = []
+                 id, length_needed = interestingvalue(argv[num])
+                 value = (id, [])
                  kfinish = False
              else :
-                 allval[kiter-1].partners.append(int(argv[num]))
-                 if (len(allval[kiter-1].partners) == int(allval[kiter-1].lengthneeded())):
+                 id, partner = value
+                 partner.append(int(argv[num]))
+                 value = (id, partner)
+                 if (len(partner) == length_needed):
                      #print "now to the next one"
+                     allval.append(value)
                      kiter += 1
                      kfinish = True
+                     length_needed = 0
              if kiter == kval  + 1:
                   second = 0
              #print second, kfinish, kiter, kval
@@ -152,8 +160,9 @@ def main(argv):
         write("#loop; ")
         for k in range(len(allval)):
         # tell what values will be calulated
-            write("%s with atoms :" % (allval[k].whatsort()))
-            for number in allval[k].partners:
+            order, partners in allval[k]
+            write("%s with atoms :" % (whatsort(order)))
+            for number in partners:
                 write("%i " % number )
             write(";")
         write("\n")
@@ -180,17 +189,22 @@ def writeall(write, results, loop):
 def returnall(allval, positions, deg, loop):
       results = [loop]
       for value in allval:
+           order, partners = value
            # loop over all wanted values, order of them says how to calculate
-           if value.order == 2:
-               results.append( radii(positions, value.partners))
-           elif value.order == 3 or value.order == 4 :
-               results.append( angle(positions, value.partners, deg))
-           elif value.order == 5 :
-               results.append( dihedral(positions, value.partners, deg))
-           elif value.order == 6 :
-               results.append( distancetoplane(positions, value.partners))
-           elif value.order == 7 :
-               results.append( distancetoline(positions, value.partners))
+           if order == 2:
+               results.append( radii(positions, partners))
+           elif order == 3 or order == 4 :
+               results.append( angle(positions, partners, deg))
+           elif order == 5 :
+               results.append( dihedral(positions, partners, deg))
+           elif order == 6 :
+               results.append( distancetoplane(positions, partners))
+           elif order == 7 :
+               results.append( distancetoline(positions, partners))
+           elif order == 8 :
+               a, b = projected_positions_on_plane(positions, partners)
+               results.append(a)
+               results.append(b)
       return results
 
 
@@ -287,6 +301,32 @@ def distancetoline(positions, iconns):
     dis = np.sqrt(np.dot(ddf, ddf))
     return dis
 
+def projected_positions_on_plane(positions, iconns):
+    from numpy import cross, dot, sqrt
+    a = iconns[1] - 1
+    b = iconns[2] - 1
+    c = iconns[3] - 1
+    p = iconns[0] - 1
+    dir1 =  positions[b] - positions[a]
+    dir2 =  positions[c] - positions[a]
+#   ortho = cross(dir1, dir2)
+#   ortho = ortho / sqrt(dot(ortho, ortho))
+    pos = positions[p] - positions[a]
+#   pos2 = positions[p] - dot(positions[p], ortho) * ortho
+    b1 = dot(pos, dir1)
+    b2 = dot(pos, dir2)
+    s = dot(dir1, dir2)
+    d1 = dot(dir1, dir1)
+    d2 = dot(dir2, dir2)
+    if abs(s) < 1e-10:
+        alpha = b1 / d1
+        beta = b2 / d2
+    else:
+        beta = (b1 * s - b2 * d1) / (s**2 - d1 * d2)
+        alpha = (b2 - beta * d2 ) / s
+        res = positions[a] + alpha * dir1 + beta * dir2
+    return alpha, beta
+
 def helpfun():
     print "This program reads xyz files and gives as output the value of specific coordinates of interest"
     print "A list of all the coordinates of interest have to be provided"
@@ -337,51 +377,49 @@ def helpfun():
 
 
 
-class interestingvalue:
-    def __init__(self, input = None, partners = []):
-        # the order gives the kind of values, function
-        # whatsort shows the code
-        # the atomnumber needed to know where to calculate are
-        # in partners
-        self.names = [None, None, "dis", "ang", "ang4", "dih", "dp", "dl"]
-        self.orders = {}
-        for z, name in enumerate(self.names):
-            self.orders[name] = z
+def interestingvalue( input = None):
+    # the order gives the kind of values, function
+    # whatsort shows the code
+    # the atomnumber needed to know where to calculate are
+    # in partners
+    names = [None, None, "dis", "ang", "ang4", "dih", "dp", "dl","op"]
+    orders = {}
+    for z, name in enumerate(self.names):
+        orders[name] = z
 
-        try:
-            input = int(input)
-            self.order = input
-            self.name = self.names[input]
-        except ValueError:
-            self.name = input
-            self.order = self.orders[input]
+    try:
+        input = int(input)
+        order = input
+        name = self.names[input]
+    except ValueError:
+        name = input
+        order = self.orders[input]
 
-        self.partners = partners
-
-    def lengthneeded(self):
     # shows how many partners wanted to calulate the value
-        if self.order == 5 or self.order == 6:
-            return 4
-        elif self.order == 7:
-            return 3
+        if order in [5, 6, 8]:
+            return order, 4
+        elif order == 7:
+            return order, 3
         else:
-            return self.order
+            return order, order
 
 
-    def whatsort(self):
-       if self.order == 5:
-            return "dihedral angle"
-       elif self.order == 4 or self.order ==3 :
-            return "angle"
-       elif self.order == 2:
-            return "distance"
-       elif self.order == 6:
-            return "distance to plane"
-       elif self.order == 7:
-            return "distance to line"
-       else:
-            print "This sort of coordinate does not exist"
-            sys.exit()
+def whatsort(order):
+   if order == 5:
+        return "dihedral angle"
+   elif order == 4 or order ==3 :
+        return "angle"
+   elif order == 2:
+        return "distance"
+   elif order == 6:
+        return "distance to plane"
+   elif order == 7:
+        return "distance to line"
+   elif order == 8:
+        return "position in plane projection"
+   else:
+        print "This sort of coordinate does not exist"
+        sys.exit()
 
 
 
