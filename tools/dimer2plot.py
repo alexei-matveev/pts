@@ -165,6 +165,7 @@ def main(argv):
     from pts.tools.path2plot import makeoption
     from pts.tools.path2tab import beads_to_int
     from pts.tools.path2tab import read_input
+    from pts.tools.dimer2xyz import read_from_pickle_log
 
 
     if argv[0] == '--help':
@@ -231,12 +232,12 @@ def main(argv):
         obj, geos, modes, curv, energy, grad = read_from_pickle_log(geo_file)
         # initial and final point to plot used because arrays to be plotted may have
         # different lengths
-        ifplot = [0, len(geos["Center"])]
+        ifplot = [0, len(geos)]
         ifplot = [ip - dec for ip, dec in zip(ifplot, decrease)]
 
-        x = list(np.linspace(0,1,len(geos["Center"])))[ifplot[0]: ifplot[1]]
+        x = list(np.linspace(0,1,len(geos)))[ifplot[0]: ifplot[1]]
         # internal coordinates for plotting
-        beads = beads_to_int(geos["Center"][ifplot[0]: ifplot[1]], x, obj, \
+        beads = beads_to_int(geos[ifplot[0]: ifplot[1]], x, obj, \
                         allval, cell, tomove, howmove, withs)
         beads = np.asarray(beads)
         beads = beads.T
@@ -254,7 +255,7 @@ def main(argv):
                     # indicating the dimer mode direction projected in internal coordinates
 
                     # use finite difference method to extract the projection of modes
-                    arrows = beads_to_int([geos["Center"][j] - modes[j] * 0.005, geos["Center"][j] + modes[j] * 0.005], \
+                    arrows = beads_to_int([geos[j] - modes[j] * 0.005, geos[j] + modes[j] * 0.005], \
                                 [x[j]] * 2, obj, allval, cell, tomove, howmove, withs)
                     arrows = np.asarray(arrows)
                     arrows = arrows.T
@@ -285,10 +286,10 @@ def main(argv):
                 elif s_val.startswith("curv"):
                     log_points.append(curv)
                 elif s_val.startswith("step"):
-                    log_points.append(stepsize(geos["Center"][ifplot[0]: ifplot[1]+1]))
+                    log_points.append(stepsize(geos[ifplot[0]: ifplot[1]+1]))
                 elif s_val.startswith("vec"):
                     val = s_val[3:]
-                    log_points.append(array_angles(*vec_angle(val, modes, geos["Center"], grad, ifplot)))
+                    log_points.append(array_angles(*vec_angle(val, modes, geos, grad, ifplot)))
                 log_points = np.asarray(log_points)
 
                 prepare_plot( None, None, None, None, log_points, \
@@ -429,74 +430,6 @@ class interestingdirection:
             range_1[0] = -1
         return range_1
 
-def read_from_pickle_log(filename ):
-    """
-    read the geometry of given points as well as modes, curvaturese
-    from log.pickle file.
-    always extract center curvature and lowest mode, addtional 
-    points can be specified
-    """
-    from pickle import load
-
-    geos = {"Center": []}
-    modes = []
-    curvatures = []
-    energy = []
-    gradients = []
-
-    logfile = open(filename, "r")
-
-    # first item is the the object function,
-    # contains symbols and the transformation in Cartesian geometries.
-    object = load(logfile)
-
-    # read in data until reach the end of the file
-    while True:
-        try:
-            items = load(logfile)
-        except EOFError:
-            break
-
-        for item in items:
-            value, __, name = item
-            if name == "Mode":
-                # normalize when read in
-                modes.append(value / norm(value))
-            if name == "Curvature":
-                curvatures.append(value)
-            elif name == "Center":
-                geos["Center"].append(value)
-            elif name == "Energy":
-                energy.append(value[0])
-            elif name == "Gradients":
-                gradients.append(value)
-
-    logfile.close()
-
-    return object, geos, modes, curvatures, energy, gradients
-
-def read_from_store(store, geos):
-    """
-    read in the energies and gradients for given structures
-    """
-    from pts.memoize import Memoize
-
-    # energy only available at center points, so return a list of energy
-    # and a dictionary of gradients
-    grad = {}
-
-    # None is a fake Func that cannot compute anything,
-    # only stored values can be accessed without failure:
-    pes = Memoize(None, store)
-    energy = [pes(x) for x in geos["Center"]]
-    grad["Center"] = [pes.fprime(x) for x in geos["Center"]]
-    for key in geos:
-        if key != "Center":
-            grad[key] = [[pes.fprime(x) for x in iteration] for iteration in geos[key]]
-
-    # Attention: here the returned gradients are in the same coordinates as
-    # geometry
-    return energy, grad
 
 def grads_dimer(mode, gr, allval):
     """
@@ -536,6 +469,7 @@ def grads_dimer(mode, gr, allval):
             print >> stderr, "Illegal operation for gradients", allval
             exit()
     return grs
+
 
 def stepsize(geo):
     """
