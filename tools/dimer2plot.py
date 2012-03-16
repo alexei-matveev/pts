@@ -161,179 +161,59 @@ from numpy.linalg import norm
 
 def main(argv):
 
-    from pts.tools.xyz2tabint import interestingvalue
     from pts.tools.tab2plot import setup_plot,prepare_plot, plot_data, colormap
     from pts.tools.path2plot import makeoption
-    from pts.tools.path2tab import get_expansion
-    from pts.memoize import FileStore, DirStore, Store
     from pts.tools.path2tab import beads_to_int
+    from pts.tools.path2tab import read_input
 
-    if len(argv) <= 1:
-        # errors go to STDERR:
-        print >> sys.stderr, __doc__
-        exit()
-    elif argv[0] == '--help':
+
+    if argv[0] == '--help':
         # normal (requested) output goes to STDOUT:
         print __doc__
         exit()
 
-    #input files
-    log_file = []
-    xlog = 0        # number of logfiles
+    log_file, __, __, values, __, special_opt, appender, for_plot =  read_input("progress", argv, -1)
+
+    diff, __, __ =  special_opt
+    num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
+    withs, allval, special_val, __, extra =  values
+    cell, tomove, howmove = appender
+
+    # These two are extra values only for the progress tools
+    arrow_len, vec_angle_raw = extra
+
+    decrease = [0, 0]
 
     #default values of interesting parameters
     vec_angle = interestingdirection()
-    diff = []
-    arrow = False
-    arrow_len = None
-    special_val = []
-    allval = []
-    cell = None
-    tomove = None
-    howmove = None
-    withs = False
-    decrease = [0, 0]
 
-    # default for plotting options
-    title = None
-    xlab = None
-    ylab = None
-    xran = None
-    yran = None
-    logscale = []
-    names_of_lines = []
+    #FIXME: interestingdirection class is a bit unhandy. Maybe exchange it soon.
+    for raw in vec_angle_raw:
+        m1, m2 = raw
+        value = "vec"
+        # For both vectors find the code and whether the first or last
+        # points of the other variables have to be removed in order to have
+        # all vectors of the same length.
+        for mi in m1, m2:
+            vec_angle.set_name(mi)
+            range_v = vec_angle.get_range()
+            for i, j in enumerate(range_v):
+                 if not j == 0:
+                    decrease[i] = j
+            value += vec_angle.get_string()
 
-    # count up to know which coordinates are special
-    num_i = 1
+        if value[3:5] == value[5:]:
+            decrease[0] = -1
+        special_val.append(value)
 
-    # output the figure as a file
-    outputfile = None
+    if arrow_len == None:
+        arrow = False
+    else:
+        arrow = True
 
-    """
-    Read in all the arguments.  Stop  cycle if all input is read in.
-    Some iterations consume more than one item.
-    """
-    while len(argv) > 0:
-        if argv[0].startswith("--"):
-            # distinguish options from input files
-            option = argv[0][2:]
-            if option in ["s", "t"]:
-                # use step number as x-axis
-                withs = True
-                argv = argv[1:]
-            elif option == "diff":
-                # of the next two coordinates the difference should
-                # be taken, store the number of the first of them
-                diff.append(num_i)
-                argv = argv[1:]
-            elif option == "vec_angle":
-                # the angle between two phase space vectors
-                # can be mode, force (negative grad), step, accumulated translation
-                # translation from start to final, initial/final mode
-                # also special angles, like rotation angle (mode change),
-                # angles between present and last translation step
-                value = "vec"
-                for j in range(0, 2):
-                    vec_angle.set_name(argv[0])
-                    range_v = vec_angle.get_range()
-                    for i, j in enumerate(range_v):
-                         if not j == 0:
-                            decrease[i] = j
-                    value += vec_angle.get_string()
 
-                argv = argv[3:]
-                if value[3:5] == value[5:]:
-                    decrease[0] = -1
-                special_val.append(value)
-            elif option in ["grabs", "grmax", "grperp", "grpara", "grangle"]:
-                special_val.append(option)
-                argv = argv[1:]
-            elif option in ["gr", "gradients"]:
-                print "Warning: using absolute value of gradient"
-                special_val.append("grabs")
-                argv = argv[1:]
-            elif option in ["en", "energy"]:
-                special_val.append("energy")
-                argv = argv[1:]
-            elif option in ["curv", "curvature"]:
-                special_val.append("curvature")
-                argv = argv[1:]
-            elif option in ["step"]:
-                # step size of translation step
-                decrease[1] = 1
-                special_val.append(option)
-                argv = argv[1:]
-            elif option in ["dis", "2", "ang","3", "ang4", "4", "dih", "5", "dp", "6", "dl", "7"]:
-                # these are the possible coordinates, store them
-                value = interestingvalue(option)
-                # partners are the atomnumbers of the partners, which
-                # create the coordinate
-                value.partners = []
-                for j in range(1, value.lengthneeded() + 1):
-                     value.partners.append(int(argv[j]))
-                allval.append(value)
-                argv = argv[value.lengthneeded() + 1:]
-                # count up,  to know how many and  more important for
-                # let diff easily know what is the next
-                num_i += 1
-            elif option == "expand":
-                 # done  like in  xyz2tabint, expand  the  cell FIXME:
-                 # There should  be a better way to  consider atoms to
-                 # be shifted to other cells
-                 cell, tomove, howmove = get_expansion(argv[1], argv[2])
-                 argv = argv[3:]
-            elif option == "arrow":
-                # arrow option is only designed for
-                # plot involving only internal coordinates
-                # otherwise it will be ignored
-                decrease[1] = 1
-                arrow = True
-                try:
-                    # if not input explicitly, the arrow length
-                    # will be set automatically
-                    arrow_len = float(argv[1])
-                    argv = argv[2:]
-                except ValueError:
-                    argv = argv[1:]
-                except IndexError:
-                    argv = argv[1:]
-            elif option == "output":
-                # output as file or on screen
-                outputfile = argv[1]
-                argv = argv[2:]
-            # plot options
-            elif option == "title":
-                title = argv[1]
-                argv = argv[2:]
-            elif option == "xlabel":
-                xlab = argv[1]
-                argv = argv[2:]
-            elif option == "ylabel":
-                ylab = argv[1]
-                argv = argv[2:]
-            elif option == "xrange":
-                xran = [ float(argv[1]), float(argv[2])]
-                argv = argv[3:]
-            elif option == "yrange":
-                yran = [ float(argv[1]), float(argv[2])]
-                argv = argv[3:]
-            elif option.startswith("logscale"):
-                logscale.append(argv[1])
-                argv = argv[2:]
-            elif option == "name":
-                names_of_lines.append(argv[1])
-                argv = argv[2:]
-            else:
-                 # For everything that does not fit in
-                 print "This input variable is not valid:"
-                 print argv[0]
-                 print "Please check your input"
-                 print __doc__
-                 exit()
-        else:
-            log_file.append(argv[0])
-            xlog += 1
-            argv = argv[1:]
+    if "step" in special_val:
+         decrease[1] = 1
 
     # plot environment
     setup_plot(title = title, x_label = xlab, y_label = ylab, log = logscale)

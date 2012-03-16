@@ -93,7 +93,7 @@ from sys import argv as sargv
 from pickle import load
 from pts.tools.path2xyz import read_in_path
 from pts.tools.pathtools import read_path_fix, read_path_coords
-from pts.tools.xyz2tabint import returnall, interestingvalue, expandlist, writeall
+from pts.tools.xyz2tabint import returnall, expandlist, writeall
 from pts.io.read_COS import read_geos_from_file_more
 import numpy as np
 from sys import stdout
@@ -419,204 +419,88 @@ def helpfun(name):
         print >> stderr, "No help text available for current function!"
     exit()
 
-def read_input(name, argv, num):
+def read_input(name, args, num):
     """
     Reads in the options for the path2plot and path2tab function.
     Be aware that some of the options are only valid for path2plot. If called with
     name = path2tab they will cause an assert.
     """
+    from pts.io.cmdline import visualize_input
     # store the files containing the pathes somewhere
-    filenames = []
+    opts, filenames, num_i = visualize_input(args, num)
+    opts = opts.__dict__
     # input need not to be path.pickle
-    symbfile = None
-    zmats = []
-    mask = None
-    maskgeo = None
-    abcis = []
+    symbfile = opts["symbfile"]
+    zmats = opts["zmats"]
+    if opts["mask"] == None:
+        mask = None
+        maskgeo = None
+    else:
+        mask, maskgeo = opts["mask"]
+
+    abcis = opts["abcis"]
     # ase inputs:
-    ase = False
-    next = [0]
-    format = None
+    ase = opts["ase"]
+    format = opts["format"]
+    if not format == None:
+       ase = True
+    next = opts["next"]
 
     # the default values for the parameter
-    diff = []
+    diff = opts["diff"]
     symm = []
-    symshift = []
-    logscale = []
-    allval = []
-    special_vals = []
-    cell = None
-    tomove = None
-    howmove = None
-    withs = False
+    symshift = opts["symm"]
+    for numval in symshift:
+        num, val = numval
+        symm.append(num)
+
+    allval = opts["allval"]
+
+    logscale = opts["logscale"]
+
+    special_vals = opts["special_vals"]
+
+    if opts["expand"] == None:
+        cell = None
+        tomove = None
+        howmove = None
+    else:
+       a1, a2 = opts["expand"]
+       cell, tomove, howmove = get_expansion(a1, a2)
+
+    withs = opts["withs"]
 
     # estimates and reference
-    ts_estimates = []
+    ts_estimates = opts["ts_estimates"]
 
     ## This part is for path2plot
-    reference = None
-    reference_data = None
+    #reference =   "input/POSCAR.ts_ref"
 
-    # axes and title need not be given for plot
-    title = None
-    xlab = None
-    ylab = None
-    xran = None
-    yran = None
-    names_of_lines = []
-    # output the figure as a file
-    outputfile = None
+    reference =  [] # ["input/POSCAR.ts_ref"]
+    reference_data = [] #"input/ts_energy"
+    for refs in opts["references"]:
+       ref1, ref2 = refs
+       reference.append(ref1)
+       reference_data.append(ref2)
     ## end only path2plot
 
-    # count up to know which coordinates are special
-    num_i = 1
+    ## This part is for path2plot and dimer2plot
+    # axes and title need not be given for plot
+    title = opts["title"]
+    xlab = opts["xlabel"]
+    ylab =  opts["ylabel"]
+    xran =  opts["xrange"]
+    yran =  opts["yrange"]
+    names_of_lines = opts["names_of_lines"]
+    # output the figure as a file
+    outputfile = opts["output"]
+    ## end only path2plot and dimer2plot
 
-    # possibility of taking values from a logfile
-    logs = []
-    logs_find = []
-    logs_num = []
-    log_x_num = []
-    xfiles = -1
 
-    # read all the arguments in
-    while len(argv) > 0:
-         if argv[0].startswith("--"):
-             # differenciate between options and files
-             option = argv[0][2:]
-             if option == "num":
-                 # change number of frames in path from 100
-                 # to next argument
-                 num = int(argv[1])
-                 argv = argv[2:]
-             elif option == "diff":
-                 # of the next twoo coordinates the difference
-                 # should be taken, store the number of the first
-                 # of them
-                 diff.append(num_i)
-                 argv = argv[1:]
-             elif option == "symm":
-                 # test if the following coordinate (or coord. diffs)
-                 # follow the same symmetry as the x-coordinate
-                 symm.append(num_i)
-                 try:
-                     m = float(argv[1])
-                     symshift.append([num_i, m])
-                     argv = argv[1:]
-                 except:
-                     pass
-                 argv = argv[1:]
-             elif option in ["dis", "2", "ang","3", "ang4", "4", "dih", "5", "dp", "6", "dl", "7"]:
-                 # this are the possible coordinates, store them
-                 value = interestingvalue(option)
-                 # partners are the atomnumbers of the partners, which
-                 # create the coordinate
-                 value.partners = []
-                 for j in range(1, value.lengthneeded() + 1):
-                      value.partners.append(int(argv[j]))
-                 allval.append(value)
-                 argv = argv[value.lengthneeded() + 1:]
-                 # count up, to know how many and more important for
-                 # let diff easily know what is the next
-                 num_i += 1
-             elif option in ["s", "t"]:
-                 withs = True
-                 argv = argv[1:]
-             elif option in ["en", "energy", "grabs", "grmax" \
-                                  ,"grpara", "grperp", "grangle" ]:
-                 special_vals.append(option)
-                 argv = argv[1:]
-             elif option in ["gr", "gradients"]:
-                 special_vals.append("grabs")
-                 argv = argv[1:]
-             elif option in ["fromlog", "log"]:
-                 logs.append(argv[1])
-                 logs_find.append(argv[2])
-                 logs_num.append(int(argv[3]))
-                 argv = argv[4:]
-                 log_x_num.append(xfiles)
-             elif option in ["fromlognextfile", "lognf"]:
-                 logs.append(argv[1])
-                 logs_find.append(logs_find[-1])
-                 logs_num.append(logs_num[-1])
-                 argv = argv[2:]
-                 log_x_num.append(xfiles)
-             elif option in ["fromlognextnum", "lognn"]:
-                 logs.append(logs[-1])
-                 logs_find.append(logs_find[-1])
-                 logs_num.append(int(argv[1]))
-                 argv = argv[2:]
-                 log_x_num.append(xfiles)
-             elif option == "expand":
-                 # done like in xyz2tabint, expand the cell
-                 #FIXME: There should be a better way to consider atoms
-                 # to be shifted to other cells
-                 cell, tomove, howmove = get_expansion(argv[1], argv[2])
-                 argv = argv[3:]
-             elif option == "ase":
-                 ase = True
-                 argv = argv[1:]
-             elif option == "format":
-                 format = argv[1]
-                 argv = argv[2:]
-             elif option == "next":
-                 ase = True
-                 next.append(xfiles)
-                 argv = argv[1:]
-             elif option == "symbols":
-                 symbfile = argv[1]
-                 argv = argv[2:]
-             elif option == "zmat":
-                 zmats.append(argv[1])
-                 argv = argv[2:]
-             elif option == "mask":
-                 mask = argv[1]
-                 maskgeo = argv[2]
-                 argv = argv[3:]
-             elif option in ["abscissa", "pathpos"]:
-                abcis.append(argv[1])
-                argv = argv[2:]
-             elif option == "title":
-                 title = argv[1]
-                 argv = argv[2:]
-             elif option == "xlabel":
-                 xlab = argv[1]
-                 argv = argv[2:]
-             elif option == "ylabel":
-                 ylab = argv[1]
-                 argv = argv[2:]
-             elif option == "ts_estimate":
-                 ts_estimates.append(int(argv[1]))
-                 argv = argv[2:]
-             elif option == "reference":
-                 reference = argv[1]
-                 reference_data = argv[2]
-                 argv = argv[3:]
-             elif option == "name":
-                 names_of_lines.append(argv[1])
-                 argv = argv[2:]
-             elif option == "xrange":
-                 xran = [ float(argv[1]), float(argv[2])]
-                 argv = argv[3:]
-             elif option == "yrange":
-                 yran = [ float(argv[1]), float(argv[2])]
-                 argv = argv[3:]
-             elif option.startswith("logscale"):
-                 logscale.append(argv[1])
-                 argv = argv[2:]
-             elif option == "output":
-                outputfile = argv[1]
-                argv = argv[2:]
-             else:
-                 # For everything that does not fit in
-                 print "This input variable is not valid:"
-                 print argv[0]
-                 print "Please check your input"
-                 helpfun(name)
-         else:
-             # if it is no option is has to be a file
-             filenames.append(argv[0])
-             argv = argv[1:]
-             xfiles += 1
+    ## This part is for dimer2plot
+    arrow_len = opts["arrow_len"]
+    vec_angle = opts["vec_angle"]
+    ## end only dimer2plot
 
     if ase:
         next.append(len(filenames)+1)
@@ -635,7 +519,7 @@ def read_input(name, argv, num):
     other_input = (symbfile, abcis, obj)
 
     return filenames, (ase, format), other_input, \
-           (withs, allval, special_vals, ts_estimates, (logs, logs_find, logs_num, log_x_num, xfiles)), \
+           (withs, allval, special_vals, ts_estimates, (arrow_len, vec_angle )), \
            num, (diff, symm, symshift), (cell, tomove, howmove),\
           ( num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile)
 
@@ -646,6 +530,7 @@ def extract_data(filename, data_ase, other_input, values, appender, num ):
     """
     from pts.cfunc import Pass_through
     from numpy import linspace
+    from sys import stderr, exit
 
     symbfile, abcis, obj = other_input
     ase, format  = data_ase
@@ -709,6 +594,9 @@ def extract_data(filename, data_ase, other_input, values, appender, num ):
              elif s_val.startswith("gr"):
                 val = s_val[2:]
                 beads.append(grads_from_beads(x, y, gr, val))
+             else:
+                print >> stderr, "ERROR: This option is not available for the current function", s_val
+                exit()
 
              if path is not None:
                 if s_val.startswith("en"):
@@ -758,7 +646,7 @@ def main(name, argv):
         data_ase = ase, format
         num = -1
 
-    __, allval, special_vals, __, (logs, logs_find, logs_num, log_x_num, xfiles) =  values
+    __, allval, special_vals, __, __ =  values
 
     # For each file prepare the plot
     for i, filename in enumerate(filenames):
@@ -780,24 +668,18 @@ def main(name, argv):
             text = "#Given are the values for the beads of the path\n"
             coords = beads
 
-        if logs != []:
-            for j, log in enumerate(logs):
-                if log_x_num[j] == i:
-                 # use the options for x and plot the data gotten from the file directly
-                 coords.append(read_line_from_log(log, logs_find[j], logs_num[j]))
-                 # The name should be the name of the data line taken, right?
-
         # they are wanted as arrays and the other way round
         coords = np.asarray(coords)
         coords = coords.T
         coords = list(coords)
-        write_results(coords, allval, special_vals, logs, filename, text)
+        write_results(coords, allval, special_vals, filename, text)
 
 
-def write_results(coords, allval, special_vals, logs, filename, text):
+def write_results(coords, allval, special_vals, filename, text):
      """
      Writes the results out as a table
      """
+     from pts.tools.xyz2tabint import whatsort
      write = stdout.write
      write("#chart of internal coordinates in the run \n")
      write("#observed in file: %s  \n" % (filename) )
@@ -806,8 +688,9 @@ def write_results(coords, allval, special_vals, logs, filename, text):
      write("#                                      energies in eV and forces in eV/ Angstroms\n")
      for k in range(len(allval)):
      # tell what values will be calulated
-         write("%s with atoms :" % (allval[k].whatsort()))
-         for number in allval[k].partners:
+         order, partners = allval[k]
+         write("%s with atoms :" % (whatsort(order)))
+         for number in partners:
              write("%i " % number )
          write(";")
      for sv in special_vals:
@@ -815,8 +698,6 @@ def write_results(coords, allval, special_vals, logs, filename, text):
              write(" energy;")
          elif sv.startswith("gr"):
                  write(" %s of gradients ;" % (sv[2:]))
-     for lg in logs:
-         write(lg + "; ")
      write("\n")
 
      for cor in coords:

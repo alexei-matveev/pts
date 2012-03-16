@@ -160,7 +160,7 @@ There are other options which may be set:
         new log  plot as above,  but takes another iteration  than the
         last one
 
-    --symm <midx>
+    --symm midx
 
         uses  the  next coordinate  defined  (or  the next  difference
         defined) and  returns the  derivative to symmetry  around midx
@@ -268,32 +268,32 @@ def main( argv):
 
     n = len(filenames)
 
-    if not reference == None:
-       # Reference point (geometry, energy) to compare the rest data to it.
-       # geometry is supposed to be in a ASE readable format, energy in a separate file.
-       atom_ref, y_ref = read_geos_from_file([reference], format=format_ts)
-       reference = y_ref
+    if not reference == []:
+       for ref in reference:
+           # Reference point (geometry, energy) to compare the rest data to it.
+           # geometry is supposed to be in a ASE readable format, energy in a separate file.
+           atom_ref, y_ref = read_geos_from_file([ref], format=format_ts)
 
-       # Reference data for the geometries. The Abscissa is supposed to be on 0.5
-       reference_int_geos = np.array(carts_to_int(reference, [0.5], allval, cell, tomove, howmove, withs))
-       reference_int_geos = reference_int_geos.T
-       reference_int_geos = reference_int_geos.tolist()
+           # Reference data for the geometries. The Abscissa is supposed to be on 0.5
+           reference_int_geos = np.array(carts_to_int(y_ref, [0.5], allval, cell, tomove, howmove, withs))
+           reference_int_geos = reference_int_geos.T
+           reference_int_geos = reference_int_geos.tolist()
 
-       optref = optraw
-       num_opts_ref = num_opts
-       if special_vals != []:
-           # From the special vals only the energies can be displaced. Therefore special
-           # treatment is required.
-           for s_val in special_vals:
-               if s_val.startswith("en") and not reference_data == "None":
-                   optref = optraw + " t %i" % (num_opts_raw + 1)
-                   reference_data = np.loadtxt(reference_data)
-                   reference_int_geos.append([reference_data.tolist()])
-               else:
-                   num_opts_ref = num_opts_ref - 1
+           optref = optraw
+           num_opts_ref = num_opts
+           if special_vals != []:
+               # From the special vals only the energies can be displaced. Therefore special
+               # treatment is required.
+               for s_val in special_vals:
+                   if s_val.startswith("en") and not reference_data == None:
+                       optref = optraw + " t %i" % (num_opts_raw + 1)
+                       reference_data = np.loadtxt(reference_data)
+                       reference_int_geos.append([reference_data.tolist()])
+                   else:
+                       num_opts_ref = num_opts_ref - 1
 
-       if num_opts_ref > 1:
-           prepare_plot( None, None, None, "_nolegend_", reference_int_geos, "Reference", opt, colormap(0, n))
+           if num_opts_ref > 1:
+               prepare_plot( None, None, None, "_nolegend_", reference_int_geos, "Reference", opt, colormap(0, n))
 
 
     # For each file prepare the plot
@@ -318,6 +318,7 @@ def main( argv):
                prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt, colormap(i, n))
             else:
                prepare_plot( path, name_p, beads, "_nolegend_", ts_ests_geos, "_nolegend_", opt, colormap(i, n))
+
 
     # now plot
     plot_data(xrange = xran, yrange = yran, savefile = outputfile )
