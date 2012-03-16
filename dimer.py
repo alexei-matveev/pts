@@ -6,7 +6,7 @@ from pts.metric import Default
 from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 from numpy import arccos
 from sys import stdout
-from pts.trajectories import empty_traj, empty_log
+from pts.trajectories import empty_traj
 """
 Dimer method:
 
@@ -402,8 +402,7 @@ rot_dict = {
            "lanczos" : rotate_dimer_mem
            }
 
-
-def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_translation = 100000000, max_gradients = None, \
+def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_gradients = None, \
        trans_converged = 0.00016, trans_method = "conj_grad", start_step_length = 0.001, \
        rot_method = "dimer", trajectory = empty_traj, logfile = None, **params):
     """
@@ -478,9 +477,9 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
          if error < trans_converged:
               # Breakpoint 1: calculation has converged
               conv = True
-              pickle_log("Center", geo)
-              traj_content = [( grad, "grads", "Gradients"),(mode, "modes", "Mode"), ([energy], "energies", "Energy")]
-              trajectory(geo, i, traj_content )
+              traj_content1 = [( grad, "grads", "Gradients"),(mode, "modes", "Mode")]
+              traj_content2 = [([energy], None, "Energy"), (res["curvature"], None, "Curvature") ]
+              trajectory(geo, i, traj_content1, traj_content2 )
               selflogfile.write("Trans. Infos:   %12.5f       %12.5f       %12.5f\n" % \
                (energy, abs_force, error))
               selflogfile.write("Calculation is converged with max(abs(force)) %8.5f < %8.5f \n" % \
@@ -516,11 +515,9 @@ def dimer(pes, start_geo, start_mode, metric, pickle_log = empty_log, max_transl
              selflogfile.write("Rot. Infos: False %5i     %12.5f       %12.5f       %12.5f\n" % \
                ( res["rot_iteration"] , res["curvature"], res["rot_abs_forces"], arccos(angle2) * 180 /pi))
          selflogfile.flush()
-         pickle_log("Center", geo)
-         pickle_log("Lowest_Mode", mode)
-         pickle_log("Curvature", res["curvature"])
-         traj_content = [( grad, "grads", "Gradients"),(mode, "modes", "Mode"), ([energy], "energies", "Energy")]
-         trajectory(geo, i, traj_content )
+         traj_content1 = [( grad, "grads", "Gradients"),(mode, "modes", "Mode")]
+         traj_content2 = [([energy], None, "Energy"), (res["curvature"], None, "Curvature") ]
+         trajectory(geo, i, traj_content1, traj_content2 )
 
          mode_old = mode
          geo = geo + step

@@ -183,10 +183,7 @@ def main(argv):
 
     #input files
     log_file = []
-    dict_file = []
-    dict_dir = []   # recording which dictionaries are directories
     xlog = 0        # number of logfiles
-    xdict = 0       # number of dictionary files/directories
 
     #default values of interesting parameters
     vec_angle = interestingdirection()
@@ -199,8 +196,6 @@ def main(argv):
     tomove = None
     howmove = None
     withs = False
-    info = set([])         # which additional information should be read from
-                           # logfile
     iter_flag = set([])    # because some of the parameters to be plotted are
                            # available only between iterations, eg. trans. step
                            # size, or only in iterations before converge, eg.
@@ -255,9 +250,6 @@ def main(argv):
                         break
                 special_val.append(value)
             elif option in ["grabs", "grmax", "grperp", "grpara", "grangle"]:
-                if option in ["grperp", "grpara", "grangle"]:
-                    iter_flag.add(-1)    # because mode is not available for
-                                         # the last point.
                 special_val.append(option)
                 argv = argv[1:]
             elif option in ["gr", "gradients"]:
@@ -268,7 +260,6 @@ def main(argv):
                 special_val.append("energy")
                 argv = argv[1:]
             elif option in ["curv", "curvature"]:
-                iter_flag.add(-1)
                 special_val.append("curvature")
                 argv = argv[1:]
             elif option in ["step"]:
@@ -343,30 +334,10 @@ def main(argv):
                  print "Please check your input"
                  print __doc__
                  exit()
-        elif "log" in argv[0]:
-            # read in log files
+        else:
             log_file.append(argv[0])
             xlog += 1
             argv = argv[1:]
-        elif "Result" in argv[0] or "Dict" in argv[0]:
-            # read in dict files
-            dict_file.append(argv[0])
-            xdict += 1
-            argv = argv[1:]
-        elif "cache" in argv[0] or ".d/" in argv[0]:
-            # read in dict directories
-            dict_file.append(argv[0])
-            dict_dir.append(xdict)
-            xdict +=1
-            argv = argv[1:]
-
-    # input file validation:
-    # FIXME: for some plot, no dict file is needed, this may not be neccesary
-    if not xlog == xdict:
-        print "Number of log file and dictionary file are unequal!"
-        print "Please check your input"
-        print __doc__
-        exit
 
     # plot environment
     setup_plot(title = title, x_label = xlab, y_label = ylab, log = logscale)
@@ -381,8 +352,7 @@ def main(argv):
         # names_of_lines[i]
         names_of_lines.append([])
         # extract refinement process information from log.pickle file
-        atoms, funcart, geos, modes, curv = read_from_pickle_log(geo_file, info)
-        obj = atoms.get_chemical_symbols(), funcart
+        obj, geos, modes, curv, energy, grad = read_from_pickle_log(geo_file)
         # initial and final point to plot used because arrays to be plotted may have
         # different lengths
         ifplot = [0, len(geos["Center"])]
@@ -424,12 +394,6 @@ def main(argv):
 
         if special_val != []:
             # Two kinds of dictionary store share the same interface
-            if i in dict_dir:
-                resdict = DirStore(dict_file[i])
-            else:
-                resdict = FileStore(dict_file[i])
-            energy, grad = read_from_store(resdict, geos)
-
             for s_val in special_val:
                 # use the options for x and plot the data gotten from
                 # the file directly
@@ -443,15 +407,14 @@ def main(argv):
                     log_points.append(energy[ifplot[0]: ifplot[1]])
                 elif s_val.startswith("gr"):
                     val = s_val[2:]
-                    log_points.append(grads_dimer(modes, grad["Center"][ifplot[0]: ifplot[1]], val))
+                    log_points.append(grads_dimer(modes, grad[ifplot[0]: ifplot[1]], val))
                 elif s_val.startswith("curv"):
                     log_points.append(curv)
                 elif s_val.startswith("step"):
                     log_points.append(stepsize(geos["Center"][ifplot[0]: ifplot[1]+1]))
                 elif s_val.startswith("vec"):
                     val = s_val[3:]
-                    log_points.append(array_angles(*vec_angle(val, modes, geos["Center"], grad["Center"], ifplot)))
-
+                    log_points.append(array_angles(*vec_angle(val, modes, geos["Center"], grad, ifplot)))
                 log_points = np.asarray(log_points)
 
                 prepare_plot( None, None, None, None, log_points, \
@@ -591,7 +554,7 @@ class interestingdirection:
             range_1.add(-1)
         return range_1
 
-def read_from_pickle_log(filename, additional_points = set([])):
+def read_from_pickle_log(filename ):
     """
     read the geometry of given points as well as modes, curvaturese
     from log.pickle file.
@@ -601,39 +564,41 @@ def read_from_pickle_log(filename, additional_points = set([])):
     from pickle import load
 
     geos = {"Center": []}
-    for name in additional_points:
-        geos[name] = []
     modes = []
     curvatures = []
+    energy = []
+    gradients = []
 
     logfile = open(filename, "r")
 
-    # first item is the atoms object
-    atoms = load(logfile)
-    # second item is the transformation function to Cartesian
-    funcart = load(logfile)
+    # first item is the the object function,
+    # contains symbols and the transformation in Cartesian geometries.
+    object = load(logfile)
 
     # read in data until reach the end of the file
     while True:
         try:
-            item = load(logfile)
+            items = load(logfile)
         except EOFError:
             break
-        if item[0] == "Lowest_Mode":
-            # normalize when read in
-            modes.append(item[1] / norm(item[1]))
-        if item[0] == "Curvature":
-            curvatures.append(item[1])
-        elif item[0] in additional_points:
-            geos[item[0]][-1].append(item[1])
-        elif item[0] == "Center":
-            for name in additional_points:
-                geos[name].append([])
-            geos["Center"].append(item[1])
+
+        for item in items:
+            value, __, name = item
+            if name == "Mode":
+                # normalize when read in
+                modes.append(value / norm(value))
+            if name == "Curvature":
+                curvatures.append(value)
+            elif name == "Center":
+                geos["Center"].append(value)
+            elif name == "Energy":
+                energy.append(value[0])
+            elif name == "Gradients":
+                gradients.append(value)
 
     logfile.close()
 
-    return atoms, funcart, geos, modes, curvatures
+    return object, geos, modes, curvatures, energy, gradients
 
 def read_from_store(store, geos):
     """

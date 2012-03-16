@@ -3,7 +3,7 @@ from ase.io import write
 from numpy import savetxt
 from pickle import dump
 
-def empty_traj(geo, iter, adds):
+def empty_traj(geo, iter, adds, adds2):
     """
     Do nothing
     """
@@ -17,14 +17,17 @@ class traj_every:
     def __init__(self, atoms, funcart):
         self.atoms = atoms
         self.fun = funcart
+        self.logger = dimer_log(self.atoms.get_chemical_symbols(), funcart)
 
-    def __call__(self, geo, iter, adds):
+    def __call__(self, geo, iter, adds_files, adds_only_pickle):
         self.atoms.set_positions(self.fun(geo))
         write(("geo" + str(iter)), self.atoms, format = "xyz")
 
-        for item in adds:
+        for item in adds_files:
             val, name, text = item
             savetxt( name + str(iter), val)
+
+        self.logger([(geo, None, "Center")] + adds_files + adds_only_pickle)
 
 class traj_last:
     """
@@ -35,14 +38,17 @@ class traj_last:
     def __init__(self, atoms, funcart):
         self.atoms = atoms
         self.fun = funcart
+        self.logger = dimer_log(self.atoms.get_chemical_symbols(), funcart)
 
-    def __call__(self, geo, iter, adds):
+    def __call__(self, geo, iter, adds_files, adds_only_pickle):
         self.atoms.set_positions(self.fun(geo))
         write("actual_geo", self.atoms, format = "xyz")
 
-        for item in adds:
+        for item in adds_files:
             val, name, text = item
             savetxt("actual_" + name, val)
+
+        self.logger([(geo, None, "Center")] + adds_files + adds_only_pickle)
 
 class traj_long:
     """
@@ -54,6 +60,7 @@ class traj_long:
         from os import remove
         self.atoms = atoms
         self.fun = funcart
+        self.logger = dimer_log(self.atoms.get_chemical_symbols(), funcart)
         try:
             remove("all_geos")
         except OSError:
@@ -65,7 +72,7 @@ class traj_long:
             except OSError:
                 pass
 
-    def __call__(self, geo, iter, adds):
+    def __call__(self, geo, iter, adds_files, adds_only_pickle):
         self.atoms.set_positions(self.fun(geo))
         write("actual_geo", self.atoms, format = "xyz")
         f_in = open("actual_geo", "r")
@@ -75,7 +82,7 @@ class traj_long:
         f_out.write(gs)
         f_out.close()
 
-        for item in adds:
+        for item in adds_files:
             val, name, text = item
             savetxt("actual_" + name, val)
 
@@ -89,14 +96,9 @@ class traj_long:
             f_out.write(gs)
             f_out.close()
 
-def empty_log(key, geo):
-    """
-    Does nothing  but has to adhere  to the same  interface as the
-    callback prepared by dimer_log()
-    """
-    pass
+        self.logger([(geo, None, "Center")] + adds_files + adds_only_pickle)
 
-def dimer_log(atoms, funcart, filename = "dimer.log.pickle"):
+def dimer_log(symbols, funcart, filename = "progress.pickle"):
     """
     Returns a  callback funciton  that implements a  general interface
     that  appends dimer state  to a  file. Removes  the file,  if that
@@ -106,17 +108,17 @@ def dimer_log(atoms, funcart, filename = "dimer.log.pickle"):
     # A valid logfile  will contain pickled Atoms object  as the first
     # record:
     #
+    obj = symbols, funcart
     with open(filename, "w") as logfile:
-        dump(atoms, logfile)
-        dump(funcart, logfile)
+        dump(obj, logfile)
 
-    def callback(key, geo):
+    def callback(content):
         """
         Append geometry to  a file, prepending the key.  Has to adhere
         to the same interface as the callback prepared by empty_log()
         """
 
         with open(filename, "a") as logfile:
-            dump((key, geo), logfile)
+            dump(content, logfile)
 
     return callback

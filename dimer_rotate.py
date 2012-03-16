@@ -5,7 +5,6 @@ from copy import deepcopy
 from scipy.linalg import eigh
 from pts.func import NumDiff
 from pts.metric import Default
-from pts.trajectories import empty_log
 
 VERBOSE = 0
 

@@ -217,7 +217,7 @@ def read_dimer_input(rest, name):
     from pts.qfunc import QFunc
     from pts.memoize import Memoize, FileStore
     from pts.defaults import di_default_params, qn_default_params
-    from pts.trajectories import dimer_log, empty_log
+    from pts.trajectories import dimer_log
     #This variables will be needed afterwards anyway
     # independent of beeing given by user
     geo_dict = {"format" : None, "zmt_format" : "direct"}
@@ -337,14 +337,6 @@ def read_dimer_input(rest, name):
                 pes = Memoize(pes, FileStore(params_dict["cache"]))
     else:
          pes = Memoize(pes, FileStore("%s.ResultDict.pickle" % (name)))
-
-    if "pickle_log" in params_dict:
-        if params_dict["pickle_log"] == None:
-            params_dict["pickle_log"] = empty_log
-        else:
-            params_dict["pickle_log"] = dimer_log(atoms, funcart, filename = params_dict["pickle_log"])
-    else:
-        params_dict["pickle_log"] = dimer_log(atoms, funcart, filename = "%s.log.pickle" % (name))
 
     #Attention inital mode need not be normed (and cannot as metric is not yet known)
     return pes, start_geo, init_mode, params_dict, atoms, funcart

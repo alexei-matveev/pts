@@ -9,10 +9,10 @@ from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 from numpy import arccos
 from sys import stdout
 from pts.memoize import Memoize
-from pts.trajectories import empty_traj, empty_log
+from pts.trajectories import empty_traj
 
 def qn(pes, start_geo, metric, max_iteration = 100000000, \
-       converged = 0.00016, max_step = 0.1, pickle_log = empty_log, \
+       converged = 0.00016, max_step = 0.1, \
        update_method = "SR1", trajectory = empty_traj, logfile = None, **params):
     """ A simple quasi Newton method
     pes :  potential surface to calculate on, needs f and fprime function
@@ -51,8 +51,7 @@ def qn(pes, start_geo, metric, max_iteration = 100000000, \
          if error < converged:
              # Breakpoint 1: calculation has converged
              conv = True
-             pickle_log("Center", geo)
-             trajectory(geo, i, [( grad, "grads", "Gradients")])
+             trajectory(geo, i, [( grad, "grads", "Gradients")], [([energy], None, "Energy")] )
              selflogfile.write("Calculation is converged with max(abs(force)) %8.5f < %8.5f \n" % \
               (error, converged))
              break
@@ -76,8 +75,7 @@ def qn(pes, start_geo, metric, max_iteration = 100000000, \
                (i, energy, abs_force, error, step_len))
          selflogfile.flush()
 
-         pickle_log("Center", geo)
-         trajectory(geo, i, [( grad, "grads", "Gradients")])
+         trajectory(geo, i, [( grad, "grads", "Gradients")], [([energy], None, "Energy")] )
          old_grad = grad
          geo = geo + step
          i += 1
