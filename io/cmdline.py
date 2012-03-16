@@ -50,6 +50,34 @@ def get_mask(strmask):
     mask = [m in tr for m in mask]
     return mask
 
+
+def get_options_to_xyz(argv, num_old):
+    """
+    Extracts the options for the path/progress to xyz tools.
+    """
+    from optparse import OptionParser
+
+    parser = OptionParser()
+    parser.add_option("-a", "--abscissa", "--pathpos", dest = "abcis",
+                      type = "string", action = "append", default = [])
+    parser.add_option("--mask", dest = "mask",
+                      type = "string", nargs = 2)
+    parser.add_option("--zmatrix", dest = "zmats",
+                      type = "string", default = None)
+    parser.add_option("-s", "--symbols", dest = "symbfile",
+                      type = "string")
+    parser.add_option("-n", "--number-of-images", dest = "num",
+                      help = "Number of images on path or table",
+                      default = num_old, type = "int")
+
+    parser.add_option("-b", "--beads", dest = "beads",
+                      action = "store_true", default = False )
+
+    parser.add_option("-m", "--modes", "--add-modes", "--with-modes", dest = "add_modes",
+                      action = "store_true", default = False )
+
+    return parser.parse_args(argv)
+
 def visualize_input( argv, num_old):
     """
     Reads in the input from argv
