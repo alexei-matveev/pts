@@ -246,7 +246,7 @@ def main( argv):
 
     # Expand the output, we need it further.
     ase, format_ts = data_ase
-    withs, allval, special_vals, __, (logs, logs_find, logs_num, log_x_num, xfiles) =  values
+    withs, allval, special_vals, __, __ =  values
     diff, symm, symshift =  special_opt
     num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
     cell, tomove, howmove = appender
@@ -318,30 +318,6 @@ def main( argv):
                prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt, colormap(i, n))
             else:
                prepare_plot( path, name_p, beads, "_nolegend_", ts_ests_geos, "_nolegend_", opt, colormap(i, n))
-
-        # if some data  has been extracted from a  logfile, after this
-        # file i has been used it  has to be plotted here, as here the
-        # x values of the files  are valid the log_points should be at
-        # the beads
-        if logs != []:
-            for j, log in enumerate(logs):
-                if log_x_num[j] == i:
-                 # use the options for x and plot the data gotten from
-                 # the file directly
-                 optlog = optx + " t %i" % (xnum_opts + 1)
-                 log_points = np.array(beads)
-                 print xnum_opts, optlog
-                 log_points = log_points[:xnum_opts + 1,:]
-                 log_points = log_points.tolist()
-                 # till here  the x-data  should be copied  and ready,
-                 # now add also the logdata
-                 log_points.append(read_line_from_log(log, logs_find[j], logs_num[j]))
-                 log_points = np.asarray(log_points)
-                 # The name should be the name of the data line taken,
-                 # right?
-                 prepare_plot( None, None, None, None, log_points,\
-                               logs_find[j] + ', iteration %i' % (logs_num[j]) , optlog, colormap(i, n))
-
 
     # now plot
     plot_data(xrange = xran, yrange = yran, savefile = outputfile )
