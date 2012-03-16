@@ -196,10 +196,7 @@ def main(argv):
     tomove = None
     howmove = None
     withs = False
-    iter_flag = set([])    # because some of the parameters to be plotted are
-                           # available only between iterations, eg. trans. step
-                           # size, or only in iterations before converge, eg.
-                           # mode vector, this flag is used to consider such situation
+    decrease = [0, 0]
 
     # default for plotting options
     title = None
@@ -243,11 +240,17 @@ def main(argv):
                 argv = argv[1:]
                 for j in range(0, 2):
                     vec_angle.set_name(argv[0])
-                    iter_flag.update(vec_angle.get_range())
+                    range_v = vec_angle.get_range()
+                    for i, j in enumerate(range_v):
+                         if not j == 0:
+                            decrease[i] = j
                     value += vec_angle.get_string()
                     argv = argv[1:]
                     if value[3] == "s":
                         break
+
+                if value[3:5] == value[5:]:
+                    decrease[0] = -1
                 special_val.append(value)
             elif option in ["grabs", "grmax", "grperp", "grpara", "grangle"]:
                 special_val.append(option)
@@ -264,7 +267,7 @@ def main(argv):
                 argv = argv[1:]
             elif option in ["step"]:
                 # step size of translation step
-                iter_flag.add(-1)
+                decrease[1] = 1
                 special_val.append(option)
                 argv = argv[1:]
             elif option in ["dis", "2", "ang","3", "ang4", "4", "dih", "5", "dp", "6", "dl", "7"]:
@@ -290,7 +293,7 @@ def main(argv):
                 # arrow option is only designed for
                 # plot involving only internal coordinates
                 # otherwise it will be ignored
-                iter_flag.add(-1)
+                decrease[1] = 1
                 arrow = True
                 try:
                     # if not input explicitly, the arrow length
@@ -356,10 +359,8 @@ def main(argv):
         # initial and final point to plot used because arrays to be plotted may have
         # different lengths
         ifplot = [0, len(geos["Center"])]
-        if 1 in iter_flag:
-            ifplot[0] += 1
-        if -1 in iter_flag:
-            ifplot[1] -= 1
+        ifplot = [ip - dec for ip, dec in zip(ifplot, decrease)]
+
         x = list(np.linspace(0,1,len(geos["Center"])))[ifplot[0]: ifplot[1]]
         # internal coordinates for plotting
         beads = beads_to_int(geos["Center"][ifplot[0]: ifplot[1]], x, obj, \
@@ -488,28 +489,30 @@ class interestingdirection:
             for i in [0, 2]:
                 # the former and later 2 characters in opt_string
                 # represents a variable, respectively
-                opt = opt_string[i:i+2]
                 if opt[0] == "v":
                     if opt[1] == "0":
                         # mode has no directions
-                        directs.append(modes[ifplot[0]: ifplot[1]])
+                        directs.append(modes[start: end])
                         acute = True
                     elif opt[1] == "1":
                         # gradients
-                        directs.append(grs[ifplot[0]: ifplot[1]])
+                        directs.append(grs[start: end])
                     elif opt[1] == "2":
                         # translation steps
-                        directs.append(step_from_beads(geos[ifplot[0]: ifplot[1]+1]))
+                        directs.append(step_from_beads(geos[start: end + 1]))
                     elif opt[1] == "3":
                         # accumulated translations
-                        directs.append([geo - geos[0] for geo in geos[ifplot[0]: ifplot[1]]])
+                        directs.append([geo - geos[0] for geo in geos[start: end]])
+                    else:
+                        print >> sys.std_err, "ERROR: invalid vector choice", opt[1]
+                        sys.exit()
                 elif opt[0] == "c":
                     if opt[1] == "0":
                         # initial to final structure
-                        directs.append([geos[-1] - geos[0]] * (ifplot[1] - ifplot[0]))
+                        directs.append([geos[-1] - geos[0]] * (end - start))
                     if opt[1] == "1":
                         # initial mode
-                        directs.append([modes[0]] * (ifplot[1] - ifplot[0]))
+                        directs.append([modes[0]] * (end - start))
                     if opt[1] == "2":
                         # final mode
                         directs.append([modes[-1]] * (ifplot[1] - ifplot[0]))
@@ -546,12 +549,12 @@ class interestingdirection:
         set the range of step for plot, some directions are not
         available for certain steps
         """
-        range_1 = set([])
-        if self.name in ["mode", "step"]:
-            range_1.add(-1)
+        range_1 = [0, 0]
+        if self.name in ["step"]:
+            range_1[1] = 1
         elif self.name in self.direction_type["special"]:
-            range_1.add(1)
-            range_1.add(-1)
+            range_1[1] = 1
+            range_1[0] = -1
         return range_1
 
 def read_from_pickle_log(filename ):
