@@ -99,7 +99,7 @@ class traj_long:
 def dimer_log(symbols, funcart, filename = "progress.pickle"):
     """
     Returns a  callback funciton  that implements a  general interface
-    that  appends dimer state  to a  file. Removes  the file,  if that
+    that appends dimer  state to a file. Overwrites  the file, if that
     exists.
     """
     #
