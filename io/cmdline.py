@@ -80,7 +80,10 @@ def get_options_to_xyz(argv, num_old):
 
 def visualize_input( argv, num_old):
     """
-    Reads in the input from argv
+    Reads in the input from argv for the plot/show/table
+    function.
+    Looks for the sum of all available options, the
+    calling functions might only need a subset of them.
     """
     from pts.tools.xyz2tabint import interestingvalue
     from optparse import OptionParser
@@ -108,9 +111,11 @@ def visualize_input( argv, num_old):
         else:
             return 0
 
-
-
     def got_intersting_value(option, opt_str, value, parser):
+         """
+         Callback function for the geometry values, transforms
+         the name in the usual number short hands.
+         """
          global num_i
          print "processing", option, opt_str, value
          number = value_to_number(opt_str[2:])
@@ -127,11 +132,19 @@ def visualize_input( argv, num_old):
                num_i += 1
 
     def call_difference(option, opt_str, value, parser):
+        """
+        Callback for the collecting of difference information.
+        Needs a global variable, thus is done by a callback.
+        """
         global num_i
         parser.values.diff.append((num_i ))
 
 
     def call_symmetrie(option, opt_str, value, parser):
+        """
+        Callback for the collecting of symmetry information.
+        Needs a global variable, thus is done by a callback.
+        """
         global num_i
         parser.values.symm.append((num_i, value ))
 
