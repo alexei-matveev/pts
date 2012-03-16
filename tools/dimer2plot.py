@@ -150,13 +150,9 @@ Other available options:
 
 Input files:
 
-    Input file names should be specified without "--". The calculation log
-    file (generally *.log.pickle and the dictionary store file (or directory)
-    (generally *.ResultDict.pickle or cache.d/) should both be indicated.
-    If multiple inputs are involved, the order of log and dictionary files
-    must be the same, though one can either first specify all log files then
-    dictionary files, or put the ones associated with the same calculation
-    together.
+    Input file names should be specified without "--". They should be a pickle
+    file from a paratools dimer / paratools lanczos or a paratools quasi-newton
+    calculation.
 """
 import sys
 import numpy as np
