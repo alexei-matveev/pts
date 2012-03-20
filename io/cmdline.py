@@ -238,6 +238,9 @@ def visualize_input( argv, num_old):
     parser.add_option("--step", dest = "special_vals",
                       action = "append_const", const = "step" )
 
+    parser.add_option("--curvature", dest = "special_vals",
+                      action = "append_const", const = "curv" )
+
     parser.add_option("--ts-estimates", "--transition-states", dest = "ts_estimates",
                        type = "int", action = "append", default = [] )
 
