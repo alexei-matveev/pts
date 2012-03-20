@@ -58,22 +58,28 @@ def get_options_to_xyz(argv, num_old):
     from optparse import OptionParser
 
     parser = OptionParser()
-    parser.add_option("-a", "--abscissa", "--pathpos", dest = "abcis",
+    parser.add_option( "--abscissa", "--pathpos", dest = "abcis",
+                      help = "Abscissa file FILE for other input format (only for path)", metavar = "FILE",
                       type = "string", action = "append", default = [])
     parser.add_option("--mask", dest = "mask",
+                      help = "mask file MASK for other input format (only for path)", metavar = "MASK",
                       type = "string", nargs = 2)
     parser.add_option("--zmatrix", dest = "zmats",
-                      type = "string", default = None)
-    parser.add_option("-s", "--symbols", dest = "symbfile",
+                      help = "one zmatrix file ZMAT for other input format (only for path)", metavar = "ZMAT",
+                      type = "string", default = [])
+    parser.add_option( "--symbols", dest = "symbfile",
+                      help = "Symbols file SYM for other input format (only for path)", metavar = "SYM",
                       type = "string")
-    parser.add_option("-n", "--number-of-images", dest = "num",
-                      help = "Number of images on path or table",
+    parser.add_option( "--number-of-images", dest = "num",
+                      help = "Number N of images on path (only for path)", metavar = "N",
                       default = num_old, type = "int")
 
-    parser.add_option("-b", "--beads", dest = "beads",
+    parser.add_option( "--beads", dest = "beads",
+                      help = "Use the exact bead positions (only for path)",
                       action = "store_true", default = False )
 
-    parser.add_option("-m", "--modes", "--add-modes", "--with-modes", dest = "add_modes",
+    parser.add_option( "--modes", dest = "add_modes",
+                      help = "Append also the mode vector (transformed to Cartesian) after the geometries (only progress)",
                       action = "store_true", default = False )
 
     return parser.parse_args(argv)
@@ -148,6 +154,19 @@ def visualize_input( argv, num_old):
         global num_i
         parser.values.symm.append((num_i, value ))
 
+    def grad_plus_action(option, opt_str, value, parser):
+        """
+        Gradient action needs an identifier for gradient before
+        """
+        parser.values.special_vals.append(("gr-" + value))
+
+    def grad_action(option, opt_str, value, parser):
+        """
+        Gradient action needs an identifier for gradient before.
+        """
+        # start for option at 4: 2 for -- and 2 for gr
+        parser.values.special_vals.append(("gr-" + opt_str[4:]))
+
     # the number of images (points on a path)
     parser.add_option("--num", dest = "num",
                       help = "Number of images on path or table",
@@ -208,16 +227,26 @@ def visualize_input( argv, num_old):
                       help = "Use the energy, interpolation with gradients",
                       action = "append_const", const = "energy2", default = [] )
 
-    parser.add_option("--gr"  "--gradients", dest = "special_vals",
+    parser.add_option("--gr", "--gradients", dest = "special_vals",
                       help = "Use ACTION of gradients, ACTIONS can be abs, max, para, perp, angle",
                       metavar = "ACTION",
-                      action = "append", type = "string", default = [] )
+                      action = "callback", type = "string", callback = grad_plus_action )
+
+    parser.add_option("--grperp", "--grpara", "--grabs", "--grangle", dest = "special_vals",
+                      action = "callback", callback = grad_action )
 
     parser.add_option("--step", dest = "special_vals",
                       action = "append_const", const = "step" )
 
-    parser.add_option("--arrow", "--with-mode", dest = "arrow_len",
-                       type = "float" )
+    parser.add_option("--ts-estimates", "--transition-states", dest = "ts_estimates",
+                       type = "int", action = "append", default = [] )
+
+    parser.add_option("--references", dest = "references",
+                       type = "string", nargs = 2, action = "append", default = [] )
+
+    # For dimer
+    parser.add_option("--arrow", "--with-mode", "--modes", dest = "arrow_len",
+                       type = "float")
 
     parser.add_option("--vector-angle", "--vec_angle", dest = "vec_angle",
                        type = "string", nargs = 2, action = "append", default = [] )

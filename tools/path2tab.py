@@ -592,7 +592,7 @@ def extract_data(filename, data_ase, other_input, values, appender, num ):
              if s_val.startswith("en"):
                 beads.append(en)
              elif s_val.startswith("gr"):
-                val = s_val[2:]
+                val = s_val[3:]
                 beads.append(grads_from_beads(x, y, gr, val))
              else:
                 print >> stderr, "ERROR: This option is not available for the current function", s_val

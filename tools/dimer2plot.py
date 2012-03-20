@@ -281,7 +281,7 @@ def main(argv):
                 if s_val.startswith("en"):
                     log_points.append(energy[ifplot[0]: ifplot[1]])
                 elif s_val.startswith("gr"):
-                    val = s_val[2:]
+                    val = s_val[3:]
                     log_points.append(grads_dimer(modes, grad[ifplot[0]: ifplot[1]], val))
                 elif s_val.startswith("curv"):
                     log_points.append(curv)
