@@ -264,7 +264,7 @@ def setup_plot( title = None, x_label = None, y_label = None, log = []):
              if lg in ['y', 'z', 2, '2']:
                  yscale('log')
 
-def makeplotter(tab, funx, funcs, name, color, option = None):
+def makeplotter(tab, funx, funcs, name, colors, option = None):
      """
      A wrapper aoround the plot function, which uses
      the table tab from which its extract via funx the
@@ -275,7 +275,11 @@ def makeplotter(tab, funx, funcs, name, color, option = None):
      be used (for beads)
      """
      x = funx(tab)
-     for i, fun in enumerate(funcs):
+
+     if len(colors) < len(funcs):
+         colors = [colors[0] for i in range(len(funcs))]
+
+     for i, fun, color in zip( range(0,len(funcs)),funcs, colors):
          y = fun(tab)
          lab = '%i' % (i)
          if name is not None:
@@ -292,7 +296,7 @@ def makeplotter(tab, funx, funcs, name, color, option = None):
 
          plot(x, y, opt, color = color, label = lab)
 
-def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option, color):
+def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option, colors):
     """
     Generates plot for a path plotting object. Dependent on what
     is not None of the given parameters different things are plottet.
@@ -324,17 +328,17 @@ def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option, color):
 
     # for each table which is there, make it run
     if tablep is not None:
-        makeplotter(tablep, xfun, yfuns, pname, color)
+        makeplotter(tablep, xfun, yfuns, pname, colors)
 
     if tableb is not None:
-        makeplotter(tableb, xfun, yfuns, bname, color, 'o')
+        makeplotter(tableb, xfun, yfuns, bname, colors, 'o')
 
     if tabelr is not None:
         if tableb is not None:
             r_opt = 'D'
         else:
             r_opt = 'o:'
-        makeplotter(tabelr, xfun, yfuns, rname, color, r_opt)
+        makeplotter(tabelr, xfun, yfuns, rname, colors, r_opt)
 
 def plot_data( xrange = None, yrange = None, savefile = None):
     """

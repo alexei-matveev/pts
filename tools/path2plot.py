@@ -202,7 +202,7 @@ def xyz2plot( argv):
     # extract which options to take
     opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, symm, symshift, withs)
 
-    n = len(filenames)
+    n = len(filenames) * (num_opts - 1)
     for i, filename in enumerate(filenames):
 
         # Extract the data for beads, path if availabe and TS estimates if requested (else None).
@@ -215,7 +215,11 @@ def xyz2plot( argv):
 
         # prepare plot  from the tables  containing the "beads" = coordinate points of the xyz file
         # there are better at least two coordinates, as there will be nothing else.
-        prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt, colormap(i, n))
+        def choose_color(j):
+             return colormap(i * (num_opts - 1) + j, n)
+
+        colors = map(choose_color, range(0, num_opts))
+        prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt, colors)
 
     # now plot
     plot_data(xrange = xran, yrange = yran, savefile = outputfile )
@@ -266,7 +270,7 @@ def main( argv):
              opt = opt + " t %i" % (num_opts + 1)
              num_opts = num_opts + 1
 
-    n = len(filenames)
+    n = len(filenames) * (num_opts - 1)
 
     if not reference == []:
        for ref in reference:
@@ -293,7 +297,11 @@ def main( argv):
                        num_opts_ref = num_opts_ref - 1
 
            if num_opts_ref > 1:
-               prepare_plot( None, None, None, "_nolegend_", reference_int_geos, "Reference", opt, colormap(0, n))
+               def choose_color(j):
+                    return colormap(j, n)
+
+               colors = map(choose_color, range(0, num_opts))
+               prepare_plot( None, None, None, "_nolegend_", reference_int_geos, "Reference", opt, colors )
 
 
     # For each file prepare the plot
@@ -312,12 +320,17 @@ def main( argv):
              name_p = names_of_lines[i]
 
         # prepare plot  from the tables  containing the path  and bead
+
+        def choose_color(j):
+             return colormap(i * (num_opts - 1) + j, n)
+
         # data only if there are enough for x AND y values
+        colors = map(choose_color, range(0, num_opts))
         if num_opts > 1:
             if ase:
-               prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt, colormap(i, n))
+               prepare_plot( None, None, None, "_nolegend_", beads, name_p, opt, colors)
             else:
-               prepare_plot( path, name_p, beads, "_nolegend_", ts_ests_geos, "_nolegend_", opt, colormap(i, n))
+               prepare_plot( path, name_p, beads, "_nolegend_", ts_ests_geos, "_nolegend_", opt, colors)
 
 
     # now plot

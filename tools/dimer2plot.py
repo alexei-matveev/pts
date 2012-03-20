@@ -223,7 +223,7 @@ def main(argv):
     opt, num_opts, xnum_opts, optx = makeoption(num_i, diff, [], [], withs)
 
     # decide how many color are used
-    n = len(log_file)
+    n = len(log_file) * (num_opts - 1 + len(special_val))
     for i, geo_file in enumerate(log_file):
         # ensure that there will be no error message if calling
         # names_of_lines[i]
@@ -235,7 +235,7 @@ def main(argv):
         ifplot = [0, len(geos)]
         ifplot = [ip - dec for ip, dec in zip(ifplot, decrease)]
 
-        x = list(np.linspace(0,1,len(geos)))[ifplot[0]: ifplot[1]]
+        x = list(range(0,len(geos)))[ifplot[0]: ifplot[1]]
         # internal coordinates for plotting
         beads = beads_to_int(geos[ifplot[0]: ifplot[1]], x, obj, \
                         allval, cell, tomove, howmove, withs)
@@ -247,7 +247,12 @@ def main(argv):
              name_p = names_of_lines[i]
         # make plot only when there are enough points
         if num_opts > 1:
-            prepare_plot( None, None, None, None, beads, name_p, opt, colormap(i, n))
+            def choose_color(j):
+                 return colormap(i * (num_opts - 1 + len(special_val)) + j, n)
+
+            # data only if there are enough for x AND y values
+            colors = map(choose_color, range(0, num_opts))
+            prepare_plot( None, None, None, None, beads, name_p, opt, colors)
 
             if arrow:
                 for j in range(ifplot[0], ifplot[1]):
@@ -265,11 +270,11 @@ def main(argv):
                     #arrows = rescale(arrows, arrow_len)
 
 
-                    prepare_plot(arrows, "_nolegend_", None, None, None, None, opt, colormap(i, n))
+                    prepare_plot(arrows, "_nolegend_", None, None, None, None, opt, colors)
 
         if special_val != []:
             # Two kinds of dictionary store share the same interface
-            for s_val in special_val:
+            for j, s_val in enumerate(special_val):
                 # use the options for x and plot the data gotten from
                 # the file directly
 
@@ -293,7 +298,7 @@ def main(argv):
                 log_points = np.asarray(log_points)
 
                 prepare_plot( None, None, None, None, log_points, \
-                               s_val + " " + name_p, optlog, colormap(i, n))
+                               s_val + " " + name_p, optlog, [colormap(i * (num_opts - 1 + len(special_val)) + j, n)])
 
     # finally make the picture visible
     plot_data(xrange = xran, yrange = yran, savefile = outputfile)
