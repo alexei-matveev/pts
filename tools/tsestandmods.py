@@ -15,18 +15,22 @@ import pts.metric as mt
 
 def main(argv):
     """
-    Takes a path file and estimates the transition states from it
-    path file can be in path.pickle format or alterantively with the
-    needed values by separate user readable files.
+
+    paratools ts-and-mods FILE.PATH.PICKLE [Options] [N1, N2, ... ]
+
+    Takes a path file FILE.PATH.PICKLE and estimates the transition
+    states from it.
+    The path file can be in path.pickle format or alterantively
+    containing direct internal geometry coordinates with the requirement
+    of the remaining input in separate user readable files (requires the
+    option --symbols, sometimes also --zmatrix, --mask or --abscissa).
 
     gives back the transition states (and the modevectors) for different
-    transition state estimates
-
-    first argument is the path.pickle or internal coordinate file to read in
-    (or --help to get this help text)
+    transition state estimates.
 
     One can choose which transtition state estimates are to be generated
-    by giving the numbers related to the wanted ones (default is all of them)
+    by giving the numbers  N1, N2, ... related to the wanted ones
+    (default is all of them).
     1  : highest
     2  : Spline
     3  : Spline and average
@@ -34,116 +38,86 @@ def main(argv):
     5  : Three points
     6  : Bell method
 
-    Arguments for different read in fo input: (if used instead of path.pickle file
-          with geometries one has to provide a coordinate file
-    --s  symbolfile energyfile forcefile : This three files are needed in any case
-          if the other way of input is choosen. Symbolfile contains all atom symbols
-          energyfile and forcefile the energies/forces to the given geometries from
-          coordinates file
-    --a abscissafile: the abscissa to the coordinates is optional, string calculations
-          use some, some others like neb do not have them at all, if the calcualtion
-          of the path had been one with abscissa it is preferable to give them here
-    --zmat zmatfile : give the same zmatfiles (each with its own --zmat) as in the
-          path calculation, only this way the internal coordinates can be interpreted
-          correctly
-    --mask maskfile geo_raw: only variables set to True in maskfile are supposed
-          to be given in coordinate files, all others are extracted from geo_raw
-
-    Other possible arguments:
-    --mc : prints also available mode vector estimates in Cartesian coordinates
-    --m  : prints the mode vector as tangent on the path in direct coordinates,
-           should be the same as "Approximation of mode in way  frompath", only
-           without the transformation into Cartesian coordinates.
-    --all: As the default will only give the highest transition state. This way
-           request for all found transition states of an estimation method.
-
     All output goes by default to the standard output
     """
+    from optparse import OptionParser
 
-    printwithmodes = False
-    print_direct_modes = False
-    wanted = []
-    fileout = "-"
-    fileout2 = None
-    dump = False
-    see_all = False
+    usage = main.__doc__
+
+    parser = OptionParser(usage = usage)
+
+
+    parser.add_option("-c", "--cartesian-modes", "--add-cart-modes", "--with-cartesian-modes", dest = "printwithmodes",
+                       help = "Append also the Cartesian mode vectors",
+                       action = "store_true", default = False )
+
+    parser.add_option("-m","--m", "--modes", "--add-modes", "--with-direct-modes", dest = "print_direct_modes",
+                       help = "Append the direct modes (tangent along the path)",
+                       action = "store_true", default = False )
+
+    parser.add_option( "--all", dest = "see_all",
+                       help = "Append also the Cartesian mode vectors",
+                       action = "store_true", default = False )
+
+    parser.add_option( "-d", "--dump", dest = "dump",
+                       help = "dump to special output",
+                       action = "store_true", default = False )
+
+    parser.add_option("-s", "--symbols", dest = "symbfile",
+                       help = "Symbols, energies, forces for different input ",
+                       type = "string", nargs = 3)
+
+    parser.add_option("--zmatrix", dest = "zmats",
+                       help = "one zmatrix file ZMAT for other input format, might be repeated several times", metavar = "ZMAT",
+                       type = "string", action = "append")
+
+    parser.add_option("-a","--a", "--abscissa", "--pathpos", dest = "abcis",
+                       help = "Abscissa file FILE for other input format", metavar = "FILE",
+                       type = "string")
+
+    parser.add_option("--mask", dest = "mask",
+                       help = "mask file MASK for other input format", metavar = "MASK",
+                       type = "string", nargs = 2)
+
+
+    opts, wanted = parser.parse_args(argv)
+    opts = opts.__dict__
+
+    printwithmodes = opts["printwithmodes"]
+    print_direct_modes = opts["print_direct_modes"]
+
+    dump = opts["dump"]
+    see_all = opts["see_all"]
 
 
     # for other way of input:
-    zmats = []
-    mask = None
-    maskgeo = None
-    abcis = None
-    symbfile = None
-    energies = None
-    forces = None
+    zmats = opts["zmats"]
 
-
-    # structure of inputs, has to be improved later
-    # The --help option is handled seperatly
-    # The first input argument has to be the path.pickle object
-    if '--help' in argv:
-        print main.__doc__
-        sys.exit()
+    if opts["mask"] == None:
+        mask = None
+        maskgeo = None
     else:
-        try:
-            f_ts = argv[0]
-        except:
-            print "ERROR: No path file found to read input from"
-            print "First argument of call must be a path.pickle object"
-            print "Usage of this function:"
-            print main.__doc__
-            sys.exit()
+        mask, maskgeo = opts["mask"]
 
-    argv = argv[1:]
-    while len(argv) > 0:
-        # cycle over all the remaining arguments, they
-        # are moved to the beginning, so argv[0] is always the
-        # first argument not yet interpreted
-        if argv[0].startswith('--'):
-            # the options start with --
-            # sometimes the following argument(s) belong
-            # also to the option and are read in also
-            arg = argv[0][2:]
-            if arg in ['mc','cm'] :
-                 printwithmodes = True
-            elif arg in ['m'] :
-                 print_direct_modes = True
-            elif arg == 'all':
-                 see_all = True
-            elif arg == 'd':
-#                print "Only special output"
-                 dump = True
-            elif arg == "s":
-                symbfile = argv[1]
-                energies = argv[2]
-                forces = argv[3]
-                argv = argv[3:]
-            elif arg =="zmat":
-                zmats.append(argv[1])
-                argv = argv[1:]
-            elif arg == "mask":
-                mask = argv[1]
-                maskgeo = argv[2]
-                argv = argv[2:]
-            elif arg == "a":
-               abcis = argv[1]
-               argv = argv[1:]
-            argv = argv[1:]
-        else:
-            try:
-               # the arguments not starting with --, may be the number
-               # of the transition state approximation wanted
-               for a in argv:
-                  wanted.append(int(a))
-            except:
-                #FIXME: is it okay to ignore everything else?
-                pass
-            argv = argv[len(wanted):]
+    abcis = opts["abcis"]
 
+    if opts["symbfile"] == None:
+        symbfile = None
+        energies = None
+        forces = None
+    else:
+       symbfile, energies, forces = opts["symbfile"]
+
+    # First argument is the file with the geometries (and more if it is a
+    # pickle file)
+    f_ts = wanted[0]
+
+    wanted = wanted[1:]
     # if none is choosen, all are selected
     if wanted == []:
         wanted = [1, 2, 3, 4, 6]
+    else:
+        wanted = [int(want) for want in wanted]
 
     if symbfile == None:
         coord_b, energy_b, gradients_b, tangents, posonstring, symbols, trafo = unpickle_path(f_ts) # v2
