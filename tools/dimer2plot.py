@@ -254,16 +254,16 @@ def main(argv):
                     # for each bead we plotted, a line is added to the center point
                     # indicating the dimer mode direction projected in internal coordinates
 
+                    assert(arrow_len > 0)
+
                     # use finite difference method to extract the projection of modes
-                    arrows = beads_to_int([geos[j] - modes[j] * 0.005, geos[j] + modes[j] * 0.005], \
+                    arrows = beads_to_int([geos[j] - modes[j] * arrow_len, geos[j] + modes[j] * arrow_len], \
                                 [x[j]] * 2, obj, allval, cell, tomove, howmove, withs)
                     arrows = np.asarray(arrows)
                     arrows = arrows.T
 
-                    # rescale the arrow length to be clear
-                    if arrow_len == None:
-                        arrow_len = norm([arrows[k][0] - arrows[k][1] for k in range(1, len(arrows))]) * 5
-                    arrows = rescale(arrows, arrow_len)
+                    #arrows = rescale(arrows, arrow_len)
+
 
                     prepare_plot(arrows, "_nolegend_", None, None, None, None, opt, colormap(i, n))
 
