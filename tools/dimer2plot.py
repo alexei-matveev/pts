@@ -437,6 +437,7 @@ def grads_dimer(mode, gr, allval):
     which appear on the beads, path informations are needed
     for finding the mode along the path
     """
+    from sys import stderr
     grs = []
 
     for i, gr_1 in enumerate(gr):
