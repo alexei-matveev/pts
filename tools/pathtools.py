@@ -598,7 +598,7 @@ def read_path_fix(symbfile, zmatifiles = None, maskfile = None, maskedgeo = None
     if len(zmatifiles)==0:
         trafo = Justcarts()
     else:
-        trafo, __, __, __ = get_transformation(zmatifiles, len(symbols))
+        trafo, __, __, __, __ = get_transformation(zmatifiles, len(symbols) * 3, "direct")
 
     if maskfile is not None:
         assert (maskedgeo is not None)
