@@ -177,13 +177,9 @@ def main(argv):
     up a path and gives back positions on it
     """
     from sys import stderr
-    if '--help' in argv:
-        print __doc__
-        exit()
-
     from pts.io.cmdline import get_options_to_xyz
 
-    opts, filename = get_options_to_xyz(argv, None)
+    opts, filename = get_options_to_xyz("path" ,argv, None)
 
     beads = opts.beads
     num = opts.num

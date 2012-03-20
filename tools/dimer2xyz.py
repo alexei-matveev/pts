@@ -58,21 +58,18 @@ def main(argv):
      from sys import stdout
      from numpy import array
 
-     opts, geo_files = get_options_to_xyz(argv, None)
-     opts = opts.__dict__
+     opts, geo_files = get_options_to_xyz("progress", argv, None)
 
      assert len(geo_files) == 1
 
      geo_file = geo_files[0]
 
-     assert not opts["beads"]
-     assert opts["num"] == None
-
-     assert opts["symbfile"] == None
+     assert not opts.beads
+     assert opts.num == None
 
      obj, geos, modes, __, energies, __ = read_from_pickle_log(geo_file)
 
-     if opts["add_modes"]:
+     if opts.add_modes:
         for geo, mode,  energy in zip(geos, modes,  energies):
             text = "E = %f" % energy
             print_xyz_with_direction(stdout.write, array(geo), obj, text = text, direction = array(mode))

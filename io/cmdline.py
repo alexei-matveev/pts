@@ -50,37 +50,84 @@ def get_mask(strmask):
     mask = [m in tr for m in mask]
     return mask
 
-
-def get_options_to_xyz(argv, num_old):
+def alternative_input_group(parser):
     """
-    Extracts the options for the path/progress to xyz tools.
+    Here FILE contains  direct  internal geometry coordinates.
+    There is the requirement of having more input in
+    separate user readable files.
+    Required are in this case the files of the --symbols option. Additional
+    the transformation from internal to Cartesian coordinates needs to
+    be build up again, therefore if some internal coordinates were included
+    the zmatrices (--zmatrix) have to be provided again. If some of
+    the coordinates were fixed they have to be given also again by
+    the --mask switch (needs also a complete set of geometries).
+    If the path had some abscissas (all string methods) they should also
+    be provided again with the --abscissa option.
     """
-    from optparse import OptionParser
+    from optparse import OptionGroup
 
-    parser = OptionParser()
-    parser.add_option( "--abscissa", "--pathpos", dest = "abcis",
-                      help = "Abscissa file FILE for other input format (only for path)", metavar = "FILE",
+    group =  OptionGroup( parser, "ALTERNATIVE WAY FOR INPUT", alternative_input_group.__doc__)
+
+    group.add_option( "--abscissa", "--pathpos", dest = "abcis",
+                      help = "Abscissa file AB-FILE. Gives the abscissas to the positions in FILE.", metavar = "AB-FILE",
                       type = "string", action = "append", default = [])
-    parser.add_option("--mask", dest = "mask",
-                      help = "mask file MASK for other input format (only for path)", metavar = "MASK",
+    group.add_option("--mask", dest = "mask",
+                      help = "mask file MASK. If some coordinates had been fixed in the internal coordinates, the mask telling which one has to be given again. Here it is also required to give as a second argument MASKGEO which contains all internal coordinates for the system without the mask.", metavar = "MASK MASKGEO",
                       type = "string", nargs = 2)
-    parser.add_option("--zmatrix", dest = "zmats",
-                      help = "one zmatrix file ZMAT for other input format (only for path)", metavar = "ZMAT",
+    group.add_option("--zmatrix", dest = "zmats",
+                      help = "one zmatrix file ZMAT, if there are ZMatrix coordinates in the internal coordinates. Should be given the same way as for the original calculation.", metavar = "ZMAT",
                       type = "string", default = [])
-    parser.add_option( "--symbols", dest = "symbfile",
-                      help = "Symbols file SYM for other input format (only for path)", metavar = "SYM",
+    group.add_option( "--symbols", dest = "symbfile",
+                      help = "Symbols file SYM. Should contain as a list all the symbols of the atoms separated by whitespace.", metavar = "SYM",
                       type = "string")
-    parser.add_option( "--number-of-images", dest = "num",
-                      help = "Number N of images on path (only for path)", metavar = "N",
+
+    parser.add_option_group(group)
+    return parser
+
+def get_options_to_xyz(input, argv, num_old):
+    """
+
+    paratools xyz INPUT FILE  [Options]
+
+    Where INPUT is one of path or progress.
+
+    FILE contains the information of the input.
+    For path it can be a path.pickle file or alternative input, see
+    Options below.
+
+    For progress it needs to be a progress.pickle file.
+
+    The tool creates a string of xyz geometries to the geometries extracted from
+    input. Additional options can change the output.
+
+    """
+    from optparse import OptionParser, OptionGroup
+
+    parser = OptionParser(usage = get_options_to_xyz.__doc__ )
+
+
+    if input == "path":
+       parser = alternative_input_group(parser)
+
+    group = OptionGroup( parser, "PATH OPTIONS" )
+    group.add_option( "--number-of-images", dest = "num",
+                      help = "Number N of images on path.", metavar = "N",
                       default = num_old, type = "int")
 
-    parser.add_option( "--beads", dest = "beads",
-                      help = "Use the exact bead positions (only for path)",
+    group.add_option( "--beads", dest = "beads",
+                      help = "Use the exact bead positions (no respace).",
                       action = "store_true", default = False )
 
-    parser.add_option( "--modes", dest = "add_modes",
-                      help = "Append also the mode vector (transformed to Cartesian) after the geometries (only progress)",
+    if input == "path":
+        parser.add_option_group(group)
+
+    group = OptionGroup( parser, "PROGRESS OPTIONS" )
+    group.add_option( "--modes", dest = "add_modes",
+                      help = "Append also the mode vector (transformed to Cartesian) after the geometries.",
                       action = "store_true", default = False )
+
+    if input == "progress":
+        parser.add_option_group(group)
 
     return parser.parse_args(argv)
 
