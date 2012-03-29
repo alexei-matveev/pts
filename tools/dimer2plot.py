@@ -336,8 +336,8 @@ class interestingdirection:
         call the class to give back required directions so that the angles can be calculated
         in a uniform way
         """
+        from sys import stderr, exit
         # there should be 4 characters to specify 2 directions,
-        # and none of them could be in the category of special
         assert len(opt_string) == 4 and opt_string[2] != "s"
         directs = []
         acute = False
@@ -366,24 +366,24 @@ class interestingdirection:
                     # accumulated translations
                     directs.append([geo - geos[0] for geo in geos[start: end]])
                 else:
-                    print >> sys.std_err, "ERROR: invalid vector choice", opt[1]
-                    sys.exit()
+                    print >> stderr, "ERROR: invalid vector choice", opt[1]
+                    exit()
             elif opt[0] == "c":
                 if opt[1] == "0":
                     # initial to final structure
                     directs.append([geos[-1] - geos[0]] * (end - start))
-                if opt[1] == "1":
+                elif opt[1] == "1":
                     # initial mode
                     directs.append([modes[0]] * (end - start))
-                if opt[1] == "2":
+                elif opt[1] == "2":
                     # final mode
                     directs.append([modes[-1]] * (end - start))
                 else:
-                    print >> sys.std_err, "ERROR: invalid vector choice", opt[1]
-                    sys.exit()
+                    print >> stderr, "ERROR: invalid vector choice", opt[1]
+                    exit()
             else:
-                print >> sys.std_err, "ERROR: invalid option"
-                sys.exit()
+                print >> stderr, "ERROR: invalid option"
+                exit()
 
             if a == b:
                 start = start - 1
@@ -425,9 +425,6 @@ class interestingdirection:
         range_1 = [0, 0]
         if self.name in ["step"]:
             range_1[1] = 1
-        elif self.name in self.direction_type["special"]:
-            range_1[1] = 1
-            range_1[0] = -1
         return range_1
 
 
