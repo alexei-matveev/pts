@@ -45,9 +45,10 @@ from matplotlib.pyplot import title as set_title
 from matplotlib.pyplot import savefig
 from scipy.interpolate import splrep, splev
 from copy import copy
+from matplotlib import pyplot as plt
+from matplotlib import cm
 
 global plot_style
-global plot_color
 global color_num
 color_num = 0
 plot_style = "-"
@@ -73,7 +74,6 @@ def colormap(i, n):
     # return cm.hsv(float(i) / imax)
     return cm.jet(float(i) / imax)
 
-plot_color = colormap(color_num, 20)
 
 def increase_color(color, style, repeat):
     """
@@ -309,11 +309,6 @@ def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option, colors):
             a dotted line, else give them as points but a different kind
             than the beads.
     """
-    # FIXME: some methods still depend on prepare_plot to change the
-    #        color by itsself. Therefore still keep the global plot_color.
-    global plot_color
-    plot_color, __ = increase_color(plot_color, "-", False)
-
     # one of them should at least be there
     if tablep is not None:
         tlen = len(tablep)
