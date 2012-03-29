@@ -160,7 +160,7 @@ def main(argv):
         write("#loop; ")
         for k in range(len(allval)):
         # tell what values will be calulated
-            order, partners in allval[k]
+            order, partners = allval[k]
             write("%s with atoms :" % (whatsort(order)))
             for number in partners:
                 write("%i " % number )
@@ -384,16 +384,16 @@ def interestingvalue( input = None):
     # in partners
     names = [None, None, "dis", "ang", "ang4", "dih", "dp", "dl","op"]
     orders = {}
-    for z, name in enumerate(self.names):
+    for z, name in enumerate(names):
         orders[name] = z
 
     try:
         input = int(input)
         order = input
-        name = self.names[input]
+        name = names[input]
     except ValueError:
         name = input
-        order = self.orders[input]
+        order = orders[input]
 
     # shows how many partners wanted to calulate the value
         if order in [5, 6, 8]:
