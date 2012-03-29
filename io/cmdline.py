@@ -52,9 +52,11 @@ def get_mask(strmask):
 
 def ase_input(parser):
     """
-    The FILE(s) will be expected to contain geoemtries in ASE readable format. If the format cannot
-    be extracted from the name of FILE it can be given as --format. All geometries will be supposed
-    to be situated on a single path as default. if --next is used a new path will be started.
+    The FILE(s) will be expected to contain geoemtries in ASE
+    readable format. If the format cannot be extracted from the name
+    of FILE it can be given as --format. All geometries will be supposed
+    to be situated on a single path as default. if --next is used a new
+    path will be started.
     """
     from optparse import OptionGroup
 
@@ -75,16 +77,15 @@ def ase_input(parser):
 def alternative_input_group(parser):
     """
     Here FILE(s) contains  direct  internal geometry coordinates.
-    There is the requirement of having more input in
-    separate user readable files.
-    Required are in this case the files of the --symbols option. Additional
-    the transformation from internal to Cartesian coordinates needs to
-    be build up again, therefore if some internal coordinates were included
-    the zmatrices (--zmatrix) have to be provided again. If some of
-    the coordinates were fixed they have to be given also again by
-    the --mask switch (needs also a complete set of geometries).
-    If the path had some abscissas (all string methods) they should also
-    be provided again with the --abscissa option.
+    There is the requirement of having more input in separate user
+    readable files. Required are in this case the files of the
+    --symbols option. Additional the transformation from internal to
+    Cartesian coordinates needs to be build up again, therefore if some
+    internal coordinates were included the zmatrices (--zmatrix) have to
+    be provided again. If some of the coordinates were fixed they have to
+    be given also again by the --mask switch (needs also a complete set
+    of geometries). If the path had some abscissas (all string methods)
+    they should also be provided again with the --abscissa option.
     """
     from optparse import OptionGroup
 
@@ -155,9 +156,7 @@ def get_options_to_xyz(input, argv, num_old):
 
 def geometry_values(parser):
     """
-    Usually geometry values are given before the other values, therefore if at least one of them
-    is given the x-coordinate will be an internal coordinate. They can be choosen independent of the
-    coordinates in which the calculation has been run.
+    Usually geometry values are given before the other values, therefore if at least one of them is given the x-coordinate will be an internal coordinate. They can be choosen independent of the coordinates in which the calculation has been run.
     """
     from optparse import OptionGroup
 
@@ -274,12 +273,14 @@ def geometry_values(parser):
                      action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
 
     group.add_option("--expand", dest = "expand",
-                      help = """The atoms will be exanded  with atoms choosen as original ones
-                      shifted  with  cell   vectors,  as  described  in  EXP-FILE.
-                      CELL-FILE should  contain the three basis vectors  for the cell.
-                      EXP-FILE contains the shifted atoms: Number(original atom) three numbers
-                      for shift in the three cell vector directions.""",
-                      metavar = "CELL-FILE EXP-FILE",
+                      help = """The atoms will be exanded with atoms choosen
+                      as original ones shifted with cell vectors, as
+                      described in EXP-FILE. CELL-FILE should  contain
+                      the three basis vectors for the cell. EXP-FILE
+                      contains the shifted atoms:
+                      Number(original atom) three numbers
+                      for shift in the three cell vector directions.",
+                      metavar = "CELL-FILE EXP-FILE""",
                       type = "string", nargs = 2)
 
     parser.add_option_group(group)
@@ -287,9 +288,7 @@ def geometry_values(parser):
 
 def gradient_and_energies(parser):
     """
-    Gives energies or special gradient properties. They will be processed always after the internal coordinates,
-    no matter in which order they are given. This way a later specified internal coordinate will still be the
-    x-coordinate.
+    Gives energies or special gradient properties. They will be processed always after the internal coordinates, no matter in which order they are given. This way a later specified internal coordinate will still be the x-coordinate.
     """
     from optparse import OptionGroup
 
@@ -343,23 +342,23 @@ def dimer_specials(parser):
                       action = "append_const", const = "curv" )
 
     group.add_option("--modes", dest = "arrow_len",
-                     help = """Plots additional to the geometries (only for internal coordinates) the mode
-                              vector on each geometry with the length LENGTH.""",
+                     help = """Plots additional to the geometries (only for internal
+                               coordinates) the mode vector on each geometry with
+                               the length LENGTH.""",
                      metavar = "LENGTH",
                        type = "float")
 
     group.add_option("--vector-angle", "--vec-angle", dest = "vec_angle",
                        metavar = "DIR1 DIR2",
-                       help = """Gives the angle between the two directions DIR1 and DIR2.
-                               If DIR1 and DIR2 are the same the angle between succeding iterations is taken.
+                       help = """Gives the angle between the two directions DIR1
+                               and DIR2. If DIR1 and DIR2 are the same the angle
+                               between succeding iterations is taken.
                                The DIR's can be anything of:
                                mode, grad (gradient), step,
-                               translation: accumulated translation from initial point
-                               init2final: a constant vector from initial to final point
                                initmode: initial mode vector
-                                   (attention: this is the mode after the rotation
-                                   step, rather than the input one)
                                finalmode: mode of the last step
+                               init2final: vector from initial to final point
+                               translation: accumulated translation from initial point
                                """,
                        type = "string", nargs = 2, action = "append", default = [] )
     parser.add_option_group(group)
@@ -412,8 +411,8 @@ def visualize_input( input, output, argv, num_old):
 
     paratools show path FILE --distance 1 2 --distance 1 3
 
-    This would plot the distance between the atoms 1 and 3 against the distance of the atoms 1 and 2 for
-    the file FILE.
+    This would plot the distance between the atoms 1 and 3 against the distance of the
+    atoms 1 and 2 for the file FILE.
     """
     from pts.tools.xyz2tabint import interestingvalue
     from pts.tools.path2tab import get_expansion
