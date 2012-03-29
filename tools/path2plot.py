@@ -183,17 +183,18 @@ def xyz2plot( argv):
     to be xyz files.
     Not all options of the other plot functions are available.
     """
-    from pts.tools.path2tab import helpfun, read_input, extract_data
+    from pts.tools.path2tab import helpfun, extract_data
+    from pts.io.cmdline import visualize_input
     from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
 
     name = "xyz"
 
-    filenames, __, __, values, __, special_opt, appender, for_plot =  read_input(name, argv, -1)
+    filenames, __, __, values, __, __, for_plot =  visualize_input(name, "plot", argv, -1)
 
     # Expand the output, we need it further.
-    withs, allval, special_vals, __, __ =  values
+    withs, allval, special_vals, appender, special_opt =  values
     diff, symm, symshift =  special_opt
-    num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
+    num_i, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
     cell, tomove, howmove = appender
 
     # plot environment
@@ -206,7 +207,7 @@ def xyz2plot( argv):
     for i, filename in enumerate(filenames):
 
         # Extract the data for beads, path if availabe and TS estimates if requested (else None).
-        beads, path, ts_ests_geos = extract_data(filename, (True, "xyz"), (None, None, None ), values, appender, 0)
+        beads, __, __ = extract_data(filename, (True, "xyz"), (None, None, None ), values, [], 0)
 
         # The name belonging to filename.
         name_p = str(i + 1)
@@ -235,24 +236,24 @@ def main( argv):
     from pts.tools.path2tab import read_line_from_log, carts_to_int
     from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
     from pts.io.read_COS import read_geos_from_file
-    from pts.tools.path2tab import helpfun, read_input, extract_data
+    from pts.io.cmdline import visualize_input
+    from pts.tools.path2tab import helpfun, extract_data
     import numpy as np
     from copy import copy
     from sys import stderr
 
     name = "path"
 
-    if '--help' in argv:
-        helpfun(name)
-
     # interprete arguments, shared interface with path2tab.
-    filenames, data_ase, other_input, values, num, special_opt, appender, for_plot =  read_input(name, argv, 100)
+    filenames, data_ase, other_input, values, path_look, __, for_plot =  visualize_input(name, "plot", argv, 100)
 
     # Expand the output, we need it further.
     ase, format_ts = data_ase
-    withs, allval, special_vals, __, __ =  values
+    num, ts_estimates, refs = path_look
+    reference, reference_data = refs
+    withs, allval, special_vals, appender, special_opt =  values
     diff, symm, symshift =  special_opt
-    num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
+    num_i, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
     cell, tomove, howmove = appender
 
     # plot environment
@@ -308,7 +309,7 @@ def main( argv):
     for i, filename in enumerate(filenames):
 
         # Extract the data for beads, path if availabe and TS estimates if requested (else None).
-        beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, appender, num)
+        beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, num)
 
         if ts_ests_geos == []:
             print >> stderr, "WARNING: No transition state found for file", filename

@@ -50,9 +50,31 @@ def get_mask(strmask):
     mask = [m in tr for m in mask]
     return mask
 
+def ase_input(parser):
+    """
+    The FILE(s) will be expected to contain geoemtries in ASE readable format. If the format cannot
+    be extracted from the name of FILE it can be given as --format. All geometries will be supposed
+    to be situated on a single path as default. if --next is used a new path will be started.
+    """
+    from optparse import OptionGroup
+
+    group =  OptionGroup( parser, "SECOND ALTERNATIVE INPUT: ASE INPUT", ase_input.__doc__)
+    group.add_option("--ase", dest = "ase",
+                      help = "Input is in ASE format.",
+                      action = "store_true", default = False )
+    group.add_option("--format", dest = "format",
+                      help = "Sets the format for ASE input to FORMAT. Sets also ase to true.", metavar = "FORMAT",
+                      type = "string")
+    group.add_option("--next", dest = "next", default = [0],
+                      help = "The input files FILES starting with N will be the next path.", metavar = "N",
+                      type = "int", action = "append")
+
+    parser.add_option_group(group)
+    return parser
+
 def alternative_input_group(parser):
     """
-    Here FILE contains  direct  internal geometry coordinates.
+    Here FILE(s) contains  direct  internal geometry coordinates.
     There is the requirement of having more input in
     separate user readable files.
     Required are in this case the files of the --symbols option. Additional
@@ -131,21 +153,21 @@ def get_options_to_xyz(input, argv, num_old):
 
     return parser.parse_args(argv)
 
-def visualize_input( argv, num_old):
+def geometry_values(parser):
     """
-    Reads in the input from argv for the plot/show/table
-    function.
-    Looks for the sum of all available options, the
-    calling functions might only need a subset of them.
+    Usually geometry values are given before the other values, therefore if at least one of them
+    is given the x-coordinate will be an internal coordinate. They can be choosen independent of the
+    coordinates in which the calculation has been run.
     """
-    from pts.tools.xyz2tabint import interestingvalue
-    from optparse import OptionParser
-    parser = OptionParser()
-    global num_i
-    num_i = 1
+    from optparse import OptionGroup
+
+    group =  OptionGroup( parser, "SPECIAL INTERNAL COORDINATES EXCTRACTING", geometry_values.__doc__)
 
     def value_to_number(name):
-        print "Transform name", name
+        """
+        The internal coordinates are usually handled as numbers.
+        Transform them here from the user friendly names.
+        """
         if name.startswith("dis"):
             return 2
         elif name.startswith("ang"):
@@ -201,6 +223,77 @@ def visualize_input( argv, num_old):
         global num_i
         parser.values.symm.append((num_i, value ))
 
+
+   # The geometry options to plot or print
+    group.add_option("--t" ,"--s", dest = "withs",
+                      help = "The first geometry will be the abscissa of the path or the number of the point (progress).",
+                      action = "store_true", default = False )
+
+    group.add_option("--difference", dest = "diff",
+                      help = "From the next two coordinates the difference is taken.",
+                      default = [], action = "callback", callback = call_difference )
+
+    group.add_option("--symmetry", dest = "symm",
+                      help = "For the next variable F it is given how good is the symmetry as F(x -XMID).",
+                      metavar = "XMID",
+                      default = [], action = "callback", type = "float", callback = call_symmetrie )
+
+    group.add_option("--distance", dest = "allval", default = [],
+                      help = "Distance between atoms N1 and N2.",
+                      metavar = "N1 N2",
+                     action = "callback", type = "int", nargs = 2, callback = got_intersting_value)
+
+    group.add_option("--angle", "--ang", dest = "allval",
+                      help = "Angle between the atoms N1 N2 N3.",
+                      metavar = "N1 N2 N3",
+                     action = "callback", type = "int", nargs = 3, callback = got_intersting_value)
+
+    group.add_option("--angle4","--ang4", dest = "allval",
+                      help = "Angle between the vectors of atoms N1-N2 and N3-N4.",
+                      metavar = "N1 N2 N3 N4",
+                     action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
+
+    group.add_option("--dihedral", dest = "allval",
+                      help = "Dihedral angle of N1 N2 N3 and N4."
+                      metavar = "N1 N2 N3 N4",
+                     action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
+
+    group.add_option("--dp", "--plane-distance", dest = "allval",
+                      help = "Distance of X1 to the plane spanned by N1 N2 and N3.",
+                      metavar = "X1 N1 N2 N3",
+                     action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
+
+    group.add_option("--dl", "--line-distance", dest = "allval",
+                      help = "Distance of X1 to the line given by N1 and N2.",
+                      metavar = "X1 N1 N2",
+                     action = "callback", type = "int", nargs = 3, callback = got_intersting_value)
+
+    group.add_option("--op", "--on-plane", dest = "allval",
+                      help = "Position of projection of X1 onto the coordinat system given by O= N1, x=N2-N1 and y=N3-N1.",
+                      metavar = "X1 N1 N2 N3",
+                     action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
+
+    group.add_option("--expand", dest = "expand",
+                      help = """The atoms will be exanded  with atoms choosen as original ones
+                      shifted  with  cell   vectors,  as  described  in  EXP-FILE.
+                      CELL-FILE should  contain the three basis vectors  for the cell.
+                      EXP-FILE contains the shifted atoms: Number(original atom) three numbers
+                      for shift in the three cell vector directions.""",
+                      metavar = "CELL-FILE EXP-FILE",
+                      type = "string", nargs = 2)
+
+    parser.add_option_group(group)
+    return parser
+
+def gradient_and_energies(parser):
+    """
+    Gives energies or special gradient properties. They will be processed always after the internal coordinates,
+    no matter in which order they are given. This way a later specified internal coordinate will still be the
+    x-coordinate.
+    """
+    from optparse import OptionGroup
+
+    group =  OptionGroup( parser, "ENERGIES AND GRADIENT PROPERTIES", gradient_and_energies.__doc__)
     def grad_plus_action(option, opt_str, value, parser):
         """
         Gradient action needs an identifier for gradient before
@@ -214,125 +307,241 @@ def visualize_input( argv, num_old):
         # start for option at 4: 2 for -- and 2 for gr
         parser.values.special_vals.append(("gr-" + opt_str[4:]))
 
-    # the number of images (points on a path)
-    parser.add_option("--num", dest = "num",
-                      help = "Number of images on path or table",
-                      default = num_old, type = "int")
-
-   # The geometry options to plot or print
-    parser.add_option("--t" ,"--s", dest = "withs",
-                      help = "Use abscissa/number of position as x-value",
-                      action = "store_true", default = False )
-
-    parser.add_option("--difference", dest = "diff",
-                      help = "From the next two coordinates the difference is taken",
-                      default = [], action = "callback", callback = call_difference )
-
-    parser.add_option("--symmetry", dest = "symm",
-                      default = [], action = "callback", type = "float", callback = call_symmetrie )
-
-    parser.add_option("--distance", dest = "allval", default = [],
-                     action = "callback", type = "int", nargs = 2, callback = got_intersting_value)
-
-    parser.add_option("--angle", "--ang", dest = "allval",
-                     action = "callback", type = "int", nargs = 3, callback = got_intersting_value)
-
-    parser.add_option("--angle4","--ang4", dest = "allval",
-                     action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
-
-    parser.add_option("--dihedral", dest = "allval",
-                     action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
-
-    parser.add_option("--dp", "--plane-distance", dest = "allval",
-                     action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
-
-    parser.add_option("--dl", "--line-distance", dest = "allval",
-                     action = "callback", type = "int", nargs = 3, callback = got_intersting_value)
-
-    parser.add_option("--op", "--on-plane", dest = "allval",
-                     action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
-
-    parser.add_option("--expand", dest = "expand",
-                      type = "string", nargs = 2)
-
-   # different input format for path
-    parser.add_option("--ase", dest = "ase",
-                      help = "Input comes in ASE format",
-                      action = "store_true", default = False )
-    parser.add_option("--format", dest = "format",
-                      help = "Sets the format for ASE input to FORMAT", metavar = "FORMAT",
-                      type = "string")
-    parser.add_option("--next", dest = "next", default = [0],
-                      type = "int", action = "append")
-
-    # Energies and gradient handling
-    parser.add_option("--en", "--energy" , dest = "special_vals",
-                      help = "Use the energy, do not use gradients",
+    group.add_option("--en", "--energy" , dest = "special_vals",
+                      help = "Gives the energy. Interpolation for path without usage of gradients.",
                       action = "append_const", const = "energy", default = [] )
 
-    parser.add_option("--energy2" , dest = "special_vals",
-                      help = "Use the energy, interpolation with gradients",
+    group.add_option("--energy2" , dest = "special_vals",
+                      help = "Gives the energy. Interpolation for path with usage of gradients.",
                       action = "append_const", const = "energy2", default = [] )
 
-    parser.add_option("--gr", "--gradients", dest = "special_vals",
-                      help = "Use ACTION of gradients, ACTIONS can be abs, max, para, perp, angle",
-                      metavar = "ACTION",
-                      action = "callback", type = "string", callback = grad_plus_action )
+    group.add_option("--gr", "--gradients", dest = "special_vals",
+                      help = "Use ACTION of gradients, ACTIONS can be abs, max, para, perp, angle.",
+                      metavar = "ACTION", choices = ["abs", "max", "para", "perp", "angle"],
+                      action = "callback", type = "choice", callback = grad_plus_action )
 
-    parser.add_option("--grperp", "--grpara", "--grabs", "--grangle", dest = "special_vals",
+    group.add_option("--grperp", "--grpara", "--grabs", "--grangle", dest = "special_vals",
+                      help = "Allow gradient actions the old way.",
                       action = "callback", callback = grad_action )
+    parser.add_option_group(group)
+    return parser
 
-    parser.add_option("--step", dest = "special_vals",
+def dimer_specials(parser):
+    """
+    Gives special properties only available for the progress functions.
+    """
+    from optparse import OptionGroup
+
+    group =  OptionGroup( parser, "SPECIAL PROPERTIES FOR PROGRESS FUNCTIONS", dimer_specials.__doc__)
+
+    group.add_option("--step", dest = "special_vals",
+                      help = "Gives the steplength between succeding geometries.",
                       action = "append_const", const = "step" )
 
-    parser.add_option("--curvature", dest = "special_vals",
+    group.add_option("--curvature", dest = "special_vals",
+                      help = "Gives the curvature (only dimer or lanczos).",
                       action = "append_const", const = "curv" )
 
-    parser.add_option("--ts-estimates", "--transition-states", dest = "ts_estimates",
-                       type = "int", action = "append", default = [] )
-
-    parser.add_option("--references", dest = "references",
-                       type = "string", nargs = 2, action = "append", default = [] )
-
-    # For dimer
-    parser.add_option("--arrow", "--with-mode", "--modes", dest = "arrow_len",
+    group.add_option("--modes", dest = "arrow_len",
+                     help = """Plots additional to the geometries (only for internal coordinates) the mode
+                              vector on each geometry with the length LENGTH.""",
+                     metavar = "LENGTH",
                        type = "float")
 
-    parser.add_option("--vector-angle", "--vec_angle", dest = "vec_angle",
+    group.add_option("--vector-angle", "--vec-angle", dest = "vec_angle",
+                       metavar = "DIR1 DIR2",
+                       help = """Gives the angle between the two directions DIR1 and DIR2.
+                               If DIR1 and DIR2 are the same the angle between succeding iterations is taken.
+                               The DIR's can be anything of:
+                               mode, grad (gradient), step,
+                               translation: accumulated translation from initial point
+                               init2final: a constant vector from initial to final point
+                               initmode: initial mode vector
+                                   (attention: this is the mode after the rotation
+                                   step, rather than the input one)
+                               finalmode: mode of the last step
+                               """,
+                       type = "string", nargs = 2, action = "append", default = [] )
+    parser.add_option_group(group)
+    return parser
+
+def path_specials(parser, num_old):
+    """
+    Defines coarseness of path and special points to add.
+    """
+    from optparse import OptionGroup
+
+    group =  OptionGroup( parser, "SPECIAL PROPERTIES FOR PATH FUNCTIONS", path_specials.__doc__)
+
+    group.add_option("--num", dest = "num",
+                      help = "Number of images on path or table.",
+                      default = num_old, type = "int")
+
+    group.add_option("--ts-estimates", "--transition-states", dest = "ts_estimates",
+                      metavar = "N",
+                      help = "Adds the transition state of the kind N (see help text of paratools ts-and-mods) to the paths.",
+                       type = "int", action = "append", default = [] )
+
+    group.add_option("--references", dest = "references",
+                      metavar = "GEO EN",
+                      help = "Only for plot/show: adds a reference point of geometry of file GEO and energy of file EN to the plot.",
                        type = "string", nargs = 2, action = "append", default = [] )
 
-    # Plotting settings
-    parser.add_option("--title", dest = "title",
-                      type = "string")
-    parser.add_option("--xlabel", dest = "xlabel",
-                      type = "string")
-    parser.add_option("--xrange", dest = "xrange",
-                      type = "float", nargs = 2 )
-    parser.add_option("--yrange", dest = "yrange",
-                      type = "float", nargs = 2 )
-    parser.add_option("--ylabel", dest = "ylabel",
-                      type = "string")
-    parser.add_option("--output", dest = "output",
-                      type = "string")
-    parser.add_option("--name", dest = "names_of_lines",
-                      type = "string", action = "append", default = [])
-    parser.add_option("--logscale", dest = "logscale",
-                      type = "string", action = "append", default = [])
+    parser.add_option_group(group)
+    return parser
+
+def visualize_input( input, output, argv, num_old):
+    """
+
+    paratools OUTPUT INPUT FILE [FILE2, ...] Options
+
+    Where OUTPUT is one of:
+    table : gives a table with the numbers to standard output.
+    show  : open a picture containing the plot of the choosen values.
+    plot  : puts the picture directly ito a file.
+
+    INPUT can be one of the following:
+    path     : FILE(s) are results of a path calculation.
+    progress : FILE(s) are pickle files of dimer/lanczos or quasi-newton calculation
+    xyz      : FILE(s) contain a string of xyz files.
+
+    It is required to give at least one Option for table to specify what should be
+    given and two (for x and y-coordinates) for teh plot/show function.
+
+    EXAMPLE:
+
+    paratools show path FILE --distance 1 2 --distance 1 3
+
+    This would plot the distance between the atoms 1 and 3 against the distance of the atoms 1 and 2 for
+    the file FILE.
+    """
+    from pts.tools.xyz2tabint import interestingvalue
+    from pts.tools.path2tab import get_expansion
+    from optparse import OptionParser
+    parser = OptionParser(usage = visualize_input.__doc__)
+
+    global num_i
+    num_i = 1
+    parser = geometry_values(parser)
+
+    # Energies and gradient handling
+    if input in ["path", "progress"]:
+        parser  = gradient_and_energies(parser)
+    else:
+        parser.set_defaults(special_vals = None)
+
+    # the number of images (points on a path)
+
+    # For dimer, lanczos and quasi-newton
+    if input == "progress":
+        parser = dimer_specials(parser)
 
     # Different input format
-    parser.add_option("--abscissa","--pathpos", dest = "abcis",
-                      type = "string", action = "append", default = [])
-    parser.add_option("--mask", dest = "mask",
-                      type = "string", nargs = 2)
-    parser.add_option("--zmatrix", dest = "zmats",
-                      type = "string", action = "append", default = [])
-    parser.add_option("--symbols", dest = "symbfile",
+    if input == "path":
+        parser = path_specials(parser, num_old)
+        parser = alternative_input_group(parser)
+        parser = ase_input(parser)
+
+    # Plotting settings
+    if output in ["show", "plot"]:
+        parser = plot_settings(parser)
+
+    options, args = parser.parse_args(argv)
+
+    symm = [n for n,v in options.symm]
+    special_opt = options.diff, symm, options.symm
+
+    if options.expand == None:
+        appender = None, None, None
+    else:
+        a1, a2 = options.expand
+        appender = get_expansion(a1, a2)
+    values = options.withs, options.allval, options.special_vals, appender, special_opt
+
+    if input == "path":
+        # alternative input:
+        obj = None
+        if options.symbfile is not None:
+            if options.mask == None:
+                mask = None
+                maskgeo = None
+            else:
+                mask, maskgeo = options.mask
+
+            obj = read_path_fix( options.symbfile, options.zmats, mask, maskgeo )
+        other_input = (options.symbfile, options.abcis, obj)
+        if options.ase:
+            options.next.append(len(args)+1)
+            args = reorder_files(args, next)
+        data_ase = ( options.ase, options.format)
+        reference =  []
+        reference_data = []
+        for refs in options.references:
+           ref1, ref2 = refs
+           reference.append(ref1)
+           reference_data.append(ref2)
+        path_look = (options.num, options.ts_estimates, (reference, reference_data))
+    else:
+        other_input = None
+        data_ase = None
+        path_look = None
+
+    if input == "progress":
+        dimer_special = options.arrow_len, options.vec_angle
+    else:
+        dimer_special = None
+
+
+    if output in ["show", "plot"]:
+        for i in range(len(args)):
+            options.names_of_lines.append([])
+        for_plot = num_i, options.logscale, options.title, options.xlab, options.xran, options.ylab, options.yran, options.names_of_lines, options.output
+
+    return args, data_ase, other_input, values, path_look, dimer_special, for_plot
+
+def plot_settings(parser):
+    """
+    These options are for changing the scope of how to plot.
+    """
+    from optparse import OptionGroup
+
+    group =  OptionGroup( parser, "SETTINGS FOR PLOT/SHOW PICTURES", plot_settings.__doc__)
+
+    group.add_option("--title", dest = "title",
+                      help = "Sets TEXT as title of the picture.",
+                      metavar = "TEXT",
                       type = "string")
+    group.add_option("--xlabel", dest = "xlab",
+                      help = "Sets TEXT as label of X-axis of the picture.",
+                      metavar = "TEXT",
+                      type = "string")
+    group.add_option("--ylabel", dest = "ylab",
+                      help = "Sets TEXT as label of Y-axis of the picture.",
+                      metavar = "TEXT",
+                      type = "string")
+    group.add_option("--xrange", dest = "xran",
+                      help = "Sets the range of the X-axis to [N1, N2].",
+                      metavar = "N1 N2",
+                      type = "float", nargs = 2 )
+    group.add_option("--yrange", dest = "yran",
+                      help = "Sets the range of the Y-axis to [N1, N2].",
+                      metavar = "N1 N2",
+                      type = "float", nargs = 2 )
+    group.add_option("--output", dest = "output",
+                      help = "The output will go to FILE. This can also transform show into plot.",
+                      metavar = "FILE",
+                      type = "string")
+    group.add_option("--name", dest = "names_of_lines",
+                      help = "The n'th call of --name will set TEXT as label of the n'th FILE.",
+                      metavar = "TEXT",
+                      type = "string", action = "append", default = [])
+    group.add_option("--logscale", dest = "logscale",
+                      help = "Sets the axis DIR (x or y) to logarithmic scale.",
+                      metavar = "DIR", choices = ["x", "y", "1", "2"],
+                      type = "choice", action = "append", default = [])
 
-    (options, args) = parser.parse_args(argv)
-    return options, args, num_i
-
-
+    parser.add_option_group(group)
+    return parser
 
 
 # Default options for vim:sw=4:expandtab:smarttab:autoindent:syntax

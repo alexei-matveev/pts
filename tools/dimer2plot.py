@@ -164,24 +164,18 @@ def main(argv):
     from pts.tools.tab2plot import setup_plot,prepare_plot, plot_data, colormap
     from pts.tools.path2plot import makeoption
     from pts.tools.path2tab import beads_to_int
-    from pts.tools.path2tab import read_input
+    from pts.io.cmdline import visualize_input
     from pts.tools.dimer2xyz import read_from_pickle_log
 
+    log_file, __, __, values, __, dimer_special, for_plot =  visualize_input("progress", "plot", argv, -1)
 
-    if argv[0] == '--help':
-        # normal (requested) output goes to STDOUT:
-        print __doc__
-        exit()
-
-    log_file, __, __, values, __, special_opt, appender, for_plot =  read_input("progress", argv, -1)
-
+    num_i, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
+    withs, allval, special_val, appender, special_opt =  values
     diff, __, __ =  special_opt
-    num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
-    withs, allval, special_val, __, extra =  values
     cell, tomove, howmove = appender
 
     # These two are extra values only for the progress tools
-    arrow_len, vec_angle_raw = extra
+    arrow_len, vec_angle_raw = dimer_special
 
     decrease = [0, 0]
 
@@ -212,8 +206,9 @@ def main(argv):
     else:
         arrow = True
 
-
     if "step" in special_val:
+         # There will be one value less for the step, as it is the difference to the last
+         # one.
          decrease[1] = 1
 
     # plot environment

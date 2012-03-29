@@ -419,7 +419,7 @@ def helpfun(name):
         print >> stderr, "No help text available for current function!"
     exit()
 
-def read_input(name, args, num):
+def read_input( name, input, args, num):
     """
     Reads in the options for the path2plot and path2tab function.
     Be aware that some of the options are only valid for path2plot. If called with
@@ -427,7 +427,7 @@ def read_input(name, args, num):
     """
     from pts.io.cmdline import visualize_input
     # store the files containing the pathes somewhere
-    opts, filenames, num_i = visualize_input(args, num)
+    opts, filenames, num_i = visualize_input(name, input, args, num)
     opts = opts.__dict__
     # input need not to be path.pickle
     symbfile = opts["symbfile"]
@@ -520,10 +520,10 @@ def read_input(name, args, num):
 
     return filenames, (ase, format), other_input, \
            (withs, allval, special_vals, ts_estimates, (arrow_len, vec_angle )), \
-           num, (diff, symm, symshift), (cell, tomove, howmove),\
+           num, (diff, symm, symshift), (cell, tomove, howmove), \
           ( num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile)
 
-def extract_data(filename, data_ase, other_input, values, appender, num ):
+def extract_data(filename, data_ase, other_input, values, ts_estimates, num ):
     """
     Extract the data for the beads, if not ase read for paths, and if demanded
     for the transition state estimates.
@@ -534,7 +534,7 @@ def extract_data(filename, data_ase, other_input, values, appender, num ):
 
     symbfile, abcis, obj = other_input
     ase, format  = data_ase
-    withs, allval, special_vals, ts_estimates, __ =  values
+    withs, allval, special_vals, appender, __ =  values
     cell, tomove, howmove = appender
 
     e_a_gr = None
@@ -627,18 +627,19 @@ def main(name, argv):
     provided an other way
 
     Then calculate according to the need
-    the result will be a picture showing
-    for each inputfile a path of the given
-    coordinates with beads marked on them
+    the result will be a table with data
+    separate for each inputfile
     """
     from sys import stderr
+    from pts.io.cmdline import visualize_input
 
-    if '--help' in argv:
-        helpfun(name)
+#   if '--help' in argv:
+#       helpfun(name)
 
-    filenames, data_ase, other_input, values, num, special_opt, appender, for_plot =  read_input(name, argv, -1)
+    filenames, data_ase, other_input, values, path_look, __, for_plot =  visualize_input(name, "table" , argv, -1)
 
     ase, format = data_ase
+    num, ts_estimates, __ = path_look
 
     if name == "xyz":
         ase = True
@@ -652,10 +653,10 @@ def main(name, argv):
     for i, filename in enumerate(filenames):
 
         if num > 0:
-            beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, appender, num)
+            beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, num)
             coords = path
         else:
-            beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, appender, 2)
+            beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, 2)
             coords = beads
 
         if not ts_ests_geos == None:
