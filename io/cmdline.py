@@ -254,7 +254,7 @@ def geometry_values(parser):
                      action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
 
     group.add_option("--dihedral", dest = "allval",
-                      help = "Dihedral angle of N1 N2 N3 and N4."
+                      help = "Dihedral angle of N1 N2 N3 and N4.",
                       metavar = "N1 N2 N3 N4",
                      action = "callback", type = "int", nargs = 4, callback = got_intersting_value)
 
