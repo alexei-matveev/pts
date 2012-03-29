@@ -67,7 +67,7 @@ def main(argv):
                        action = "store_true", default = False )
 
     parser.add_option( "--all", dest = "see_all",
-                       help = "Append also the Cartesian mode vectors.",
+                       help = "Show all transition state estimates of a kind.",
                        action = "store_true", default = False )
 
     parser.add_option( "--dump", dest = "dump",
