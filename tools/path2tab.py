@@ -419,111 +419,7 @@ def helpfun(name):
         print >> stderr, "No help text available for current function!"
     exit()
 
-def read_input( name, input, args, num):
-    """
-    Reads in the options for the path2plot and path2tab function.
-    Be aware that some of the options are only valid for path2plot. If called with
-    name = path2tab they will cause an assert.
-    """
-    from pts.io.cmdline import visualize_input
-    # store the files containing the pathes somewhere
-    opts, filenames, num_i = visualize_input(name, input, args, num)
-    opts = opts.__dict__
-    # input need not to be path.pickle
-    symbfile = opts["symbfile"]
-    zmats = opts["zmats"]
-    if opts["mask"] == None:
-        mask = None
-        maskgeo = None
-    else:
-        mask, maskgeo = opts["mask"]
-
-    abcis = opts["abcis"]
-    # ase inputs:
-    ase = opts["ase"]
-    format = opts["format"]
-    if not format == None:
-       ase = True
-    next = opts["next"]
-
-    # the default values for the parameter
-    diff = opts["diff"]
-    symm = []
-    symshift = opts["symm"]
-    for numval in symshift:
-        num, val = numval
-        symm.append(num)
-
-    allval = opts["allval"]
-
-    logscale = opts["logscale"]
-
-    special_vals = opts["special_vals"]
-
-    if opts["expand"] == None:
-        cell = None
-        tomove = None
-        howmove = None
-    else:
-       a1, a2 = opts["expand"]
-       cell, tomove, howmove = get_expansion(a1, a2)
-
-    withs = opts["withs"]
-
-    # estimates and reference
-    ts_estimates = opts["ts_estimates"]
-
-    ## This part is for path2plot
-    #reference =   "input/POSCAR.ts_ref"
-
-    reference =  [] # ["input/POSCAR.ts_ref"]
-    reference_data = [] #"input/ts_energy"
-    for refs in opts["references"]:
-       ref1, ref2 = refs
-       reference.append(ref1)
-       reference_data.append(ref2)
-    ## end only path2plot
-
-    ## This part is for path2plot and dimer2plot
-    # axes and title need not be given for plot
-    title = opts["title"]
-    xlab = opts["xlabel"]
-    ylab =  opts["ylabel"]
-    xran =  opts["xrange"]
-    yran =  opts["yrange"]
-    names_of_lines = opts["names_of_lines"]
-    # output the figure as a file
-    outputfile = opts["output"]
-    ## end only path2plot and dimer2plot
-
-
-    ## This part is for dimer2plot
-    arrow_len = opts["arrow_len"]
-    vec_angle = opts["vec_angle"]
-    ## end only dimer2plot
-
-    if ase:
-        next.append(len(filenames)+1)
-        filenames = reorder_files(filenames, next)
-
-    for i in range(len(filenames)):
-        # ensure that there will be no error message if calling
-        # names_of_lines[i]
-        names_of_lines.append([])
-
-    obj = None
-    if symbfile is not None:
-        symb, i2c = read_path_fix( symbfile, zmats, mask, maskgeo )
-        obj = symb, i2c
-
-    other_input = (symbfile, abcis, obj)
-
-    return filenames, (ase, format), other_input, \
-           (withs, allval, special_vals, ts_estimates, (arrow_len, vec_angle )), \
-           num, (diff, symm, symshift), (cell, tomove, howmove), \
-          ( num_i, reference, reference_data, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile)
-
-def extract_data(filename, data_ase, other_input, values, ts_estimates, num ):
+def extract_data(filename, data_ase, other_input, values, ts_estimates, num, iter):
     """
     Extract the data for the beads, if not ase read for paths, and if demanded
     for the transition state estimates.
@@ -551,7 +447,7 @@ def extract_data(filename, data_ase, other_input, values, ts_estimates, num ):
         # User readable input.
         patf = None
         if len(abcis) > 0:
-            patf = abcis[i]
+            patf = abcis[iter]
         y, x, __, __ = read_path_coords(filename, patf, None, None)
 
     # extract the internal coordinates, for path and beads
@@ -653,10 +549,10 @@ def main(name, argv):
     for i, filename in enumerate(filenames):
 
         if num > 0:
-            beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, num)
+            beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, num, i)
             coords = path
         else:
-            beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, 2)
+            beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, 2, i)
             coords = beads
 
         if not ts_ests_geos == None:

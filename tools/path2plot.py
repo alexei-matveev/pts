@@ -207,7 +207,7 @@ def xyz2plot( argv):
     for i, filename in enumerate(filenames):
 
         # Extract the data for beads, path if availabe and TS estimates if requested (else None).
-        beads, __, __ = extract_data(filename, (True, "xyz"), (None, None, None ), values, [], 0)
+        beads, __, __ = extract_data(filename, (True, "xyz"), (None, None, None ), values, [], 0, i)
 
         # The name belonging to filename.
         name_p = str(i + 1)
@@ -309,7 +309,7 @@ def main( argv):
     for i, filename in enumerate(filenames):
 
         # Extract the data for beads, path if availabe and TS estimates if requested (else None).
-        beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, num)
+        beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, num, i)
 
         if ts_ests_geos == []:
             print >> stderr, "WARNING: No transition state found for file", filename
