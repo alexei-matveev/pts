@@ -501,7 +501,7 @@ def extract_data(filename, data_ase, other_input, values, ts_estimates, num, ite
                     else:
                         path.append(energy_from_path(x, en, num))
                 elif s_val.startswith("gr"):
-                    val = s_val[2:]
+                    val = s_val[3:]
                     path.append(grads_from_path(x, y, gr, num, val))
 
              if not ts_estimates == []:
@@ -511,7 +511,7 @@ def extract_data(filename, data_ase, other_input, values, ts_estimates, num, ite
                     else:
                         ts_ests_geos.append(energy_from_path_points(x, en, ts_places))
                 elif s_val.startswith("gr"):
-                    val = s_val[2:]
+                    val = s_val[3:]
                     ts_ests_geos.append(grads_from_path_points(x, y, gr, ts_places, val))
 
     return beads, path, ts_ests_geos
