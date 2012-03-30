@@ -75,8 +75,8 @@ def main(argv):
                        action = "store_true", default = False )
 
     parser.add_option( "--symbols", dest = "symbfile",
-                       help = "Symbols, energies, forces for different input.",
-                       type = "string", nargs = 3)
+                       help = "Symbols (from file SYMB), energies (EN), forces (FOR) for different input.",
+                       type = "string", nargs = 3, metavar = "SYMB EN FOR")
 
     parser.add_option("--zmatrix", dest = "zmats",
                        help = "One zmatrix file ZMAT for other input format, might be repeated several times.", metavar = "ZMAT",
@@ -87,7 +87,7 @@ def main(argv):
                        type = "string")
 
     parser.add_option("--mask", dest = "mask",
-                       help = "Mask file MASK for other input format.", metavar = "MASK",
+                       help = "Mask file MASK for other input format. MASKGEO should contain unmasked geometries.", metavar = "MASK MASKGEO",
                        type = "string", nargs = 2)
 
 
