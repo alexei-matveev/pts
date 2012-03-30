@@ -153,7 +153,7 @@ STOL = TOL   # step size tolerance
 GTOL = 1.e-5 # gradient tolerance
 CTOL = TOL   # constrain tolerance
 
-MAXITER = 50
+MAXIT = 50
 MAXSTEP = 0.04
 
 def _solve(A, b):
@@ -175,7 +175,7 @@ def _solve(A, b):
 
     return x.reshape(xshape)
 
-def newton(x, fg, tol=TOL, maxiter=MAXITER, rk=None):
+def newton(x, fg, tol=TOL, maxiter=MAXIT, rk=None):
     """Solve F(x) = 0 (rather, reduce rhs to < tol)
 
         >>> from numpy import array
@@ -249,7 +249,7 @@ def newton(x, fg, tol=TOL, maxiter=MAXITER, rk=None):
 
     return x, info
 
-def minimize(f, x, xtol=STOL, ftol=GTOL, **kw):
+def minimize(f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, **kw):
     """
     Minimizes a Func |f| starting with |x|.
     Returns (xm, info)
@@ -284,7 +284,7 @@ def minimize(f, x, xtol=STOL, ftol=GTOL, **kw):
     if False:
         xm, info = fmin(fg, y, hess="BFGS", stol=xtol, gtol=ftol)
     else:
-        xm, fm, info =  minimize1D(fg, y)
+        xm, fm, info =  minimize1D(fg, y, pgtol=ftol, maxfun=maxit, iprint=1)
 
         #
         # External optimizer has its own conventions:
@@ -337,7 +337,7 @@ def cminimize(f, x, c, **kwargs):
 
     return xm, fm, stats
 
-def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70.0, hess="BFGS"):
+def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="BFGS"):
     """Search for a minimum of fg(x)[0] using the gradients fg(x)[1].
 
     TODO: dynamic trust radius, line search in QN direction (?)
@@ -554,7 +554,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXITER, maxstep=MAXSTEP, alpha=70
     return r, info # (iteration, converged, g, dr)
 
 def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
-        maxiter=MAXITER, maxstep=MAXSTEP, alpha=70.0, hess="LBFGS", callback=None):
+        maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="LBFGS", callback=None):
     """Search for a minimum of fg(x)[0] using the gradients fg(x)[1]
     subject to constrains cg(x)[0] = const.
 
