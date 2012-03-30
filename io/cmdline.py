@@ -279,8 +279,8 @@ def geometry_values(parser):
                       the three basis vectors for the cell. EXP-FILE
                       contains the shifted atoms:
                       Number(original atom) three numbers
-                      for shift in the three cell vector directions.",
-                      metavar = "CELL-FILE EXP-FILE""",
+                      for shift in the three cell vector directions.""",
+                      metavar = "CELL-FILE EXP-FILE",
                       type = "string", nargs = 2)
 
     parser.add_option_group(group)
