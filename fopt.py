@@ -268,7 +268,9 @@ def minimize(f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, **kw):
     # in case we are given a list instead of array:
     x = asarray(x)
     if VERBOSE:
-        print "x(in) =\n", x
+        print "fopt: x(in)=\n", x
+        if len(kw) > 0:
+            print "fopt: ignored kwargs=", kw
 
     # save the shape of the actual argument:
     xshape = x.shape
@@ -300,7 +302,7 @@ def minimize(f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, **kw):
     xm.shape = xshape
 
     if VERBOSE:
-        print "x(out)=\n", xm
+        print "fopt: x(out)=\n", xm
 
     return xm, info
 
