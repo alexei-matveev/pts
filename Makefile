@@ -46,6 +46,8 @@ src =	\
 	memoize.py \
 	fopt.py \
 	tools/path2plot.py \
+	tools/path2tab.py \
+	tools/path2xyz.py \
 
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.pyflakes) $(src:.py=.doctest) phony-targets
