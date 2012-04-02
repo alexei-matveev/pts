@@ -60,7 +60,7 @@ The following CMDs are for exctracing information from the output:
     show                show output in a pop-up window
     table               gives the data in a table
     xyz                 Prints geometries as xyz stream, only valid
-                        together with path as argument for
+                        together with path or progress as argument for
                         displacement
 
 One has to select what should be displaced by them, thus
@@ -257,7 +257,15 @@ def sort_plotting( argv):
         plot(argv )
 
     elif output == "xyz":
-        from pts.tools.path2xyz import main
+        if input == "path":
+            from pts.tools.path2xyz import main
+        elif input == "progress":
+            from pts.tools.dimer2xyz import main
+        else:
+            from sys import stderr, exit
+            print >> stderr, "ERROR: not allowed plotting combination"
+            print >> stderr, " it is not possible to get the output xyz for input", input
+            exit()
 
         main(argv[2:])
 
