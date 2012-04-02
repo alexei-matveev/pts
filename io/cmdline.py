@@ -399,32 +399,67 @@ def visualize_input( input, output, argv, num_old):
     show  : open a picture containing the plot of the choosen values.
     plot  : puts the picture directly ito a file.
 
+    It is required to give at least one Option for table to specify what should be
+    given and two (for x and y-coordinates) for the plot/show function.
+
     INPUT can be one of the following:
     path     : FILE(s) are results of a path calculation.
     progress : FILE(s) are pickle files of dimer/lanczos or quasi-newton calculation
     xyz      : FILE(s) contain a string of xyz files.
-
-    It is required to give at least one Option for table to specify what should be
-    given and two (for x and y-coordinates) for teh plot/show function.
-
-    EXAMPLE:
-
-    paratools show path FILE --distance 1 2 --distance 1 3
-
-    This would plot the distance between the atoms 1 and 3 against the distance of the
-    atoms 1 and 2 for the file FILE.
     """
     from pts.tools.xyz2tabint import interestingvalue
     from pts.tools.path2tab import get_expansion
     from optparse import OptionParser
-    parser = OptionParser(usage = visualize_input.__doc__)
+
+    usage_text = visualize_input.__doc__
+
+    if input == "mixed":
+        example = """
+    mixed    : FILE(s) can be path or progress, but it has to be anounced before.
+
+    In this case before the first file --path or --progress has to be set.
+    Whenever the format of the input is changed again the corresponding option
+    has to be given.
+
+    EXAMPLE:
+
+    paratools show mixed --path FILE1 FILE2 --progress FILE3 --path FILE4 --distance 1 2 --distance 1 3
+
+    This would plot the distance between the atoms 1 and 3 against the distance of the
+    atoms 1 and 2 for all files FILEi.
+
+    In this case FILE1, FILE2 and FILE4 are path.pickle files, while FILE3 is a progress pickle file.
+
+    Be aware that options only valid for one of the input files will be only used for this one.
+        """
+    else:
+        example = """
+    EXAMPLE:
+
+    paratools %s %s FILE --distance 1 2 --distance 1 3
+        """ % (input, output)
+
+        if output == "table":
+            example = example + """
+    This would give the distance between the atoms 1 and 3 and the distance of the
+    atoms 1 and 2 for the file FILE in a table.
+            """
+        else:
+            example = example + """
+    This would plot the distance between the atoms 1 and 3 against the distance of the
+    atoms 1 and 2 for the file FILE.
+            """
+
+    usage_text = usage_text + example
+
+    parser = OptionParser(usage = usage_text)
 
     global num_i
     num_i = 1
     parser = geometry_values(parser)
 
     # Energies and gradient handling
-    if input in ["path", "progress"]:
+    if input in ["path", "progress", "mixed"]:
         parser  = gradient_and_energies(parser)
     else:
         parser.set_defaults(special_vals = None)
@@ -432,11 +467,11 @@ def visualize_input( input, output, argv, num_old):
     # the number of images (points on a path)
 
     # For dimer, lanczos and quasi-newton
-    if input == "progress":
+    if input in ["progress", "mixed"]:
         parser = dimer_specials(parser)
 
     # Different input format
-    if input == "path":
+    if input in ["path", "mixed"]:
         parser = path_specials(parser, num_old)
         parser = alternative_input_group(parser)
         parser = ase_input(parser)
@@ -457,7 +492,7 @@ def visualize_input( input, output, argv, num_old):
         appender = get_expansion(a1, a2)
     values = options.withs, options.allval, options.special_vals, appender, special_opt
 
-    if input == "path":
+    if input in ["path", "mixed"]:
         # alternative input:
         obj = None
         if options.symbfile is not None:
@@ -485,7 +520,7 @@ def visualize_input( input, output, argv, num_old):
         data_ase = None
         path_look = None
 
-    if input == "progress":
+    if input in ["progress", "mixed"]:
         dimer_special = options.arrow_len, options.vec_angle
     else:
         dimer_special = None
