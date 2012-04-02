@@ -225,7 +225,7 @@ def xyz2plot( argv):
     # now plot
     plot_data(xrange = xran, yrange = yran, savefile = outputfile )
 
-def main( argv):
+def main(argv ):
     """
     Reads in stuff from the sys.argv if not provided an other way
 
@@ -233,20 +233,28 @@ def main( argv):
     showing for  each inputfile a  path of the given  coordinates with
     beads marked on them
     """
-    from pts.tools.path2tab import read_line_from_log, carts_to_int
-    from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
-    from pts.io.read_COS import read_geos_from_file
     from pts.io.cmdline import visualize_input
-    from pts.tools.path2tab import helpfun, extract_data
-    import numpy as np
-    from copy import copy
-    from sys import stderr
 
     name = "path"
 
     # interprete arguments, shared interface with path2tab.
     filenames, data_ase, other_input, values, path_look, __, for_plot =  visualize_input(name, "plot", argv, 100)
 
+    visualize_path(filenames, data_ase, other_input, values, path_look, for_plot, False )
+
+def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot, hold, file_range = [0, sys.maxint]):
+    """
+    Does the actual plotting of a path function. If hold = True the
+    actual plot is not done. This allows to use the function together with
+    some other functions changing the plot.
+    """
+    from pts.tools.path2tab import read_line_from_log, carts_to_int
+    from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
+    from pts.io.read_COS import read_geos_from_file
+    from pts.tools.path2tab import helpfun, extract_data
+    import numpy as np
+    from copy import copy
+    from sys import stderr
     # Expand the output, we need it further.
     ase, format_ts = data_ase
     num, ts_estimates, refs = path_look
@@ -307,6 +315,8 @@ def main( argv):
 
     # For each file prepare the plot
     for i, filename in enumerate(filenames):
+        if i < file_range[0] or i > file_range[1]:
+            continue
 
         # Extract the data for beads, path if availabe and TS estimates if requested (else None).
         beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, num, i)

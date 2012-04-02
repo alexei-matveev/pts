@@ -335,7 +335,8 @@ def prepare_plot( tablep, pname, tableb, bname, tabelr, rname, option, colors):
             r_opt = 'o:'
         makeplotter(tabelr, xfun, yfuns, rname, colors, r_opt)
 
-def plot_data( xrange = None, yrange = None, savefile = None):
+
+def plot_data( hold = False, xrange = None, yrange = None, savefile = None):
     """
     Make the last settings before the actual plot. Then
     plot (or put into a file).
@@ -352,7 +353,9 @@ def plot_data( xrange = None, yrange = None, savefile = None):
     legend( loc = "best")
     # Now to the actual plots (legend and plots), show on screen
     # or save as file
-    if savefile == None:
+    if hold:
+        pass
+    elif savefile == None:
         show()
     else:
         savefig(savefile)

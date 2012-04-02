@@ -159,15 +159,25 @@ import numpy as np
 from pts.path import Path
 from numpy.linalg import norm
 
-def main(argv):
+def main(argv ):
+    from pts.io.cmdline import visualize_input
 
+    log_file, __, __, values, __, dimer_special, for_plot =  visualize_input("progress", "plot", argv, -1)
+
+    visualize_dimer(log_file, values, dimer_special, for_plot, False )
+
+def visualize_dimer(log_file, values, dimer_special, for_plot, hold, file_range = [0, sys.maxint]):
+    """
+    this function might be called by another program. It contains
+    the main body of plotting a progress path.
+
+    if hold = True the plot will be prepared but not plotted (so that afterwards
+    other plots can be added). For hold = False the plot will be done.
+    """
     from pts.tools.tab2plot import setup_plot,prepare_plot, plot_data, colormap
     from pts.tools.path2plot import makeoption
     from pts.tools.path2tab import beads_to_int
-    from pts.io.cmdline import visualize_input
     from pts.tools.dimer2xyz import read_from_pickle_log
-
-    log_file, __, __, values, __, dimer_special, for_plot =  visualize_input("progress", "plot", argv, -1)
 
     num_i, logscale, title, xlab, xran, ylab, yran, names_of_lines, outputfile = for_plot
     withs, allval, special_val, appender, special_opt =  values
@@ -220,9 +230,9 @@ def main(argv):
     # decide how many color are used
     n = len(log_file) * (num_opts - 1 + len(special_val))
     for i, geo_file in enumerate(log_file):
-        # ensure that there will be no error message if calling
-        # names_of_lines[i]
-        names_of_lines.append([])
+        if i < file_range[0] or i > file_range[1]:
+            continue
+
         # extract refinement process information from log.pickle file
         obj, geos, modes, curv, energy, grad = read_from_pickle_log(geo_file)
         # initial and final point to plot used because arrays to be plotted may have
@@ -296,7 +306,7 @@ def main(argv):
                                s_val + " " + name_p, optlog, [colormap(i * (num_opts - 1 + len(special_val)) + j, n)])
 
     # finally make the picture visible
-    plot_data(xrange = xran, yrange = yran, savefile = outputfile)
+    plot_data(hold = hold, xrange = xran, yrange = yran, savefile = outputfile)
 
 def rescale(arrow, arrow_len):
     """
