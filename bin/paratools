@@ -277,6 +277,18 @@ def sort_plotting( argv):
 
         main(input, argv[2:])
 
+    elif input == "mixed":
+        from pts.tools.mixedplot import main
+
+        argv2 = []
+
+        if output == "plot":
+            argv2 = argv2 + ["--output", "mixed.png"]
+
+        argv2 = argv2 + argv[2:]
+
+        main(argv2)
+
     elif input == "progress":
         from pts.tools.dimer2plot import main
         # shows the progress of local transition state
