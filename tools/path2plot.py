@@ -345,7 +345,7 @@ def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot
 
 
     # now plot
-    plot_data(xrange = xran, yrange = yran, savefile = outputfile )
+    plot_data(hold = hold, xrange = xran, yrange = yran, savefile = outputfile )
 
 def makeoption(num_i, diff, symm, symshift, withs):
      """
