@@ -177,11 +177,11 @@ def path2plot_help():
     print __doc__
 
 
-def xyz2plot( argv):
+def xyz2plot(argv):
     """
-    Should do the same stuff as for path2plot. But expects the input files
-    to be xyz files.
-    Not all options of the other plot functions are available.
+    Should do the  same stuff as for path2plot.  But expects the input
+    files  to  be  xyz files.   Not  all  options  of the  other  plot
+    functions are available.
     """
     from pts.tools.path2tab import helpfun, extract_data
     from pts.io.cmdline import visualize_input
@@ -206,7 +206,8 @@ def xyz2plot( argv):
     n = len(filenames) * (num_opts - 1)
     for i, filename in enumerate(filenames):
 
-        # Extract the data for beads, path if availabe and TS estimates if requested (else None).
+        # Extract  the  data  for  beads,  path  if  availabe  and  TS
+        # estimates if requested (else None).
         beads, __, __ = extract_data(filename, (True, "xyz"), (None, None, None ), values, [], 0, i)
 
         # The name belonging to filename.
@@ -214,8 +215,9 @@ def xyz2plot( argv):
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
 
-        # prepare plot  from the tables  containing the "beads" = coordinate points of the xyz file
-        # there are better at least two coordinates, as there will be nothing else.
+        # Prepare  plot  from  the  tables containing  the  "beads"  =
+        # coordinate points of the xyz  file there are better at least
+        # two coordinates, as there will be nothing else.
         def choose_color(j):
              return colormap(i * (num_opts - 1) + j, n)
 
@@ -227,8 +229,7 @@ def xyz2plot( argv):
 
 def main(argv ):
     """
-    Reads in stuff from the sys.argv if not provided an other way
-
+    Reads in  stuff from  the sys.argv if  not provided an  other way.
     Then calculate according to the  need the result will be a picture
     showing for  each inputfile a  path of the given  coordinates with
     beads marked on them
@@ -244,9 +245,9 @@ def main(argv ):
 
 def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot, hold, file_range = [0, sys.maxint]):
     """
-    Does the actual plotting of a path function. If hold = True the
-    actual plot is not done. This allows to use the function together with
-    some other functions changing the plot.
+    Does the  actual plotting of a  path function. If hold  = True the
+    actual plot is not done.  This allows to use the function together
+    with some other functions changing the plot.
     """
     from pts.tools.path2tab import read_line_from_log, carts_to_int
     from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
@@ -283,11 +284,13 @@ def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot
 
     if not reference == []:
        for ref in reference:
-           # Reference point (geometry, energy) to compare the rest data to it.
-           # geometry is supposed to be in a ASE readable format, energy in a separate file.
+           # Reference  point (geometry, energy)  to compare  the rest
+           # data to it.  geometry is supposed to be in a ASE readable
+           # format, energy in a separate file.
            atom_ref, y_ref = read_geos_from_file([ref], format=format_ts)
 
-           # Reference data for the geometries. The Abscissa is supposed to be on 0.5
+           # Reference  data  for  the  geometries.  The  Abscissa  is
+           # supposed to be on 0.5
            reference_int_geos = np.array(carts_to_int(y_ref, [0.5], allval, cell, tomove, howmove, withs))
            reference_int_geos = reference_int_geos.T
            reference_int_geos = reference_int_geos.tolist()
@@ -295,8 +298,8 @@ def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot
            optref = optraw
            num_opts_ref = num_opts
            if special_vals != []:
-               # From the special vals only the energies can be displaced. Therefore special
-               # treatment is required.
+               # From  the  special  vals  only the  energies  can  be
+               # displaced. Therefore special treatment is required.
                for s_val in special_vals:
                    if s_val.startswith("en") and not reference_data == None:
                        optref = optraw + " t %i" % (num_opts_raw + 1)
@@ -318,7 +321,8 @@ def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot
         if i < file_range[0] or i > file_range[1]:
             continue
 
-        # Extract the data for beads, path if availabe and TS estimates if requested (else None).
+        # Extract  the  data  for  beads,  path  if  availabe  and  TS
+        # estimates if requested (else None).
         beads, path, ts_ests_geos = extract_data(filename, data_ase, other_input, values, ts_estimates, num, i)
 
         if ts_ests_geos == []:
@@ -330,7 +334,7 @@ def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot
         if names_of_lines[i] != []:
              name_p = names_of_lines[i]
 
-        # prepare plot  from the tables  containing the path  and bead
+        # prepare plot from the tables containing the path and bead
 
         def choose_color(j):
              return colormap(i * (num_opts - 1) + j, n)
