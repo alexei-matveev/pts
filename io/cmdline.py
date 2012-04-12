@@ -530,6 +530,8 @@ def visualize_input( input, output, argv, num_old):
         for i in range(len(args)):
             options.names_of_lines.append([])
         for_plot = num_i, options.logscale, options.title, options.xlab, options.xran, options.ylab, options.yran, options.names_of_lines, options.output
+    else:
+        for_plot = None
 
     return args, data_ase, other_input, values, path_look, dimer_special, for_plot
 
