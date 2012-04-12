@@ -233,6 +233,8 @@ paratools dimer --defaults
 There exists:
 Parameter          short description
 ------------------------------------------------
+trans_method       conj_grad for dimer translation steps with conjugate gradient
+                   lbfgs for the modified step algorithm with usage of BFGS hessian
 max_translation    maximal number of translation steps
 max_rotations      maximal number of rotation steps per translation step
                    For lanczos method it is illegal to have here a parameter larger
