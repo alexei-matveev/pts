@@ -1,0 +1,18 @@
+
+Hugh Chaffey-Millar <hughcm@googlemail.com>
+
+    Initial author.
+
+Astrid Nikodem <nikodem@theochem.tu-muenchen.de>
+
+    Dimer  methods   of  transition   state  search.  Took   over  the
+    maintenance and extending.
+
+Alexei Matveev <alexei.matveev@gmail.com>
+
+    Experimental path optimizer.
+
+Boxia Zheng <zbxthu@gmail.com>
+
+    Contributed plotting trajectories of Dimer methods.
+
