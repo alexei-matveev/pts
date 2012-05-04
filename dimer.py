@@ -474,6 +474,11 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          # Test for convergence, converged if saddle point is reached
          abs_force = metric.norm_down(grad, geo)
          error = max(abs(grad.flatten()))
+
+         #
+         # FIXME:  "res"  dictionary  is  not  yet set  in  the  first
+         # iteration, how comes it is used here?:
+         #
          if error < trans_converged:
               # Breakpoint 1: calculation has converged
               conv = True
