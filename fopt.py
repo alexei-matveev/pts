@@ -286,7 +286,7 @@ def minimize(f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, **kw):
     if False:
         xm, info = fmin(fg, y, hess="BFGS", stol=xtol, gtol=ftol)
     else:
-        xm, fm, info =  minimize1D(fg, y, pgtol=ftol, maxfun=maxit, iprint=1)
+        xm, fm, info =  minimize1D(fg, y, pgtol=ftol, maxfun=maxit) #, iprint=1)
 
         #
         # External optimizer has its own conventions:
