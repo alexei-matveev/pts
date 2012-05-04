@@ -1,14 +1,4 @@
 import searcher
-import common
-import test
-import sched
-import pes
-import path
-import tools
-import io
-
-# locally modified l_bfgs_b optimiser from scipy
-import cosopt
 
 class MustRegenerate(Exception):
     """Used to force the optimiser to exit if bead spacing has become uneven."""
@@ -25,11 +15,6 @@ class MaxIterations(Exception):
 class Converged(Exception):
     """Used to force convergence."""
     pass
-
-
-
-from optwrap import runopt
-
 
 def cleanup(gs):
     """Perform error checking and other stuff on an environment used to run
