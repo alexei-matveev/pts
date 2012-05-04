@@ -85,7 +85,7 @@ This relies on an iterative solver, may be fragile:
     True
 """
 
-__all__ = ["SR1", "LBFGS", "BFGS", "Array", "isolve"]
+__all__ = ["get_by_name", "SR1", "LBFGS", "BFGS", "Array", "isolve"]
 
 from numpy import asarray, empty, zeros, dot
 from numpy import eye, outer
@@ -631,6 +631,11 @@ class Array:
 
     def app(self, S):
         return asarray([ h.app(s) for h, s in zip(self.__H, S) ])
+
+_map_by_name = {"SR1": SR1, "BFGS": BFGS, "LBFGS": LBFGS}
+
+def get_by_name(name):
+    return _map_by_name[name]
 
 # python bfgs.py [-v]:
 if __name__ == "__main__":
