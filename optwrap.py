@@ -5,14 +5,11 @@ import pickle
 
 from copy import copy
 import pts.cosopt.lbfgsb as lbfgs
-from scipy.optimize import fmin_cg
 
 import ase
 import pts
-from pts import MustRegenerate, MaxIterations, Converged
+from pts import MustRegenerate, Converged
 from pts.common import important
-
-__all__ = ["opt"]
 
 names = ['scipy_lbfgsb', 'ase_lbfgs', 'ase_fire', 'ase_scipy_cg', 'ase_scipy_lbfgsb', 'ase_lbfgs_line', 'multiopt', 'ase_bfgs', 'conj_grad', 'steep_des', 'fire']
 
