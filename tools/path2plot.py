@@ -183,7 +183,7 @@ def xyz2plot(argv):
     files  to  be  xyz files.   Not  all  options  of the  other  plot
     functions are available.
     """
-    from pts.tools.path2tab import helpfun, extract_data
+    from pts.tools.path2tab import extract_data
     from pts.io.cmdline import visualize_input
     from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
 
@@ -249,10 +249,10 @@ def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot
     actual plot is not done.  This allows to use the function together
     with some other functions changing the plot.
     """
-    from pts.tools.path2tab import read_line_from_log, carts_to_int
+    from pts.tools.path2tab import carts_to_int
     from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
     from pts.io.read_COS import read_geos_from_file
-    from pts.tools.path2tab import helpfun, extract_data
+    from pts.tools.path2tab import extract_data
     import numpy as np
     from copy import copy
     from sys import stderr
