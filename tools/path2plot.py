@@ -270,7 +270,7 @@ def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot
 
     # extract which options to take
     optraw, num_opts, xnum_opts, optx = makeoption(num_i, diff, symm, symshift, withs)
-    num_opts_raw = copy(num_opts)
+    # num_opts_raw = copy(num_opts)
     opt = copy(optraw)
 
     if special_vals != []:
@@ -295,14 +295,14 @@ def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot
            reference_int_geos = reference_int_geos.T
            reference_int_geos = reference_int_geos.tolist()
 
-           optref = optraw
+           # optref = optraw
            num_opts_ref = num_opts
            if special_vals != []:
                # From  the  special  vals  only the  energies  can  be
                # displaced. Therefore special treatment is required.
                for s_val in special_vals:
                    if s_val.startswith("en") and not reference_data == None:
-                       optref = optraw + " t %i" % (num_opts_raw + 1)
+                       # optref = optraw + " t %i" % (num_opts_raw + 1)
                        reference_data = np.loadtxt(reference_data)
                        reference_int_geos.append([reference_data.tolist()])
                    else:
