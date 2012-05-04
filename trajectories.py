@@ -1,5 +1,13 @@
 from __future__ import with_statement
-from ase.io import write
+
+# FIXME: this module is imported even if its functionality, and that of ASE, is
+# not used. E.g. in doctests of pes/mueller_brown.py.
+try:
+    from ase.io import write
+except:
+    def write(path, atoms, format = "?"):
+        pass
+
 from numpy import savetxt
 from pickle import dump
 
