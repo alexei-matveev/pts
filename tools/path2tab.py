@@ -90,9 +90,8 @@ from pts.path import Path
 from sys import exit
 from sys import stderr
 from sys import argv as sargv
-from pickle import load
 from pts.tools.path2xyz import read_in_path
-from pts.tools.pathtools import read_path_fix, read_path_coords
+from pts.tools.pathtools import read_path_coords
 from pts.tools.xyz2tabint import returnall, expandlist, writeall
 from pts.io.read_COS import read_geos_from_file_more
 import numpy as np
@@ -426,7 +425,7 @@ def extract_data(filename, data_ase, other_input, values, ts_estimates, num, ite
     """
     from pts.cfunc import Pass_through
     from numpy import linspace
-    from sys import stderr, exit
+    from sys import exit
 
     symbfile, abcis, obj = other_input
     ase, format  = data_ase
@@ -526,7 +525,6 @@ def main(name, argv):
     the result will be a table with data
     separate for each inputfile
     """
-    from sys import stderr
     from pts.io.cmdline import visualize_input
 
 #   if '--help' in argv:
