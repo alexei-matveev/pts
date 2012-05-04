@@ -309,10 +309,7 @@ def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot
                        num_opts_ref = num_opts_ref - 1
 
            if num_opts_ref > 1:
-               def choose_color(j):
-                    return colormap(j, n)
-
-               colors = map(choose_color, range(0, num_opts))
+               colors = [colormap(j, n) for j in range(0, num_opts)]
                prepare_plot( None, None, None, "_nolegend_", reference_int_geos, "Reference", opt, colors )
 
 
