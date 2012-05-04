@@ -190,7 +190,7 @@ default_vasp = Vasp( ismear = 1
     , xc     = 'PW91'
     , isif   = 2
     , gga    = 91
-    , enmax  = 400
+#   , enmax  = 400 # FIXME: stock ASE does not know this kw
     , ialgo  = 48
     , enaug  =  650
     , ediffg =  -0.02
