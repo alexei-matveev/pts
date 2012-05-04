@@ -143,7 +143,7 @@ __all__ = ["minimize", "cminimize"]
 from numpy import asarray, empty, dot, max, abs, shape, size
 from numpy.linalg import solve #, eigh
 from scipy.optimize import fmin_l_bfgs_b as minimize1D
-from bfgs import LBFGS, BFGS
+from bfgs import get_by_name # BFGS, BFGS
 
 VERBOSE = 0
 
@@ -385,7 +385,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
         """
 
     # interpret a string as a constructor name:
-    hess = eval(hess)
+    hess = get_by_name(hess)
 
     # returns the default hessian:
     hessian = hess(alpha)
@@ -587,7 +587,7 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
         """
 
     # interpret a string as a constructor name:
-    hess = eval(hess)
+    hess = get_by_name(hess)
 
     # returns the default hessian:
     hessian = hess(alpha)
