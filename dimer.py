@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from numpy import dot, sqrt, pi
 from copy import deepcopy
-from pts.bfgs import LBFGS, BFGS, SR1
+from pts.bfgs import BFGS #, LBFGS, SR1
 from pts.metric import Default
 from pts.dimer_rotate import rotate_dimer, rotate_dimer_mem
 from numpy import arccos
