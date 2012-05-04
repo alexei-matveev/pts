@@ -376,7 +376,7 @@ def beads_to_int(ys, xs, cs, allval, cell, tomove, howmove, withs):
     exactly the beads which are used to create
     the frames
     """
-    beads = []
+
     syms, trafo = cs
 
     ys2 = [trafo(y) for y in ys]
