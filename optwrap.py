@@ -112,7 +112,7 @@ def runopt(name, CoS, ftol=0.1, xtol=0.03, etol=0.03, maxit=35, maxstep=0.2
             elif name == 'ase_scipy_cg':
                 opt = ase.SciPyFminCG(CoS)
             elif name == 'ase_scipy_lbfgsb':
-                opt = pts.cosopt.SciPyFminLBFGSB(CoS, alpha=400)
+                opt = pts.cosopt.optimizers.SciPyFminLBFGSB(CoS, alpha=400)
             else:
                 assert False, ' '.join(["Unrecognised algorithm", name, "not in"] + names)
 
