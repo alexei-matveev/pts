@@ -126,7 +126,7 @@ class MiniBFGS(ObjLog):
         # If tangent is available, minimise energy by stepping only along
         # the force. I.e. this is kind of a line search on a quadratic
         # model of the surface.
-        dir = -mt.metric.lower(grad, pos)
+        dir = -mt.metric.raises(grad, pos)
         dir = np.asarray(dir)
         # NNNN: This norm only scales the vector, it will be scaled later, so
         # it is only needed to change it here if the scaling here has some importance
