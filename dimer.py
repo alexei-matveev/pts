@@ -73,7 +73,8 @@ class translate_cg():
         # find direction
         step = self.metric.raises(force, start_geo)
 
-        if not self.old_force == None: # if not first iteration
+        if not self.old_force == None and not curv > 0.0: # if not first iteration and skip for
+           # special steps in case of unwanted curvature
            # attention: here step is simply force with upper indice
            old_norm = dot(self.old_force, self.metric.raises(self.old_force, self.old_geo))
            if old_norm != 0.0:
