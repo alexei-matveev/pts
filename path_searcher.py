@@ -310,7 +310,10 @@ def find_path(pes, init_path
             # them out to reuse their start values (None).
             abscissas  = CoS.pathpos()
             geometries, energies, gradients = CoS.state_vec, CoS.bead_pes_energies, CoS.bead_pes_gradients
-            tangents = CoS.update_tangents()
+            if method != 'neb':
+                tangents = CoS.update_tangents()
+            else:
+                tangents = None
 
             #
             # Write out initial path to  a file. The location and file
