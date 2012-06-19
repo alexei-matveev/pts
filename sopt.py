@@ -285,8 +285,7 @@ def test(A, B, trafo=None):
 
     from numpy import savetxt
 
-    def callback(x, e, g):
-        # show(x)
+    def callback(x, e, g, t):
         # savetxt("path.txt", x)
         # print "chain spacing=", spacing(x)
         pass
