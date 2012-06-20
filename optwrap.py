@@ -75,7 +75,8 @@ def runopt(name, CoS, ftol=0.1, xtol=0.03, etol=0.03, maxit=35, maxstep=0.2
             return dict
 
         elif name == 'multiopt':
-            opt = pts.cosopt.MultiOpt(CoS, maxstep=maxstep, **kwargs)
+            from pts.cosopt.multiopt import MultiOpt
+            opt = MultiOpt(CoS, maxstep=maxstep, **kwargs)
             opt.string = CoS.string
             opt.attach(lambda: callback(None), interval=1)
             opt.run(steps = max_it) # convergence handled by callback
