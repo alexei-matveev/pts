@@ -48,6 +48,9 @@ class Gaussian:
         nprocs: int
             number of processors to use (shared memory)
 
+        mem: str
+            Memory requirement of gaussian. Is not set as default.
+
         add_input: str
             if specified the content of the file given as add_input
             will be used to extend the input file *.com
