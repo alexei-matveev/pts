@@ -45,6 +45,8 @@ where CMD is one of the following:
     min-iter            Gives iteration with minimal value from
                         logfile
     compare_geos        compare coordinates of geometry files
+    transform-zmatrix   transform zmatrices of other programs into
+                        ParaTools format
 
 See subcommand specific help for syntax details.
 
@@ -94,6 +96,7 @@ import pts.tools.xyz2tabint
 import pts.vib
 import pts.path_searcher
 import pts.tools.compare_geos
+import pts.tools.transform_zmt
 
 
 methods = {
@@ -112,6 +115,7 @@ methods = {
    "min_iter"        : pts.tools.pathmin.main   ,
    "min-iter"        : pts.tools.pathmin.main   ,
    "compare_geos"    : pts.tools.compare_geos.main   ,
+   "transform-zmatrix" : pts.tools.transform_zmt.main ,
 }
 
 def main(argv):
