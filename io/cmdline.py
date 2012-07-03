@@ -462,7 +462,7 @@ def visualize_input( input, output, argv, num_old):
     if input in ["path", "progress", "mixed"]:
         parser  = gradient_and_energies(parser)
     else:
-        parser.set_defaults(special_vals = None)
+        parser.set_defaults(special_vals = [])
 
     # the number of images (points on a path)
 
@@ -516,9 +516,9 @@ def visualize_input( input, output, argv, num_old):
            reference_data.append(ref2)
         path_look = (options.num, options.ts_estimates, (reference, reference_data))
     else:
-        other_input = None
-        data_ase = None
-        path_look = None
+        other_input = (None, None, None)
+        data_ase = False, None
+        path_look = (None, None, None)
 
     if input in ["progress", "mixed"]:
         dimer_special = options.arrow_len, options.vec_angle
