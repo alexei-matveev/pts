@@ -133,7 +133,7 @@ from pts.defaults import ps_default_params, ps_are_floats, ps_are_ints, info_ps_
 from pts.defaults import ps_are_complex
 from pts.common import file2str
 from pts.io.read_COS import read_geos_from_file, read_zmt_from_file, geo_params
-from pts.io.read_COS import read_zmt_from_gx
+from pts.io.read_COS import read_zmt_from_gx, read_zmt_from_gauss
 from pts.io.read_COS import info_geometries
 from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
 from pts.zmat import ZMat
@@ -267,6 +267,8 @@ def get_transformation(zmi, len_carts, zmt_format):
     # extract data from (several) zmatrices
     if zmt_format == "gx":
         datas = [read_zmt_from_gx(zm) for zm in zmi]
+    elif zmt_format == "gauss":
+        datas = [read_zmt_from_gauss(zm) for zm in zmi]
     else:
         datas = [read_zmt_from_file(zm) for zm in zmi]
 
