@@ -144,6 +144,64 @@ def read_zmt_from_file(zmat_file):
     zmat_string = file2str(zmat_file)
     return read_zmt_from_string(zmat_string)
 
+def read_zmt_from_gauss(gauss_file):
+    """
+    Read zmat out from a file, containing a zmatrix in gaussian format
+    convert to easier to interprete results
+
+    give back more results than really needed, to have it easier to use
+    them later on
+
+    OUTPUT: [<Name of Atoms>], [Connectivity matrix, format see ZMat input from zmat.py],
+            [<variable numbers, with possible repitions>], how often a variable was used more than once,
+            [<dihedral angles variable numbers>],
+            (number of Cartesian coordinates covered with zmt, number of interal coordinates of zmt),
+            [<mask for fixed Atoms>]
+    """
+    from ase.data import chemical_symbols
+    f_in = open(gauss_file, "r")
+
+    # the required output
+    symbols = []
+    iconns2 =[]
+    var_names2 = []
+    dih_names = []
+    j = 0
+
+    # gaussian file should be removed of all comments, leave just the plain Zmatrix
+    for k, line in enumerate(f_in):
+        fields = line.split()
+        if len(fields) == 0:
+           continue
+
+        symbols.append(fields[0])
+
+        # Three atoms are special, because they do not
+        # contain 3 variables
+        if len(fields) == 1:
+           t = ()
+        elif len(fields) == 3:
+           t = (int(fields[1])-1,)
+           var_names2.append(("l%s" % k)) # length
+           j = j + 1
+        elif len(fields) == 5:
+           t = (int(fields[1])-1, int(fields[3]) -1)
+           var_names2.append(("l%s" % k)) # length
+           var_names2.append(("a%s" % k)) # angle
+           j = j + 2
+        elif len(fields) == 8:
+           t = (int(fields[1])-1, int(fields[3]) -1, int(fields[5]) -1)
+           var_names2.append(("l%s" % k)) # length
+           var_names2.append(("a%s" % k)) # angle
+           var_names2.append(("d%s" % k)) # dihedral angle
+           j = j + 3
+           dih_names.append(j - 1)
+        # connectivities from gx also have the wrong basis
+        # change them and give back as our connectivity matrix
+        iconns2.append(t)
+
+    return symbols, iconns2, var_names2, 0, dih_names, (len(symbols) * 3, j + 1), None
+
 def read_zmt_from_gx(gx_file):
     """
     Read zmat out from a string, convert to easier to interprete results
