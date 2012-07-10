@@ -41,7 +41,7 @@ def main(args):
       for s, con in zip(symbs, conns):
          string = string + "%-3s" % (s)
          for c in con:
-             string = string + " %4i  %6s" % (c, var_names[j])
+             string = string + " %4i  %6s" % (c + 1, var_names[j])
              j = j + 1
          string = string + "\n"
 
