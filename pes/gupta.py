@@ -31,7 +31,7 @@ This is the value at this point:
 And this is the magnitude of its gradient:
 
     >>> max(abs(f.fprime(x)))
-    17.423253922379555
+    17.423253922379558
 
 Those coordinates do  not look like a stationary  point.  Minimize the
 function:
@@ -54,7 +54,7 @@ publication.
 The corresponding gradients vanish, though:
 
     >>> max(abs(f.fprime(xm)))
-    6.8573842848529409e-07
+    6.8573842937347251e-07
 
 This is the gradient function:
 
@@ -73,14 +73,14 @@ in order to be able to use in the eigensolver:
     >>> from scipy.linalg import eigh
     >>> e, V = eigh(H)
     >>> min(e)
-    -6.0878979649077398e-12
+    -9.3519381836888348e-12
 
 Virtually zero. That is strange ... Exchange two atoms:
 
     >>> f = Gupta(["Au", "Au", "Au", "Pd", "Pd", "Pd"])
     >>> xm, info = minimize(f, xm)
     >>> f(xm)
-    -18.893036306423806
+    -18.893036306423809
 
 Now it  compares well to -18.893036  eV --- the  earlier structure was
 not C2v but rather C3v.
@@ -125,37 +125,15 @@ class Gupta(Func):
         # see above:
         self.params = params
 
-    def f(self, x):
+    def taylor(self, x):
         n = len(x)
         assert n == len(self.symbols)
 
         e = 0.0
-        for i in range(n):
-            vm = 0.0
-            for j in range(n):
-                if i == j: continue
-
-                v = x[j] - x[i]
-                r = sqrt(dot(v, v))
-
-                # get pair interaction params:
-                A, zeta, p, q, ro = self.pair(i, j)
-
-                e += A * exp(- p * (r / ro - 1.0))
-                vm += zeta**2 * exp(- 2.0 * q * (r / ro - 1.0))
-
-            e -= sqrt(vm)
-
-        return e
-
-    def fprime(self, x):
-        n = len(x)
-        assert n == len(self.symbols)
-
         g = zeros(shape(x))
         gm = zeros(shape(x))
         for i in range(n):
-            vm = 0.0
+            em = 0.0
             gm[...] = 0.0
             for j in range(n):
                 if i == j: continue
@@ -166,21 +144,24 @@ class Gupta(Func):
                 # get pair interaction params:
                 A, zeta, p, q, ro = self.pair(i, j)
 
-                gvr = - (p / ro) * A * exp(- p * (r / ro - 1.0)) * (v / r)
+                vr = A * exp(- p * (r / ro - 1.0))
+                gvr = - (p / ro) * (v / r) * vr
 
+                e += vr
                 g[j] += gvr
                 g[i] -= gvr
 
-                vm += zeta**2 * exp(- 2.0 * q * (r / ro - 1.0))
+                vm = zeta**2 * exp(- 2.0 * q * (r / ro - 1.0))
+                gvm = - (2.0 * q / ro) * (v / r) * vm
 
-                gvm = - (2.0 * q / ro) * zeta**2 * exp(- 2.0 * q * (r / ro - 1.0)) * (v / r)
-
+                em += vm
                 gm[j] += gvm
                 gm[i] -= gvm
 
-            g -= gm / (2.0 * sqrt(vm))
+            e -= sqrt(em)
+            g -= gm / (2.0 * sqrt(em))
 
-        return g
+        return e, g
 
     def pair(self, i, j):
         "Derive pair interaction parameters from atom indices."
