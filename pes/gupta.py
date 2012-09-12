@@ -87,7 +87,7 @@ not C2v but rather C3v.
 """
 
 from numpy import array, dot, sqrt, exp, max, abs, zeros, shape
-from pts.func import NumDiff # Func
+from pts.func import Func, NumDiff
 
 #
 # TABLE 2: Gupta Potential Parameters Used in This Study
@@ -112,7 +112,7 @@ PARAMSC =  {("Pd", "Pd") : (0.1653, 1.6805, 10.8535, 3.7516, 2.7485),
             ("Au", "Au") : (0.2091, 1.8097, 10.2437, 4.0445, 2.8840),
             ("Pd", "Au") : (0.1843, 1.7867, 10.5420, 3.8826, 2.8160)}
 
-class Gupta(NumDiff):
+class Gupta(Func):
     """
     FIXME: ...
     """
