@@ -31,7 +31,7 @@ This is the value at this point:
 And this is the magnitude of its gradient:
 
     >>> max(abs(f.fprime(x)))
-    17.42325392239524
+    17.423253922379555
 
 Those coordinates do  not look like a stationary  point.  Minimize the
 function:
@@ -45,7 +45,7 @@ function:
 The energy gets lower:
 
     >>> f(xm)
-    -18.776211979362948
+    -18.776211979362952
 
 This is still  somewhat higher than, -18.893036 eV,  the number quoted
 for  a C2v  structure in  the supplementary  material of  the original
@@ -54,7 +54,7 @@ publication.
 The corresponding gradients vanish, though:
 
     >>> max(abs(f.fprime(xm)))
-    6.857535252393041e-07
+    6.8573842848529409e-07
 
 This is the gradient function:
 
@@ -73,7 +73,7 @@ in order to be able to use in the eigensolver:
     >>> from scipy.linalg import eigh
     >>> e, V = eigh(H)
     >>> min(e)
-    -5.4159131792569676e-08
+    -6.0878979649077398e-12
 
 Virtually zero. That is strange ... Exchange two atoms:
 
@@ -86,11 +86,12 @@ Now it  compares well to -18.893036  eV --- the  earlier structure was
 not C2v but rather C3v.
 """
 
-from numpy import array, dot, sqrt, exp, max, abs
+from numpy import array, dot, sqrt, exp, max, abs, zeros, shape
 from pts.func import NumDiff # Func
 
 #
 # TABLE 2: Gupta Potential Parameters Used in This Study
+#
 # (a) average parameters (average)
 #
 #             pair         A/eV    ζ/eV    p        q       ro/Å
@@ -98,14 +99,12 @@ from pts.func import NumDiff # Func
 PARAMSA = {("Pd", "Pd") : (0.1746, 1.7180, 10.867,  3.7420, 2.7485),
            ("Au", "Au") : (0.2061, 1.7900, 10.229,  4.0360, 2.8840),
            ("Pd", "Au") : (0.1900, 1.7500, 10.540,  3.8900, 2.8160)}
-
 #
 # (b) experimental-fitted parameters (exp-fit)
 #
 PARAMSB = {("Pd", "Pd") : (0.1715, 1.7019, 11.000,  3.7940, 2.7485),
            ("Au", "Au") : (0.2096, 1.8153, 10.139,  4.0330, 2.8840),
            ("Pd", "Au") : (0.2764, 2.0820, 10.569,  3.9130, 2.8160)}
-
 #
 # (c) DFT-fitted parameters (DFT-fit)
 #
@@ -119,10 +118,11 @@ class Gupta(NumDiff):
     """
     def __init__(self, symbols, params=PARAMSC):
 
-        # atomic symbols:
+        # Save atomic symbols:
         self.symbols = symbols
 
-        # force field parameters, optional, defaults are above:
+        # Save force field parameters, optional, defaults are DFT-fit,
+        # see above:
         self.params = params
 
     def f(self, x):
@@ -131,21 +131,56 @@ class Gupta(NumDiff):
 
         e = 0.0
         for i in range(n):
-            vr, vm = 0.0, 0.0
+            vm = 0.0
             for j in range(n):
                 if i == j: continue
 
-                r = sqrt(dot(x[j] - x[i], x[j] - x[i]))
+                v = x[j] - x[i]
+                r = sqrt(dot(v, v))
 
                 # get pair interaction params:
                 A, zeta, p, q, ro = self.pair(i, j)
 
-                vr += A * exp(- p * (r / ro - 1.0))
+                e += A * exp(- p * (r / ro - 1.0))
                 vm += zeta**2 * exp(- 2.0 * q * (r / ro - 1.0))
 
-            e += vr - sqrt(vm)
+            e -= sqrt(vm)
 
         return e
+
+    def fprime(self, x):
+        n = len(x)
+        assert n == len(self.symbols)
+
+        g = zeros(shape(x))
+        gm = zeros(shape(x))
+        for i in range(n):
+            vm = 0.0
+            gm[...] = 0.0
+            for j in range(n):
+                if i == j: continue
+
+                v = x[j] - x[i]
+                r = sqrt(dot(v, v))
+
+                # get pair interaction params:
+                A, zeta, p, q, ro = self.pair(i, j)
+
+                gvr = - (p / ro) * A * exp(- p * (r / ro - 1.0)) * (v / r)
+
+                g[j] += gvr
+                g[i] -= gvr
+
+                vm += zeta**2 * exp(- 2.0 * q * (r / ro - 1.0))
+
+                gvm = - (2.0 * q / ro) * zeta**2 * exp(- 2.0 * q * (r / ro - 1.0)) * (v / r)
+
+                gm[j] += gvm
+                gm[i] -= gvm
+
+            g -= gm / (2.0 * sqrt(vm))
+
+        return g
 
     def pair(self, i, j):
         "Derive pair interaction parameters from atom indices."
@@ -166,11 +201,12 @@ def main(argv):
 
     for path in argv[1:]:
         atoms = read(path)
+        symbols = atoms.get_chemical_symbols()
+        x = atoms.get_positions()
 
-        f = Gupta(atoms.get_chemical_symbols())
-
-        xm, info = minimize(f, atoms.get_positions())
-        print >> stderr, "e=", f(xm)
+        f = Gupta(symbols)
+        xm, info = minimize(f, x)
+        # print >> stderr, "e=", f(xm)
 
         if not info["converged"]:
             print >> stderr, "Not converged:", path
