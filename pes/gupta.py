@@ -187,16 +187,16 @@ def main(argv):
 
         f = Gupta(symbols)
         xm, info = minimize(f, x)
-        # print >> stderr, "e=", f(xm)
+
+        # print >> stderr, "e=", f(xm), \
+        #     "converged=", info["converged"], \
+        #     "in", info["iterations"], "iterations"
 
         if not info["converged"]:
             print >> stderr, "Not converged:", path
 
         atoms.set_positions(xm)
         write(stdout, atoms, format="xyz")
-
-# main(["x", "a1.xyz"])
-# exit(0)
 
 # python gupta.py [-v]:
 if __name__ == "__main__":
