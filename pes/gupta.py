@@ -16,6 +16,7 @@ time:
 Now  f(x) is  a Func(tion)  of 6x3  coordinates organized  into  a 6x3
 array:
 
+    >>> from numpy import array
     >>> x = array([[1.60705688238, -0.00283613710287, 0.00283613710287],
     ...            [-0.00283613710287, 1.60705688238, 0.00283613710287],
     ...            [-0.00525477215725, -1.59087506386, 0.00525477215725],
@@ -30,6 +31,7 @@ This is the value at this point:
 
 And this is the magnitude of its gradient:
 
+    >>> from numpy import max, abs
     >>> max(abs(f.fprime(x)))
     17.423253922379558
 
@@ -58,6 +60,7 @@ The corresponding gradients vanish, though:
 
 This is the gradient function:
 
+    >>> from pts.func import NumDiff
     >>> g = NumDiff(f.fprime)
 
 This is the hessian at the stationary point:
@@ -86,11 +89,11 @@ Now it  compares well to -18.893036  eV --- the  earlier structure was
 not C2v but rather C3v.
 """
 
-from numpy import array, dot, sqrt, exp, max, abs, zeros, shape
-from pts.func import Func, NumDiff
+from numpy import dot, sqrt, exp, zeros, shape
+from pts.func import Func
 
 #
-# TABLE 2: Gupta Potential Parameters Used in This Study
+# TABLE 2: Gupta Potential Parameters
 #
 # (a) average parameters (average)
 #
