@@ -136,7 +136,7 @@ Ensure that the derivatives are correct:
 """
 from copy import deepcopy
 from numpy import eye, zeros, hstack, asarray
-from numpy import array
+from numpy import array, size, shape
 
 from pts.func import Func
 from pts.zmat import RT
@@ -167,16 +167,16 @@ class Justcarts(Func):
         pass
 
     def taylor(self, x):
-        res = deepcopy(x)
-        res.shape = (-1, 3)
-        dres = eye(len(x.flatten()))
-        dres.shape = (-1, 3, len(x))
-        return res, dres
+        y = deepcopy(x)
+        y.shape = (-1, 3)
+        yprime = eye(size(x))
+        yprime.shape = (-1, 3) + shape(x)
+        return y, yprime
 
     def pinv(self, y):
-        res = deepcopy(y)
-        res.shape = (-1)
-        return res
+        x = deepcopy(y)
+        x.shape = (-1)
+        return x
 
 class With_globals(Func):
     """
