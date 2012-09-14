@@ -353,21 +353,33 @@ class FileStore(Store):
         with open(self.filename,'w') as f:
             dump(self._d, f, protocol=2) # pickle.dump
 
-def hexhash(sdata):
+def hexhash(sdata, salt=""):
     """
     Doctests are parsed twice, need double escape:
 
         >>> hexhash("blob 0\\0")
         'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391'
 
-    This is the SHA-1 hash of the empty file in Git.
+    This is  the SHA-1 hash  of the empty  file in Git. Any  salt will
+    disguise the hash beyond recognition:
+
+        >>> hexhash("blob 0\\0", "salt")
+        '75842950f415a69e02d114538e925831ffa7cee2'
     """
 
     h = hashlib.sha1()
+
+    # The same array may mean different things. A 3x3 array may be the
+    # coordiantes of three  atoms or the three cell  vectors. Use salt
+    # to distonguish the sources of the  data. I am afraid salt has to
+    # be  a string  (or  a read-only  buffer).  An empty  salt has  no
+    # effect:
+    h.update(salt)
+
     h.update(sdata)
     return h.hexdigest()
 
-def hextuple(key):
+def hextuple(key, salt=""):
     """
         >>> hexhash("blob 0\\0")
         'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391'
@@ -376,7 +388,7 @@ def hextuple(key):
         ('e6', '9de29bb2d1d6434b8b29ae775ad8c2e48c5391')
     """
 
-    shex = hexhash(key)
+    shex = hexhash(key, salt)
     return shex[0:2], shex[2:]
 
 def serialize(x):
@@ -391,7 +403,7 @@ def deserialize(s):
     >>> hexhash(serialize(array([1., 2.])))
     'f2e54be8388eec2ef6c62f0f4a90d31dbaf25dd9'
     """
-    return loads(s) # pickle.laodss
+    return loads(s) # pickle.loads
 
 import errno
 
@@ -460,7 +472,7 @@ class DirStore(object):
            such.
     """
 
-    def __init__(self, filename="DirStore.d"):
+    def __init__(self, filename="DirStore.d", salt=""):
 
         # Use absolute names, otherwise  the storage will not be found
         # after chdir() e.g. in QContext() handler:
@@ -468,6 +480,7 @@ class DirStore(object):
             filename = os.path.abspath(filename)
 
         self.filename = filename
+        self.salt = salt
 
         if os.path.exists(filename):
             print >> sys.stderr, "WARNING: DirStore: found", filename
@@ -485,7 +498,7 @@ class DirStore(object):
         # Dump the  key-value pair into  a file named after  the SHA-1
         # hash of the key:
         #
-        sh, ex = hextuple(serialize(key))
+        sh, ex = hextuple(serialize(key), self.salt)
 
         if not os.path.exists(os.path.join(self.filename, sh)):
             # FIXME: race condition here:
@@ -503,7 +516,7 @@ class DirStore(object):
         # Get the  key-value pair  from a file  named after  the SHA-1
         # hash of the key:
         #
-        sh, ex = hextuple(serialize(key))
+        sh, ex = hextuple(serialize(key), self.salt)
 
         try:
             if VERBOSE:
@@ -529,7 +542,7 @@ class DirStore(object):
     def __delitem__(self, key):
         """Deletes a an entry, unlinks the file"""
 
-        sh, ex = hextuple(serialize(key))
+        sh, ex = hextuple(serialize(key), self.salt)
 
         try:
             os.unlink(os.path.join(self.filename, sh, ex))
