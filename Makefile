@@ -22,19 +22,19 @@ src =	\
 	pes/gupta.py \
 	test/testfuns.py \
 	ode.py \
-	path.py \
-        quat.py \
+	path.
+	quat.py \
 	bezier.py \
 	chebyshev.py \
 	zmat.py \
 	bfgs.py \
 	chain.py \
-        steepest_decent.py \
-        simple_decent.py \
+	steepest_decent.py \
+	simple_decent.py \
 	rc.py \
 	vib.py \
 	metric.py \
-        threepointmin.py \
+	threepointmin.py \
 	cfunc.py \
 	dimer_rotate.py \
 	cosopt/multiopt.py \
