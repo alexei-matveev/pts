@@ -1,9 +1,9 @@
 #
-# Type "make -k" to run all tests,
-# (without -k make will stop at first failure it encounters)
+# Type "make -k" to run all tests.  Without -k make will stop at first
+# failure it encounters.
 #
-# Type "make manual" to create a pdf version of the newest
-# sources for the manual in doc subfolder
+# Type "make manual" to create a pdf version of the newest sources for
+# the manual in doc subfolder
 #
 IO = ./io
 PES = ./pes
