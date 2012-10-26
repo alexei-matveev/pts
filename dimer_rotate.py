@@ -493,7 +493,7 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, \
             # dir_s should be orthogonal to mode but lying on old plane
             dir_old_down = metric.lower(dir_old, x)
             dir_s =  dir_old - ( dot(dir_old_down, mode) * mode\
-                                / metric.norm_up(mode, mid_point))
+                                / metric.norm_up(mode, mid_point)**2)
             dir_s /= metric.norm_up(dir_s, x)
             # modifated conjugate gradient
             dir = dir + gamma * metric.norm_up(dir_old, mid_point) * dir_s
