@@ -65,9 +65,8 @@ def pathsearcher(atoms, init_path, trafo, **kwargs):
     * atoms is  an ASE atoms object  used to calculate  the forces and
       energies of a given (Cartesian) geometry. Be aware that it needs
       to have an  calculator attached to it, which  will do the actual
-      transformation.  Another possibility is  to give a file in which
-      calculator is  specified separately as  parameter.  (FIXME: this
-      another possibility is vaguely specified)
+      transformation.  Another possibility is  to give the calculator
+      separately as an option.
 
     * init_path is an array containting  for each bead of the starting
       path the internal coordinates.
