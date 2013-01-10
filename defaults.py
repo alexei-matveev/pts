@@ -296,6 +296,21 @@ di_default_params = {
     "cache"    : None # Making results of calculator reusable
 }
 
+ln_default_params = {
+    "max_translation" : 100000000, # Maximal number of translation steps
+    "max_gradients" : None, # Alternative maximal number of gradient calls
+            # But only checked in translation step
+    "trans_converged" : 0.00016, # converged if max(abs(gradients)) < than it
+    "trans_method" : "lbfgs", # How the translation method is done
+    "trajectory" :  "newest", # Update method
+    "max_step"   : 0.1, # maximal allowed step lenght (translation)
+    "max_rotations" : 8, # Maximal number of rotation steps per translation step
+    "phi_tol"  : 0.1, # Rotation stops if rotation angle would be smaller
+    "logfile"  : None, # Where the output of dimer should go (None goes to standard output)
+    "dimer_distance" : 0.01, #Distance between dimer end and middle point
+    "cache"    : None # Making results of calculator reusable
+}
+
 di_default_params_rot = {
     "max_rotations" : 100, # Maximal number of rotation steps per translation step
     "phi_tol"  : 0.0001, # Rotation stops if rotation angle would be smaller
