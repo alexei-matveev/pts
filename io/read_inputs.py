@@ -653,12 +653,11 @@ def create_params_dict(new_params):
     if params_dict["name"] == None:
         params_dict["name"] = str(params_dict["method"])
 
-    if params_dict["method"].lower() == "neb" or \
-       params_dict["method"].lower() == "ci-neb":
+    if "neb" in params_dict["method"].lower():
         if params_dict["opt_type"] == "multiopt":
             print ""
             print "The optimizer %s is not designed for working with the method neb" % (params_dict["opt_type"])
-            params_dict["opt_type"] = "scipy_lbfgsb"
+            params_dict["opt_type"] = "conj_grad"
             print "Thus it is replaced by the the optimizer", params_dict["opt_type"]
             print "This optimizer is supposed to be the default for neb calculations"
             print ""
