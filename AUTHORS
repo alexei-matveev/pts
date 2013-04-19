@@ -16,3 +16,21 @@ Boxiao Zheng <zbxthu@gmail.com>
 
     Contributed plotting trajectories of Dimer methods.
 
+Notker Roesch <notker.roesch@tum.de>
+
+    Idea and contiguous support.
+
+
+
+When citing this program refer to it as
+
+   "ParaTools Version 2.0, H.  Chaffey-Millar, A.  Nikodem,
+    A. V. Matveev, B.-X Zheng, N. Roesch"
+
+or by references to the following publications:
+
+A. Nikodem, A. V. Matveev, B.-X. Zheng, N. Roesch, J. Chem. Theory
+Comp. 9 (2013) 588.
+
+H. Chaffey-Millar, Hugh, A. Nikodem, A. V. Matveev, S. Krueger,
+N. Roesch, J. Chem. Theory Comp. 8 (2012) 777.
