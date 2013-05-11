@@ -1,0 +1,10 @@
+ParaTools, a collection of tools to explore potential energy surfaces.
+
+* A. Nikodem, A. V. Matveev, B.-X. Zheng, N. Roesch, J. Chem. Theory
+  Comp. 9 (2013) 588.
+
+* H. Chaffey-Millar, Hugh, A. Nikodem, A. V. Matveev, S. Krueger,
+  N. Roesch, J. Chem. Theory Comp. 8 (2012) 777.
+
+See  file  ./COPYING  for  license,  see ./AUTHORS  for  the  list  of
+contributors.  The directory ./doc contains more info.
