@@ -30,12 +30,6 @@ MAX_GEOMS = 3
 DEFAULT_MAX_ITERATIONS = 20
 DEFAULT_FORCE_TOLERANCE = 0.05
 
-# unit conversions
-ANGSTROMS_TO_BOHRS = 1.8897 # bohr / A
-HARTREE_TO_ELECTRON_VOLTS = 27.2113845
-DEG_TO_RAD = numpy.pi / 180.
-RAD_TO_DEG = 180. / numpy.pi
-
 # unit vectors
 VX = numpy.array((1.0,0.0,0.0))
 VY = numpy.array((0.0,1.0,0.0))
@@ -188,7 +182,7 @@ def vector_angle(v1, v2):
     if fraction > 0.9999999999999:
         return 180.0
 
-    result = 180. - RAD_TO_DEG * numpy.arccos(fraction)
+    result = 180. - (180. / numpy.pi) * numpy.arccos(fraction)
     return result
 
 def expand_newline(s):
