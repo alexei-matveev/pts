@@ -268,6 +268,25 @@ class Func(object):
     def __call__(self, *args, **kwargs):
         return self.f(*args, **kwargs)
 
+    #
+    # The  next two  methods implement  the interface  of  the context
+    # manager for use as in
+    #
+    #    with Func (lambda x: ...) as f:
+    #        print f(x)
+    #        ...
+    #
+    # This is a  hack to allow for Func objects  that need an explicit
+    # setup  and   finalization,  like  startin/stopping   the  server
+    # process. But if one needs  this for some functions, one needs it
+    # for all of them.
+    #
+    def __enter__ (self):
+        return self
+
+    def __exit__ (self, typ, val, tb):
+        pass                    # return None which is false
+
 def elemental(f, map=map):
     """
     A decorator for functions "f(x, ...)" that makes them elemental in
