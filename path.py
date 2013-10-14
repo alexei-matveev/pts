@@ -58,10 +58,10 @@ the path section:
     0.0
 
     >>> arc(1.0)
-    347.53579497254498
+    347.535794972545
 
     >>> arc(0.5)
-    173.76789748627249
+    173.7678974862725
 
 Using the reciprocal function |arg|  one may reparametrize the path in
 units of arc-length:
@@ -70,7 +70,7 @@ units of arc-length:
     >>> arg(arc(0.5))
     0.5
     >>> arc(arg(173.76789748627249))
-    173.76789748627249
+    173.7678974862725
 
     >>> round(p(arg(173.76789748627249)), 10)
     array([ 0.,  0.])
@@ -126,7 +126,7 @@ Below we test the "nonpublic" part of the MetricPath() interface:
     0.0
 
     >>> p.arc(1.0)
-    354.24859102964069
+    354.2485910296407
 
 This number is slightly different from the one obtained earlier with a
 Path(), 347.53579497254498, as  MetricPath() is different, though also
