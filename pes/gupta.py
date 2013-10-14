@@ -11,7 +11,7 @@ A potential energy surface is a function of coordinates only. The rest
 of  the info,  here atomic  composition, is  provided  at construction
 time:
 
-    >>> f = Gupta(["Au", "Au", "Pd", "Pd", "Pd", "Au"])
+    >>> f = Gupta(["Au", "Au", "Au", "Pd", "Pd", "Pd"])
 
 Now  f(x) is  a Func(tion)  of 6x3  coordinates organized  into  a 6x3
 array:
@@ -24,16 +24,11 @@ array:
     ...            [-0.00525477215725, -0.00525477215725, 1.59087506386],
     ...            [-0.00283613710287, -0.00283613710287, -1.60705688238]])
 
-This is the value at this point:
-
-    >>> f(x)
-    -10.320392207689487
-
-And this is the magnitude of its gradient:
+This is the magnitude of its gradient:
 
     >>> from numpy import max, abs
-    >>> max(abs(f.fprime(x)))
-    17.423253922379558
+    >>> max(abs(f.fprime(x))) > 17
+    True
 
 Those coordinates do  not look like a stationary  point.  Minimize the
 function:
@@ -42,51 +37,21 @@ function:
     >>> xm, info = minimize(f, x)
 
     >>> info["converged"], info["iterations"]
-    (True, 17)
+    (True, 16)
 
 The energy gets lower:
 
     >>> f(xm)
-    -18.776211979362952
+    -18.893036306386833
 
-This is still  somewhat higher than, -18.893036 eV,  the number quoted
-for  a C2v  structure in  the supplementary  material of  the original
-publication.
+Now it  compares well  to -18.893036  eV as the  C2v structure  of the
+original publication.
 
-The corresponding gradients vanish, though:
+The corresponding gradients vanish:
 
-    >>> max(abs(f.fprime(xm)))
-    6.8573842937347251e-07
+    >>> max(abs(f.fprime(xm))) < 1.0e-4
+    True
 
-This is the gradient function:
-
-    >>> from pts.func import NumDiff
-    >>> g = NumDiff(f.fprime)
-
-This is the hessian at the stationary point:
-
-    >>> H = g.fprime(xm)
-
-Its shape is 6 x 3 x 6 x 3, change that
-
-    >>> H.shape = (18, 18)
-
-in order to be able to use in the eigensolver:
-
-    >>> from scipy.linalg import eigh
-    >>> e, V = eigh(H)
-    >>> min(e)
-    -9.3519381836888348e-12
-
-Virtually zero. That is strange ... Exchange two atoms:
-
-    >>> f = Gupta(["Au", "Au", "Au", "Pd", "Pd", "Pd"])
-    >>> xm, info = minimize(f, xm)
-    >>> f(xm)
-    -18.893036306423809
-
-Now it  compares well to -18.893036  eV --- the  earlier structure was
-not C2v but rather C3v.
 """
 
 from numpy import dot, sqrt, exp, zeros, shape
