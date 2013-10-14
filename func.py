@@ -489,8 +489,8 @@ class CubicFunc(Func):
     0.0
 
     >>> c = CubicFunc(array([1,3]), array([0,0]), dydxs=array([1,1]))
-    >>> round(c(1), 12)
-    -0.0
+    >>> abs(c(1)) < 1.0e-10
+    True
     >>> round(c.fprime(1), 12)
     1.0
 
@@ -514,7 +514,7 @@ class CubicFunc(Func):
 
     >>> c.coeffs = array([1./3., 1./2., 0., 0.])
     >>> c.stat_points()
-    [-0.0, -1.0]
+    [-0, -1.0]
 
     >>> c.coeffs = array([1./3., 1./2., 1e-9, 0.])
     >>> c.stat_points()
