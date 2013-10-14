@@ -247,9 +247,9 @@ def start_values(fun, metric, x0):
 
     Energy should go down in direction of steepest decent
     >>> MB(ts1 + sdir * 0.0001)
-    -40.664847693656483
+    -40.66484769365648
     >>> MB(ts1 + sdir * 0.01)
-    -40.701726989599678
+    -40.70172698959968
     >>> MB(ts1 - sdir * 0.01)
     -40.703002363574996
 
@@ -260,7 +260,7 @@ def start_values(fun, metric, x0):
 
     Here energy should go up
     >>> MB(ts1 + max_dir * 0.01)
-    -40.640087066488903
+    -40.6400870664889
     >>> MB(ts1 - max_dir * 0.01)
     -40.64058812903157
 
@@ -287,7 +287,7 @@ def start_values(fun, metric, x0):
     >>> mb(ts1_2 + sdir2 * 0.01)
     -40.679755453436535
     >>> mb(ts1_2 + max_dir * 0.01)
-    -40.649340351181749
+    -40.64934035118175
 
     Mixed directions:
     >>> mb(ts1_2 + (sdir2 * 0.9**2 + max_dir * 0.1**2) * 0.01) > mb(ts1_2 + sdir2 * 0.01)
@@ -308,7 +308,7 @@ def start_values(fun, metric, x0):
 
     # energy goes down in sdir and up in max_dir
     >>> mb(ts1_2 + sdir2 * 0.01)
-    -40.703002363574988
+    -40.70300236357499
     >>> mb(ts1_2 + max_dir * 0.01)
     -40.625299777152264
 
