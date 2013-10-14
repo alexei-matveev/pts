@@ -144,7 +144,7 @@ from pts.qfunc import constraints2mask
 from pts.io.cmdline import get_mask
 from pts.io.read_COS import set_atoms
 
-def interprete_input(args):
+def interprete_input (args):
     """
     Gets the input of a pathseracher calculation and
     interpretes it
@@ -154,7 +154,7 @@ def interprete_input(args):
 
     # noverwrite by those given in parameter file
     if not paramfile == None:
-        params_dict, geo_dict = from_params_file( paramfile, ps_default_params)
+        params_dict, geo_dict = from_params_file (paramfile, ps_default_params)
     else:
         params_dict = {}
         geo_dict = {}
