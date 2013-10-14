@@ -184,7 +184,7 @@ def xyz2plot(argv):
     functions are available.
     """
     from pts.tools.path2tab import extract_data
-    from pts.io.cmdline import visualize_input
+    from pts.ui.cmdline import visualize_input
     from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
 
     name = "xyz"
@@ -234,7 +234,7 @@ def main(argv ):
     showing for  each inputfile a  path of the given  coordinates with
     beads marked on them
     """
-    from pts.io.cmdline import visualize_input
+    from pts.ui.cmdline import visualize_input
 
     name = "path"
 
@@ -251,7 +251,7 @@ def visualize_path(filenames, data_ase, other_input, values, path_look, for_plot
     """
     from pts.tools.path2tab import carts_to_int
     from pts.tools.tab2plot import setup_plot, plot_data, prepare_plot, colormap
-    from pts.io.read_COS import read_geos_from_file
+    from pts.ui.read_COS import read_geos_from_file
     from pts.tools.path2tab import extract_data
     import numpy as np
     from copy import copy

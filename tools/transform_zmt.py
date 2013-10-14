@@ -10,7 +10,7 @@ Where the recognized original <format> of the zmatrix in the file can be any of 
 
 """
 import sys
-from pts.io.read_COS import read_zmt_from_gauss, read_zmt_from_gx
+from pts.ui.read_COS import read_zmt_from_gauss, read_zmt_from_gx
 
 def main(args):
    if "--help" in args:

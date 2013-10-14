@@ -22,7 +22,7 @@ from pts.cfunc import Pass_through
 from pts.optwrap import runopt
 from pts.sopt import soptimize
 from pts.tools.pathtools import pickle_path
-from pts.io.read_inputs import interprete_input, create_params_dict
+from pts.ui.read_inputs import interprete_input, create_params_dict
 import pts.metric as mt
 # be careful: array is needed, when the init_path is an array
 # do not delete it, even if it never occures directly in this module!

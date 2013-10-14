@@ -160,7 +160,7 @@ from pts.path import Path
 from numpy.linalg import norm
 
 def main(argv ):
-    from pts.io.cmdline import visualize_input
+    from pts.ui.cmdline import visualize_input
 
     log_file, __, __, values, __, dimer_special, for_plot =  visualize_input("progress", "plot", argv, -1)
 

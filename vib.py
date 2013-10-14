@@ -535,7 +535,7 @@ def main(argv):
 
       This will save the approximated Hessian to a file named filename.
     """
-    from pts.io.cmdline import get_options, get_calculator, get_mask
+    from pts.ui.cmdline import get_options, get_calculator, get_mask
     from pts.sched import Strategy
     from pts.paramap import PMap3
 

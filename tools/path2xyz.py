@@ -129,7 +129,7 @@ def print_xyz(x, y, cs, num):
     many frames as there have been geometries in y (but need not be at
     the same geometries)
     """
-    from pts.io.write_COS import print_xyz_with_direction
+    from pts.ui.write_COS import print_xyz_with_direction
     from sys import stdout
 
     if num is None:
@@ -163,7 +163,7 @@ def print_beads(ys, cs):
     positions is taken but also  that it's exactly the beads which are
     used to create the frames
     """
-    from pts.io.write_COS import print_xyz_with_direction
+    from pts.ui.write_COS import print_xyz_with_direction
     from sys import stdout
 
     for i,y in enumerate(ys):
@@ -177,7 +177,7 @@ def main(argv):
     up a path and gives back positions on it
     """
     from sys import stderr
-    from pts.io.cmdline import get_options_to_xyz
+    from pts.ui.cmdline import get_options_to_xyz
 
     opts, filename = get_options_to_xyz("path" ,argv, None)
 

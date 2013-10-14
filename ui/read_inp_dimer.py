@@ -209,8 +209,8 @@ def read_dimer_input(rest, name):
     """
     This function is similar to the one for pathsearcher
     """
-    from pts.io.read_inputs import from_params_file
-    from pts.io.read_COS import geo_params
+    from pts.ui.read_inputs import from_params_file
+    from pts.ui.read_COS import geo_params
     from pts.defaults import are_strings
     from pts.common import file2str
     from pts.func import compose
@@ -348,7 +348,7 @@ def read_dimer_input(rest, name):
 
 def give_help_if_needed(rest, name):
     from pts.defaults import info_di_params, info_qn_params
-    from pts.io.read_COS import info_geometries
+    from pts.ui.read_COS import info_geometries
     if "--help" in rest:
         if "geometries" in rest:
            info_geometries()
@@ -375,7 +375,7 @@ def read_from_pickle(file, ts_est, geo_dict):
     from pts.tools.pathtools import unpickle_path, PathTools
     from ase import Atoms
     from ase.io import write
-    from pts.io.read_COS import set_atoms
+    from pts.ui.read_COS import set_atoms
     from pts.searcher import new_abscissa
     from numpy import savetxt
 
@@ -430,7 +430,7 @@ def read_from_pickle(file, ts_est, geo_dict):
     return start_geo, init_mode, funcart, atoms
 
 def build_new(geo, geo_dict_dim, zmatrix):
-    from pts.io.read_inputs import get_geos, get_masked
+    from pts.ui.read_inputs import get_geos, get_masked
     # also pathsearcher routines to build atoms object and internal to Cartesian
     # handle, the variables not used here would be required to ensure
     # shortest way between some pictures
@@ -483,7 +483,7 @@ def from_params_file_dimer( lines ):
     # so that the calculators from there can be used
 
     # execute the string, the variables should be set in the locals
-    from pts.io.read_COS import geo_params
+    from pts.ui.read_COS import geo_params
 
     params_dict = {}
     geo_dict = {}

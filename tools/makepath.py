@@ -67,7 +67,7 @@ stdout
 
 import sys
 from ase.io import write
-from pts.io.read_inputs import get_geos, ensure_short_way
+from pts.ui.read_inputs import get_geos, ensure_short_way
 from pts.path import Path
 from pts.searcher import new_abscissa
 from pts.tools.pathtools import pickle_path

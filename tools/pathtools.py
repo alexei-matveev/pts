@@ -23,8 +23,8 @@ from pts.common import vector_angle
 import pts.func as func
 import scipy as sp
 from pts.threepointmin import ts_3p_gr
-from pts.io.read_inputs import get_transformation
-from pts.io.cmdline import get_mask
+from pts.ui.read_inputs import get_transformation
+from pts.ui.cmdline import get_mask
 from pts.cfunc import Justcarts, Masked
 from numpy import loadtxt
 

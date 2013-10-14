@@ -132,17 +132,17 @@ from copy import deepcopy
 from pts.defaults import ps_default_params, ps_are_floats, ps_are_ints, info_ps_params
 from pts.defaults import ps_are_complex
 from pts.common import file2str
-from pts.io.read_COS import read_geos_from_file, read_zmt_from_file, geo_params
-from pts.io.read_COS import read_zmt_from_gx, read_zmt_from_gauss
-from pts.io.read_COS import info_geometries
+from pts.ui.read_COS import read_geos_from_file, read_zmt_from_file, geo_params
+from pts.ui.read_COS import read_zmt_from_gx, read_zmt_from_gauss
+from pts.ui.read_COS import info_geometries
 from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
 from pts.zmat import ZMat
 from pts.quat import Quat, uquat, quat2vec
 from numpy import array, pi, loadtxt
 from numpy.linalg import norm
 from pts.qfunc import constraints2mask
-from pts.io.cmdline import get_mask
-from pts.io.read_COS import set_atoms
+from pts.ui.cmdline import get_mask
+from pts.ui.read_COS import set_atoms
 
 def interprete_input (args):
     """

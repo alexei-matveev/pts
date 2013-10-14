@@ -666,7 +666,7 @@ def orthogonalize(v_new, vs, met, geo):
     return s
 
 def main(args):
-    from pts.io.read_inp_dimer import read_dimer_input
+    from pts.ui.read_inp_dimer import read_dimer_input
     pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], args[0] )
     metric = Default()
 

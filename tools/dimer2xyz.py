@@ -53,8 +53,8 @@ def main(argv):
      Takes the geometries from the pickle file and prints them in
      xyz format to standard output
      """
-     from pts.io.cmdline import get_options_to_xyz
-     from pts.io.write_COS import print_xyz_with_direction
+     from pts.ui.cmdline import get_options_to_xyz
+     from pts.ui.write_COS import print_xyz_with_direction
      from sys import stdout
      from numpy import array
 

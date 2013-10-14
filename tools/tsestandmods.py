@@ -408,7 +408,7 @@ def print_estimates(ts_sum, cs, withmodes = False, print_direct_modes = False):
      Prints the transition state estimates with their geometry
      in xyz-style, and their mode vectors if wanted
      """
-     from pts.io.write_COS import print_xyz_with_direction
+     from pts.ui.write_COS import print_xyz_with_direction
      write_s = sys.stdout.write
      symbs, trafo = cs
      print "==================================================="
@@ -440,7 +440,7 @@ def print_estimatesdump(ts_sum, cs ):
      """
      from ase.atoms import Atoms
      from ase.io import write
-     from pts.io.write_COS import print_xyz_with_direction
+     from pts.ui.write_COS import print_xyz_with_direction
 
      write_s = sys.stdout.write
      symbs, trafo = cs

@@ -587,7 +587,7 @@ def _dimer_step(pes, start_geo, geo_grad, start_mode, trans, rot, metric, max_st
 
 
 def main(args):
-    from pts.io.read_inp_dimer import read_dimer_input
+    from pts.ui.read_inp_dimer import read_dimer_input
     from pts.trajectories import empty_traj, traj_every, traj_long, traj_last
     from ase.io import write
     pes, start_geo, start_mode, params, atoms, funcart = read_dimer_input(args[1:], args[0] )

@@ -24,7 +24,7 @@ Can process several logfiles at once
 from sys import argv, exit
 from pydoc import help
 from copy import copy
-from pts.io.cmdline import get_options
+from pts.ui.cmdline import get_options
 
 def main(argv):
     barrier = 10000000000000000.0

@@ -93,7 +93,7 @@ from sys import argv as sargv
 from pts.tools.path2xyz import read_in_path
 from pts.tools.pathtools import read_path_coords
 from pts.tools.xyz2tabint import returnall, expandlist, writeall
-from pts.io.read_COS import read_geos_from_file_more
+from pts.ui.read_COS import read_geos_from_file_more
 import numpy as np
 from sys import stdout
 
@@ -525,7 +525,7 @@ def main(name, argv):
     the result will be a table with data
     separate for each inputfile
     """
-    from pts.io.cmdline import visualize_input
+    from pts.ui.cmdline import visualize_input
 
 #   if '--help' in argv:
 #       helpfun(name)

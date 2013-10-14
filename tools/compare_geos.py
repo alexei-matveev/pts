@@ -22,7 +22,7 @@ from ase.io import read
 from pts.metric import Default
 from pts.cfunc import Justcarts
 from pts.zmat import ZMat
-from pts.io.read_COS import read_zmt_from_file
+from pts.ui.read_COS import read_zmt_from_file
 
 def compare(g1, g2, syms, fun):
     """

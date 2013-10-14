@@ -4,7 +4,7 @@ def main(args):
     from sys import maxint, stderr, exit
     from pts.tools.path2plot import visualize_path
     from pts.tools.dimer2plot import visualize_dimer
-    from pts.io.cmdline import visualize_input
+    from pts.ui.cmdline import visualize_input
 
     args_red = []
     names_fun = []

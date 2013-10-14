@@ -23,7 +23,7 @@ def readxyz(file, n ):
 def main(argv):
    '''performs all the calculations
    '''
-   from  pts.io.read_COS import read_geos_from_file_more
+   from  pts.ui.read_COS import read_geos_from_file_more
    # these variable may be used but need not
    # they need be there for check anyway
    filein = []
