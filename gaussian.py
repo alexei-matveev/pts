@@ -13,18 +13,18 @@ import numpy
 
 from ase.data import chemical_symbols
 
-# this will break *standalone* comaptibility with ASE 
+# this will break *standalone* comaptibility with ASE
 import pts.common as common
 
 lg = logging.getLogger("pts.gaussian")
 
 class Gaussian:
     """Class for doing Gaussian calculations."""
-    def __init__(self, jobname="gaussjob", 
-            method="HF", 
-            basis="3-21G", 
-            gau_command="g03", 
-            charge=0, 
+    def __init__(self, jobname="gaussjob",
+            method="HF",
+            basis="3-21G",
+            gau_command="g03",
+            charge=0,
             mult=1,
             nprocs=1,
             mem=None,
@@ -60,11 +60,11 @@ class Gaussian:
 
         chkpoint: str
             if specified, an initial checkpoint file to read a guess in from.
-            Note: it's probably possible to confuse the driver by supplying a 
+            Note: it's probably possible to confuse the driver by supplying a
             checkpoint for a significantly different structure.
-        
+
         """
-        
+
         self.jobname = jobname
         self.method = method
         self.basis = basis
@@ -92,7 +92,7 @@ class Gaussian:
 
     def set_chk(self, chkpoint):
         self.chkpoint = chkpoint
-       
+
     def set_nprocs(self, nprocs):
         assert nprocs > 0
         self.nprocs = nprocs
@@ -162,7 +162,7 @@ class Gaussian:
         self.numbers = atoms.get_atomic_numbers().copy()
         self.runs = 0
         self.converged = False
-        
+
     def get_potential_energy(self, atoms, force_consistent=False):
         self.update(atoms)
 
@@ -171,7 +171,7 @@ class Gaussian:
     def get_forces(self, atoms):
         self.update(atoms)
         return self.__forces.copy()
-    
+
     def get_stress(self, atoms):
         raise NotImplementedError
 
@@ -227,7 +227,7 @@ class Gaussian:
 
         self.converged = True
         self.runs += 1
-        
+
     def read(self, cwd):
         """Read results from Gaussian's text-output file."""
         logfilename = cwd + "/" + self.jobname + '.log'
@@ -271,7 +271,7 @@ class GaussDriverError(Exception):
         return self.msg
 
 def copy_chk_gaussian(dir):
-    """Finds most recent .chk file in |dir| and copies it to the current 
+    """Finds most recent .chk file in |dir| and copies it to the current
     directory.
     """
     name = "guess.chk"
@@ -296,11 +296,11 @@ def copy_chk_gaussian(dir):
     lg.info("Created " + name + " to use for guess")
     lg.info("CWD was " + os.getcwd())
     return name
- 
+
 def pre_calc_function_g03(calc, data):
-    """Function to run just before a calculation is run (i.e. a get_energy() 
+    """Function to run just before a calculation is run (i.e. a get_energy()
     or get_potential_energy() call is made) to perform any final tasks.
-    
+
     Copy chk file to current dir and set number of processors flag.
     """
 
