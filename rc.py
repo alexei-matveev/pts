@@ -142,7 +142,7 @@ The equal spacing is enforced:
 
     >>> from numpy import pi
     >>> print round(array(map(dih, xm)) * 180. / pi, 2)
-    [-70.53 -35.26  -0.    35.26  70.53]
+    [-70.53 -35.26   0.    35.26  70.53]
 
 """
 
