@@ -22,7 +22,7 @@ def exec_in_path(name):
     # TODO: is there a better way of doing this?
     return os.system("which " + name + "> /dev/null") == 0
 
-# Max no. of allowed geometries given to the optimiser to form the initial guess 
+# Max no. of allowed geometries given to the optimiser to form the initial guess
 # for the reaction pathway. Includes the reactant/product.
 MAX_GEOMS = 3
 
@@ -58,7 +58,7 @@ class Result():
         return (isinstance(r, self.__class__) and is_same_v(r.v, self.v)) or (r != None and is_same_v(r, self.v))
 
     def __repr__(self):
-        s = self.__class__.__name__ + "( " + str(self.v) 
+        s = self.__class__.__name__ + "( " + str(self.v)
         s += ", " + str(self.e) + ", " + str(self.g)
         s += ", " + str(self.flags) + ")"
         return s
@@ -74,7 +74,7 @@ class Result():
     def has_field(self, type):
         return type == 'G' and self.g != None \
             or type == 'E' and self.e != None
-        
+
     def merge(self, res):
         assert is_same_v(self.v, res.v)
         assert is_same_e(self.e, res.e)
@@ -91,10 +91,10 @@ def vec_summarise(v):
 class Job(object):
     """Specifies calculations to perform on a particular geometry v.
 
-    The object was designed with flexibility to include extra parameters and 
+    The object was designed with flexibility to include extra parameters and
     multiple styles of computation, e.g. frequency calcs, different starting
     wavefunctions, different SCF convergence parameters, etc.
-    
+
     num_bead was included for the creation of working directories per
     bead                        _____AN
     """
@@ -105,7 +105,7 @@ class Job(object):
         self.calc_list = l
         self.prev_calc_dir = prev_calc_dir
         self.num_bead = bead_ix
-    
+
     def __str__(self):
         s = ""
         for j in self.calc_list:
@@ -237,7 +237,7 @@ class ResultException(Exception):
         self.msg = msg
     def __str__(self, msg):
         return self.msg
-   
+
 class QCDriverException(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -305,7 +305,7 @@ def important(s):
 
 def atom_atom_dists(v):
     """Returns an array of all interatom distances.
-    
+
     >>> atom_atom_dists([[1,0,0], [2,0,0]])
     array([ 1.])
 
@@ -317,7 +317,7 @@ def atom_atom_dists(v):
 
     >>> len(atom_atom_dists([[1,0,0]]))
     0
-    
+
     """
     v = numpy.array(v)
     assert v.size % 3 == 0
@@ -343,7 +343,7 @@ def pythag_seps(vs, norm=cartesian_norm):
 
         >>> pythag_seps([[0, 0], [1, 1], [2, 2]])
         array([ 1.41421356,  1.41421356])
-    
+
     This  implementation  assumes  that  the half-way  point  is  well
     defined in the sense that the coordinate transformation behind the
     metric is differentiable also there.
