@@ -7,8 +7,7 @@ import subprocess
 import logging
 import glob
 import shutil
-
-
+import units
 import numpy
 
 from ase.data import chemical_symbols
@@ -260,8 +259,8 @@ class Gaussian:
         if e == None or forces == []:
             raise GaussDriverError("File not parsed, check " + os.path.join(os.getcwd(), logfilename))
 
-        forces = numpy.array(forces) * common.ANGSTROMS_TO_BOHRS * common.HARTREE_TO_ELECTRON_VOLTS
-        e *= common.HARTREE_TO_ELECTRON_VOLTS
+        forces = numpy.array(forces) * (unts.Hartree / units.Bohr)
+        e *= unts.Hartree
         return e, forces
 
 class GaussDriverError(Exception):
