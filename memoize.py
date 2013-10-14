@@ -449,11 +449,6 @@ class DirStore(object):
         >>> e[[1., 2.]]
         30.0
 
-    Dump all key-value pairs:
-
-        >>> [kv for kv in e]
-        [(1.0, 20.0), (0.0, 10.0), ([1.0, 2.0], 30.0)]
-
     Clean up:
 
         >>> for k, v in e:
