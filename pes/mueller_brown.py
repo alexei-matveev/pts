@@ -11,7 +11,7 @@ MB is a Func instance:
     -146.69951720995329
 
     >>> MB([-0.05001084,  0.46669421])
-    -80.767818129651189
+    -80.76781812965119
 
 Import minimization funciton:
 
@@ -86,9 +86,9 @@ minima at stationary points, both at PES minima and PES saddle points:
 ... very close! Compare the energies:
 
     >>> energy(ts2)
-    -72.248940103363921
+    -72.24894010336392
     >>> energy(p(bc))
-    -72.246871930853558
+    -72.24687193085356
 
 The  true TS between  b and  c is  at (0.212,  0.293) with  the energy
 -72.249 according to MB79.
@@ -148,7 +148,7 @@ maximum on the linear path between a and b.
     >>> ts1
     array([-0.82200123,  0.62430438])
     >>> energy(ts1)
-    -40.664843511462038
+    -40.66484351146204
 
 So indeed tha path maximum p(ab)  is not even close to a saddle point,
 and the gradient minimization would even fail if starting from p(ab).
@@ -186,7 +186,7 @@ and .fprime methods.
     >>> from pts.func import compose
     >>> e = compose(q, p)
     >>> e(0.30661623), e.fprime(0.30661623)
-    (12.676228284381487, array(8.8724010719257174e-06))
+    (12.676228284381487, array(8.872401071925717e-06))
 
 Gives the same energy of the  maximum on the linear path between a and
 b and  almost zero  gradient. To  use it with  minimizer one  needs to
@@ -221,7 +221,7 @@ approximaton:
     (0.58571428571428574, 0.73161131588862816)
 
     >>> e(xm), e1(xm)
-    (-57.002611182814157, -56.270999866925528)
+    (-57.00261118281416, -56.270999866925528)
 
 Find an energy minimum at approximated energy profile:
 
@@ -292,7 +292,7 @@ class MuellerBrown(Func):
 
     Compute energy:
         >>> mb((0,0))
-        -48.401274173183893
+        -48.40127417318389
 
         >>> mb((-0.558, 1.442))
         -146.69948920058778
@@ -301,12 +301,12 @@ class MuellerBrown(Func):
         -108.16665005353302
 
         >>> mb((-0.050, 0.467))
-        -80.767749248757724
+        -80.76774924875772
 
     "Calling" |mb| is the same as invoking its value method |f|:
 
         >>> mb.f((-0.050, 0.467))
-        -80.767749248757724
+        -80.76774924875772
 
     or gradients:
 
