@@ -22,7 +22,7 @@ src =	\
 	pes/gupta.py \
 	test/testfuns.py \
 	ode.py \
-	path.
+	path.py \
 	quat.py \
 	bezier.py \
 	chebyshev.py \
