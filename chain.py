@@ -119,8 +119,8 @@ The average energy is very close to -6:
 
 And the spacing is enforced:
 
-    >>> round(spc(xm), 10)
-    array([ 0.,  0., -0.])
+    >>> max(abs(spc(xm))) < 1.0e-10
+    True
 
 You can visualize the path by executing:
 
