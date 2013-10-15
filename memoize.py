@@ -467,7 +467,7 @@ class DirStore(object):
            such.
     """
 
-    def __init__(self, filename="DirStore.d", salt=""):
+    def __init__ (self, filename="cache.d", salt=""):
 
         # Use absolute names, otherwise  the storage will not be found
         # after chdir() e.g. in QContext() handler:
