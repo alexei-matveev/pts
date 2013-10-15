@@ -290,6 +290,11 @@ class Func(object):
     def __exit__ (self, typ, val, tb):
         pass                    # return None which is false
 
+
+    # Minimal aritmetics:
+    def __add__ (self, other):
+        return add (self, other)
+
 def elemental(f, map=map):
     """
     A decorator for functions "f(x, ...)" that makes them elemental in
@@ -389,6 +394,25 @@ class RhoInterval(Func):
                 return 1.0 / (self.intervals[i] - self.intervals[i-1])
         msg += ' Supplied value was %f' % x
         raise ValueError(msg)
+
+
+def add (P, Q):
+    "Add P and Q"
+
+    def f (x):
+        return P (x) + Q (x)
+
+    def fprime (x):
+        return P.fprime (x) + Q.fprime (x)
+
+    def taylor (x):
+        q, qx = Q.taylor (x)
+        p, px = P.taylor (x)
+
+        return p + q, px + qx
+
+    return Func (f, fprime, taylor)
+
 
 def compose(P, Q):
     "Compose P*Q, make P(x) = P(Q(x))"
