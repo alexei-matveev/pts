@@ -128,7 +128,7 @@ def memoize(f, cache=None):
     if cache is None:
         # Python dict() cannot be indexed by mutable keys,
         # use custom dictionary, see below:
-        cache = Store()
+        cache = MemStore()
 
     def _f(x):
         if x not in cache:
@@ -204,7 +204,7 @@ def elemental_memoize(f, cache=None):
     if cache is None:
         # Python dict() cannot be indexed by mutable keys,
         # use custom dictionary, see below:
-        cache = Store()
+        cache = MemStore()
 
     def _f(xs):
 
@@ -254,11 +254,11 @@ def tup(a):
     # convert iterables to (hashable) tuples:
     return tuple( tup(b) for b in a )
 
-class Store(object):
+class MemStore(object):
     """Minimalistic dictionary. Accepts mutable arrays/lists as keys.
     The real keys are (nested) tuple representation of arrays/lists
 
-        >>> d = Store()
+        >>> d = MemStore()
         >>> d[0.] = 10.
         >>> d[1.] = 20.
         >>> d[0.]
@@ -294,7 +294,7 @@ class Store(object):
         k = tup(key)
         return (k in self._d)
 
-class FileStore(Store):
+class FileStore(MemStore):
     """Minimalistic disk-persistent dictionary.
 
         >>> fn = "/tmp/tEmP.pickle"
@@ -343,11 +343,11 @@ class FileStore(Store):
             d = {}
 
         # parent class init:
-        Store.__init__(self, d)
+        MemStore.__init__(self, d)
 
     def __setitem__(self, key, val):
         """Needs to update on-disk state."""
-        Store.__setitem__(self, key, val)
+        MemStore.__setitem__(self, key, val)
 
         # dump the whole dictionary into file, FIXME: better solution?
         with open(self.filename,'w') as f:
@@ -604,7 +604,7 @@ class Memoize(Func):
 
         if store is None:
             # cache in memory:
-            self.__d = Store()
+            self.__d = MemStore()
         else:
             #
             # With  FileStore:  cache  in  memory,  save  to  disk  on
@@ -848,7 +848,7 @@ class Elemental_memoize(Func):
         if cache is None:
             # Python dict() cannot be indexed by mutable keys,
             # use custom dictionary, see below:
-            self.cache = Store()
+            self.cache = MemStore()
         else:
             self.cache = cache
 
