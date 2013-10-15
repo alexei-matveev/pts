@@ -249,7 +249,7 @@ def newton(x, fg, tol=TOL, maxiter=MAXIT, rk=None):
 
     return x, info
 
-def minimize(f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, **kw):
+def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, **kw):
     """
     Minimizes a Func |f| starting with |x|.
     Returns (xm, info)
@@ -258,6 +258,9 @@ def minimize(f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, **kw):
 
         ftol    --- force tolerance
         xtol    --- step tolerance
+        algo    --- algorith to be used:
+                    0) Limited memory BFGS as distributed with SciPy.
+                    1) built in
         **kw    --- unused
 
     xm          --- location of the minimum
@@ -283,9 +286,9 @@ def minimize(f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, **kw):
     # flat version of inital point:
     y = x.flatten()
 
-    if False:
+    if algo == 1:
         xm, info = fmin(fg, y, hess="BFGS", stol=xtol, gtol=ftol)
-    else:
+    elif algo == 0:
         xm, fm, info =  minimize1D(fg, y, pgtol=ftol, maxfun=maxit) #, iprint=1)
 
         #
@@ -297,6 +300,8 @@ def minimize(f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, **kw):
         info["value"] = fm
         info["derivative"] = info["grad"].reshape(xshape)
         del info["grad"]
+    else:
+        assert False, "No such algo = %d" % algo
 
     # return the result in original shape:
     xm.shape = xshape
