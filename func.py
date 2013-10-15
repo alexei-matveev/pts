@@ -231,7 +231,7 @@ from scipy.optimize import newton
 from ridders import dfridr
 
 class Func(object):
-    def __init__(self, f=None, fprime=None, taylor=None):
+    def __init__(self, f=None, fprime=None, taylor=None, pinv=None):
 
         if f is not None:
             self.f = f
@@ -241,6 +241,9 @@ class Func(object):
 
         if taylor is not None:
             self.taylor = taylor
+
+        if pinv is not None:
+            self.pinv = pinv
 
     # subclasses may choose to implement either (f, fprime) or just (taylor):
     def f(self, *args, **kwargs):
@@ -411,7 +414,12 @@ def compose(P, Q):
         px = matmul(shape(p), shape(x), shape(q), pq, qx)
         return p, px
 
-    return Func(f, fprime, taylor)
+    # Note that many  Funcs do not define pseudo-inverse.  But if they
+    # do, this holds:
+    def pinv (y):
+        return Q.pinv (P.pinv (y))
+
+    return Func(f, fprime, taylor, pinv)
 
 class LinFunc(Func):
     """
