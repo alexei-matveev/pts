@@ -1,116 +1,50 @@
-try:
-    # must be available in SciPy 0.8, see
-    # http://projects.scipy.org/scipy/ticket/733
-    from scipy.fftpack import dct, idct # FIXME: not verified yet!
-except:
-    import numpy as np
+"""
+Discrete Cosine Transform
 
-    def dct(x,n=None):
-        """
-        Discrete Cosine Transform
+              N-1
+    y[k] = 2* sum x[n]*cos(pi*k*(2n+1)/(2*N)), 0 <= k < N.
+              n=0
 
-                          N-1
-               y[k] = 2* sum x[n]*cos(pi*k*(2n+1)/(2*N)), 0 <= k < N.
-                          n=0
+Inverse Discrete Cosine Transform
 
-        Examples
-        --------
-        >>> import numpy as np
-        >>> x = np.arange(5)
-        >>> np.abs(x-idct(dct(x)))<1e-14
-        array([ True,  True,  True,  True,  True], dtype=bool)
-        >>> np.abs(x-dct(idct(x)))<1e-14
-        array([ True,  True,  True,  True,  True], dtype=bool)
+               N-1
+    x[k] = 1/N sum w[n]*y[n]*cos(pi*k*(2n+1)/(2*N)), 0 <= k < N.
+               n=0
 
-        Reference
-        ---------
-        http://en.wikipedia.org/wiki/Discrete_cosine_transform
-        http://users.ece.utexas.edu/~bevans/courses/ee381k/lectures/
-        """
-        fft = np.fft.fft
-        x = np.atleast_1d(x)
+    w(0) = 1/2
+    w(n) = 1 for n>0
 
-        if n is None:
-            n = x.shape[-1]
+Examples
+--------
 
-        if x.shape[-1]<n:
-            n_shape = x.shape[:-1] + (n-x.shape[-1],)
-            xx = np.hstack((x,np.zeros(n_shape)))
-        else:
-            xx = x[...,:n]
+    >>> import numpy as np
+    >>> x = np.arange(5.0)
+    >>> np.abs(x-idct(dct(x))) < 1e-14
+    array([ True,  True,  True,  True,  True], dtype=bool)
+    >>> np.abs(x-dct(idct(x))) < 1e-14
+    array([ True,  True,  True,  True,  True], dtype=bool)
 
-        real_x = np.all(np.isreal(xx))
-        if (real_x and (np.remainder(n,2) == 0)):
-            xp = 2 * fft(np.hstack( (xx[...,::2], xx[...,::-2]) ))
-        else:
-            xp = fft(np.hstack((xx, xx[...,::-1])))
-            xp = xp[...,:n]
+FIXME: Get rid  of the normalization, the user  code should not assume
+anymore that icdt(dct(x)) == x. Because this is how SciPy does it.
 
-        w = np.exp(-1j * np.arange(n) * np.pi/(2*n))
+References
+----------
 
-        y = xp*w
+http://en.wikipedia.org/wiki/Discrete_cosine_transform
+http://users.ece.utexas.edu/~bevans/courses/ee381k/lectures/
+"""
 
-        if real_x:
-            return y.real
-        else:
-            return y
+# Must be available in SciPy 0.8, see
+# http://projects.scipy.org/scipy/ticket/733
+from scipy.fftpack import dct as DCT, idct as IDCT
 
-    def idct(x,n=None):
-        """
-        Inverse Discrete Cosine Transform
+__all__ = ["dct", "idct"]
 
-                           N-1
-               x[k] = 1/N sum w[n]*y[n]*cos(pi*k*(2n+1)/(2*N)), 0 <= k < N.
-                           n=0
+def dct (x):
+    return DCT (x)
 
-               w(0) = 1/2
-               w(n) = 1 for n>0
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> x = np.arange(5)
-        >>> np.abs(x-idct(dct(x)))<1e-14
-        array([ True,  True,  True,  True,  True], dtype=bool)
-        >>> np.abs(x-dct(idct(x)))<1e-14
-        array([ True,  True,  True,  True,  True], dtype=bool)
-
-        Reference
-        ---------
-        http://en.wikipedia.org/wiki/Discrete_cosine_transform
-        http://users.ece.utexas.edu/~bevans/courses/ee381k/lectures/
-        """
-
-        ifft = np.fft.ifft
-        x = np.atleast_1d(x)
-
-        if n is None:
-            n = x.shape[-1]
-
-        w = np.exp(1j * np.arange(n) * np.pi/(2*n))
-
-        if x.shape[-1]<n:
-            n_shape = x.shape[:-1] + (n-x.shape[-1],)
-            xx = np.hstack((x,np.zeros(n_shape)))*w
-        else:
-            xx = x[...,:n]*w
-
-        real_x = np.all(np.isreal(x))
-        if (real_x and (np.remainder(n,2) == 0)):
-            xx[...,0] = xx[...,0]*0.5
-            yp = ifft(xx)
-            y  = np.zeros(xx.shape,dtype=complex)
-            y[...,::2] = yp[...,:n/2]
-            y[...,::-2] = yp[...,n/2::]
-        else:
-            yp = ifft(np.hstack((xx, np.zeros_like(xx[...,0]), np.conj(xx[...,:0:-1]))))
-            y = yp[...,:n]
-
-        if real_x:
-            return y.real
-        else:
-            return y
-
+def idct (x):
+    return IDCT (x) * (1.0 / (2 * len (x))) 
 
 # python dct.py [-v]:
 if __name__ == "__main__":
