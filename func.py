@@ -372,7 +372,7 @@ class Elemental(Func):
         return fs, gs
 
 class RhoInterval(Func):
-    """Supports generation of bead density functions for placement of beads 
+    """Supports generation of bead density functions for placement of beads
     at specific positions.
     """
     def __init__(self, intervals):
@@ -478,7 +478,7 @@ class QuadFunc(Func):
     def calc_coeffs(self, xs, ys):
         assert len(xs) == len(ys) == 3
         xs_x_pow_2 = xs**2
-        xs_x_pow_1 = xs 
+        xs_x_pow_1 = xs
 
         A = column_stack((xs_x_pow_2, xs_x_pow_1, ones(3)))
 
@@ -568,7 +568,7 @@ class CubicFunc(Func):
                            [xs[1]**3, xs[1]**2, xs[1], 1]])
 
                 Ys = hstack([dydxs, ys])
-                
+
                 # calculate coefficients of cubic polynomial
                 self.coeffs = linalg.solve(A,Ys)
             else:
