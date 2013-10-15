@@ -150,14 +150,9 @@ from Queue import Queue as TQueue
 from os import environ
 from sched import Strategy
 from time import sleep
-try:
-    from multiprocessing import Process
-    from multiprocessing import Queue as PQueue
-    from multiprocessing import Pool, Manager, Event, RLock
-except:
-    from processing import Process
-    from processing import Queue as PQueue
-    from processing import Pool, Manager, Event, RLock
+from multiprocessing import Process
+from multiprocessing import Queue as PQueue
+from multiprocessing import Pool, Manager, Event, RLock
 
 def job(jid, queue, func, args=(), kwds={}):
     """Each process should do its job and
