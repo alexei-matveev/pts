@@ -1414,7 +1414,7 @@ if __name__ == "__main__":
 #   profile.run("test1(5)")
 #   exit()
     from pts.pes.mueller_brown import CHAIN_OF_STATES as P
-    # from pts.test.testfuns import Affine
+    # from pts.cfunc import Affine
     # trafo = Affine([[2.0, 0], [0.0, 0.5]])
     # test(P[0], P[4]) #, trafo)
 
