@@ -140,6 +140,11 @@ from numpy import array, size, shape
 
 from pts.func import Func
 from pts.zmat import RT
+from pts.test.testfuns import Affine # for re-export only
+
+__all__ = ["Affine", "Pass_through", "Justcarts", "With_globals",
+           "Mergefuncs", "Masked",  "With_equals"]
+
 
 class Pass_through(Func):
      """
