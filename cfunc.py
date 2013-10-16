@@ -19,7 +19,7 @@ A second example:
 
 Vector for H2O
 
-    >>> y = asarray([0.96, 0.96, 104.5 * pi / 180.0])
+    >>> y = [0.96, 0.96, 104.5 * pi / 180.0]
 
 Cartesian start vector:
 
@@ -151,14 +151,11 @@ class Pass_through(Func):
 
      Returns the same that it got.
      """
-     def taylor(self, x):
-         x1 = copy(x)
-         der = eye(len(x))
-         return x1, der
+     def taylor (self, x):
+         return array (x), eye (len (x))
 
-     def pinv(self, y):
-         x1 = copy(y)
-         return x1
+     def pinv (self, y):
+         return array (y)
 
 
 class Cartesian (Func):
@@ -171,14 +168,14 @@ class Cartesian (Func):
         pass
 
     def taylor(self, x):
-        y = copy(x)
+        y = array (x)
         y.shape = (-1, 3)
         yprime = eye(size(x))
         yprime.shape = (-1, 3) + shape(x)
         return y, yprime
 
     def pinv(self, y):
-        x = copy(y)
+        x = array (y)
         x.shape = (-1)
         return x
 
