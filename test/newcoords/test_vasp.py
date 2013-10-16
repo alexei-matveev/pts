@@ -7,7 +7,7 @@ A H-Atom is moving on a small (fixed) Pd surface
 from pts.path_searcher import pathsearcher
 from ase.atoms import Atoms
 from ase.calculators.vasp import Vasp
-from pts.cfunc import Justcarts, Masked
+from pts.cfunc import Cartesian, Masked
 from numpy import array
 from pts.qfunc import QFunc
 from pts.func import compose
@@ -46,7 +46,7 @@ cell = array(cell) * sc
 PdH.set_cell(cell)
 
 # Do calculation in Cartesian coordinates
-fun1 = Justcarts()
+fun1 = Cartesian()
 
 # PES in cartesian coordiantes:
 pes = QFunc(PdH, PdH.get_calculator())

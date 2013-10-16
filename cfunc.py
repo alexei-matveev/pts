@@ -15,7 +15,7 @@ A example function:
 
 A second example:
 
-    >>> fun2 = Justcarts()
+    >>> fun2 = Cartesian()
 
 Vector for H2O
 
@@ -142,7 +142,7 @@ from pts.func import Func
 from pts.zmat import RT
 from pts.test.testfuns import Affine # for re-export only
 
-__all__ = ["Affine", "Pass_through", "Justcarts", "With_globals",
+__all__ = ["Affine", "Cartesian", "Pass_through", "With_globals",
            "Mergefuncs", "Masked",  "With_equals"]
 
 
@@ -162,7 +162,7 @@ class Pass_through(Func):
          return x1
 
 
-class Justcarts(Func):
+class Cartesian (Func):
     """
     Takes Cartesian coordinates and returns Cartesian coordinates.  It
     considers only  that the internal coordinates are  an array, while

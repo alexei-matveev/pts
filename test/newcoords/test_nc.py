@@ -6,7 +6,7 @@ from ase.calculators.lj import LennardJones
 from pts.zmat import ZMat
 from pts.test.testfuns import diagsandhight
 from numpy import sqrt, pi, asarray
-from pts.cfunc import Justcarts, With_globals, Masked
+from pts.cfunc import Cartesian, With_globals, Masked
 from pts.constr_symar4 import t_c2v, t_c2v_prime
 import pts.metric as mt
 from pts.metric import Metric, Metric_reduced
@@ -138,7 +138,7 @@ elif testfun == "carts":
     function.  See case "diaghigh".  The optimization and else is done
     in Cartesian coordinates.
     """
-    func = Justcarts()
+    func = Cartesian()
 
     # generate   starting  geometries  with   the  help   of  function
     # diagsandhight:
@@ -153,7 +153,7 @@ elif testfun == "cartsred":
     some coordinates are fixed (y,z) direction for first two atoms and
     (x) for the last two.
     """
-    func2 = Justcarts()
+    func2 = Cartesian()
 
     # starting geometries with fixed symmetries
     func_h = diagsandhight()
@@ -175,7 +175,7 @@ elif testfun == "ztoc":
     case  "zmat".  The  optimization  and else  is  done in  Cartesian
     coordinates.
     """
-    func = Justcarts()
+    func = Cartesian()
 
     func_h = ZMat([(), (0,), (0, 1), (1, 2, 0)])
     min1 = func_h([var1, var1, var3, var1, var3, var4]).flatten()
@@ -189,7 +189,7 @@ elif testfun == "ztoc_red":
     coordinate  of second  and y  coordinate  of third  one ==  global
     rotation and translation is fixed.
     """
-    func2 = Justcarts()
+    func2 = Cartesian()
 
     # starting geometries with fixed symmetries
     func_h = ZMat([(), (0,), (0, 1), (1, 2, 0)])

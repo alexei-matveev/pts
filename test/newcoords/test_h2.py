@@ -16,7 +16,7 @@ from ase.calculators.lj import LennardJones
 from pts.zmat import ZMat
 from pts.test.testfuns import diagsandhight
 from numpy import sqrt, array
-from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
+from pts.cfunc import Cartesian, With_globals, Mergefuncs, Masked, With_equals
 
 paths = []
 energies = []
@@ -45,17 +45,17 @@ for choice in nums:
     # Here the different ways of using the different functions are given
     if choice == 0:
         """
-        Justcarts is used for only rearranging the input variables.
+        Cartesian is used for only rearranging the input variables.
         From our functions we expect ouput of the three Cartesian coordinates
         for each atom in an array of the kind (N, 3)
 
         For further use in our pathsearcher we need the function itself
         and the two minima
 
-        Justcarts expects its input vector to be a one-dimensional array, as
+        Cartesian expects its input vector to be a one-dimensional array, as
         does pathsearcher.
         """
-        func = Justcarts()
+        func = Cartesian()
         min1 = func.pinv(m1)
         min2 = func.pinv(m2)
 
@@ -68,7 +68,7 @@ for choice in nums:
         e^iv. The rotation by this is obtained to every atom alone.
         The other three describe the global translation.
         """
-        func = With_globals(Justcarts())
+        func = With_globals(Cartesian())
 
         # Trick as there are not enough coordinates to revert them
         min1 = array([0., 0., 0., 0., 0., d, 0., 0., 0., 1., 0., 0.])
@@ -80,10 +80,10 @@ for choice in nums:
         each of them works on only a subset of the given parameter. This is done by
         function Mergefuncs.
 
-        In this example each of the two atoms gets its own Justcarts functions.
+        In this example each of the two atoms gets its own Cartesian functions.
         Note that the functions mustn't overlap.
         """
-        funcs = [Justcarts(), Justcarts()]
+        funcs = [Cartesian(), Cartesian()]
         dims = [3, 3]
         func = Mergefuncs(funcs, dims, dims_rev = [1,1])
         min1 = func.pinv(m1)
@@ -95,7 +95,7 @@ for choice in nums:
         One has to provide a logical mask, with False for fixed
         coordinates and True for the ones which should be optimized.
         The function to generate the Cartesian coordinates (in our
-        example Justcarts) will still get all the coordinates than before,
+        example Cartesian) will still get all the coordinates than before,
         but the interface to the outside wold will only contain the unfixed
         paramters. Function Masked will deal with the extended requirements
         of the function func_raw.
@@ -110,7 +110,7 @@ for choice in nums:
         """
         mask = [False] * 5 + [True]
         all = array([0., 0., 0.,0., 0., 0.])
-        func = Masked(Justcarts(), mask, all)
+        func = Masked(Cartesian(), mask, all)
         min1 = func.pinv(m1)
         min2 = func.pinv(m2)
 
@@ -128,7 +128,7 @@ for choice in nums:
         python array numbering the first element of the array is described by 1. 0 stands for a fixed
         coordinate.
 
-        In this example the inner function is just our example function Justcarts expecting 6 coordinates
+        In this example the inner function is just our example function Cartesian expecting 6 coordinates
         (three per atom). The mask says that the first element of the array should be used for the first
         and (its negative) for the third coordinate, while the second element is used for 4 and 5 of extended
         coordinates. The last element is used for the last of the extended coordinates, while the second of the
@@ -138,20 +138,20 @@ for choice in nums:
         """
         mask = [1, 0, -1, 2, 2, 3]
         start = array([0., 0., 0., 0., 0., 0.])
-        func = With_equals(Justcarts(), mask, start)
+        func = With_equals(Cartesian(), mask, start)
         min1 = func.pinv(m1)
         min2 = func.pinv(m2)
 
     elif choice == 5:
         """
-        Functions of cfunc can be stacked: here first a Mergefuncs of two Justcarts functions, one
+        Functions of cfunc can be stacked: here first a Mergefuncs of two Cartesian functions, one
         for each atom is build, then with equals the positions of atom one and the two zero
         positions of atom two are set equal. The function used for pathsearcher than puts
         an additional mask over the two first variables, keeping them fixed with 0.
 
         The internal geometries thus do only contain a single entry.
         """
-        funcs = [Justcarts(), Justcarts()]
+        funcs = [Cartesian(), Cartesian()]
         dims = [3, 3]
         func2 = Mergefuncs(funcs, dims, dims_rev = [1,1])
 
@@ -167,10 +167,10 @@ for choice in nums:
 
     elif choice == 6:
         """
-        Stacked cfunc's 2: first two Justcarts functions are defined for each atom,
+        Stacked cfunc's 2: first two Cartesian functions are defined for each atom,
         then With_equals is used for fixing the first five coordinates.
         """
-        funcs = [Justcarts(), Justcarts()]
+        funcs = [Cartesian(), Cartesian()]
         dims = [3, 3]
         func2 = Mergefuncs(funcs, dims, dims_rev = [1,1])
 

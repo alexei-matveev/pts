@@ -184,9 +184,9 @@ class MolInterface:
         ...     l = [numpy.abs(r[0][-1] - r[1][-1])]
         ...     return [i for i in l if i * common.RAD_TO_DEG >= 180]
 
-        >>> from cfunc import Mergefuncs, Justcarts
+        >>> from cfunc import Mergefuncs, Cartesian
         >>> from numpy import array
-        >>> fun2 = Mergefuncs([Justcarts(), fun], [3,6])
+        >>> fun2 = Mergefuncs([Cartesian(), fun], [3,6])
         >>> ccs1 =  array([0. ,0., 0., 1., 1.2, 109. * common.DEG_TO_RAD,  1,
         ...            109. * common.DEG_TO_RAD, 60. * common.DEG_TO_RAD])
         >>> ccs2 =  array([0. ,0., 0., 1., 1.2, 109. * common.DEG_TO_RAD,  1,

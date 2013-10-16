@@ -155,7 +155,7 @@ import sys
 from pts.func import compose
 from pts.qfunc import QFunc
 from pts.qfunc import fwrapper, constraints2mask, pwrapper
-from pts.cfunc import Masked, Justcarts
+from pts.cfunc import Masked, Cartesian
 from copy import deepcopy
 
 VERBOSE = False
@@ -294,9 +294,9 @@ def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, give_ou
         mask = constraints2mask(atoms)
 
     if mask == None: # (if still None)
-        fun = Justcarts()
+        fun = Cartesian()
     else:
-        fun = Masked(Justcarts(), mask, coord.flatten())
+        fun = Masked(Cartesian(), mask, coord.flatten())
 
     xcenter = fun.pinv(coord)
 

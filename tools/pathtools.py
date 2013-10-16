@@ -25,7 +25,7 @@ import scipy as sp
 from pts.threepointmin import ts_3p_gr
 from pts.ui.read_inputs import get_transformation
 from pts.ui.cmdline import get_mask
-from pts.cfunc import Justcarts, Masked
+from pts.cfunc import Cartesian, Masked
 from numpy import loadtxt
 
 lg = logging.getLogger("pts.tools")
@@ -596,7 +596,7 @@ def read_path_fix(symbfile, zmatifiles = None, maskfile = None, maskedgeo = None
 
 
     if len(zmatifiles)==0:
-        trafo = Justcarts()
+        trafo = Cartesian()
     else:
         trafo, __, __, __, __ = get_transformation(zmatifiles, len(symbols) * 3, "direct")
 

@@ -135,7 +135,7 @@ from pts.common import file2str
 from pts.ui.read_COS import read_geos_from_file, read_zmt_from_file, geo_params
 from pts.ui.read_COS import read_zmt_from_gx, read_zmt_from_gauss
 from pts.ui.read_COS import info_geometries
-from pts.cfunc import Justcarts, With_globals, Mergefuncs, Masked, With_equals
+from pts.cfunc import Cartesian, With_globals, Mergefuncs, Masked, With_equals
 from pts.zmat import ZMat
 from pts.quat import Quat, uquat, quat2vec
 from numpy import array, pi, loadtxt
@@ -246,7 +246,7 @@ def get_geos(geos, dc, zmi):
     # RETURN POINT: only Cartesian geometry
     if zmi == []:
        geo_int = array([ge.flatten() for ge in geo_carts])
-       return at, geo_int, Justcarts(), [[]], [False], [len(geo_carts[0].flatten())], None
+       return at, geo_int, Cartesian(), [[]], [False], [len(geo_carts[0].flatten())], None
 
     func, d_nums, quats, size_nums, mask1 = get_transformation(zmi, len(geo_carts[0].flatten()), dc["zmt_format"])
     # transform Cartesians to internals (all functions used
@@ -310,7 +310,7 @@ def get_transformation(zmi, len_carts, zmt_format):
 
     # if not all variables are used up, the rest are in Cartesians
     if len_carts > size_sys:
-         funcs.append(Justcarts())
+         funcs.append(Cartesian())
          # there is also some need to specify their sizes
          size_nums.append(len_carts - size_sys)
          size_carts.append(len_carts - size_sys)

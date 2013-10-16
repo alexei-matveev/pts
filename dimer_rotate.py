@@ -114,8 +114,8 @@ def rotate_dimer_mem(pes, mid_point, grad_mp, start_mode_vec, met, dimer_distanc
     >>> from ase import Atoms
     >>> ar4 = Atoms("Ar4")
     >>> from pts.qfunc import QFunc
-    >>> from pts.cfunc import Justcarts
-    >>> pes = compose(QFunc(ar4), Justcarts())
+    >>> from pts.cfunc import Cartesian
+    >>> pes = compose(QFunc(ar4), Cartesian())
 
     >>> w=0.39685026
     >>> C = array([[-w,  w,  w],
@@ -428,8 +428,8 @@ def rotate_dimer(pes, mid_point, grad_mp, start_mode_vec, metric, \
     >>> from ase import Atoms
     >>> ar4 = Atoms("Ar4")
     >>> from pts.qfunc import QFunc
-    >>> from pts.cfunc import Justcarts
-    >>> pes = compose(QFunc(ar4), Justcarts())
+    >>> from pts.cfunc import Cartesian
+    >>> pes = compose(QFunc(ar4), Cartesian())
 
     >>> w=0.39685026
     >>> C = array([[-w,  w,  w],

@@ -20,7 +20,7 @@ before the geometry files but in any order with --zmatrix.
 """
 from ase.io import read
 from pts.metric import Default
-from pts.cfunc import Justcarts
+from pts.cfunc import Cartesian
 from pts.zmat import ZMat
 from pts.ui.read_COS import read_zmt_from_file
 
@@ -61,7 +61,7 @@ def main(argv):
     geos = [read(arg, format = format) for arg in argv[1:]]
 
     if zmat == None:
-         fun = Justcarts()
+         fun = Cartesian()
     else:
          fun = ZMat(zmat)
 
