@@ -134,9 +134,8 @@ Ensure that the derivatives are correct:
     >>> max(abs(f_we.fprime(y_r2) - f_nd.fprime(y_r2))) < 1e-12
     True
 """
-from copy import deepcopy
 from numpy import eye, zeros, hstack, asarray
-from numpy import array, size, shape
+from numpy import array, size, shape, copy
 
 from pts.func import Func
 from pts.zmat import RT
@@ -153,12 +152,12 @@ class Pass_through(Func):
      Returns the same that it got.
      """
      def taylor(self, x):
-         x1 = deepcopy(x)
+         x1 = copy(x)
          der = eye(len(x))
          return x1, der
 
      def pinv(self, y):
-         x1 = deepcopy(y)
+         x1 = copy(y)
          return x1
 
 
@@ -172,14 +171,14 @@ class Cartesian (Func):
         pass
 
     def taylor(self, x):
-        y = deepcopy(x)
+        y = copy(x)
         y.shape = (-1, 3)
         yprime = eye(size(x))
         yprime.shape = (-1, 3) + shape(x)
         return y, yprime
 
     def pinv(self, y):
-        x = deepcopy(y)
+        x = copy(y)
         x.shape = (-1)
         return x
 
@@ -326,7 +325,7 @@ class Masked(Func):
     def taylor(self, x):
 
         # take the stored vector
-        x1 = deepcopy(self._x0)
+        x1 = copy(self._x0)
         j = 0
         # and exchange all the variables which are not fixed
         for i, mp in enumerate(self._mask):
