@@ -242,20 +242,21 @@ class ZMError(Exception):
 
 class ZMat(Func):
     def __init__(self, zm, fixed=None):
-        """The first argument |zm| is a representation of connectivities
+        """
+        The first argument |zm|  is a representation of connectivities
         used to define internal coordinates.
 
-        |fixed| is an (N x 3)-array (or nested lists) defining cartesian
-        coordinates of the fixed "environment" for the part of the system defined
-        by |zm|. It is appended to the output of |.f| method as-is and may be
-        used to treat the fixed subsystem (e.g. surface model). It should
-        be ok to reference the indices of atoms of "environment" in the z-matrix
-        definition |zm|.
+        |fixed|  is  an  (N  x  3)-array (or  nested  lists)  defining
+        cartesian coordinates of the  fixed "environment" for the part
+        of the system defined by |zm|. It is appended to the output of
+        |.f| method as-is and may be used to treat the fixed subsystem
+        (e.g. surface model). It should be ok to reference the indices
+        of atoms of "environment" in the z-matrix definition |zm|.
         """
 
         #
-        # Each entry in ZM definition is a 3-tuple (a, b, c)
-        # defining x-a-b-c chain of atoms.
+        # Each entry in ZM definition  is a 3-tuple (a, b, c) defining
+        # x-a-b-c chain of atoms.
         #
 
         def t3(t):
@@ -304,8 +305,8 @@ class ZMat(Func):
         #
         # (a, b, c, idst, iang, idih)
         #
-        # with the last three fields being the left-to-right
-        # running index of internal coordinate.
+        # with the  last three fields being  the left-to-right running
+        # index of internal coordinate.
         #
 
         #
@@ -330,8 +331,8 @@ class ZMat(Func):
         #
         assert shape (vars) == (self.__dim, ), "Wrong shape of internal coordinates!"
 
-        # use ZM representation and values for internal coords
-        # to compute cartesians:
+        # Use  ZM representation  and  values for  internal coords  to
+        # compute cartesians:
 
         # number of atoms in z-part
         na = len(self.__zm)
@@ -342,7 +343,8 @@ class ZMat(Func):
         # number of internal coordinates:
         nvar = len(vars)
 
-        # flags to indicate valid atomic positions, keys are the indices:
+        # flags  to  indicate valid  atomic  positions,  keys are  the
+        # indices:
         cached = [0] * na + [1] * ne
         # 0: undefined, 1: defined, -1: computation in progress
 
@@ -359,8 +361,10 @@ class ZMat(Func):
         Z[:na, :] = None
 
         def pos(x):
-            """Return atomic position and its derivatives as a tuple,
-            return cached results or compute, if necessary, and memoize
+            """
+            Return  atomic position  and its  derivatives as  a tuple,
+            return  cached  results  or  compute,  if  necessary,  and
+            memoize
             """
 
             if cached[x] == -1:
@@ -371,7 +375,8 @@ class ZMat(Func):
                 # return cached value:
                 return Z[x], ZPRIME[x, :, :]
             else:
-                # prevent infinite recursion, indicate computation in progress:
+                # Prevent infinite  recursion, indicate computation in
+                # progress:
                 cached[x] = -1
 
                 # for actual computation see "pos1" below:
@@ -380,7 +385,8 @@ class ZMat(Func):
                 except Exception, e:
                     raise ZMError("pos1 of", x, e.args)
 
-                # save position of atom x and its derivative into cache array:
+                # save  position of  atom  x and  its derivative  into
+                # cache array:
                 Z[x] = p
                 ZPRIME[x, :, :] = pprime
 
@@ -405,10 +411,11 @@ class ZMat(Func):
             dih = 0.0
 
             #
-            # Default values for anchor points (see also how reper()
-            # is constructed from these). These settings ensure that
-            # by default position start in x-direction, with bending
-            # moving them down in z-direction as in legacy implemetations.
+            # Default values  for anchor points (see  also how reper()
+            # is constructed  from these). These  settings ensure that
+            # by default  position start in  x-direction, with bending
+            # moving   them   down  in   z-direction   as  in   legacy
+            # implemetations.
             #
             A = array((0.,  0.,  0.))
             B = array((1.,  0.,  0.))
@@ -458,15 +465,15 @@ class ZMat(Func):
             V = C - A
             Vprime = Cprime - Aprime
 
-#           # FIXME: U and V are not normalized, so this check doesnt catch
-#           #        the case when they are collinear, the case when B == C should
-#           #        be catched earlier:
-#           if not abs(U - V).any() > 10e-10:
-#               raise ZMError("bad choice for a= %i b= %i and c= %i" % (a, b, c))
+          # # FIXME: U  and V are  not normalized, so this  check doesnt
+          # #        catch the  case when  they are collinear,  the case
+          # #        when B == C should be catched earlier:
+          # if not abs(U - V).any() > 10e-10:
+          #     raise ZMError("bad choice for a= %i b= %i and c= %i" % (a, b, c))
 
             ijk, dijk = reper.taylor([U, V])
 
-            # The default settings for the anchor points (see above)
+            # The default  settings for the anchor  points (see above)
             # together with the (custom) implementation of the reper()
             # function will lead to:
             #
@@ -479,22 +486,24 @@ class ZMat(Func):
             #
             #    k ~ AB, j ~ [AC x k], i = [k x j]
             #
-            # FIXME: This appears to be a left-reper, e.g [i x j] = -k,
-            #        is there a better way to achive compatibility
+            # FIXME: This  appears to be a  left-reper, e.g [i  x j] =
+            #        -k, is there a better way to achive compatibility
             #        with legacy code?
             #
-            # ATTENTION: the structure of the anchor points is used below
-            # when calculating the derivatives, which will be inherited
-            # from the points defining the anchor. For any change it has
-            # to be checked, if there also has to be adapted something
+            # ATTENTION: the  structure of  the anchor points  is used
+            # below  when calculating the  derivatives, which  will be
+            # inherited from  the points defining the  anchor. For any
+            # change it  has to  be checked, if  there also has  to be
+            # adapted something
 
             # result for the positions
             X = A + dot(r, ijk) # r[0] * i + r[1] * j + r[2] * k
 
             #
             # For the derivatives there has something more to be done:
-            # for the derivatives with the new internal coordinates
-            # consider, that the first three atoms don't have the full set of them
+            # for  the derivatives with  the new  internal coordinates
+            # consider, that the first three atoms don't have the full
+            # set of them
             #
             #    dX / dY = dot( dr / dY, IJK) + ...
             #
@@ -509,16 +518,17 @@ class ZMat(Func):
                 Xprime[:, idih] = dot(rprime[:, 2], ijk)
 
             #
-            # For all the other internal coordinates Y it will be an indirect dependence of X
-            # via the anchor points A, B, C or rather via the coordinate system IJK built of
-            # them:
+            # For all the  other internal coordinates Y it  will be an
+            # indirect dependence of  X via the anchor points  A, B, C
+            # or rather via the coordinate system IJK built of them:
             #
             #   dX / dY = ... + dA / dY
             #                 + dot(r, dIJK / dU * dU / dY)
             #                 + dot(r, dIJK / dV * dV / dY)
             #
 
-            # since the derivatives of IJK also contribute continue with dX / dU and dX / dV:
+            # Since  the derivatives of  IJK also  contribute continue
+            # with dX / dU and dX / dV:
             Xuv = r[0] * dijk[0, ...] + r[1] * dijk[1, ...] + r[2] * dijk[2, ...]
             # dot() would not work because of additional array axes.
 
@@ -529,9 +539,9 @@ class ZMat(Func):
 
         # force evaluation of all positions:
         for x in range(na + ne):
-            # calling pos(x) will set Z[x] and Z[y] for all y's
-            # that are required to compute pos(x).
-            # The same holds for the derivatives in ZPRIME[...]
+            # calling pos(x) will  set Z[x] and Z[y] for  all y's that
+            # are required to compute  pos(x).  The same holds for the
+            # derivatives in ZPRIME[...]
             r, rprime = pos(x)
 
             if any(r != Z[x]) or any(rprime != ZPRIME[x]):
@@ -546,10 +556,9 @@ class ZMat(Func):
         x = 0
         for a, b, c, idst, iang, idih in self.__zm:
             #
-            # Note: distance/angle/dihedral from rc.py
-            # expect the 3D coordiantes of involved atoms
-            # in a single array. We provide them by list-indexing
-            # into the array "atoms".
+            # Note: distance/angle/dihedral  from rc.py expect  the 3D
+            # coordiantes  of involved  atoms  in a  single array.  We
+            # provide them by list-indexing into the array "atoms".
             #
             if a is not None:
                 vars[idst] = distance(atoms[[x, a]])
@@ -563,10 +572,12 @@ class ZMat(Func):
 
 
 class RT(Func):
-    """A wrapper for functions that return cartesian coordinates, e.g. ZMat().
-    An RT() is a Func() object that, in addition to the ZMat() coordinates V,
-    takes (skew)vector parameters, W and T, of a rotation and a translation and
-    applies the Rotate&Translate (RT) transformation.
+    """
+    A  wrapper  for   functions  that  return  cartesian  coordinates,
+    e.g. ZMat().  An RT() is a  Func() object that, in addition to the
+    ZMat() coordinates V, takes (skew)vector parameters, W and T, of a
+    rotation and  a translation and applies  the Rotate&Translate (RT)
+    transformation.
 
     Set up a starting system (CH4)
 
@@ -612,8 +623,8 @@ class RT(Func):
 
         >>> from func import NumDiff, Partial
 
-    NumDiff operates only with functions of a single variable,
-    these are three partial functions of V, W, and T:
+    NumDiff operates  only with functions of a  single variable, these
+    are three partial functions of V, W, and T:
 
         >>> ZV = Partial(Z, 0, W, T)
         >>> ZW = Partial(Z, 1, V, T)
@@ -632,7 +643,7 @@ class RT(Func):
     """
 
     def __init__(self, f):
-        # a Func() of a 1D array, that returns cartesian coordiantes
+        # a Func()  of a 1D array, that  returns cartesian coordiantes
         # as a (n, 3)-shaped array:
         self.__f = f
 
@@ -640,8 +651,8 @@ class RT(Func):
         # alias:
         f = self.__f
 
-        # Cartesian coordinates (and their derivatives) for the unrotated and
-        # untranslated system
+        # Cartesian  coordinates  (and   their  derivatives)  for  the
+        # unrotated and untranslated system
         X, XV = f.taylor(V)
 
         # transform rotation vector in a rotation matrix (for a single atom)
@@ -655,8 +666,9 @@ class RT(Func):
         # cycle over all Cartesian (three) atom positions
         for i in range(len(X)): # == number of atoms
             #
-            # First, update the derivatives, we use the unmodified positions X here,
-            # so it must be done before rotating/translating X.
+            # First,  update the  derivatives, we  use  the unmodified
+            # positions   X  here,   so   it  must   be  done   before
+            # rotating/translating X.
             #
 
             #
@@ -682,7 +694,8 @@ class RT(Func):
                 XW[i, :, j] = dot(RW[..., j], X[i])
 
             #
-            # Second, change the positions according to rotation and translation
+            # Second, change  the positions according  to rotation and
+            # translation
             #
             X[i] = dot(R, X[i]) + T
 
@@ -715,45 +728,46 @@ class RT(Func):
 
 class ZMatrix3(Func):
     """
-    Creates an object for calculating cartesian coordinates and their derivatives
-    to given internal coordinates.
-    Needs a zmatrix object by initalising to know how the internal coordinates are
-    to be used
+    Creates an object for  calculating cartesian coordinates and their
+    derivatives to given internal coordinates.  Needs a zmatrix object
+    by  initalising to  know how  the internal  coordinates are  to be
+    used.
 
-    the last six coordinates are suppposed to be related to the global orientation of
-    the objects, thus the 6th to 3th last for the rotation, the last three for the
-    translation of the complete connnected cartesian objects
+    The last six coordinates are suppposed to be related to the global
+    orientation  of the  objects, thus  the 6th  to 3th  last  for the
+    rotation,  the last  three  for the  translation  of the  complete
+    connnected cartesian objects.
     """
     def __init__(self, zm, fixed = None):
         self.rt = RT(ZMat(zm, fixed = fixed))
 
     def taylor(self, y):
-        # y = [v, w, t]
-        # w is global orientation (quaternion expressed as vector)
-        # t is global translation
-        # both w and t have three elements
+        # y  = [v,  w, t],  here w  is global  orientation (quaternion
+        # expressed as vector), t is  global translation. Both w and t
+        # have three elements
         v = y[:-6]
         w = y[-6:-3]
         t = y[-3:]
 
-        # rt needs zmatrix coordinates, rotation and translation separate
+        # rt  needs  zmatrix  coordinates,  rotation  and  translation
+        # separate
         x, (xv, xw, xt) = self.rt.taylor(v, w, t)
 
         dx = zeros((len(x[:,0]), 3, len(y)))
 
-        # got the derivatives separate for v, w,t
-        # here put them into one object
+        # got the  derivatives separate  for v, w,  t.  Here  put them
+        # into one object
         dx[:,:,:-6] = xv
         dx[:,:,-6:-3] = xw
         dx[:,:,-3:] = xt
 
-        # give back x as a 1-dimensional array (rt gave
-        # back as x, y,z compontent for each "atom"
-        # change the derivatives accordingly
+        # Give back x as a 1-dimensional array (rt gave back as x, y,z
+        # compontent   for   each   "atom"  change   the   derivatives
+        # accordingly
         x.shape = (-1)
         dx.shape = (-1, len(y))
-        # (-1 means that in this direction the size should be made
-        # fitting to the other specifications (so that the complete
+        # (-1 means  that in  this direction the  size should  be made
+        # fitting to  the other  specifications (so that  the complete
         # array could be transformed))
 
         return x, dx
