@@ -241,7 +241,7 @@ class ZMError(Exception):
     pass
 
 class ZMat(Func):
-    def __init__(self, zm, fixed=None):
+    def __init__(self, zm, fixed=None, base=0):
         """
         The first argument |zm|  is a representation of connectivities
         used to define internal coordinates.
@@ -266,8 +266,16 @@ class ZMat(Func):
             tup += (None,) * (3 - len(tup))
             return tup
 
-        # convert to tuples, append enough |None|s in case thay are missing:
-        zm = [ t3(z) for z in zm ]
+        # Convert to  tuples, append enough  |None|s in case  thay are
+        # missing:
+        zm = [t3(z) for z in zm]
+
+        # Base-1  indices are  assumed  for ZMat  (..., base=1)  which
+        # might be more intuitive for humans:
+        def rebase (t):
+            return tuple (abs (x) - base if x is not None else x for x in t)
+
+        zm = [rebase (z) for z in zm]
 
         # save ZM representation with indices of internal coordinates:
         i = 0
