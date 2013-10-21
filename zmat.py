@@ -318,10 +318,17 @@ class ZMat(Func):
             self.__fixed = array([]).reshape(0, 3)
 
 
-    def taylor(self, vars):
-        """Use the input array |vars| as values for internal coordinates
+    def taylor (self, vars):
+        """
+        Use the input array  |vars| as values for internal coordinates
         and return cartesians. Based on code in OpenBabel.
         """
+
+        #
+        # To avoid cryptic errors when one provides cartesians instead
+        # of internals here:
+        #
+        assert shape (vars) == (self.__dim, ), "Wrong shape of internal coordinates!"
 
         # use ZM representation and values for internal coords
         # to compute cartesians:
