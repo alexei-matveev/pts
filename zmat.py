@@ -230,6 +230,7 @@ from numpy import dot
 from numpy import array, asarray, empty, max, abs
 from numpy import eye, zeros
 from numpy import any, shape
+from numpy import vstack, hstack
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
 from func import Func
@@ -698,6 +699,84 @@ class Rigid (Func):
         q[3:] = W
 
         return q
+
+class ManyBody (Func):
+    """
+    >>> x = [[0.,  0., 0.],
+    ...      [1.,  0., 0.],
+    ...      [0.,  1., 0.]]
+    >>> x = array (x)
+
+    >>> g = Rigid (x)
+    >>> f = ManyBody (g, g)
+    >>> q = zeros (12)
+    >>> max (abs (f (q) - vstack ([x, x]))) < 1.0e-10
+    True
+
+    >>> q = zeros (12) + 0.125
+    >>> from pts.func import NumDiff
+    >>> f1 = NumDiff (f)
+    >>> max (abs (f.fprime (q) - f1.fprime (q))) < 1.0e-10
+    True
+    >>> max (abs (q - f.pinv (f (q)))) < 1.0e-10
+    True
+
+    >>> f = ManyBody (Fixed (x), Rigid (x))
+    >>> f1 = NumDiff (f)
+    >>> max (abs (f.fprime (q) - f1.fprime (q))) < 1.0e-10
+    True
+    """
+    def __init__ (self, *fs):
+        self.__fs = fs
+
+    def taylor (self, x):
+        fs = self.__fs
+
+        dofs = [0 if isinstance (f, Fixed) else 6 for f in fs]
+
+        qs = [None] * len (fs)
+        k = 0
+        for i, n in enumerate (dofs):
+            qs[i] = x[k: k + n]
+            k += n
+
+        results = [f.taylor (q) for f, q in zip (fs, qs)]
+
+        y = vstack (f for f, _ in results)
+        yq = (fq for _, fq in results)
+
+        yx = zeros (shape (y) + shape (x))
+        k = 0
+        j = 0
+        for i, fq in enumerate (yq):
+            n, _, dof = shape (fq)
+            yx[k: k + n, :, j: j + dof] = fq
+            k += n
+            j += dof
+
+        return y, yx
+
+    def pinv (self, y):
+        fs = self.__fs
+
+        # FIXME:  hm, how  do  I get  number  of atoms  each  f in  fs
+        # returns? At  the moment this evaluates  all of them  at 0 to
+        # learn about the shape of the results:
+        dofs = [0 if isinstance (f, Fixed) else 6 for f in fs]
+        qs = [zeros (n) for n in dofs]
+        shapes = [shape (f (q)) for f, q in zip (fs, qs)]
+
+        ys = [None] * len (fs)
+        k = 0
+        for i, shp in enumerate (shapes):
+            n, _, = shp
+            ys[i] = y[k: k + n, :]
+            k += n
+
+        qs = [f.pinv (y) for f, y in zip (fs, ys)]
+
+        return hstack (qs)
+
 
 class RT(Func):
     """
