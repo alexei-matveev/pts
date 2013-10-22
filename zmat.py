@@ -579,6 +579,95 @@ class ZMat(Func):
         return vars
 
 
+
+class Rigid (Func):
+    """
+    A Func()  of a  1D array with  6 elements, that  returns cartesian
+    coordiantes as a (n, 3)-shaped array translated and rotated around
+    the center.
+
+    >>> x = [[0.,  0., 0.],
+    ...      [1.,  0., 0.],
+    ...      [0.,  1., 0.]]
+    >>> x = array (x)
+
+    >>> f = Rigid (x)
+    >>> max (abs (x - f (zeros (6)))) < 1.0e-16
+    True
+
+    >>> from numpy import pi
+    >>> q = array ([0., 10., 0., pi / 2., 0., 0.])
+    >>> f (q)
+    array([[  0.        ,  10.33333333,  -0.33333333],
+           [  1.        ,  10.33333333,  -0.33333333],
+           [  0.        ,  10.33333333,   0.66666667]])
+
+    >>> from pts.func import NumDiff
+    >>> f1 = NumDiff (f)
+    >>> max (abs (f.fprime (q) - f1.fprime (q))) < 1.0e-10
+    True
+    >>> max (abs (q - f.pinv (f (q)))) < 1.0e-16
+    True
+    """
+
+    def __init__ (self, x):
+        x = array (x)
+        self.__x = x
+        # Same procedure as in pinv() method:
+        self.__c = self.center (x)
+
+    def center (self, x):
+        return sum (x) / len (x)
+
+    def taylor (self, q):
+        # aliases:
+        x = self.__x
+        c = self.__c
+
+        q = asarray (q)
+        T = q[0:3]
+        W = q[3:6]
+
+        # Transform rotation vector in a rotation matrix:
+        R, RW = _rotmat (W)
+
+        # Loop over all Cartesian positions
+        y = empty (shape (x))
+        yq = empty (shape (y) + shape (q))
+        for i in range (len (x)): # == number of atoms
+            y[i] = c + dot (R, x[i] - c) + T
+
+            # Derivatives:
+            yq[i, :, :3] = eye (3)
+            for j in range (len (W)): # == 3
+                yq[i, :, j + 3] = dot (RW[..., j], x[i] - c)
+
+        return y, yq
+
+    def pinv (self, y):
+        # aliases:
+        x = self.__x
+        c = self.__c
+
+        # Same procedure as for c:
+        c1 = self.center (y)
+
+        # Translation vector:
+        T = c1 - c
+
+        # FIXME: see the logic in RT.pinv():
+        if len (x) < 3:
+            raise ZMError ("need three centers")
+
+        # Rotation vector:
+        W = cart2vec (x, y)
+
+        q = empty (6)
+        q[:3] = T
+        q[3:] = W
+
+        return q
+
 class RT(Func):
     """
     A  wrapper  for   functions  that  return  cartesian  coordinates,
