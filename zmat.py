@@ -579,6 +579,37 @@ class ZMat(Func):
         return vars
 
 
+class Fixed (Func):
+    """
+    A const func  of "zero arguments" --- rather  of an array argument
+    of empty shape, empty (0):
+
+    >>> x = [[0.,  0., 0.],
+    ...      [1.,  0., 0.],
+    ...      [0.,  1., 0.]]
+    >>> x = array (x)
+
+    >>> f = Fixed (x)
+    >>> q = empty (0)
+    >>> y = f (q)
+    >>> max (abs (y - x)) == 0.0
+    True
+    >>> shape (f.fprime (q)) == shape (y) + shape (q)
+    True
+    """
+
+    def __init__ (self, x):
+        x = array (x)
+        self.__x = x
+
+    def taylor (self, q):
+        y = array (self.__x)
+        yq = zeros (shape (y) + shape (q))
+        return y, yq
+
+    def pinv (self, y):
+        return empty (0)
+
 
 class Rigid (Func):
     """
