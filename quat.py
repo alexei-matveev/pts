@@ -281,13 +281,11 @@ def _qrotmat(q):
 
     return m, dm
 
-def cart2rot(v1, v2):
+def cart2rot (v1, v2):
     """
-    v1 and v2 are two three point-objects
-    Here a rotation matrix is build, which rotatats
-    v1 on v2
-    (For the coordinate objects we have:
-    C2 = MAT * C1.T)
+    v1 and  v2 are two three  point-objects Here a  rotation matrix is
+    build,  which rotatats  v1 on  v2. For  the coordinate  objects we
+    have: C2 = MAT * C1.T.
 
         >>> from numpy import max, abs
 
@@ -313,16 +311,16 @@ def cart2rot(v1, v2):
 
     """
 
-    c1 = reper([v1[1] - v1[0], v1[2] - v1[0]])
-    c2 = reper([v2[1] - v2[0], v2[2] - v2[0]])
+    c1 = reper ([v1[1] - v1[0], v1[2] - v1[0]])
+    c2 = reper ([v2[1] - v2[0], v2[2] - v2[0]])
 
-    return dot(c2.T, c1)
+    return dot (c2.T, c1)
 
-def rot2quat(mat):
+def rot2quat (mat):
     """
-    transforms a rotation matrix mat in a quaternion
-    there should be two different quaternions belonging
-    to the same matrix, we take the positive one
+    Transforms a rotation  matrix mat in a quaternion  there should be
+    two different  quaternions belonging to  the same matrix,  we take
+    the positive one
 
     >>> from numpy import pi, max, abs
 
@@ -351,8 +349,8 @@ def rot2quat(mat):
     >>> max(abs(q - rot2quat(m))) < 1e-12
     True
 
-    Code from: Ken Shoemake "Animation rotation with quaternion curves.",
-    Computer Graphics 19(3):245-254, 1985
+    Code  from:  Ken  Shoemake  "Animation  rotation  with  quaternion
+    curves.", Computer Graphics 19(3):245-254, 1985
     """
 
     qu = zeros(4)
@@ -381,11 +379,11 @@ def rot2quat(mat):
 
     return qu
 
-def cart2quat(v1, v2):
+def cart2quat (v1, v2):
     """
-    Gives back the quaternion, belonging to the rotation from
-    v1 onto v2, where v1 and v2 are each three points, defining an
-    plane (and the top of the plane)
+    Gives back the quaternion, belonging  to the rotation from v1 onto
+    v2, where v1 and v2 are  each three points, defining an plane (and
+    the top of the plane)
 
     >>> from numpy import max, abs
 
@@ -399,13 +397,13 @@ def cart2quat(v1, v2):
     True
     """
 
-    return rot2quat(cart2rot(v1, v2))
+    return rot2quat (cart2rot (v1, v2))
 
-def quat2vec(q):
+def quat2vec (q):
     """
-    Gives back a vector, as specified by the quaternion q,
-    in the representation of length(vec) = rot_angle,
-    v / |v| is vector to rotate around
+    Gives  back a vector,  as specified  by the  quaternion q,  in the
+    representation of  length(vec) = rot_angle,  v / |v| is  vector to
+    rotate around
 
     >>> from numpy import pi, max, abs
 
@@ -440,13 +438,13 @@ def quat2vec(q):
     if abs(dot(v, v)) != 0:
         v /= sqrt(dot(v, v))
 
-    # give back as vector
+    # Give back as vector
     return ang * v
 
-def cart2vec(vec1, vec2):
+def cart2vec (vec1, vec2):
     """
-    given two three point objects vec1 and vec2
-    calculates the vector representing the rotation
+    Given two three point objects  vec1 and vec2 calculates the vector
+    representing the rotation
 
     >>> from numpy import max, abs
 
@@ -466,7 +464,7 @@ def cart2vec(vec1, vec2):
     >>> max(abs(vec3 - array(map(transform, vec1)))) < 1e-15
     True
     """
-    return quat2vec(cart2quat(vec1, vec2))
+    return quat2vec (cart2quat (vec1, vec2))
 
 def cart2veclin(v1, v2):
     """
@@ -773,7 +771,7 @@ def E(x):
     e[0, 2] = - e[2, 0]
     return e
 
-class _Reper(Func):
+class _Reper (Func):
     """Returns orthogonal basis [i, j, k] where
     "k" is parallel to U
     "i" is in UV plane and
@@ -802,12 +800,12 @@ class _Reper(Func):
         True
     """
 
-    def taylor(self, args):
+    def taylor (self, args):
 
         u, v = args
 
-        lu = sqrt(dot(u, u))
-        lv = sqrt(dot(v, v))
+        lu = sqrt (dot (u, u))
+        lv = sqrt (dot (v, v))
 
         if lu == 0.0: raise Exception("divide by zero")
         if lv == 0.0: raise Exception("divide by zero")
