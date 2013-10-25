@@ -287,7 +287,7 @@ def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, **kw):
     y = x.flatten()
 
     if algo == 1:
-        xm, info = fmin(fg, y, hess="BFGS", stol=xtol, gtol=ftol)
+        xm, info = fmin(fg, y, hess="BFGS", stol=xtol, gtol=ftol, maxiter=maxit)
     elif algo == 0:
         xm, fm, info =  minimize1D(fg, y, pgtol=ftol, maxfun=maxit) #, iprint=1)
 
