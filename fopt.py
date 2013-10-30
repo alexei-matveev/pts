@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 """
-
 Test with the two-dimensional MB potential:
 
     >>> from pts.pes.mueller_brown import MuellerBrown as MB
     >>> f = MB()
 
-Find the three minima, A, B and C as denoted in the original
-paper (print them to finite precision to be able to exchange
-minimizers):
+Find the  three minima, A,  B and C  as denoted in the  original paper
+(print them to finite precision to be able to exchange minimizers):
 
     >>> from numpy import round
     >>> n = 6
@@ -31,29 +29,27 @@ minimizers):
     >>> round(f(c), n)
     -80.767818000000005
 
-Constrained minimization works with flat funcitons
-returning value and gradient as a tuple.
-Thus take the |taylor| method of the MB-Func:
+Constrained minimization works with flat funcitons returning value and
+gradient as a tuple.  Thus take the |taylor| method of the MB-Func:
 
     >>> fg = f.taylor
 
-Lets define a plane which will constrain the search
-for minimum:
+Lets define a plane which will constrain the search for minimum:
 
     >>> from numpy import array
     >>> plane = array([1., 1.])
 
-And a constrain funciton returning a list of values
-(here of length one) to aim to keep constant during
-optimization (and their derivatives):
+And a  constrain funciton returning a  list of values  (here of length
+one)  to   aim  to  keep  constant  during   optimization  (and  their
+derivatives):
 
     >>> def cg(x):
     ...     c = dot(x, plane)
     ...     g = plane
     ...     return array([c]), array([g])
 
-Do a constrained minimization starting from the point
-offset from the minimum C on MB-surface along the plane:
+Do a constrained minimization starting  from the point offset from the
+minimum C on MB-surface along the plane:
 
     >>> c1, fc1, _ = cmin(fg, [c[0] + 0.1, c[1] - 0.1], cg)
     >>> max(abs(c1 - c)) < 1.e-7
@@ -61,9 +57,9 @@ offset from the minimum C on MB-surface along the plane:
     >>> max(abs(fc1 - f(c))) < 1.e-7
     True
 
-Energy of a dimer at around the minimum A on MB-surface,
-here x[0] is the center of the dimer and x[1] is the vector
-connecting the two points:
+Energy of a dimer at around  the minimum A on MB-surface, here x[0] is
+the center  of the  dimer and  x[1] is the  vector connecting  the two
+points:
 
     >>> def e2(x):
     ...     xa = a + x[0] + x[1] / 2.
@@ -79,10 +75,12 @@ This will be used for orienting the dimer:
     >>> from numpy import cos, sin, pi
     >>> R = 0.1
     >>> def r(t):
-    ...     return array([  R * cos(t), R * sin(t) ]), array([ -R * sin(t), R * cos(t) ])
+    ...     f = array([  R * cos(t), R * sin(t) ])
+    ...     g = array([ -R * sin(t), R * cos(t) ])
+    ...     return f, g
 
-This is a function of dimer center x[:2] and its
-orientation angle x[2]:
+This is  a function  of dimer center  x[:2] and its  orientation angle
+x[2]:
 
     >>> def e3(x):
     ...     t  = x[2]
@@ -92,8 +90,7 @@ orientation angle x[2]:
     ...     g3  = [ g[0,0], g[0,1], gt ]
     ...     return e, array(g3)
 
-The fixed dimer length was eliminated, one can use
-plain minimizers:
+The fixed dimer length was eliminated, one can use plain minimizers:
 
     >>> x = array([0., 0., 0.])
     >>> xm, info = fmin(e3, x)
@@ -108,8 +105,8 @@ Dimer orientaiton:
     >>> r(xm[2])[0]
     array([ 0.07067461,  0.07074673])
 
-Constrain funciton to preserve the length of a "dimer",
-only the dimer vector x[1] is used here:
+Constrain funciton to preserve the length of a "dimer", only the dimer
+vector x[1] is used here:
 
     >>> def d2(x):
     ...     r  = x[1]
@@ -133,8 +130,8 @@ Run constrained minimization:
     >>> cmin(e2, x, d2)[0]
     array([-0.00084324, -0.00085287,  0.07067462,  0.07074672])
 
-The two first numbers give the center of the dimer, two last
-give its orientation.
+The two first numbers give the  center of the dimer, two last give its
+orientation.
 
 """
 
@@ -149,9 +146,9 @@ VERBOSE = 0
 
 TOL = 1.e-6
 
-STOL = TOL   # step size tolerance
-GTOL = 1.e-5 # gradient tolerance
-CTOL = TOL   # constrain tolerance
+STOL = TOL                      # step size tolerance
+GTOL = 1.e-5                    # gradient tolerance
+CTOL = TOL                      # constrain tolerance
 
 MAXIT = 50
 MAXSTEP = 0.04
@@ -176,7 +173,8 @@ def _solve(A, b):
     return x.reshape(xshape)
 
 def newton(x, fg, tol=TOL, maxiter=MAXIT, rk=None):
-    """Solve F(x) = 0 (rather, reduce rhs to < tol)
+    """
+    Solve F(x) = 0 (rather, reduce rhs to < tol)
 
         >>> from numpy import array
         >>> a, b = 1., 10.
@@ -278,8 +276,8 @@ def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, **kw):
     # save the shape of the actual argument:
     xshape = x.shape
 
-    # some optimizers (notably fmin_l_bfgs_b) work with funcitons
-    # of 1D arguments returning both the value and the gradient.
+    # Some optimizers  (notably fmin_l_bfgs_b) work  with funcitons of
+    # 1D  arguments  returning  both   the  value  and  the  gradient.
     # Construct such from the given Func f:
     fg = _flatten(f.taylor, x)
 
@@ -327,8 +325,8 @@ def cminimize(f, x, c, **kwargs):
     # save the shape of the actual argument:
     xshape = x.shape
 
-    # some optimizers (notably fmin_l_bfgs_b) work with funcitons
-    # of 1D arguments returning both the value and the gradient.
+    # Some optimizers  (notably fmin_l_bfgs_b) work  with funcitons of
+    # 1D  arguments  returning  both   the  value  and  the  gradient.
     # Construct such from the given Func f:
     fg = _flatten(f.taylor, x)
     cg = _flatten(c.taylor, x)
@@ -345,7 +343,8 @@ def cminimize(f, x, c, **kwargs):
     return xm, fm, stats
 
 def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="BFGS"):
-    """Search for a minimum of fg(x)[0] using the gradients fg(x)[1].
+    """
+    Search for a minimum of fg(x)[0] using the gradients fg(x)[1].
 
     TODO: dynamic trust radius, line search in QN direction (?)
 
@@ -389,24 +388,24 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
         25
         """
 
-    # interpret a string as a constructor name:
+    # Interpret a string as a constructor name:
     hess = get_by_name(hess)
 
-    # returns the default hessian:
+    # Returns the default hessian:
     hessian = hess(alpha)
 
-    # geometry, energy and the gradient from previous iteration:
+    # Geometry, energy and the gradient from previous iteration:
     r0 = None
     e0 = None # not used anywhere!
     g0 = None
 
-    # initial value for the variable:
+    # Initial value for the variable:
     r = asarray(x)
 
-    # invoke objective function, also computes the gradient:
+    # Invoke objective function, also computes the gradient:
     e, g = fg(r)
 
-    iteration = -1 # prefer to increment at the top of the loop
+    iteration = -1        # prefer to increment at the top of the loop
     converged = False
 
     while not converged:
@@ -421,8 +420,8 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
                 print "fmin: r=\n", r
                 print "fmin: g=\n", g
 
-        # update the hessian representation:
-        if iteration > 0: # only then r0 and g0 are meaningfull!
+        # Update the hessian representation:
+        if iteration > 0:       # only then r0 and g0 are meaningfull!
             hessian.update(r-r0, g-g0)
 
         # Quasi-Newton step: df = - H * g, H = B^-1:
@@ -434,7 +433,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
         #
         assert dot(dr, g) <= 0.0
 
-        # restrict the maximum component of the step:
+        # Restrict the maximum component of the step:
         longest = max(abs(dr))
         if longest > maxstep:
             if VERBOSE:
@@ -551,8 +550,8 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
                 print "fmin: exceeded number of iterations", maxiter
             break # out of the while loop
 
-    # also return number of interations, convergence status, and last values
-    # of the gradient and step:
+    # Also return number of  interations, convergence status, and last
+    # values of the gradient and step:
     info = { "converged": converged,
              "iterations": iteration,
              "value": e,
@@ -562,7 +561,8 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
 def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
         maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="LBFGS", callback=None):
-    """Search for a minimum of fg(x)[0] using the gradients fg(x)[1]
+    """
+    Search  for a  minimum of  fg(x)[0] using  the  gradients fg(x)[1]
     subject to constrains cg(x)[0] = const.
 
     TODO: dynamic trust radius, line search in QN direction (?)
@@ -570,74 +570,80 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
     Parameters:
 
     fg: objective function x -> (f, fprime)
+
         returns the value f and the gradient g at x
 
     cg: (differentiable) constrains x -> (c, cprime)
+
         returns the vector of constrais and their derivatives wrt x
 
     maxstep: float
-        How far is a single atom allowed to move. This is useful for DFT
-        calculations where wavefunctions can be reused if steps are small.
-        Default is 0.04 Angstrom.
+
+        How far is  a single atom allowed to move.  This is useful for
+        DFT calculations  where wavefunctions  can be reused  if steps
+        are small.  Default is 0.04 Angstrom.
 
     alpha: float
+
         Initial guess for the Hessian (curvature of energy surface). A
-        conservative value of 70.0 is the default, but number of needed
-        steps to converge might be less if a lower value is used. However,
-        a lower value also means risk of instability.
+        conservative  value of  70.0  is the  default,  but number  of
+        needed steps  to converge  might be less  if a lower  value is
+        used. However, a lower value also means risk of instability.
 
     hess: "LBFGS" or "BFGS"
-        A name of the class implementing hessian update scheme.
-        Has to support |update| and |inv| methods.
+
+        A name  of the class implementing hessian  update scheme.  Has
+        to support |update| and |inv| methods.
         """
 
-    # interpret a string as a constructor name:
+    # Interpret a string as a constructor name:
     hess = get_by_name(hess)
 
-    # returns the default hessian:
+    # Returns the default hessian:
     hessian = hess(alpha)
 
-    # shurtcut for linear operator g -> hessian.inv(g):
+    # Shurtcut for linear operator g -> hessian.inv(g):
     H = hessian.inv
 
-    # geometry, energy and the gradient from previous iteration:
+    # Geometry, energy and the gradient from previous iteration:
     r0 = None
-    e0 = None # not used anywhere!
+    e0 = None                   # not used anywhere!
     g0 = None
 
-    # initial value for the variable:
-    r = asarray(x).copy() # we are going to modify it!
+    # Initial value for the variable:
+    r = asarray(x).copy()       # we are going to modify it!
 
-    # invoke objective function, also computes the gradient:
+    # Invoke objective function, also computes the gradient:
     e, g = fg(r)
 
-    # evaluate constrains at current geometry:
+    # Evaluate constrains at current geometry:
     c, A = cg(r)
 
-    # save the initial value of the constrains (not necessarily zeros):
+    # Save  the  initial  value  of the  constrains  (not  necessarily
+    # zeros):
     if c0 is None:
         c0 = c
     else:
         assert len(c) == len(c0)
         c0 = asarray(c0)
 
-    # should have more variables than constrains:
+    # Should have more variables than constrains:
     assert len(r) > len(c0)
 
     if VERBOSE:
         print "cmin: c0=", c0, "(target value of constrain)"
 
-    iteration = -1 # prefer to increment at the top of the loop
+    iteration = -1        # prefer to increment at the top of the loop
     converged = False
 
     while not converged and iteration < maxiter:
         iteration += 1
 
-        # update the hessian representation:
-        if iteration > 0: # only then r0 and g0 are meaningfull!
+        # Update the hessian representation:
+        if iteration > 0:       # only then r0 and g0 are meaningfull!
             hessian.update(r-r0, g-g0)
 
-        # compute the constrained step:
+        # Compute the constrained step:
         dr, dg, lam = qnstep(g, H, c - c0, A)
 
         if VERBOSE:
@@ -651,7 +657,7 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
             print "cmin: c=", c
             print "cmin: criteria=", max(abs(dr)), max(abs(c - c0)), max(abs(g + dot(lam, A)))
 
-        # check convergence, if any:
+        # Check convergence, if any:
         if max(abs(dr)) < stol and max(abs(c - c0)) < ctol:
             if VERBOSE:
                 print "cmin: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
@@ -666,37 +672,37 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
                 print "cmin: and constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol
             converged = True
 
-        # restrict the maximum component of the step:
+        # Restrict the maximum component of the step:
         longest = max(abs(dr))
         if longest > maxstep:
             if VERBOSE:
                 print "cmin: dr=", dr, "(too long, scaling down)"
             dr *= maxstep / longest
-            # NOTE: step restriciton also does not allow to fix
-            #       the mismatch (c-c0) in constrains in one shot ...
+            # NOTE: step  restriciton also does  not allow to  fix the
+            #       mismatch (c-c0) in constrains in one shot ...
 
         if VERBOSE:
             print "cmin: dr=", dr
             print "cmin: dot(A, dr)=", dot(A, dr)
             print "cmin: dot(g, dr)=", dot(g, dr)
 
-        # save for later comparison, need a copy, see "r += dr" below:
+        # Save for later comparison, need a copy, see "r += dr" below:
         r0 = r.copy()
 
         # "e, g = fg(r)" will re-bind (e, g), not modify them:
-        e0 = e # not used anywhere!
+        e0 = e                  # not used anywhere!
         g0 = g
 
-        # actually update the variable:
+        # Actually update the variable:
         r += dr
 
-        # invoke objective function, also computes the gradient:
+        # Invoke objective function, also computes the gradient:
         e, g = fg(r)
 
         # FIXME: evaluate constrains at current geometry (another time?):
         c, A = cg(r)
 
-        # if requested, provide feedback on the optimization progress:
+        # If requested, provide feedback on the optimization progress:
         if callback is not None:
             callback(r, e, g, c, A)
 
@@ -705,27 +711,29 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
                 print "cmin: exceeded number of iterations", maxiter
             # see while loop condition ...
 
-    # also return number of interations, convergence status, and last values
-    # of the gradient and step:
+    # Also return number of  interations, convergence status, and last
+    # values of the gradient and step:
     return r, e, (iteration, converged, g, dr)
 
 def qnstep(g0, H, c, A):
     """
-    At point |x0| we have the gradient |g0|, the quadratic PES is
-    characterized by inverse hessian H that relates changes in
-    coordinate and gradients: dr = H(dg). H(g) is a linear operator
+    At  point |x0| we  have the  gradient |g0|,  the quadratic  PES is
+    characterized  by  inverse  hessian  H  that  relates  changes  in
+    coordinate and  gradients: dr =  H(dg). H(g) is a  linear operator
     implemented as a function hiding the actual implementation.
 
     As we operate with inverse hessian, so g is the primary variable:
 
         g -> x -> c(x), A(x) = dc / dx
 
-    As this is a constrained minimization we are not looking for the
-    point where the gradients vanish. Instead seek such (a point where)
+    As this is  a constrained minimization we are  not looking for the
+    point  where the  gradients  vanish. Instead  seek  such (a  point
+    where)
 
         g1 + lam * A = 0
 
-    i.e. where energy gradients and constrain gradients are "collinear".
+    i.e.   where  energy   gradients  and   constrain   gradients  are
+    "collinear".
 
     The following holds exactly on quadratic surface:
 
@@ -735,12 +743,12 @@ def qnstep(g0, H, c, A):
 
         c(x1) = C
 
-    Formally one has to solve the non-linear equations
-    for (g1, x1, lam), the non-linearity is due to x-dependence of
-    constrains c(x) and A(x). This sub proposes a step of a single
-    Newton-Rapson iteration for this system of non-linear equations.
-    More specifically, we first solve for g1 in linear approximation
-    for c(x):
+    Formally one  has to solve  the non-linear equations for  (g1, x1,
+    lam), the non-linearity is  due to x-dependence of constrains c(x)
+    and  A(x). This  sub proposes  a  step of  a single  Newton-Rapson
+    iteration   for  this  system   of  non-linear   equations.   More
+    specifically, we  first solve for  g1 in linear  approximation for
+    c(x):
 
         c(x1) ~= c(x0) + A * (x1 - x0)
 
@@ -761,18 +769,17 @@ def qnstep(g0, H, c, A):
     We will, however return the increments, g1 - g0.
     """
 
-    # current mismatch in constrains:
-    # c == c(x0) - C
+    # Current mismatch in constrains: c == c(x0) - C
 
     #
-    # Note that A[i, j] here is dc_i / dx_j,
-    # the literature may differ by transposition.
+    # Note that A[i, j] here is dc_i / dx_j, the literature may differ
+    # by transposition.
     #
 
-    # this would be the unconstrained step:
+    # This would be the unconstrained step:
     dx = - H(g0)
 
-    # this would be the new values of the constrains:
+    # This would be the new values of the constrains:
     rhs = c + dot(A, dx)
 
     if VERBOSE:
@@ -784,7 +791,7 @@ def qnstep(g0, H, c, A):
     # Construct the lhs-matrix AHA^T
     AHA = aha(A, H)
 
-    # solve linear equations:
+    # Solve linear equations:
     lam = solve(AHA, rhs)
 
     if VERBOSE:
@@ -802,7 +809,7 @@ def qnstep(g0, H, c, A):
 def aha(A, H):
     "Construct the lhs-matrix AHA^T"
 
-    # number of constrains:
+    # Number of constrains:
     nc = len(A)
 
     AHA = empty((nc, nc))
@@ -814,8 +821,9 @@ def aha(A, H):
     return AHA
 
 def _flatten(fg, x):
-    """Returns a funciton of flat argument fg_(y) that
-    properly reshapes y to x, and returns values and gradients as by fg.
+    """
+    Returns a funciton of  flat argument fg_(y) that properly reshapes
+    y to x, and returns values and gradients as by fg.
 
     Only the shape of the argument x is used here, not the value.
 
@@ -865,33 +873,33 @@ def _flatten(fg, x):
                [ 0.,  0.,  1.,  1.]])
     """
 
-    # in case we are given a list instead of array:
+    # In case we are given a list instead of array:
     x = asarray(x)
 
-    # shape of the actual argument:
+    # Shape of the actual argument:
     xshape = x.shape
     xsize  = x.size
     # print "xshape, xsize =", xshape, xsize
 
-    # define a flattened function based on original fg(x):
+    # Define a flattened function based on original fg(x):
     def fg_(y):
         "Returns both, value and gradient, treats argument as flat array."
 
-        # need copy to avoid obscure error messages from fmin_l_bfgs_b:
+        # Need copy to avoid obscure error messages from fmin_l_bfgs_b:
         x = y.copy() # y is 1D
 
-        # restore the original shape:
+        # Restore the original shape:
         x.shape = xshape
 
-        f, fprime = fg(x) # fprime is returned as nD!
+        f, fprime = fg(x)       # fprime is returned as nD!
 
-        # in case f is an array, preserve this structure:
+        # In case f is an array, preserve this structure:
         fshape = shape(f) # () for scalars
 
-        # still treat the arguments as 1D structure of xsize:
+        # Still treat the arguments as 1D structure of xsize:
         return f, fprime.reshape( fshape + (xsize,) )
 
-    # return new funciton:
+    # Return new funciton:
     return fg_
 
 # python fopt.py [-v]:
