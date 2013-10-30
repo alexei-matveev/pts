@@ -185,7 +185,7 @@ def newton(x, fg, tol=TOL, maxiter=MAXIT, rk=None):
         ...    y = r[1]
         ...    f = array([ a * x**2 + b * y**2 - a * b,
         ...                b * x**2 + a * y**2 - a * b])
-        ...    fprime = array([[ 2. * a * x, 2. * b * y], 
+        ...    fprime = array([[ 2. * a * x, 2. * b * y],
         ...                    [ 2. * b * x, 2. * a * y ]])
         ...    return f, fprime
 
