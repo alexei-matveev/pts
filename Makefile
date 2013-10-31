@@ -5,7 +5,6 @@
 # Type "make manual" to create a pdf version of the newest sources for
 # the manual in doc subfolder
 #
-IO = ./io
 PES = ./pes
 COSOPT = ./cosopt
 TOOL = ./tools
@@ -53,9 +52,9 @@ src =	\
 # dont call it "test" as we have a directory called so:
 test-all: $(src:.py=.pyflakes) $(src:.py=.doctest) phony-targets
 
-phony-targets: srcio srccosopt srctools
+phony-targets: srcui srccosopt srctools
 
-manual :
+manual:
 	$(MAKE) -C ./doc
 
 # run a doctest on the module, return failure if any of the tests fail:
@@ -65,8 +64,8 @@ manual :
 %.pyflakes: %.py
 	pyflakes $(<)
 
-srcio:
-	$(MAKE) -C $(IO)
+srcui:
+	$(MAKE) -C ui
 
 srccosopt:
 	$(MAKE) -C $(COSOPT)
