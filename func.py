@@ -960,15 +960,16 @@ class NumDiff(Func):
     def fprime(self, x):
         """Numerical derivatives of self.f(x)"""
 
-        if type(x) == type(1.0): # univariate function:
-            dfdx, err = dfridr(self.f, x, h=self.__h)
+        # In case f(x) returns a list of lists instead of real arrays:
+        f = lambda x: asarray (self.f (x))
+
+        if type (x) == type (1.0): # univariate function:
+            dfdx, err = dfridr (f, x, h=self.__h)
             # print dfdx, err, err / prime
             assert err <= abs(dfdx) * 1.e-12
             return dfdx
         else: # maybe multivariate:
             # FIXME: cannot one unify the two branches?
-
-            f = self.f # abbreviation
 
             # convert argument to array if necessary:
             x = asarray(x)
