@@ -146,14 +146,87 @@ The equal spacing is enforced:
 
 """
 
-__all__ = ["volume", "distance", "angle", "dihedral", \
-           "Volume", "Distance", "Angle", "Dihedral"]
+__all__ = ["center", "axes", "axis", \
+           "volume", "distance", "angle", "dihedral", \
+           "Volume", "Distance", "Angle", "Dihedral", \
+           "Center"]
 
 from func import Func
-from numpy import zeros, shape, cross, dot
+from numpy import zeros, eye, shape, cross, dot
 from numpy import sqrt, sin, arccos
 from numpy import hstack, vstack
 from numpy import array, asarray
+from numpy.linalg import svd
+from numpy import outer
+
+
+def center (x):
+    x = asarray (x)
+    return sum (x) / len (x)
+
+
+def axes (x):
+    """
+    Returns local axes v[i], 0 <= i < 3 as row vectors.
+
+        >>> x = [[ 1.,  1.,  1.],
+        ...      [ 1., -1., -1.],
+        ...      [-1., -1.,  1.],
+        ...      [-1.,  1., -1.],
+        ...      [ 2.,  2.,  2.]]
+
+        >>> v = axes (x)
+        >>> v[0]
+        array([-0.57735027, -0.57735027, -0.57735027])
+
+    The other two axes are degenerate, but mutually orthogonal:
+
+        >>> abs (dot (v[0], v[1])) < 1e-16
+        True
+        >>> abs (dot (v[1], v[2])) < 1e-16
+        True
+        >>> abs (dot (v[2], v[0])) < 1e-16
+        True
+    """
+    x = asarray (x)
+
+    w = x - center (x)
+
+    # A 3 x 3 "inertia" tensor, a positive definite matrix:
+    a = zeros ((3, 3))
+    for v in w:
+        a += outer (v, v)
+    a /= len (w)
+
+    #
+    # SVD solves for  M = U * S *  V^T with (m x m) matrix  U, (n x n)
+    # matrix  V and  (m x  n) "diagonal  matrix" S.   Diagonal  "s" as
+    # returned by an SVD is a 1D-array, though:
+    #
+    u, s, vt = svd (a)
+
+    # The first eigenvalue is the largest, but maybe the convention is
+    # going to change. This is assumed in axis() below though:
+    assert s[0] >= s[1] >= s[2] >= 0.0
+
+    # Row vectors vt[i], 0 <= i < 3, are the axes (not the columns!):
+    return vt
+
+
+def axis (x):
+    """
+    Returns "main" axis approximating x by a linear object:
+
+        >>> x = [[0., 0., 0.],
+        ...      [1., 1., 1.],
+        ...      [2., 2., 2.]]
+        >>> axis (x)
+        array([-0.57735027, -0.57735027, -0.57735027])
+    """
+    v = axes (x)
+
+    return v[0]
+
 
 class Linear(Func):
     """
@@ -183,6 +256,41 @@ class Linear(Func):
 
     def fprime(self, x):
         return self.__m.copy()
+
+
+class Center (Func):
+    """
+    An n x 3 -> 3 Func() computing a center of a species.  So far each
+    of the three x, y-, and  z resulting values from a Center() Func()
+    are just linear combinations of respective inputs.
+
+        >>> c = Center()
+        >>> w = 0.39685026
+        >>> x = array([[ w,  w,  w],
+        ...            [-w, -w,  w],
+        ...            [ w, -w, -w],
+        ...            [-w,  w, -w]])
+
+        >>> c (x)
+        array([ 0.,  0.,  0.])
+
+        >>> from func import NumDiff
+        >>> from numpy import max, abs
+        >>> c1 = NumDiff (c)
+        >>> max (abs (c.fprime (x) - c1.fprime (x))) < 1.0e-12
+        True
+    """
+    def __init__ (self):
+        # FIXME: allow for weighted center
+        pass
+
+    def taylor (self, x):
+        c = sum (x) / len (x)
+        cx = zeros (shape (c) + shape (x))
+        for i in range (len (x)):
+            cx[:, i, :] = eye (3) / len (x)
+        return c, cx
+
 
 class Volume(Func):
     """For an array of 4 vectors x, return a measure of their
