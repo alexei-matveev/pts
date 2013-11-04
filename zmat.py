@@ -229,13 +229,14 @@ Now set dihedrals to pi or 0, to observe system at this limits:
 from numpy import dot
 from numpy import array, asarray, empty, max, abs
 from numpy import eye, zeros
-from numpy import any, shape
+from numpy import any, shape, size
 from numpy import vstack, hstack
+from npz import matmul
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
 from func import Func
-from rc import distance, angle, dihedral, center
-from quat import _rotmat, cart2vec, cart2veclin
+from rc import distance, angle, dihedral, center, Center
+from quat import rotmat, _rotmat, cart2vec, cart2veclin
 from quat import reper, r3
 
 class ZMError(Exception):
@@ -787,6 +788,106 @@ class ManyBody (Func):
         qs = [f.pinv (y) for f, y in zip (fs, ys)]
 
         return hstack (qs)
+
+
+class Move (Func):
+    """
+    A  Func() constructed by  translating and  rotating the  result of
+    another Func() by a fixed amount.
+
+        >>> x = array([[ 1.,  1.,  1.],
+        ...            [-1., -1.,  1.],
+        ...            [ 1., -1., -1.],
+        ...            [-1.,  1., -1.]])
+        >>> x *= 0.125
+
+    This is a Func() of six arguments:
+
+        >>> f = Rigid (x)
+
+        >>> o = zeros (6)
+        >>> q = array ([1.0, 10.0, 100.0] + [0.1, 0.2, 0.3])
+
+    This  is Func()  of  the  same six  arguments,  but the  resulting
+    coordinates are translated and  rotated by an operation encoded by
+    q:
+
+        >>> g = Move (q, f)
+        >>> max (abs (g (o) - f (q))) < 1.0e-14
+        True
+        >>> max (abs (g (-q) - f (o))) < 1.0e-14
+        True
+
+        >>> max (abs (q - g.pinv (g (q)))) < 1e-13
+        True
+        >>> max (abs (o - g.pinv (g (o)))) < 1e-13
+        True
+
+        >>> from func import NumDiff
+        >>> g1 = NumDiff (g)
+        >>> max (abs (g.fprime (q) - g1.fprime (q))) < 1.0e-10
+        True
+
+    FIXME: maybe  offer a special  case Move (q)  for n x  3 -> n  x 3
+    Func() effectively using the identity f() by default.
+
+    """
+    def __init__ (self, q, f):
+        assert len (q) == 6
+        self.__q = array (q)    # len (q) == 6
+        self.__f = f            # array -> n x 3 array Func
+
+    def taylor (self, x):
+        x = asarray (x)
+        assert len (x) == size (x)
+        f = self.__f
+        q = self.__q
+
+        y, yx = f.taylor (x)
+
+        #
+        # c  = c(y(x)),  we could  compose (c,  f) but  want  to avoid
+        # re-computing  yx.  A  Func to  compute the  geometric center
+        # (all atoms having the same weight):
+        #
+        C = Center ()
+        c, cy = C.taylor (y)
+        cx = matmul (shape (c), shape (x), shape (y), cy, yx)
+
+        t, w = q[:3], q[3:]
+
+        # Rotation matrix:
+        R = rotmat (w)
+
+        z = empty (shape (y))
+        zx = empty (shape (z) + shape (x))
+        for i in range (len (y)): # number of atoms
+            z[i] = t + c + dot (R, y[i] - c)
+
+            # Derivatives:
+            for j in range (len (x)):
+                zx[i, :, j] = cx[:, j] + dot (R, yx[i, :, j] - cx[:, j])
+
+        return z, zx
+
+    def pinv (self, z):
+        z = asarray (z)
+        q = self.__q
+        f = self.__f
+
+        t, w = q[:3], q[3:]
+
+        # Orthogonal rotation matrix, R.T = R^-1:
+        R = rotmat (w)
+
+        C = Center ()
+        c = C (z)
+
+        y = empty (shape (z))
+        for i in range (len (z)):
+            y[i] = c + dot (R.T, z[i] - c) - t
+
+        return f.pinv (y)
 
 
 class RT(Func):
