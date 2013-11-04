@@ -281,38 +281,39 @@ def _qrotmat(q):
 
     return m, dm
 
-def cart2rot (v1, v2):
+def cart2rot (x, y):
     """
-    v1 and  v2 are two three  point-objects Here a  rotation matrix is
-    build,  which rotatats  v1 on  v2. For  the coordinate  objects we
-    have: C2 = MAT * C1.T.
+    Here x and y are two geometries with at least three point each.  A
+    rotation  matrix is  build,  which  rotatats x  into  y.  For  the
+    coordinate objects we have: C2 = MAT * C1.T.
 
         >>> from numpy import max, abs
 
-        >>> vec1 = array([[0., 0., 0.], [0., 0., 1.], [0., 1., 0.]])
-        >>> vec2 = array([[0., 0., 0.], [1., 0., 0.], [0., 1., 0.]])
+        >>> x = array ([[0., 0., 0.], [0., 0., 1.], [0., 1., 0.]])
+        >>> y = array ([[0., 0., 0.], [1., 0., 0.], [0., 1., 0.]])
 
     See if identity is reproduced:
 
-        >>> m = cart2rot(vec1, vec1)
-        >>> max(abs(m - eye(3))) < 1e-15
+        >>> m = cart2rot (x, x)
+        >>> max (abs (m - eye (3))) < 1e-15
         True
 
-    Rotation matrix that brings vec1 to vec2:
+    Rotation matrix that brings x to y:
 
-        >>> m = cart2rot(vec1, vec2)
+        >>> m = cart2rot (x, y)
 
     This way rotation matrix is applied to a vector:
 
-        >>> transform = lambda v: dot(m, v)
+        >>> transform = lambda v: dot (m, v)
 
-        >>> max(abs(vec2 - array(map(transform, vec1)))) < 1e-15
+        >>> max (abs (y - array (map (transform, x)))) < 1e-15
         True
 
     """
 
-    c1 = reper ([v1[1] - v1[0], v1[2] - v1[0]])
-    c2 = reper ([v2[1] - v2[0], v2[2] - v2[0]])
+    # Only 3 first entries of x[] and y[] are used here:
+    c1 = reper ([x[1] - x[0], x[2] - x[0]])
+    c2 = reper ([y[1] - y[0], y[2] - y[0]])
 
     return dot (c2.T, c1)
 
@@ -379,25 +380,25 @@ def rot2quat (mat):
 
     return qu
 
-def cart2quat (v1, v2):
+def cart2quat (x, y):
     """
-    Gives back the quaternion, belonging  to the rotation from v1 onto
-    v2, where v1 and v2 are  each three points, defining an plane (and
-    the top of the plane)
+    Gives back the  quaternion, belonging to the rotation  from x onto
+    y, where x and y are each three points, defining an plane (and the
+    top of the plane)
 
     >>> from numpy import max, abs
 
-    >>> vec1 = array([[0., 0., 0.], [0., 0., 1.], [0., 1., 0.]])
-    >>> vec2 = array([[0., 0., 0.], [1., 0., 0.], [0., 1., 0.]])
+    >>> x = array ([[0., 0., 0.], [0., 0., 1.], [0., 1., 0.]])
+    >>> y = array ([[0., 0., 0.], [1., 0., 0.], [0., 1., 0.]])
 
-    >>> ql = cart2quat(vec1, vec2)
-    >>> m1 = qrotmat(ql)
-    >>> transform = lambda vec3d: dot(m1, vec3d)
-    >>> max(abs(vec2 - array(map(transform, vec1)))) < 1e-15
+    >>> q = cart2quat (x, y)
+    >>> R = qrotmat (q)
+    >>> transform = lambda v: dot (R, v)
+    >>> max (abs (y - array (map (transform, x)))) < 1e-15
     True
     """
 
-    return rot2quat (cart2rot (v1, v2))
+    return rot2quat (cart2rot (x, y))
 
 def quat2vec (q):
     """
@@ -441,30 +442,30 @@ def quat2vec (q):
     # Give back as vector
     return ang * v
 
-def cart2vec (vec1, vec2):
+def cart2vec (x, y):
     """
-    Given two three point objects  vec1 and vec2 calculates the vector
-    representing the rotation
+    Given two three point objects  x and y calculates the axial vector
+    v representing the rotation R(v) such that y[i] = dot (R, x[i]):
 
     >>> from numpy import max, abs
 
-    >>> vec1 = array([[0.,0,0],[0,0,1],[0,1,0]])
-    >>> vec2 = array([[0.,0,0],[1,0,0],[0,1,0]])
+    >>> x = array ([[0., 0., 0.],[0., 0., 1.], [0., 1., 0.]])
+    >>> y = array ([[0., 0., 0.],[1., 0., 0.], [0., 1., 0.]])
 
-    >>> v = cart2vec(vec1, vec2)
-    >>> m1 = rotmat(v)
-    >>> transform = lambda vec3d: dot(m1, vec3d)
-    >>> max((abs(vec2 - array(map(transform, vec1))))) < 1e-15
+    >>> v = cart2vec (x, y)
+    >>> R = rotmat (v)
+    >>> transform = lambda v: dot (R, v)
+    >>> max (abs (y - array (map (transform, x)))) < 1e-15
     True
 
-    >>> vec3 = array([[0.,0,0],[0,0,1],[0,1,0]])
-    >>> v2 = cart2vec(vec1, vec3)
-    >>> m2 = rotmat(v2)
-    >>> transform = lambda vec3d: dot(m2, vec3d)
-    >>> max(abs(vec3 - array(map(transform, vec1)))) < 1e-15
+    >>> vec3 = array ([[0., 0., 0.], [0., 0., 1.], [0., 1., 0.]])
+    >>> v2 = cart2vec (x, vec3)
+    >>> R = rotmat (v2)
+    >>> transform = lambda v: dot (R, v)
+    >>> max (abs (vec3 - array (map (transform, x)))) < 1e-15
     True
     """
-    return quat2vec (cart2quat (vec1, vec2))
+    return quat2vec (cart2quat (x, y))
 
 def cart2veclin(v1, v2):
     """
