@@ -15,7 +15,7 @@ __all__ = ["QFunc"]
 from pts.func import Func
 from ase.calculators.lj import LennardJones
 from os import path, mkdir, chdir, getcwd, system
-from numpy import array
+from numpy import array, empty, shape, dot
 from shutil import copy2 as cp
 
 VERBOSE = 0
@@ -134,6 +134,67 @@ class QFunc(Func):
             print "QFunc: ... done"
         # return both:
         return e, g
+
+
+class QCell (Func):
+    """
+     No pun intended. Total energy  as a function of six parameters of
+     of a symmetric strain tensor.
+
+     Do  not inherit  from  NumDiff, otherwise  memoization would  not
+     work. Use PES = NumDiff(Memoize(QCell((...)))) construction.
+    """
+    def __init__ (self, atoms, calc=None):
+
+        # We are going to  repeatedly set_cell() for this instance, So
+        # we make a copy to avoid effects visible outside:
+        self.atoms = atoms.copy()
+        self.cell = array(atoms.get_cell()) # paranoya copy
+
+        # Assume atoms  were already associated with  a calculator, if
+        # not supplied:
+        if calc is not None:
+            self.atoms.set_calculator(calc)
+        else:
+            # assume it was already set:
+            pass
+
+    def f (self, x):
+        "Energy"
+
+        # print "QCell: x=\n", x
+        assert shape(x) == (2, 3)
+
+        e = empty ((3, 3))
+
+        e[0, 0] = 1.0 + x[0, 0]
+        e[1, 1] = 1.0 + x[0, 1]
+        e[2, 2] = 1.0 + x[0, 2]
+
+        e[0, 1] = 0.5 * x[1, 0]
+        e[0, 2] = 0.5 * x[1, 1]
+        e[1, 2] = 0.5 * x[1, 2]
+
+        e[1, 0] = e[0, 1]
+        e[2, 0] = e[0, 2]
+        e[2, 1] = e[1, 2]
+
+        # Deformed cell:
+        cell = dot (self.cell, e)
+
+        # Update  cell  vectors  keeping  the  fractional  coordinates
+        # fixed:
+        self.atoms.set_cell (cell, scale_atoms=True)
+
+        # Request energy.   The calculator is free  to either optimize
+        # atomic positions within the cell or keep them as is:
+        e = self.atoms.get_potential_energy()
+        # print "QCell: e=", e
+        return e
+
+    def fprime (self, x):
+        raise NotImplementedError ("Use  NumDiff instead!")
+
 
 from pts.paramap import pmap
 
