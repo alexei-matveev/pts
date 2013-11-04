@@ -420,7 +420,7 @@ def ensure_short_way(init_path_raw, dih, quats, lengt):
 
     # they differ:
     >>> round(r1_i[2] - r1_n[2], 3)
-    -12.353999999999999
+    -12.354
 
     # but lead to the same rotation
     >>> from pts.quat import rotmat
@@ -433,7 +433,7 @@ def ensure_short_way(init_path_raw, dih, quats, lengt):
 
     # they differ:
     >>> round(r1_i[2] - r1_n[2], 3)
-    25.132999999999999
+    25.133
 
     # but lead to the same rotation
     >>> from pts.quat import rotmat
