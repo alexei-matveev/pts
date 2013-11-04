@@ -468,10 +468,11 @@ class ZMat(Func):
             #
             # Orthogonal basis using the three anchor points:
             #
-            U = B - A
+            uv = empty((2, 3))
+            uv[0, :] = B - A
             Uprime = Bprime - Aprime
 
-            V = C - A
+            uv[1, :] = C - A
             Vprime = Cprime - Aprime
 
           # # FIXME: U  and V are  not normalized, so this  check doesnt
@@ -480,7 +481,7 @@ class ZMat(Func):
           # if not abs(U - V).any() > 10e-10:
           #     raise ZMError("bad choice for a= %i b= %i and c= %i" % (a, b, c))
 
-            ijk, dijk = reper.taylor([U, V])
+            ijk, dijk = reper.taylor(uv)
 
             # The default  settings for the anchor  points (see above)
             # together with the (custom) implementation of the reper()
