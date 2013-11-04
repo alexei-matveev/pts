@@ -12,7 +12,7 @@
 # will convert that into the working units (A and eV).
 #
 from numpy import pi
-import ase
+import ase.units
 
 angstrom = 1.0
 eV = 1.0
@@ -22,8 +22,8 @@ eV = 1.0
 # units to  eV/A. If we ever want  to convert them back  we better use
 # the same constant here too:
 #
-Bohr = ase.Bohr                 # ~0.5292 A
-Hartree = ase.Hartree           # ~27.21 eV
+Bohr = ase.units.Bohr           # ~0.5292 A
+Hartree = ase.units.Hartree     # ~27.21 eV
 
 kcal = Hartree / 627.509469
 degree = pi / 180.
