@@ -234,7 +234,7 @@ from numpy import vstack, hstack
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
 from func import Func
-from rc import distance, angle, dihedral
+from rc import distance, angle, dihedral, center
 from quat import _rotmat, cart2vec, cart2veclin
 from quat import reper, r3
 
@@ -647,10 +647,7 @@ class Rigid (Func):
         x = array (x)
         self.__x = x
         # Same procedure as in pinv() method:
-        self.__c = self.center (x)
-
-    def center (self, x):
-        return sum (x) / len (x)
+        self.__c = center (x)
 
     def taylor (self, q):
         # aliases:
@@ -683,7 +680,7 @@ class Rigid (Func):
         c = self.__c
 
         # Same procedure as for c:
-        c1 = self.center (y)
+        c1 = center (y)
 
         # Translation vector:
         T = c1 - c
@@ -700,6 +697,7 @@ class Rigid (Func):
         q[3:] = W
 
         return q
+
 
 class ManyBody (Func):
     """
