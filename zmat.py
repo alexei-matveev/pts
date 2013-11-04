@@ -725,13 +725,25 @@ class ManyBody (Func):
     >>> max (abs (f.fprime (q) - f1.fprime (q))) < 1.0e-10
     True
     """
-    def __init__ (self, *fs):
+    def __init__ (self, *fs, **kw):
         self.__fs = fs
+
+        # It is an error to supply a kwarg other than dof=[...]:
+        def dofs (dof=None):
+            return dof
+        dof = dofs (**kw)
+
+        # FIXME:  we  could try  guessing  the  number  of degrees  of
+        # freedom based on the Func() class, but this is unreliable:
+        if dof is None:
+            self.__dofs = [0 if isinstance (f, Fixed) else 6 for f in fs]
+        else:
+            assert len (dof) == len (fs)
+            self.__dofs = list (dof)
 
     def taylor (self, x):
         fs = self.__fs
-
-        dofs = [0 if isinstance (f, Fixed) else 6 for f in fs]
+        dofs = self.__dofs
 
         qs = [None] * len (fs)
         k = 0
@@ -757,11 +769,11 @@ class ManyBody (Func):
 
     def pinv (self, y):
         fs = self.__fs
+        dofs = self.__dofs
 
         # FIXME:  hm, how  do  I get  number  of atoms  each  f in  fs
         # returns? At  the moment this evaluates  all of them  at 0 to
         # learn about the shape of the results:
-        dofs = [0 if isinstance (f, Fixed) else 6 for f in fs]
         qs = [zeros (n) for n in dofs]
         shapes = [shape (f (q)) for f, q in zip (fs, qs)]
 
