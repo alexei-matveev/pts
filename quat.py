@@ -737,17 +737,19 @@ class Quat(object):
     def __eq__(self, other):
         return (self.__q == other.__q).all()
 
+from numpy.linalg import norm as norm2
+
 def unit(v):
     "Normalize a vector"
-    n = sqrt(dot(v, v))
+    n = norm2 (v)
     # numpy will just return NaNs:
     if n == 0.0: raise Exception("divide by zero")
     return v / n
 
-def M(x):
-    "M_ij = delta_ij - x_i * x_j / x**2"
-    n = unit(x)
-    return eye(len(n)) - outer(n, n)
+def _M(x):
+    "M_ij = delta_ij - x_i * x_j / x**2, is only called with unit vectors"
+    # n == unit(x)
+    return eye(len(x)) - outer(x, x)
 
 def E(x):
     """E_ij = epsilon_ijk * x_k (sum over k)
@@ -800,66 +802,55 @@ class _Reper (Func):
         True
     """
 
-    def taylor (self, args):
+    def taylor (self, uv):
 
-        u, v = args
+        # convention: fprime[i, k] = df_i / dx_k
+        f = empty ((3, 3))
+        fprime = empty ((3, 3, 2, 3))
 
-        lu = sqrt (dot (u, u))
-        lv = sqrt (dot (v, v))
+        lu = norm2 (uv[0])
+        # lv = norm2 (uv[1])
 
-        if lu == 0.0: raise Exception("divide by zero")
-        if lv == 0.0: raise Exception("divide by zero")
+        # Orthogonal to UV plane, this will be zero-vector if uv[0] ||
+        # uv[1] as e.g. derived from the three points on the line:
+        w = cross (uv[1], uv[0])
+
+        lw = norm2 (w)
 
         #
         # Unit vectors for local coordiante system:
         #
 
         # unit vector in U-direciton:
-        k = u / lu
+        f[2, :] = uv[0] / lu
 
-        # dk/du:
-        ku = M(k) / lu
-
-        # dk/dv:
-        kv = zeros((3,3))
-
-        # orthogonal to UV plane:
-        w = cross(v, u)
-        lw = sqrt(dot(w, w))
-
-        j = w / lw
-
-        # dj/dw
-        jw = M(j) / lw
-
-        # dj/du:
-        jv = dot(jw, E(u))
-
-        # dj/dv:
-        ju = dot(jw, E(-v))
+        # unit vector orthogonal to UV-plane:
+        f[1, :] = w / lw
 
         # in UV-plane, orthogonal to U:
-        i = cross(k, j) # FIXME: not cross(j, k)!
+        f[0, :] = cross (f[2, :], f[1, :]) # FIXME: not cross(j, k)!
+
+        # dk/du:
+        fprime[2, :, 0, :] = _M (f[2, :]) / lu
+
+        # dk/dv:
+        fprime[2, :, 1, :] = 0.0 # zeros((3,3))
+
+        # dj/dw
+        jw = _M(f[1, :]) / lw
+
+        # dj/du:
+        fprime[1, :, 1, :] = dot (jw, E (uv[0]))
+
+        # dj/dv:
+        fprime[1, :, 0, :] = dot (jw, E (-uv[1]))
 
         # di/du = di/dk * dk/du + di/dj * dj/du:
-        iu = dot(E(j), ku) + dot(E(-k), ju)
+        fprime[0, :, 0, :] = dot (E ( f[1, :]), fprime[2, :, 0, :]) \
+                           + dot (E (-f[2, :]), fprime[1, :, 0, :])
 
-        # di/du =                 di/dj * dj/du:
-        iv =                 dot(E(-k), jv)
-
-        f = empty((3, 3))
-        f[0] = i
-        f[1] = j
-        f[2] = k
-
-        # convention: fprime[i, k] = df_i / dx_k
-        fprime = empty((3, 3, 2, 3))
-        fprime[0, :, 0, :] = iu
-        fprime[0, :, 1, :] = iv
-        fprime[1, :, 0, :] = ju
-        fprime[1, :, 1, :] = jv
-        fprime[2, :, 0, :] = ku
-        fprime[2, :, 1, :] = kv
+        # di/du = di/dj * dj/du:
+        fprime[0, :, 1, :] = dot (E(-f[2, :]), fprime[1, :, 1, :])
 
         return f, fprime
 
