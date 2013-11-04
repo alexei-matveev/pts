@@ -5,14 +5,15 @@ from numpy import cosh, sinh, arccosh
 from numpy import finfo
 from numpy.linalg import solve, svd
 
-class Affine(Func):
+class Affine (Func):
     """
     Affine transformation.  If  you ever want to invert  it, it should
     better be invertible. That was an insightful comment, wasn't it?
 
-    A well-defined non-singular 2->2 transformation:
+    A well-defined non-singular 2 -> 2 transformation:
 
-        >>> trafo = Affine([[1.0, 0.5], [0.0, 0.5]])
+        >>> trafo = Affine ([[1.0, 0.5],
+        ...                  [0.0, 0.5]])
 
         >>> x = array([1.0, 1.0])
 
@@ -78,13 +79,13 @@ class Affine(Func):
         #
         # Affine transformation matrix:
         #
-        self.__m = array(m)
+        self.__m = array (m)
 
-    def f(self, x):
+    def f (self, x):
         # FIXME: more general shape of x?
-        return dot(self.__m, x)
+        return dot (self.__m, x)
 
-    def fprime(self, x):
+    def fprime (self, x):
         return self.__m.copy()
 
     def pinv(self, y):
@@ -195,9 +196,9 @@ def diagsandhight():
     The corresponding four positions of atoms are:
 
         [[ d1 / 2.,       0., 0.],
-        [-d1 / 2.,       0., 0.],
-        [      0.,  d2 / 2.,  h],
-        [      0., -d2 / 2.,  h]]
+         [-d1 / 2.,       0., 0.],
+         [      0.,  d2 / 2.,  h],
+         [      0., -d2 / 2.,  h]]
 
     Example:
 
