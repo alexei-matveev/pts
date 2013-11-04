@@ -46,9 +46,10 @@ class Affine (Func):
         array([[ 1. ,  0.5],
                [ 0. ,  0.5]])
 
-        >>> x - trafo.pinv (trafo (x))
-        array([ 0.,  0.])
+        >>> from numpy import max, abs
 
+        >>> max (abs (x - trafo.pinv (trafo (x)))) < 1e-15
+        True
 
     Matter  get  slightly  more  complicated  for  an  injective  2->3
     transformation:
@@ -62,8 +63,6 @@ class Affine (Func):
 
     A  *proper*  result  "y"   (from  the  result  domain)  should  be
     sufficient to find the corresponding argument "x":
-
-        >>> from numpy import max, abs
 
         >>> max(abs(x - t1.pinv(y))) < 1.0e-12
         True
