@@ -1,5 +1,5 @@
-from numpy import size, shape, sqrt, asarray, array, zeros, dot, pi
-from pts.func import Func
+from numpy import size, shape, sqrt, asarray, array, zeros, dot, pi, all
+from pts.func import Func, NumDiff
 from math import cos, sin, acos, asin
 from numpy import cosh, sinh, arccosh
 from numpy import finfo
@@ -17,15 +17,38 @@ class Affine (Func):
 
         >>> x = array([1.0, 1.0])
 
-        >>> trafo(x)
+        >>> trafo (x)
         array([ 1.5,  0.5])
 
-        >>> trafo.fprime(x)
+        >>> trafo.fprime (x)
         array([[ 1. ,  0.5],
                [ 0. ,  0.5]])
 
-        >>> x - trafo.pinv(trafo(x))
+        >>> x - trafo.pinv (trafo (x))
         array([ 0.,  0.])
+
+    Another way to specify an affine transformation is to start with a
+    linear  function of  vector  argument that  returns an  array-like
+    object:
+
+        >>> def f (x):
+        ...    a, b = x
+        ...    return [a + 0.5 * b, 0.5 * b]
+
+    You then will need to supply  an "initial" x to the constructor so
+    that the Affine() Func() learns the shape of the argument:
+
+        >>> trafo = Affine (f, x)
+        >>> trafo (x)
+        array([ 1.5,  0.5])
+
+        >>> trafo.fprime (x)
+        array([[ 1. ,  0.5],
+               [ 0. ,  0.5]])
+
+        >>> x - trafo.pinv (trafo (x))
+        array([ 0.,  0.])
+
 
     Matter  get  slightly  more  complicated  for  an  injective  2->3
     transformation:
@@ -73,24 +96,83 @@ class Affine (Func):
         >>> y2 = t2.pinv(t2(y1))
         >>> max(abs(t2(y1) - t2(y2))) < 1.0e-12
         True
+
+    FIXME: an affine transformation is actually y = A * x + b.
     """
 
-    def __init__(self, m):
-        #
-        # Affine transformation matrix:
-        #
-        self.__m = array (m)
+    def __init__(self, m, x=None):
+        if (x is None):
+            #
+            # Here m is a transformation matrix:
+            #
+            m = array (m)
+            mshape = shape (m)
+            # The last axis gives the shape of x:
+            yshape, xshape = mshape[:-1], mshape[-1:]
+            self.__m = m
+            self.__yshape = yshape
+            self.__xshape = xshape
+        else:
+            #
+            # Here  m(x) is  a linear  function,  and x  is a  typical
+            # input.
+            #
+            # FIXME: there  is no  way to assert  that m(x)  is indeed
+            # linear, the caller is supposed  to ensure that. If it is
+            # not, the affine transformation  will be derived from the
+            # approximate Taylor expansion.
+            #
+            assert callable (m)
+            f = m if isinstance (m, Func) else NumDiff (m)
+
+            y, yx = f.taylor (x)
+
+            yshape = shape (y)
+            xshape = shape (x)
+
+            def prod (ns):       # name clash with numpy.prod
+                return reduce (lambda x, y: x * y, ns, 1)
+
+            yx.shape = prod (yshape), prod (xshape)
+            self.__m = yx
+            self.__yshape = yshape
+            self.__xshape = xshape
+
 
     def f (self, x):
-        # FIXME: more general shape of x?
-        return dot (self.__m, x)
+        x = asarray (x)
+
+        m = self.__m
+        xshape = self.__xshape
+        yshape = self.__yshape
+
+        assert all (shape (x) == xshape)
+
+        # View of x as a 1d-array:
+        x = x.view()
+        x.shape = -1
+
+        y = dot (m, x)
+        y.shape = yshape
+        return y
 
     def fprime (self, x):
-        return self.__m.copy()
+        x = asarray (x)
 
-    def pinv(self, y):
+        m = self.__m
+        xshape = self.__xshape
+        yshape = self.__yshape
 
-        y = asarray(y)
+        assert all (shape (x) == xshape)
+
+        # The caller is free to do anything with the result:
+        m = m.copy()
+        m.shape = yshape + xshape
+        return m
+
+    def pinv (self, y):
+
+        y = asarray (y)
 
         #
         # These share the  data with originall arrays, but  we are not
@@ -138,6 +220,7 @@ class Affine (Func):
             #
             return dot(s1uty, vt) # this is of length n
 
+
 def c2v_tetrahedron1():
     """
     Returns  a fresh  Func (Affine,  really) that  generates Cartesian
@@ -166,18 +249,14 @@ def c2v_tetrahedron1():
         array([ 0.,  0.,  0.])
     """
 
-    return Affine([[[  1.,  0.,  0.],
-                    [  1.,  0.,  0.],
-                    [  0.,  0.,  1.]],
-                   [[ -1.,  0.,  0.],
-                    [ -1.,  0.,  0.],
-                    [  0.,  0.,  1.]],
-                   [[  0.,  1.,  0.],
-                    [  0., -1.,  0.],
-                    [  0.,  0., -1.]],
-                   [[  0., -1.,  0.],
-                    [  0.,  1.,  0.],
-                    [  0.,  0., -1.]]])
+    def f (v):
+        a, b, c = v
+        return [[+a, +a, +c],
+                [-a, -a, +c],
+                [+b, -b, -c],
+                [-b, +b, -c]]
+
+    return Affine (f, [0., 0., 0.])
 
 def diagsandhight():
     """
@@ -212,18 +291,14 @@ def diagsandhight():
     FIXME: choose a better name.
     """
 
-    return Affine([[[ 0.5,   0., 0.],
-                    [  0.,   0., 0.],
-                    [  0.,   0., 0.]],
-                   [[-0.5,   0., 0.],
-                    [  0.,   0., 0.],
-                    [  0.,   0., 0.]],
-                   [[  0.,   0., 0.],
-                    [  0.,  0.5, 0.],
-                    [  0.,   0., 1.]],
-                   [[  0.,   0., 0.],
-                    [  0., -0.5, 0.],
-                    [  0.,   0., 1.]]])
+    def f (v):
+        d1, d2, h = v
+        return [[ d1 / 2.,       0., 0.],
+                [-d1 / 2.,       0., 0.],
+                [      0.,  d2 / 2.,  h],
+                [      0., -d2 / 2.,  h]]
+
+    return Affine (f, [0., 0., 0.])
 
 class mb1(Func):
     """
