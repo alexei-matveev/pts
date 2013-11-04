@@ -67,8 +67,8 @@ connectivities encoded in ZMat().
 Compare |internals| and zm^-1( zm(internals) ):
 
     >>> h2o = array(h2o)
-    >>> zm.pinv(zm(h2o)) - h2o
-    array([ 0.,  0.,  0.])
+    >>> max (abs (zm.pinv (zm (h2o)) - h2o)) < 1e-15
+    True
 
 The "pseudo" in the pseudoinverse  is to remind you that the cartesian
 to internal is not one-to-one:
