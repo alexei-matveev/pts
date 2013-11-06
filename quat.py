@@ -818,6 +818,10 @@ class _Reper (Func):
 
         lw = norm2 (w)
 
+        # u and v are probably collinear:
+        if (lw == 0.0):
+            raise ZeroDivisionError ()
+
         #
         # Unit vectors for local coordiante system:
         #
