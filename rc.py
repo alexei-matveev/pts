@@ -156,7 +156,7 @@ from numpy import zeros, eye, shape, cross, dot
 from numpy import sqrt, sin, arccos
 from numpy import hstack, vstack
 from numpy import array, asarray
-from numpy import argmax, max, abs, cross
+from numpy import argmax, max, abs
 from numpy.linalg import svd
 from numpy import outer
 
