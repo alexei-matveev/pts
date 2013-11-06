@@ -156,7 +156,7 @@ from numpy import zeros, eye, shape, cross, dot
 from numpy import sqrt, sin, arccos
 from numpy import hstack, vstack
 from numpy import array, asarray
-from numpy import argmax, max, abs
+from numpy import argmax, abs
 from numpy.linalg import svd
 from numpy import outer
 
@@ -191,6 +191,7 @@ def axes (x):
 
     or, in matrix notation:
 
+        >>> from numpy import max
         >>> max (abs (dot (v.T, v) - eye (3))) < 1e-15
         True
 
