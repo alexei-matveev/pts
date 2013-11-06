@@ -235,8 +235,8 @@ from npz import matmul
 # from vector import Vector as V, dot, cross
 # from bmath import sin, cos, sqrt
 from func import Func
-from rc import distance, angle, dihedral, center, Center
-from quat import rotmat, _rotmat, cart2vec, cart2veclin
+from rc import distance, angle, dihedral, axes, center, Center
+from quat import rotmat, _rotmat, cart2vec, cart2veclin, quat2vec, rot2quat, cart2rot
 from quat import reper, r3
 
 class ZMError(Exception):
@@ -680,6 +680,8 @@ class Rigid (Func):
         x = self.__x
         c = self.__c
 
+        assert shape (y) == shape (x)
+
         # Same procedure as for c:
         c1 = center (y)
 
@@ -687,11 +689,23 @@ class Rigid (Func):
         T = c1 - c
 
         # FIXME: see the logic in RT.pinv():
-        if len (x) < 3:
-            raise ZMError ("need three centers")
+        try:
+            if len (x) < 3:
+                raise ZeroDivisionError()
 
-        # Rotation vector:
-        W = cart2vec (x, y)
+            # Regular  branch.   Get  rotatin  vector.   The  function
+            # cart2rot()   may  also   raise   ZeroDivisionError()  in
+            # particular  when either  x  or y  (or  both) are  linear
+            # systems.  Note  that cart2rot() only  examines the first
+            # three atoms of x and y:
+            W = quat2vec (rot2quat (cart2rot (x, y)))
+        except ZeroDivisionError:
+            # Alternative  branch.  The  system, or  rather  the three
+            # first atoms that are examined by cart2rot(), is probably
+            # linear. We need a different way to define local axes:
+            ox = axes (x)
+            oy = axes (y)
+            W = quat2vec (rot2quat (dot (oy.T, ox)))
 
         q = empty (6)
         q[:3] = T
