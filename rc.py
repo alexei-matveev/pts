@@ -156,6 +156,7 @@ from numpy import zeros, eye, shape, cross, dot
 from numpy import sqrt, sin, arccos
 from numpy import hstack, vstack
 from numpy import array, asarray
+from numpy import argmax, max, abs, cross
 from numpy.linalg import svd
 from numpy import outer
 
@@ -177,7 +178,7 @@ def axes (x):
 
         >>> v = axes (x)
         >>> v[0]
-        array([-0.57735027, -0.57735027, -0.57735027])
+        array([ 0.57735027,  0.57735027,  0.57735027])
 
     The other two axes are degenerate, but mutually orthogonal:
 
@@ -186,6 +187,18 @@ def axes (x):
         >>> abs (dot (v[1], v[2])) < 1e-16
         True
         >>> abs (dot (v[2], v[0])) < 1e-16
+        True
+
+    or, in matrix notation:
+
+        >>> max (abs (dot (v.T, v) - eye (3))) < 1e-15
+        True
+
+    One  should  choose the  axes  so  that  they form  right-oriented
+    system:
+
+        >>> i, j, k = v
+        >>> max (abs (cross (i, j) - k)) < 1e-15
         True
     """
     x = asarray (x)
@@ -208,6 +221,25 @@ def axes (x):
     # The first eigenvalue is the largest, but maybe the convention is
     # going to change. This is assumed in axis() below though:
     assert s[0] >= s[1] >= s[2] >= 0.0
+
+    #
+    # Eigenvectors  are defined up  to a  sign ---  try to  choose the
+    # leading  axis so  that that  it  is "roughly  collinear" with  a
+    # vector  from  the  center  to  an  atom  that  has  the  largest
+    # projection on the axis:
+    #
+    k = vt[0]
+    projections = dot (w, k)
+    n = argmax (abs (projections))
+    if projections[n] < 0.0:
+        vt[0] = -k
+
+    #
+    # Choose the "right-oriented" coordinate system:
+    #
+    k, i, j = vt
+    if dot (k, cross (i, j)) < 0.0:
+        vt[2] = -j
 
     # Row vectors vt[i], 0 <= i < 3, are the axes (not the columns!):
     return vt
