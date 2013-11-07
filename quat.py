@@ -352,36 +352,54 @@ def rot2quat (mat):
     two different  quaternions belonging to  the same matrix,  we take
     the positive one
 
-    >>> from numpy import pi, max, abs
+        >>> from numpy import pi, max, abs
 
-    >>> m = eye(3)
-    >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
-    True
+        >>> m = eye(3)
+        >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
+        True
 
-    >>> m = rotmat([pi / 2., 0., 0.])
-    >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
-    True
+        >>> m = rotmat([pi / 2., 0., 0.])
+        >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
+        True
 
-    >>> m = rotmat([pi, 0., 0.])
-    >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
-    True
+        >>> m = rotmat([pi, 0., 0.])
+        >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
+        True
 
-    >>> m = rotmat([0., pi, 0.])
-    >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
-    True
+        >>> m = rotmat([0., pi, 0.])
+        >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
+        True
 
-    >>> m = rotmat([-pi + 0.3, 0., 0.])
-    >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
-    True
+        >>> m = rotmat([-pi + 0.3, 0., 0.])
+        >>> max(abs(m - qrotmat(rot2quat(m)))) < 1e-12
+        True
 
-    >>> q = array([0., 0., 0., 1.])
-    >>> m = qrotmat(q)
-    >>> max(abs(q - rot2quat(m))) < 1e-12
-    True
+        >>> q = array([0., 0., 0., 1.])
+        >>> m = qrotmat(q)
+        >>> max(abs(q - rot2quat(m))) < 1e-12
+        True
 
-    Code  from:  Ken  Shoemake  "Animation  rotation  with  quaternion
-    curves.", Computer Graphics 19(3):245-254, 1985
+    A very  similar function in  Matlab is called  dcm2quat(). However
+    rot2quat()  gives the  vector  part with  the  opposite sign,  or,
+    rather, interpretes the matrix layout differently:
+
+        >>> dcm = array ([[0.4330,  0.2500, -0.8660],
+        ...               [0.1768,  0.9186,  0.3536],
+        ...               [0.8839, -0.3062,  0.3536]])
+        >>> rot2quat (dcm.T)
+        array([ 0.82237461,  0.20057769,  0.5319656 ,  0.02225263])
+
+    Compare with Ref. [1]
+
+    Code from Ref. [2].
+
+    [1] "dcm2quat(): Convert direction cosine matrix to quaternion".
+        http://www.mathworks.de/de/help/aerotbx/ug/dcm2quat.html
+
+    [2] Ken Shoemake "Animation rotation with quaternion curves.",
+        Computer Graphics 19(3):245-254, 1985
     """
+    mat = asarray (mat)
 
     qu = zeros(4)
     s = 0.25 * (1 + trace(mat))
