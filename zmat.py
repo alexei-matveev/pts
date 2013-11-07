@@ -2,11 +2,7 @@
 This module provides conversion from z-matrix coordiantes to cartesian
 and back.
 
-        Construct ZMat from a tuple representaiton of atomic
-
-    >>> from func import NumDiff
-
-connectivities:
+Construct ZMat from a tuple representaiton of atomic connectivities:
 
     >>> rep = [(None, None, None), (0, None, None), (0, 1, None)]
     >>> zm = ZMat(rep)
@@ -55,6 +51,8 @@ The derivative matrix is given by fprime:
      [[ 0.          0.          0.        ]
       [ 0.          0.          0.        ]
       [ 0.          0.          0.        ]]]
+
+    >>> from func import NumDiff
 
     >>> zm1 = NumDiff(zm)
     >>> max(abs(zm.fprime(h2o) - zm1.fprime(h2o))) < 1.e-10
