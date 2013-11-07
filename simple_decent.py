@@ -1,7 +1,7 @@
 from numpy import sqrt, dot, array, zeros, vstack
 from pts.metric import Default
 from copy import deepcopy
-from pts.steepest_decent import steepest_decent_path, start_values
+from pts.steepest_descent import steepest_descent_path, start_values
 #from ase.optimize.oldqn import GoodOldQuasiNewton as QN
 from scipy.optimize import fmin_l_bfgs_b as minimize
 from scipy.optimize import fmin as minimize2
@@ -98,7 +98,7 @@ def relax_points(fun, points, tolerance):
 
     return results
 
-def steepest_decent(force, x0, fixedlength = True, alpha = 0.001):
+def steepest_descent(force, x0, fixedlength = True, alpha = 0.001):
     """
     Simple steepest decent step,
     forces should be belonging to the paramter x
@@ -113,7 +113,7 @@ def steepest_decent(force, x0, fixedlength = True, alpha = 0.001):
         step = step / sqrt(dot(step, step))
     return x0 + alpha * step
 
-def steepest_decent_met(metric, force, x0, fixedlength = True, alpha = 0.01):
+def steepest_descent_met(metric, force, x0, fixedlength = True, alpha = 0.01):
     """
     Simple steepest decent step,
     function fun should give the forces belonging to the paramter x
@@ -129,7 +129,7 @@ def steepest_decent_met(metric, force, x0, fixedlength = True, alpha = 0.01):
     return x0 + alpha * step
 
 
-def steepest_decent_path_simple(fun, x0, metric, store_every = 1,
+def steepest_descent_path_simple(fun, x0, metric, store_every = 1,
                                max_iter = 10000000, revert_dir = False, alpha = 0.01, **params):
     """
     Steepest decent path, with simple steepest decent step.
@@ -153,7 +153,7 @@ def steepest_decent_path_simple(fun, x0, metric, store_every = 1,
 
         force_old = force
         force = -fun.fprime(xval)
-        xval = steepest_decent_met(metric, force, xval, alpha = alpha, **params)
+        xval = steepest_descent_met(metric, force, xval, alpha = alpha, **params)
 
     path.append(xval)
 
@@ -249,9 +249,9 @@ def path_l_to_r(metric, fun, start, reactant, product, direction, simple = False
     """
     # the actual steepest decent path calculation
     if simple:
-        conv, pone = steepest_decent_path_simple(fun, start, metric, revert_dir = direction, **params)
+        conv, pone = steepest_descent_path_simple(fun, start, metric, revert_dir = direction, **params)
     else:
-        conv, pone = steepest_decent_path(fun, start, metric, revert_dir = direction, **params)
+        conv, pone = steepest_descent_path(fun, start, metric, revert_dir = direction, **params)
 
     if not conv:
         print "This path did not converge within the given number of steps"

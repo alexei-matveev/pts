@@ -30,14 +30,14 @@ class conj_grad_opt():
     """
     def __init__(self, reaction_pathway, maxstep = 0.1, respace = True,\
       trial_step = 0.01, backtrack_border = 0.9, dummy_backtracking = False,\
-      reduce_to_steepest_decent = False, **kwargs):
+      reduce_to_steepest_descent = False, **kwargs):
         # Reaction_Pathway is an object that gives forces/tangents for
         # all beads:
         self.atoms = reaction_pathway
 
         # flags on how conjugate gradient behaves
         self.respace = respace
-        self.reduce = reduce_to_steepest_decent
+        self.reduce = reduce_to_steepest_descent
 
         # metric cannot handle more than one bead (in general) at the same time
         self.size = reaction_pathway.beads_count

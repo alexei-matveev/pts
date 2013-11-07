@@ -89,7 +89,7 @@ def runopt(name, CoS, ftol=0.1, xtol=0.03, etol=0.03, maxit=35, maxstep=0.2
             return None
         elif name == 'steep_des':
             from pts.cosopt.conj_grad import conj_grad_opt
-            opt = conj_grad_opt(CoS, maxstep=maxstep, reduce_to_steepest_decent = True, **kwargs)
+            opt = conj_grad_opt(CoS, maxstep=maxstep, reduce_to_steepest_descent = True, **kwargs)
             opt.attach(lambda: callback(None), interval=1)
             opt.run() # convergence handled by callback
             return None

@@ -8,7 +8,7 @@ from numpy import finfo
 # This is how exact we can have floating point values
 tol_exact = finfo(float).eps
 
-def steepest_decent_path(fun, x0, metric, store_steps = 0.0,
+def steepest_descent_path(fun, x0, metric, store_steps = 0.0,
                         tolerance = 1e-10, max_iter = 10000000, revert_dir = False, **params):
     """
     Calculates a steepest decent path starting from a point (minima or
@@ -332,7 +332,7 @@ def start_values(fun, metric, x0):
     start_dir = start_dir / metric.norm_up(start_dir, x0)
     return start_dir, w[a]
 
-# python steepest_decent.py [-v]:
+# python steepest_descent.py [-v]:
 if __name__ == "__main__":
     import doctest
     doctest.testmod()

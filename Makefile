@@ -28,7 +28,7 @@ src =	\
 	zmat.py \
 	bfgs.py \
 	chain.py \
-	steepest_decent.py \
+	steepest_descent.py \
 	simple_decent.py \
 	rc.py \
 	vib.py \
