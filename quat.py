@@ -75,6 +75,34 @@ Rotmat has also an analytical derivative:
     >>> value2, derivative2 = _rotmat(random)
     >>> max(abs(derivative2 - derivative1)) < 1e-10
     True
+
+
+* APPLYING ROTATION TO A VECTOR AND VECTOR COLLECTIONS
+
+To  apply a  rotation matrix  to a  vector, or  a collection  of (row)
+vectors v[i]  you might  consider this pitfall.  Here is a  matrix for
+rotation around the z-axis by 45 degrees:
+
+    >>> m = rotmat ([0.0, 0.0, pi / 4.])
+
+Two vectors we want to rotate:
+
+    >>> v = array ([[1.,   0.,    111.],
+    ...             [0., 100.,    222.]])
+
+Note that because  we often had chose row-vectors  for convenience you
+cannot   simply  issue   dot   (m,   v)  ---   the   shapes  are   not
+consistent. Instead apply m to each row:
+
+    >>> array ([dot (m, x) for x in v])
+    array([[   0.70710678,    0.70710678,  111.        ],
+           [ -70.71067812,   70.71067812,  222.        ]])
+
+Alternatively you  could transpose the  vectors to column  vectors and
+back or transpose the matrix:
+
+    >>> all (dot (m, v.T).T == dot (v, m.T))
+    True
 """
 from numpy import asarray, empty, dot, sqrt, sin, cos, abs, array, eye, zeros
 from numpy import arccos
