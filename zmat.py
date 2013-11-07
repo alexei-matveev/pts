@@ -712,6 +712,56 @@ class Rigid (Func):
         return q
 
 
+def relate (x, y):
+    """
+    For two  geometries of a  rigid systems, x  and y, copute  the six
+    parameters, q,  encoding their relative position.  The function is
+    not going  to complain  if the two  systems are unrelated.  And in
+    fact, in the regular case only the first three atoms are examined.
+
+        >>> x = [[ 1.,  1.,  1.],
+        ...      [ 1., -1., -1.],
+        ...      [-1., -1.,  1.],
+        ...      [-1.,  1., -1.]]
+        >>> x = array (x)
+
+        >>> relate (x, x + array([10., 20., 30.]))
+        array([ 10.,  20.,  30.,   0.,   0.,   0.])
+
+        >>> from numpy import pi
+        >>> a = pi / 100.
+        >>> w = array ([a, a, a])
+        >>> R = rotmat (w)
+
+    This is the way to rotate a bunch of row-vectors:
+
+        >>> y = dot (x, R.T)
+        >>> q = relate (x, y)
+
+    Separate translation and rotation:
+
+        >>> t1, w1 = q[:3], q[3:]
+
+        >>> max (abs (t1)) < 1e-15
+        True
+        >>> max (abs (w1 - w)) < 1e-14
+        True
+
+        >>> q = relate (y, x)
+
+        >>> t2, w2 = q[:3], q[3:]
+        >>> max (abs (t2)) < 1e-15
+        True
+
+        >>> max (abs (w2 + w)) < 1e-14
+        True
+    """
+    assert shape (x) == shape (y)
+
+    f = Rigid (x)
+    return f.pinv (y)
+
+
 class ManyBody (Func):
     """
     >>> x = [[0.,  0., 0.],
