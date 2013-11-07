@@ -45,9 +45,8 @@ The funciton rotmat(v) is a composition of two:
     >>> all(rotmat(random) == qrotmat(uquat(random)))
     True
 
-Derivatives:
-Compare the direct calculated derivatives with the ones from
-NumDiff:
+Derivatives: Compare  the direct calculated derivatives  with the ones
+from NumDiff:
 
     >>> from func import NumDiff
 
@@ -55,8 +54,8 @@ First for the uquat function:
 
     >>> value1, derivative1 = NumDiff(uquat).taylor(random)
 
-The functions prefixed by underscore give also the
-analytical derivative:
+The  functions  prefixed  by   underscore  give  also  the  analytical
+derivative:
 
     >>> value2, derivative2 = _uquat(random)
 
@@ -89,8 +88,9 @@ __all__ = ["rotmat", "r3", "reper"]
 machine_precision = finfo(float).eps * 2
 
 def uquat(v):
-    """Returns unitary quaternion corresponding to rotation vector "v",
-    whose length specifies the rotation angle and whose direction
+    """
+    Returns unitary  quaternion corresponding to  rotation vector "v",
+    whose  length specifies  the  rotation angle  and whose  direction
     specifies an axis about which to rotate.
 
         >>> from numpy import pi
@@ -144,9 +144,10 @@ def _uquat(v):
     return q, dq
 
 def rotmat(v):
-    """Generates rotation matrix based on vector v, whose length specifies
-    the rotation angle and whose direction specifies an axis about which to
-    rotate.
+    """
+    Generates  rotation  matrix  based   on  vector  v,  whose  length
+    specifies the rotation angle and whose direction specifies an axis
+    about which to rotate.
 
         >>> from numpy import pi, round
 
@@ -467,13 +468,11 @@ def cart2vec (x, y):
     """
     return quat2vec (cart2quat (x, y))
 
-def cart2veclin(v1, v2):
+def cart2veclin (v1, v2):
     """
-    v1 and v2 are two two point-objects
-    Here a rotation matrix is build, which rotatats
-    v1 on v2
-    (For the coordinate objects we have:
-    C2 = MAT * C1.T)
+    v1  and v2 are  two two  point-objects Here  a rotation  matrix is
+    build,  which rotatats  v1 on  v2 (For  the coordinate  objects we
+    have: C2 = MAT * C1.T)
 
     >>> from numpy import max, abs
 
@@ -572,7 +571,8 @@ def sinc(x):
         return 1 - x**2/6. + x**4/120. - x**6/5040. + x**8/362880.
 
 def dsincx(x):
-    """This evaluates in a "numerically stable" fashion
+    """
+    This evaluates in a "numerically stable" fashion
 
         1    d  sin x
         - * --- -----
@@ -600,8 +600,8 @@ def dsincx(x):
 
 def planenormal(threepoints):
     """
-    gives back normalised plane as defined by the
-    three points stored in numpy array threepoints
+    Gives back normalised plane as  defined by the three points stored
+    in numpy array threepoints.
     """
     v_1 = asarray(threepoints[1] - threepoints[0])
     v_1 /= sqrt(dot(v_1, v_1))
@@ -613,8 +613,9 @@ def planenormal(threepoints):
         n /= n_norm
     return n
 
-class Quat(object):
-    """Minimal quaternions
+class Quat (object):
+    """
+    Minimal quaternions
 
         >>> e = Quat()
         >>> i = Quat((0., 1., 0., 0.))
@@ -671,7 +672,9 @@ class Quat(object):
         return Quat(r)
 
     def __pow__(self, n):
-        """Power, used only for iverse powers, that is only n == -1 is accepted so far.
+        """
+        Power, used  only for iverse powers,  that is only n  == -1 is
+        accepted so far.
 
             >>> q = Quat((1.0, 1.0, 1.0, 1.0))
 
@@ -686,7 +689,8 @@ class Quat(object):
             >>> q * q**(-1)
             Quat((1.0, 0.0, 0.0, 0.0))
 
-        Dont forget there is no division as quaternions do not commute:
+        Dont  forget  there  is  no  division as  quaternions  do  not
+        commute:
 
             >>> p = Quat((0.0, 0.0, 0.0, 1.0))
 
@@ -863,7 +867,8 @@ class _Reper (Func):
 reper = _Reper()
 
 class _R3(Func):
-    """Spherical to cartesian transformation.
+    """
+    Spherical to cartesian transformation.
 
         >>> from numpy import pi, max, abs
         >>> from func import NumDiff
@@ -937,14 +942,12 @@ r3 = _R3()
 
 def test():
     """
-    interactive test for the rotation vector,
-    uses the next three arguments to build an initial
-    vector, describing a rotation.
+    Interactive  test for  the rotation  vector, uses  the  next three
+    arguments to build an initial vector, describing a rotation.
 
-    Using a random vector from the standard input, generates
-    the rotation belonging to the coresponding quaternion for it
-    Then uses a rotated inital vector to generate the quaternion
-    in the new way
+    Using  a random  vector  from the  standard  input, generates  the
+    rotation belonging to the coresponding quaternion for it Then uses
+    a rotated inital vector to  generate the quaternion in the new way
     prints comparisions
     """
     from sys import argv
