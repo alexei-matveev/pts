@@ -137,7 +137,7 @@ orientation.
 
 __all__ = ["minimize", "cminimize"]
 
-from numpy import asarray, empty, dot, max, abs, shape, size
+from numpy import array, asarray, empty, dot, max, abs, shape, size
 from numpy.linalg import solve #, eigh
 from scipy.optimize import fmin_l_bfgs_b as minimize1D
 from bfgs import get_by_name # BFGS, BFGS
@@ -301,8 +301,16 @@ def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, **kw):
     else:
         assert False, "No such algo = %d" % algo
 
-    # return the result in original shape:
+    # Return the result in original shape:
     xm.shape = xshape
+
+    # Also recorded trajectory should be re-shaped:
+    if "trajectory" in info:
+        def reshp (x):
+            y = array (x)
+            y.shape = xshape
+            return y
+        info["trajectory"] = map (reshp, info["trajectory"])
 
     if VERBOSE:
         print "fopt: x(out)=\n", xm
@@ -404,6 +412,9 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
     # Invoke objective function, also computes the gradient:
     e, g = fg(r)
+
+    # This will be destructively modified by appending new entries:
+    trajectory = [r]
 
     iteration = -1        # prefer to increment at the top of the loop
     converged = False
@@ -529,6 +540,9 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
         dr = alpha * dr
         r = r + dr
 
+        # Append new point:
+        trajectory.append (r)
+
         # check convergence, if any:
         criteria = 0
 
@@ -556,8 +570,10 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
              "iterations": iteration,
              "value": e,
              "derivative": g,
-             "step": dr }
-    return r, info # (iteration, converged, g, dr)
+             "step": dr,
+             "trajectory": trajectory}
+
+    return r, info
 
 def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
         maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="LBFGS", callback=None):
