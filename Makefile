@@ -29,7 +29,7 @@ src =	\
 	bfgs.py \
 	chain.py \
 	steepest_descent.py \
-	simple_decent.py \
+	simple_descent.py \
 	rc.py \
 	vib.py \
 	metric.py \
