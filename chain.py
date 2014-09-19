@@ -99,7 +99,7 @@ The images are not equally spaced:
 
 Optimize the chain and enforce equal spacing:
 
-    >>> xm, fm, stats = smin(cha, x5, spc, maxiter=100)
+    >>> xm, info = smin(cha, x5, spc, maxit=100)
 
 The optimized energies of the images:
 
@@ -169,13 +169,13 @@ def smin(ce, x, cs, c0=None, **kwargs):
         # initial path is not equispaced:
         c0 = zeros(len(z)) # len(z) is not always eq len(c)
 
-    zm, fm, stats = cmin(fg, z.flatten(), cg, c0=c0, **kwargs)
+    zm, info = cmin(fg, z.flatten(), cg, c0=c0, **kwargs)
 
     # restore original shape:
     zm.shape = shape(z)
     y[1:-1] = zm
 
-    return y, fm, stats
+    return y, info
 
 class Chain(Func):
     """

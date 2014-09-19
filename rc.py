@@ -74,7 +74,7 @@ of the "volume" as a reaction coordinate:
 Optimize the chain and enforce equal spacing:
 
     >>> from chain import smin
-    >>> xm, fm, stats = smin(cha, x5, spc)
+    >>> xm, info = smin(cha, x5, spc)
 
 The optimized energies of the images:
 
@@ -121,7 +121,7 @@ Here we use dihedral angle for image spacing:
 
 Optimize the chain and enforce equal spacing:
 
-    >>> xm, fm, stats = smin(cha, x5, Spacing(RCDiff(dih)))
+    >>> xm, info = smin(cha, x5, Spacing(RCDiff(dih)))
 
 The optimized energies of the images:
 

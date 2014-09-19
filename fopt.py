@@ -51,10 +51,10 @@ derivatives):
 Do a constrained minimization starting  from the point offset from the
 minimum C on MB-surface along the plane:
 
-    >>> c1, fc1, _ = cmin(fg, [c[0] + 0.1, c[1] - 0.1], cg)
+    >>> c1, info = cmin(fg, [c[0] + 0.1, c[1] - 0.1], cg)
     >>> max(abs(c1 - c)) < 1.e-7
     True
-    >>> max(abs(fc1 - f(c))) < 1.e-7
+    >>> max(abs(f(c1) - f(c))) < 1.e-7
     True
 
 Energy of a dimer at around  the minimum A on MB-surface, here x[0] is
@@ -343,12 +343,12 @@ def cminimize(f, x, c, **kwargs):
     y = x.flatten()
 #   z = c0.flatten()
 
-    xm, fm, stats =  cmin(fg, y, cg, **kwargs)
+    xm, info =  cmin(fg, y, cg, **kwargs)
 
     # return the result in original shape:
     xm.shape = xshape
 
-    return xm, fm, stats
+    return xm, info
 
 def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="BFGS"):
     """
@@ -578,7 +578,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
     return r, info
 
 def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
-        maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="LBFGS", callback=None):
+        maxit=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="LBFGS", callback=None):
     """
     Search  for a  minimum of  fg(x)[0] using  the  gradients fg(x)[1]
     subject to constrains cg(x)[0] = const.
@@ -654,7 +654,7 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
     iteration = -1        # prefer to increment at the top of the loop
     converged = False
 
-    while not converged and iteration < maxiter:
+    while not converged and iteration < maxit:
         iteration += 1
 
         # Update the hessian representation:
@@ -725,13 +725,22 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
             callback(r, e, g, c, A)
 
         if VERBOSE:
-            if iteration >= maxiter:
-                print "cmin: exceeded number of iterations", maxiter
+            if iteration >= maxit:
+                print "cmin: exceeded number of iterations", maxit
             # see while loop condition ...
 
     # Also return number of  interations, convergence status, and last
     # values of the gradient and step:
-    return r, e, (iteration, converged, g, dr)
+    # Also return number of  interations, convergence status, and last
+    # values of the gradient and step:
+    info = { "converged": converged,
+             "iterations": iteration,
+             "value": e,
+             "derivative": g,
+             "step": dr}
+
+    # return r, e, (iteration, converged, g, dr)
+    return r, info
 
 def qnstep(g0, H, c, A):
     """
