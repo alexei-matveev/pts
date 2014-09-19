@@ -149,6 +149,7 @@ The equal spacing is enforced:
 __all__ = ["center", "axes", "axis", \
            "volume", "distance", "angle", "dihedral", \
            "Volume", "Distance", "Angle", "Dihedral", \
+           "Const", \
            "Center"]
 
 from func import Func
@@ -158,7 +159,7 @@ from numpy import hstack, vstack
 from numpy import array, asarray
 from numpy import argmax, abs
 from numpy.linalg import svd
-from numpy import outer
+from numpy import outer, copy
 
 
 def center (x):
@@ -720,6 +721,20 @@ class Difference(Func):
         f2, f2prime = F2.taylor(x)
 
         return f1 - f2, f1prime - f2prime
+
+
+class Const (Func):
+    """
+    A Func that always returns the same.
+    """
+    def __init__ (self, c):
+        assert shape (c) == ()
+        self.__c = c
+
+    def taylor (self, x):
+        # FIXME: assuming c is scalar here:
+        return copy (self.__c), zeros (shape (x))
+
 
 class Array(Func):
     """
