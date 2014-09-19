@@ -421,15 +421,17 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
     while not converged:
         iteration += 1
+        # Prefix for debug output:
+        pfx = "fmin: (%03d) " % iteration
 
         if VERBOSE:
             if e0 is not None:
-                print "fmin: e - e0=", e - e0
-            print "fmin: e=", e
-            print "fmin: max(abs(g))=", max(abs(g))
+                print pfx, "e - e0=", e - e0
+            print pfx, "e=", e
+            print pfx, "max(abs(g))=", max(abs(g))
             if VERBOSE > 1:
-                print "fmin: r=\n", r
-                print "fmin: g=\n", g
+                print pfx, "r=\n", r
+                print pfx, "g=\n", g
 
         # Update the hessian representation:
         if iteration > 0:       # only then r0 and g0 are meaningfull!
@@ -448,13 +450,13 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
         longest = max(abs(dr))
         if longest > maxstep:
             if VERBOSE:
-                print "fmin: max(abs(dr))=", longest, ">", maxstep, "(too long, scaling down)"
+                print pfx, "max(abs(dr))=", longest, ">", maxstep, "(too long, scaling down)"
             dr *= maxstep / longest
 
         if VERBOSE:
-            print "fmin: dot(dr, g)=", dot(dr, g)
+            print pfx, "dot(dr, g)=", dot(dr, g)
             if VERBOSE > 1:
-                print "fmin: dr=\n", dr
+                print pfx, "dr=\n", dr
 
         # Save  for later  comparison. Assignment  e, g  =  fg(r) will
         # re-bind (e, g), not modify them:
@@ -502,7 +504,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
         e, g = fg(r + alpha * dr)
 
         if VERBOSE:
-            print "fmin: dot(dr, g1)=", dot(dr, g)
+            print pfx, "dot(dr, g1)=", dot(dr, g)
 
         #
         # First Wolfe  (Armijo) condition is difficult  to satisfy for
@@ -522,16 +524,16 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
             alpha = alpha * (-dot(dr, g0)) / (dot(dr, g) - dot(dr, g0))
 
             if VERBOSE:
-                # print "fmin: retry with alpha=", alpha,\
+                # print pfx, "retry with alpha=", alpha,\
                 #     "energy e=", e, "too high"
-                print "fmin: retry with alpha=", alpha, \
+                print pfx, "retry with alpha=", alpha, \
                     "dot(dr, g)=", dot(dr, g), "too high"
 
             # compute them again:
             e, g = fg(r + alpha * dr)
 
             if VERBOSE:
-                print "fmin: dot(dr, g1)=", dot(dr, g)
+                print pfx, "dot(dr, g1)=", dot(dr, g)
 
         # FIXME: Wolfe-2 unsatisfied!"
         assert alpha > 0.5**10
@@ -548,12 +550,12 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
         if max(abs(dr)) < stol:
             if VERBOSE:
-                print "fmin: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
+                print pfx, "converged by step max(abs(dr))=", max(abs(dr)), '<', stol
             criteria += 1
 
         if max(abs(g))  < gtol:
             if VERBOSE:
-                print "fmin: converged by force max(abs(g))=", max(abs(g)), '<', gtol
+                print pfx, "converged by force max(abs(g))=", max(abs(g)), '<', gtol
             criteria += 1
 
         if criteria >= 2:
@@ -561,7 +563,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
         if iteration >= maxiter:
             if VERBOSE:
-                print "fmin: exceeded number of iterations", maxiter
+                print pfx, "exceeded number of iterations", maxiter
             break # out of the while loop
 
     # Also return number of  interations, convergence status, and last
