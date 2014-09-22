@@ -491,7 +491,8 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
         #
 
         #
-        # First- and second Wolfe (Armijo) parameters:
+        # First- and second Wolfe  (Armijo) parameters, C1 and C2. The
+        # former is not used, see comments below:
         #
         C1, C2 = 1.0e-4, 0.9
 
@@ -537,6 +538,10 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
         # FIXME: Wolfe-2 unsatisfied!"
         assert alpha > 0.5**10
+
+        if e > e0 + C1 * alpha * dot(dr, g0):
+            if VERBOSE:
+                print pfx, "WARNING: Wolfe condition 1 not satisfied!"
 
         # rebind, do not update the variables:
         dr = alpha * dr
