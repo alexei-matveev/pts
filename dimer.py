@@ -459,6 +459,7 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     selflogfile.write("Rot. Infos:  Conv.   Steps.       curvature      rot. force        Angle to last\n")
     selflogfile.flush()
 
+    res = None                  # will be set to a dict later
     i = 0
     # main loop:
     while i < max_translation:
@@ -480,7 +481,6 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          # FIXME:  "res"  dictionary  is  not  yet set  in  the  first
          # iteration, how comes it is used here?:
          #
-         res = None
          if error < trans_converged:
               # Breakpoint 1: calculation has converged
               assert res is not None
