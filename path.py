@@ -179,14 +179,16 @@ from common import pythag_seps, cumm_sum
 from metric import cartesian_norm
 
 class Path(Func):
-    """Supports operations on a path represented by a line, parabola, or a 
-    spline, depending on whether it has 2, 3 or > 3 points.
+    """
+    Supports operations on a path  represented by a line, parabola, or
+    a spline, depending on whether it has 2, 3 or > 3 points.
 
-    Do not abuse the fact that a path can be mutated by setting its nodes to
-    different values, it requires the same computational effort as constructing
-    a new Path but may easily become confusing. You will probably not like a
-    Path parametrization to suddenly change just because a function you called
-    with this parametrization choses to mutate the its state rather than
+    Do not  abuse the fact that a  path can be mutated  by setting its
+    nodes  to different  values,  it requires  the same  computational
+    effort  as   constructing  a  new  Path  but   may  easily  become
+    confusing. You  will probably not  like a Path  parametrization to
+    suddenly  change just  because  a function  you  called with  this
+    parametrization  choses  to  mutate  the  its  state  rather  than
     building a fresh one for personal use.
 
     Instead of
@@ -195,31 +197,31 @@ class Path(Func):
 
     consider
 
-      p = Path(ys, xs)
+      p = Path (ys, xs)
 
     """
 
     def __init__(self, ys, xs=None):
 
         if xs is None:
-            # generate initial paramaterisation density
-            # TODO: Linear at present, perhaps change eventually
+            # Generate initial paramaterisation density.  TODO: Linear
+            # at present, perhaps change eventually
             xs = linspace(0.0, 1.0, len(ys))
         # else, take predefined node abscissas.
 
-        # Node is a tuple of (x, y(x)). We use assignment here to test the
-        # property handler (get/set_nodes). FIXME: we pass a tuple of arrays,
-        # not an array of tuples:
+        # Node is a tuple of (x, y(x)). We use assignment here to test
+        # the property handler (get/set_nodes). FIXME: we pass a tuple
+        # of arrays, not an array of tuples:
         self.nodes = xs, ys
 
-        # This generates linear/quadratic/spline representation of the path
-        # using the normalized positions chosen above for the respective
-        # points from the state vector.
+        # This generates linear/quadratic/spline representation of the
+        # path  using the  normalized positions  chosen above  for the
+        # respective points from the state vector.
 
         #
-        # We delegate the control over details
-        # of the path parametrization to function composition.
-        # All of
+        # We   delegate  the   control  over   details  of   the  path
+        # parametrization to function composition.  All of
+        #
         #          Path(x), Path(x(s)), Path(x(s(w)))
         #
         # run along the same path albeit the "distance" along the path
@@ -229,14 +231,16 @@ class Path(Func):
     # The next two implement the interface of Func(),
     # however the path function is vector valued!
     def f(self, x):
-        """Evaluates the path point from the path parametrization.
-        Here the x is the *spline* argument, NOT the (normalized) length or
-        weighted length along the path.
-        FIXME: To use other path parametrization look into MetricPath class.
-        Same as __call__(self, x)
+        """
+        Evaluates the path point  from the path parametrization.  Here
+        the x is the *spline* argument, NOT the (normalized) length or
+        weighted  length along  the path.   FIXME: To  use  other path
+        parametrization   look  into   MetricPath   class.   Same   as
+        __call__(self, x)
         """
 
-        # evaluate each vector component by calling stored parametrization:
+        # Evaluate   each   vector   component   by   calling   stored
+        # parametrization:
         fs = array([f.f(x) for f in self.__fs])
 
         # restore original shape, say (NA x 3):
@@ -245,13 +249,16 @@ class Path(Func):
         return fs
 
     def fprime(self, x):
-        """Evaluates the derivative (unnormalized tangential) wrt the "spline" argument x
+        """
+        Evaluates  the derivative  (unnormalized  tangential) wrt  the
+        "spline" argument x
         """
 
-        # evaluate each vector component by calling stored parametrization of derivative:
+        # Evaluate   each   vector   component   by   calling   stored
+        # parametrization of derivative:
         fprimes = array([f.fprime(x) for f in self.__fs])
 
-        # restore original shape, say (NA x 3):
+        # Restore original shape, say (NA x 3):
         fprimes.shape = self.__yshape
 
         return fprimes
@@ -261,19 +268,21 @@ class Path(Func):
     #
 
     def get_nodes(self):
-        """Property handler, returns a tuple of arrays (xs, ys)
+        """
+        Property handler, returns a tuple of arrays (xs, ys)
         """
 
-        # abscissas:
+        # Abscissas:
         xs = self.__xs.copy()
 
-        # in the original shape:
+        # In the original shape:
         ys = self.__ys.reshape((self.__node_count,) + self.__yshape)
 
         return xs, ys
 
     def set_nodes(self, nodes):
-        """Property handler, expects a tuple of arrays (xs, ys)
+        """
+        Property handler, expects a tuple of arrays (xs, ys)
         """
 
         # Nodes is a tuple of abscisas and vectors:
@@ -298,16 +307,17 @@ class Path(Func):
         # treat internally each of |ys| as a flat array:
         self.__ys = ys.reshape(self.__node_count, self.__dimension)
 
-        # generate linear/quadratic/spline representation of the path
-        # using the normalized positions chosen above for the respective
-        # points from the state vector:
+        # Generate linear/quadratic/spline  representation of the path
+        # using  the   normalized  positions  chosen   above  for  the
+        # respective points from the state vector:
         self.__regen_path_func()
 
     nodes = property(get_nodes, set_nodes)
 
     def __regen_path_func(self):
-        """Rebuild a new path function and the derivative of the path based on 
-        the contents of state_vec.
+        """
+        Rebuild a  new path  function and the  derivative of  the path
+        based on the contents of state_vec.
         """
 
         assert self.__node_count == len(self.__ys)
@@ -336,8 +346,9 @@ class Path(Func):
 
 
 def scatter(rho, weights):
-    """For each weight |w| in |weights| find an |s| such
-    that the integral equation holds:
+    """
+    For  each  weight |w|  in  |weights| find  an  |s|  such that  the
+    integral equation holds:
 
         W(s) / W(1) = w
 
@@ -398,54 +409,57 @@ def scatter(rho, weights):
     non strictly positive densities rho.
     """
 
-    # weight of a string:
+    # Weight of a string:
     weight = Integral(rho)
 
-    # scale up weights so that they have the dimension of the integral:
+    # Scale  up  weights  so  that  they have  the  dimension  of  the
+    # integral:
     weights = asarray(weights) * weight(1.0)
 
     arcs = empty(len(weights))
 
     for i, w in enumerate(weights):
         #
-        # for each weight w solve the equation
+        # For each weight w solve the equation
         #
         #   weight(s) - w = 0
         #
-        # without using derivatives. Note that the derivative, which is the
-        # density rho(s) may not be continuous. Think of piecewise non-zero
-        # rho.
+        # without using  derivatives. Note that  the derivative, which
+        # is  the  density rho(s)  may  not  be  continuous. Think  of
+        # piecewise non-zero rho.
         #
         arcs[i] = root(lambda s: weight(s) - w, 0.0, 1.0)
 
     return arcs
 
 def scatter1(rho, weights):
-    """See scatter ...
+    """
+    See scatter ...
 
-    This one uses relies on Inverse of an Integral.
-    Implementation of Inverse uses the newton method, and
-    will have problems if rho is not strictly positive.
+    This one uses relies on Inverse of an Integral.  Implementation of
+    Inverse uses the  newton method, and will have  problems if rho is
+    not strictly positive.
     """
 
-    # weight of a string, W(S):
+    # Weight of a string, W(S):
     weight = Integral(rho)
 
-    # arc length, S(W):
+    # Arc length, S(W):
     arc = Inverse(weight)
 
-    # scale up weights so that they have the dimension of the integral:
+    # Scale up weights so that they have the dimension of the integral:
     weights = asarray(weights) * weight(1.0)
 
     return array(map(arc, weights))
 
 def scatter2(rho, weights):
-    """See scatter ...
+    """
+    See scatter ...
 
-    Caluculate the function to integrate for the path over
-    at several points, consider this function to be linear
-    in between and calculate with trapez rule the path-length
-    then make an inverse function of it and find the wanted points
+    Caluculate the function to integrate  for the path over at several
+    points,  consider  this  function  to  be linear  in  between  and
+    calculate with  trapez rule the  path-length then make  an inverse
+    function of it and find the wanted points
     """
     from scipy.interpolate import splrep, splev
 
@@ -475,7 +489,8 @@ def scatter2(rho, weights):
     return array(arcs)
 
 class Arc(Integral):
-    """Line integral of over path x(t):
+    """
+    Line integral of over path x(t):
 
                   t=T
                   /
@@ -483,9 +498,8 @@ class Arc(Integral):
                 /
                 t=0
 
-        with the length of the tangent dx/dt defined by some norm.
-
-        Defaults to cartesian norm.
+    with  the  length of  the  tangent  dx/dt  defined by  some  norm.
+    Defaults to cartesian norm.
     """
 
     def __init__(self, x, norm=cartesian_norm):
