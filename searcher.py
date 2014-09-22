@@ -23,7 +23,7 @@ from history import History
 previous = []
 def test_previous(state_vec):
     """
-    Mainly for testing. Keeps an additional record of calcs that have 
+    Mainly for testing. Keeps an additional record of calcs that have
     previously been performed.
     """
     prev = []
@@ -36,7 +36,7 @@ def test_previous(state_vec):
             prev.append(True)
         else:
             assert False
-            
+
     return prev
 
 lg = logging.getLogger("pts.searcher")
@@ -199,18 +199,18 @@ class ReactionPathway(object):
 
     string = False
 
-    def __init__(self, 
-            reagents, 
-            beads_count, 
+    def __init__(self,
+            reagents,
+            beads_count,
             pes,
-            parallel, 
+            parallel,
             result_storage,
-            reporting=None, 
-            convergence_beads=3, 
-            steps_cumm=3, 
+            reporting=None,
+            convergence_beads=3,
+            steps_cumm=3,
             pmap=map,
             workhere = 1,
-            freeze_beads=False, 
+            freeze_beads=False,
             output_level = 3,
             output_path = ".",
             climb_image = False,
@@ -243,7 +243,7 @@ class ReactionPathway(object):
         #TODO: check that all reagents are same length
 
         self.initialise()
-        
+
         self.history = History()
 
         # mask of gradients to update at each position
@@ -294,13 +294,13 @@ class ReactionPathway(object):
         self.callbacks += 1
 
         # This functionality below was used with generic 3rd party optimisers,
-        # i.e. it would force the optimiser to exit, so that a respace could 
+        # i.e. it would force the optimiser to exit, so that a respace could
         # be done.
         if self.lengths_disparate(mt.metric):
             raise pts.MustRegenerate
 
     def test_convergence(self, etol, ftol, xtol):
-        
+
         self.opt_iter = self.opt_iter + 1
 
         t_clim = self.climb_image
@@ -348,7 +348,7 @@ class ReactionPathway(object):
 
         if conv:
            raise pts.Converged
-            
+
     def test_convergence_E(self, etol):
         if self.eg_calls < 2:
             # because forces are always zero at zeroth iteration
@@ -363,24 +363,24 @@ class ReactionPathway(object):
         es = array(self.history.e(2)) / (self.beads_count - 2)
         # TODO: should remove abs(), only converged if energy went down
         # Or maybe should look at difference between lowest energies so far.
-        diff = abs(es[0] - es[1]) 
+        diff = abs(es[0] - es[1])
 
         lg.info("Testing Convergence of %f to %f eV / moving bead / step." % (diff, etol))
         if diff < etol:
             return True
 
         return False
-        
+
     def test_convergence_GS(self, f_tol, x_tol, always_tight=False):
         """
-        Raises Converged if converged, applying weaker convergence 
+        Raises Converged if converged, applying weaker convergence
         criteria if growing string is not fully grown.
 
         During growth: rmsf < 10 * f_tol
         When grown:    rmsf < f_tol OR
                        max_step < x_tol AND rmsf < 5*f_tol
 
-                       where max_step is max step in optimisation coordinates 
+                       where max_step is max step in optimisation coordinates
                            taken by H highest beads and C cummulative beads,
 
                        where H is self.convergence_beads
@@ -388,10 +388,10 @@ class ReactionPathway(object):
 
                        both set by __init__
 
-                       At time of writing (19/02/2010): convergence is tested 
-                       in callback function which is called after every 
-                       iteration, not including backtracks. The state is 
-                       recorded at every 
+                       At time of writing (19/02/2010): convergence is tested
+                       in callback function which is called after every
+                       iteration, not including backtracks. The state is
+                       recorded at every
 
         """
 
@@ -415,14 +415,14 @@ class ReactionPathway(object):
 
     def test_convergence_GS_new(self, f_tol, x_tol):
         """
-        Raises Converged if converged, applying weaker convergence 
+        Raises Converged if converged, applying weaker convergence
         criteria if growing string is not fully grown.
 
         During growth: rmsf < 5 * f_tol
         When grown:    rmsf < f_tol OR
                        max_step < x_tol AND rmsf < 5*f_tol
 
-                       where max_step is max step in optimisation coordinates 
+                       where max_step is max step in optimisation coordinates
                            taken by H highest beads and C cummulative beads,
 
                        where H is self.convergence_beads
@@ -430,10 +430,10 @@ class ReactionPathway(object):
 
                        both set by __init__
 
-                       At time of writing (19/02/2010): convergence is tested 
-                       in callback function which is called after every 
-                       iteration, not including backtracks. The state is 
-                       recorded at every 
+                       At time of writing (19/02/2010): convergence is tested
+                       in callback function which is called after every
+                       iteration, not including backtracks. The state is
+                       recorded at every
 
         """
 
@@ -566,8 +566,8 @@ class ReactionPathway(object):
             arc = {'bc': self.beads_count,
                    'N': eg_calls,
                    'resp': self.respaces,
-                   'cb': self.callbacks, 
-                   'rmsf': rmsf_perp_total, 
+                   'cb': self.callbacks,
+                   'rmsf': rmsf_perp_total,
                    'maxf': self.maxf_perp,
                    'e': e_total,
                    'maxe': e_max,
@@ -706,7 +706,7 @@ class ReactionPathway(object):
 
     def get_state_as_array(self):
         """Returns copy of state as flattened array."""
-        
+
         #Do I really need this as well as the one below?
         return deepcopy(self.state_vec).flatten()
 
@@ -833,7 +833,7 @@ class ReactionPathway(object):
         self.state_vec = x.flatten()[0:self.beads_count * self.dimension]
 
     def get_positions(self):
-        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates.""" 
+        """For compatibility with ASE, pretends that there are atoms with cartesian coordinates."""
 
         return common.make_like_atoms(self.state_vec.copy())
 
@@ -841,7 +841,7 @@ class ReactionPathway(object):
 
     def get_final_bead_ix(self, i):
         """
-        Based on bead index |i|, returns final index once string is fully 
+        Based on bead index |i|, returns final index once string is fully
         grown.
         """
         return i
@@ -860,7 +860,7 @@ class ReactionPathway(object):
         a = [es, state, perp_forces, para_forces]
 
         self.history.rec(a)
-        
+
 def ts_estims(beads, energies, gradients, alsomodes = False, converter = None):
     """TODO: Maybe this whole function should be made external."""
 
@@ -895,7 +895,7 @@ def ts_estims(beads, energies, gradients, alsomodes = False, converter = None):
 
 class NEB(ReactionPathway):
     """Implements a Nudged Elastic Band (NEB) transition state searcher.
-    
+
     >>> from numpy import ones
 
     >>> path = [[0,0],[0.2,0.2],[0.7,0.7],[1,1]]
@@ -1031,7 +1031,7 @@ class NEB(ReactionPathway):
                 Vi = self.bead_pes_energies[i]
                 Vi_minus_1 = self.bead_pes_energies[i-1]
                 Vi_plus_1 = self.bead_pes_energies[i+1]
-                
+
                 delta_V_plus = abs(Vi_plus_1 - Vi)
                 delta_V_minus = abs(Vi - Vi_minus_1)
 
@@ -1119,7 +1119,7 @@ class NEB(ReactionPathway):
         return es.sum()
 
 class PathRepresentation(Path):
-    """Supports operations on a path represented by a line, parabola, or a 
+    """Supports operations on a path represented by a line, parabola, or a
     spline, depending on whether it has 2, 3 or > 3 points."""
 
     def path_tangents(self):
@@ -1137,7 +1137,7 @@ class PathRepresentation(Path):
 
 
     def get_bead_separations(self, metric):
-        """Returns the arc length between beads according to the current 
+        """Returns the arc length between beads according to the current
         parameterisation.
         """
 
@@ -1238,7 +1238,7 @@ def get_new_bead_number(E, ps):
             break
 
     return new_i
-            
+
 def get_new_bead_number_grad(Es, gradients, tangents, ps):
 
     # perform safety check
@@ -1411,7 +1411,7 @@ class GrowingString(ReactionPathway):
 
         self.parallel = parallel
 
-        # Number of beads in growing heads of growing string to calculate 
+        # Number of beads in growing heads of growing string to calculate
         # gradients for. All others become frozen.
         #assert head_size == None, "Not yet properly implemented, problem when beads are respaced."
         assert head_size == None or (growing and beads_count / 2 - 1 >= head_size > 0 and freeze_beads)
@@ -1476,7 +1476,7 @@ class GrowingString(ReactionPathway):
 
     def get_final_bead_ix_classic_grow(self, i):
         """
-        Based on bead index |i|, returns final index once string is fully 
+        Based on bead index |i|, returns final index once string is fully
         grown. This is only valid for 'classic' ends-inwards growth.
         """
         if self.growing and not self.grown():
@@ -1489,7 +1489,7 @@ class GrowingString(ReactionPathway):
         return i
 
     def grown(self):
-        """Returns true if the number of beads has reached the max allowed 
+        """Returns true if the number of beads has reached the max allowed
         number
 
         FIXME: There was also some test about interbead spaces for searching string,
@@ -1522,7 +1522,7 @@ class GrowingString(ReactionPathway):
             moving_beads = [new_i, new_i+1, new_i+2]
         else:
             moving_beads = [new_i-1, new_i, new_i+1]
-        
+
         new_weight = (self.weights[new_i] + self.weights[new_i -1])/2.
         old_weights = deepcopy(self.weights)
         assert len(old_weights) == self.beads_count - 1
@@ -1532,7 +1532,7 @@ class GrowingString(ReactionPathway):
         self.weights[new_i+1:] = old_weights[new_i:]
 
         # The following block of code ensures that all beads other than the
-        # newly added one stay in exactly the same position. Otherwise, 
+        # newly added one stay in exactly the same position. Otherwise,
         # numerical inaccuraties cause them to move and additional beads
         # to have their energies calculated.
 
@@ -1574,7 +1574,7 @@ class GrowingString(ReactionPathway):
 
     def grow_string_normal(self):
         """
-        Adds 2, 1 or 0 beads to string (such that the total number of 
+        Adds 2, 1 or 0 beads to string (such that the total number of
         beads is less than or equal to self.__final_beads_count).
         """
 
@@ -1622,7 +1622,7 @@ class GrowingString(ReactionPathway):
         # Therefore we want self.prev_state == self.state_vec
         self.prev_state = self.state_vec.copy()
 
-        # Build mask of beads to calculate, effectively freezing some if 
+        # Build mask of beads to calculate, effectively freezing some if
         # head_size, i.e. the size of the growing heads, is specified.
         # 0 means fix, 1 means update, (bead number fix: no 2 needed)
         if self.freeze_beads:
@@ -1651,8 +1651,8 @@ class GrowingString(ReactionPathway):
         # at some point.
 
     def lengths_disparate(self, metric):
-        """Returns true if the ratio between the (difference of longest and 
-        shortest segments) to the average segment length is above a certain 
+        """Returns true if the ratio between the (difference of longest and
+        shortest segments) to the average segment length is above a certain
         value (self.__max_sep_ratio).
 
         FIXME: Is this description out of date?
