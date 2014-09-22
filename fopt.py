@@ -676,18 +676,26 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
             print "cmin: criteria=", max(abs(dr)), max(abs(c - c0)), max(abs(g + dot(lam, A)))
 
         # Check convergence, if any:
-        if max(abs(dr)) < stol and max(abs(c - c0)) < ctol:
+        criteria = 0
+
+        if max(abs(c - c0)) < ctol:
+            if VERBOSE:
+                print "cmin: converged by constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol
+            criteria += 1
+
+        if max(abs(dr)) < stol:
             if VERBOSE:
                 print "cmin: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
-                print "cmin: and constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol
-            converged = True
+            criteria += 1
 
         # purified gradient for CURRENT geometry:
-        if max(abs(g + dot(lam, A)))  < gtol and max(abs(c - c0)) < ctol:
+        if max(abs(g + dot(lam, A)))  < gtol:
             # FIXME: this may change after update step!
             if VERBOSE:
                 print "cmin: converged by force max(abs(g + dot(lam, A)))=", max(abs(g + dot(lam, A))), '<', gtol
-                print "cmin: and constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol
+            criteria += 1
+
+        if criteria >= 3:
             converged = True
 
         # Restrict the maximum component of the step:
