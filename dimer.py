@@ -480,8 +480,10 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
          # FIXME:  "res"  dictionary  is  not  yet set  in  the  first
          # iteration, how comes it is used here?:
          #
+         res = None
          if error < trans_converged:
               # Breakpoint 1: calculation has converged
+              assert res is not None
               conv = True
               traj_content1 = [( grad, "grads", "Gradients"),(mode, "modes", "Mode")]
               traj_content2 = [([energy], None, "Energy"), (res["curvature"], None, "Curvature") ]
