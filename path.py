@@ -163,6 +163,32 @@ Verify correctness of derivatives at the original vertices:
     >>> ts2 = array(map(NumDiff(p).fprime, ss))
     >>> max(abs(ts1 - ts2)) < 1.0e-9
     True
+
+There  is   a  limitation  in  the  library   that  implements  spline
+fitting. The abscissas  need to be increasing. If  not, the Path() has
+to work around that:
+
+    >>> ys = array ([1, 2, 3, 4])
+    >>> xs = array ([1, 0, -1, -2])
+
+Here abscissas are not monotnically increasing, rather decreasing:
+
+    >>> pp = Path (ys, xs)
+    >>> max (abs (ys - map (pp, xs))) < 1.0e-14
+    True
+
+The slope was deliberately chosen constant:
+
+    >>> max (abs ([pp.fprime (x) - (-1) for x in  xs])) < 1.0e-14
+    True
+
+Make sure we dont leak the modified abscissas:
+
+    >>> x1, y1 = pp.nodes
+    >>> (xs == x1).all()
+    True
+    >>> (ys == y1).all()
+    True
 """
 
 __all__ = ["Path", "MetricPath"]
@@ -177,6 +203,26 @@ from func import Integral, Inverse
 
 from common import pythag_seps, cumm_sum
 from metric import cartesian_norm
+
+
+def monotonic (xs):
+    """
+    >>> monotonic ([])
+    True
+    >>> monotonic ([1.0])
+    True
+    >>> monotonic ([1, 0])
+    False
+    >>> monotonic ([1, 2, 3, 3, 4])
+    False
+    """
+    x0 = None
+    for x in xs:
+        if x0 is not None and x <= x0:
+            return False
+        x0 = x
+    return True
+
 
 class Path(Func):
     """
@@ -206,8 +252,10 @@ class Path(Func):
         if xs is None:
             # Generate initial paramaterisation density.  TODO: Linear
             # at present, perhaps change eventually
-            xs = linspace(0.0, 1.0, len(ys))
-        # else, take predefined node abscissas.
+            xs = linspace (0.0, 1.0, len (ys))
+        # Else take predefined node  abscissas.  They should be better
+        # monotonically increasing.   The spline library  will bark if
+        # not.
 
         # Node is a tuple of (x, y(x)). We use assignment here to test
         # the property handler (get/set_nodes). FIXME: we pass a tuple
@@ -239,9 +287,12 @@ class Path(Func):
         __call__(self, x)
         """
 
+        # Sign flip, eventually:
+        s = self.__s
+
         # Evaluate   each   vector   component   by   calling   stored
         # parametrization:
-        fs = array([f.f(x) for f in self.__fs])
+        fs = array([f.f(s(x)) for f in self.__fs])
 
         # restore original shape, say (NA x 3):
         fs.shape = self.__yshape
@@ -254,9 +305,12 @@ class Path(Func):
         "spline" argument x
         """
 
+        # Sign flip, eventually:
+        s = self.__s
+
         # Evaluate   each   vector   component   by   calling   stored
         # parametrization of derivative:
-        fprimes = array([f.fprime(x) for f in self.__fs])
+        fprimes = array([s(f.fprime(s(x))) for f in self.__fs])
 
         # Restore original shape, say (NA x 3):
         fprimes.shape = self.__yshape
@@ -272,8 +326,11 @@ class Path(Func):
         Property handler, returns a tuple of arrays (xs, ys)
         """
 
+        # Sign flip, eventually:
+        s = self.__s
+
         # Abscissas:
-        xs = self.__xs.copy()
+        xs = array (map (s, self.__xs))
 
         # In the original shape:
         ys = self.__ys.reshape((self.__node_count,) + self.__yshape)
@@ -296,7 +353,17 @@ class Path(Func):
         # |ys| is vector of arrays defining the path
         ys = array(ys)
 
+        # Sign flip, eventually:
+        if monotonic (xs):
+            s = lambda x: x
+        else:
+            s = lambda x: -x
+
+        xs = map (s, xs)
+        assert monotonic (xs)
+
         self.__xs = array(xs)
+        self.__s = s
 
         # save original shape of the input arrays:
         self.__yshape = ys[0].shape
