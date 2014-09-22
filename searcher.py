@@ -1602,7 +1602,7 @@ class GrowingString(ReactionPathway):
 
         # All beads are fixed, the newly ones need their data anyhow from the new set of beads
         # As the path is build on them the other should anyhow only get rounding errors here
-        mask = [0 for i in range(self.beads_count)]
+        mask = [0 for _ in range(self.beads_count)]
         for i in new_ixs:
             mask[i] = 2
 
