@@ -847,7 +847,7 @@ class ManyBody (Func):
             ys[i] = y[k: k + n, :]
             k += n
 
-        qs = [f.pinv (y) for f, y in zip (fs, ys)]
+        qs = [f.pinv (y1) for f, y1 in zip (fs, ys)]
 
         return hstack (qs)
 
