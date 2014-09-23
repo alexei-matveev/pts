@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-We will base reaction coordinate definiiton on Ar4 cluster
-as an example here:
+We  will base  reaction coordinate  definiiton  on Ar4  cluster as  an
+example here:
 
 One equilibrium:
 
@@ -20,8 +20,8 @@ Another equilibrium (first two exchanged):
     ...            [ w, -w, -w],
     ...            [-w,  w, -w]])
 
-Planar structure halfway between A and B
-(first two z-rotated by 90 deg):
+Planar structure  halfway between A and  B (first two  z-rotated by 90
+deg):
 
     >>> C = array([[-w,  w,  w],
     ...            [ w, -w,  w],
@@ -65,8 +65,8 @@ Chain energy function to minimize:
     >>> from chain import Chain
     >>> cha = Chain(pes)
 
-Base the spacing of the images along the path on differences
-of the "volume" as a reaction coordinate:
+Base the  spacing of the images  along the path on  differences of the
+"volume" as a reaction coordinate:
 
     >>> from chain import Spacing, RCDiff
     >>> spc = Spacing(RCDiff(Volume()))
@@ -84,9 +84,8 @@ The optimized energies of the images:
     >>> round(es1, 4)
     array([-6.    , -4.533 , -4.4806, -4.533 , -6.    ])
 
-Note that the transition is distributed over more
-than one interval. However the TS approximation is
-square planar:
+Note  that   the  transition  is   distributed  over  more   than  one
+interval. However the TS approximation is square planar:
 
     >>> round(xm[2], 4)
     array([[-0.3934,  0.3934,  0.5563],
@@ -106,10 +105,9 @@ You can visualize the path by executing:
 #   >>> from pts.tools.jmol import jmol_view_path
 #   >>> jmol_view_path(xm, syms=["Ar"]*4, refine=5)
 
-The Volume function can be used to model the dihedral angle
-as a reaction coordinate. You may want to specify the
-four indices in such case, the order does matter,
-of course:
+The  Volume function  can be  used to  model the  dihedral angle  as a
+reaction coordinate. You may want  to specify the four indices in such
+case, the order does matter, of course:
 
     >>> v1 = Volume([0,1,3,2])
     >>> round(v1(A), 7), round(v(A), 7)
