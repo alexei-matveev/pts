@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 from __future__ import print_function
+__doc__ = \
 """
+FIXME: without explicit assignment above the import from future at the
+top  apparently  leads to  this  string not  to  be  interpreted as  a
+docstring.
+
 Test with the two-dimensional MB potential:
 
     >>> from pts.pes.mueller_brown import MuellerBrown as MB
