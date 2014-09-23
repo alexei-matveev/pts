@@ -247,7 +247,7 @@ def newton(x, fg, tol=TOL, maxiter=MAXIT, rk=None):
 
     return x, info
 
-def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, **kw):
+def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, maxstep=MAXSTEP, **kw):
     """
     Minimizes a Func |f| starting with |x|.
     Returns (xm, info)
@@ -285,7 +285,7 @@ def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, **kw):
     y = x.flatten()
 
     if algo == 1:
-        xm, info = fmin(fg, y, hess="BFGS", stol=xtol, gtol=ftol, maxiter=maxit)
+        xm, info = fmin(fg, y, hess="BFGS", stol=xtol, gtol=ftol, maxiter=maxit, maxstep=maxstep)
     elif algo == 0:
         xm, fm, info =  minimize1D(fg, y, pgtol=ftol, maxfun=maxit) #, iprint=1)
 
