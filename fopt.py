@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 """
 Test with the two-dimensional MB potential:
 
@@ -269,9 +270,9 @@ def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, maxstep=MAXSTEP, 
     # in case we are given a list instead of array:
     x = asarray(x)
     if VERBOSE:
-        print "fopt: x(in)=\n", x
+        print ("fopt: x(in)=\n", x)
         if len(kw) > 0:
-            print "fopt: ignored kwargs=", kw
+            print ("fopt: ignored kwargs=", kw)
 
     # save the shape of the actual argument:
     xshape = x.shape
@@ -313,7 +314,7 @@ def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, maxstep=MAXSTEP, 
         info["trajectory"] = map (reshp, info["trajectory"])
 
     if VERBOSE:
-        print "fopt: x(out)=\n", xm
+        print ("fopt: x(out)=\n", xm)
 
     return xm, info
 
@@ -426,12 +427,12 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
         if VERBOSE:
             if e0 is not None:
-                print pfx, "e - e0=", e - e0
-            print pfx, "e=", e
-            print pfx, "max(abs(g))=", max(abs(g))
+                print (pfx, "e - e0=", e - e0)
+            print (pfx, "e=", e)
+            print (pfx, "max(abs(g))=", max(abs(g)))
             if VERBOSE > 1:
-                print pfx, "r=\n", r
-                print pfx, "g=\n", g
+                print (pfx, "r=\n", r)
+                print (pfx, "g=\n", g)
 
         # Update the hessian representation:
         if iteration > 0:       # only then r0 and g0 are meaningfull!
@@ -450,13 +451,13 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
         longest = max(abs(dr))
         if longest > maxstep:
             if VERBOSE:
-                print pfx, "max(abs(dr))=", longest, ">", maxstep, "(too long, scaling down)"
+                print (pfx, "max(abs(dr))=", longest, ">", maxstep, "(too long, scaling down)")
             dr *= maxstep / longest
 
         if VERBOSE:
-            print pfx, "dot(dr, g)=", dot(dr, g)
+            print (pfx, "dot(dr, g)=", dot(dr, g))
             if VERBOSE > 1:
-                print pfx, "dr=\n", dr
+                print (pfx, "dr=\n", dr)
 
         # Save  for later  comparison. Assignment  e, g  =  fg(r) will
         # re-bind (e, g), not modify them:
@@ -505,7 +506,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
         e, g = fg(r + alpha * dr)
 
         if VERBOSE:
-            print pfx, "dot(dr, g1)=", dot(dr, g)
+            print (pfx, "dot(dr, g1)=", dot(dr, g))
 
         #
         # First Wolfe  (Armijo) condition is difficult  to satisfy for
@@ -527,21 +528,21 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
             if VERBOSE:
                 # print pfx, "retry with alpha=", alpha,\
                 #     "energy e=", e, "too high"
-                print pfx, "retry with alpha=", alpha, \
-                    "dot(dr, g)=", dot(dr, g), "too high"
+                print (pfx, "retry with alpha=", alpha, \
+                    "dot(dr, g)=", dot(dr, g), "too high")
 
             # compute them again:
             e, g = fg(r + alpha * dr)
 
             if VERBOSE:
-                print pfx, "dot(dr, g1)=", dot(dr, g)
+                print (pfx, "dot(dr, g1)=", dot(dr, g))
 
         # FIXME: Wolfe-2 unsatisfied!"
         assert alpha > 0.5**10
 
         if e > e0 + C1 * alpha * dot(dr, g0):
             if VERBOSE:
-                print pfx, "WARNING: Wolfe condition 1 not satisfied!"
+                print (pfx, "WARNING: Wolfe condition 1 not satisfied!")
 
         # rebind, do not update the variables:
         dr = alpha * dr
@@ -555,12 +556,12 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
         if max(abs(dr)) < stol:
             if VERBOSE:
-                print pfx, "converged by step max(abs(dr))=", max(abs(dr)), '<', stol
+                print (pfx, "converged by step max(abs(dr))=", max(abs(dr)), '<', stol)
             criteria += 1
 
         if max(abs(g))  < gtol:
             if VERBOSE:
-                print pfx, "converged by force max(abs(g))=", max(abs(g)), '<', gtol
+                print (pfx, "converged by force max(abs(g))=", max(abs(g)), '<', gtol)
             criteria += 1
 
         if criteria >= 2:
@@ -568,7 +569,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
         if iteration >= maxiter:
             if VERBOSE:
-                print pfx, "exceeded number of iterations", maxiter
+                print (pfx, "exceeded number of iterations", maxiter)
             break # out of the while loop
 
     # Also return number of  interations, convergence status, and last
@@ -654,7 +655,7 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
     assert len(r) > len(c0)
 
     if VERBOSE:
-        print "cmin: c0=", c0, "(target value of constrain)"
+        print ("cmin: c0=", c0, "(target value of constrain)")
 
     iteration = -1        # prefer to increment at the top of the loop
     converged = False
@@ -673,34 +674,34 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
 
         if VERBOSE:
             if e0 is not None:
-                print pfx, "e - e0=", e - e0
-            print pfx, "e=", e
-            print pfx, "criteria=", max(abs(dr)), max(abs(c - c0)), max(abs(g + dot(lam, A)))
+                print (pfx, "e - e0=", e - e0)
+            print (pfx, "e=", e)
+            print (pfx, "criteria=", max(abs(dr)), max(abs(c - c0)), max(abs(g + dot(lam, A))))
         if VERBOSE > 1:
-            print pfx, "r=", r
-            print pfx, "g=", g
-            print pfx, "..",     dot(lam, A), "(    dot(lam, A))"
-            print pfx, "..", g + dot(lam, A), "(g + dot(lam, A))"
-            print pfx, "c=", c
+            print (pfx, "r=", r)
+            print (pfx, "g=", g)
+            print (pfx, "..",     dot(lam, A), "(    dot(lam, A))")
+            print (pfx, "..", g + dot(lam, A), "(g + dot(lam, A))")
+            print (pfx, "c=", c)
 
         # Check convergence, if any:
         criteria = 0
 
         if max(abs(c - c0)) < ctol:
             if VERBOSE:
-                print pfx, "converged by constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol
+                print (pfx, "converged by constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol)
             criteria += 1
 
         if max(abs(dr)) < stol:
             if VERBOSE:
-                print pfx, "converged by step max(abs(dr))=", max(abs(dr)), '<', stol
+                print (pfx, "converged by step max(abs(dr))=", max(abs(dr)), '<', stol)
             criteria += 1
 
         # purified gradient for CURRENT geometry:
         if max(abs(g + dot(lam, A)))  < gtol:
             # FIXME: this may change after update step!
             if VERBOSE:
-                print pfx, "converged by force max(abs(g + dot(lam, A)))=", max(abs(g + dot(lam, A))), '<', gtol
+                print (pfx, "converged by force max(abs(g + dot(lam, A)))=", max(abs(g + dot(lam, A))), '<', gtol)
             criteria += 1
 
         if criteria >= 3:
@@ -710,16 +711,16 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
         longest = max(abs(dr))
         if longest > maxstep:
             if VERBOSE:
-                print pfx, "dr=", dr, "(too long, scaling down)"
+                print (pfx, "dr=", dr, "(too long, scaling down)")
             dr *= maxstep / longest
             # NOTE: step  restriciton also does  not allow to  fix the
             #       mismatch (c-c0) in constrains in one shot ...
 
         if VERBOSE > 1:
-            print pfx, "dr=", dr
+            print (pfx, "dr=", dr)
         if VERBOSE:
-            print pfx, "dot(A, dr)=", dot(A, dr)
-            print pfx, "dot(g, dr)=", dot(g, dr)
+            print (pfx, "dot(A, dr)=", dot(A, dr))
+            print (pfx, "dot(g, dr)=", dot(g, dr))
 
         # Save for later comparison, need a copy, see "r += dr" below:
         r0 = r.copy()
@@ -743,7 +744,7 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
 
         if VERBOSE:
             if iteration >= maxit:
-                print pfx, "exceeded number of iterations", maxit
+                print (pfx, "exceeded number of iterations", maxit)
             # see while loop condition ...
 
     # Also return number of  interations, convergence status, and last
@@ -827,10 +828,10 @@ def qnstep(g0, H, c, A):
     rhs = c + dot(A, dx)
 
     if VERBOSE > 1:
-        print "qnstep: A=", A
-        print "qnstep: dx=", dx
-        print "qnstep: c=", c
-        print "qnstep: rhs=", rhs
+        print ("qnstep: A=", A)
+        print ("qnstep: dx=", dx)
+        print ("qnstep: c=", c)
+        print ("qnstep: rhs=", rhs)
 
     # Construct the lhs-matrix AHA^T
     AHA = aha(A, H)
@@ -839,9 +840,9 @@ def qnstep(g0, H, c, A):
     lam = solve(AHA, rhs)
 
     if VERBOSE > 1:
-        print "qnstep: rhs=", rhs
-        print "qnstep: AHA=", AHA
-        print "qnstep: lam=", lam
+        print ("qnstep: rhs=", rhs)
+        print ("qnstep: AHA=", AHA)
+        print ("qnstep: lam=", lam)
 
     g1 = - dot(lam, A)
 
