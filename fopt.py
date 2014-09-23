@@ -141,6 +141,7 @@ __all__ = ["minimize", "cminimize"]
 from numpy import array, asarray, empty, dot, max, abs, shape, size
 from numpy.linalg import solve #, eigh
 from scipy.optimize import fmin_l_bfgs_b as minimize1D
+from scipy.optimize import fmin_slsqp
 from bfgs import get_by_name # BFGS, BFGS
 
 VERBOSE = 0
@@ -318,7 +319,7 @@ def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, maxstep=MAXSTEP, 
 
     return xm, info
 
-def cminimize(f, x, c, **kwargs):
+def cminimize(f, x, c, algo=0, **kwargs):
     """
     Minimizes a Func |f| starting with |x| under constrains |c|.
     Returns (xm, fm, stats)
@@ -344,7 +345,37 @@ def cminimize(f, x, c, **kwargs):
     y = x.flatten()
 #   z = c0.flatten()
 
-    xm, info =  cmin(fg, y, cg, **kwargs)
+    if algo == 0:
+        xm, info =  cmin(fg, y, cg, **kwargs)
+    else:
+        # See SciPy docs for scipy.optimize.fmin_slsqp:
+        def func (x):
+            e, g = fg (x)
+            return e
+        def fprime (x):
+            e, g = fg (x)
+            return g
+        # FIXME: what if c0 is in kwargs?
+        c0, _ = cg (y)
+        def f_eqcons (x):
+            c, A = cg (x)
+            return c - c0
+        def fprime_eqcons (x):
+            c, A = cg (x)
+            return A
+        xm, fx, its, imode, smode = \
+            fmin_slsqp (func, y, fprime=fprime, \
+                            f_eqcons=f_eqcons, \
+                            fprime_eqcons=fprime_eqcons, \
+                            iprint=VERBOSE, \
+                            full_output=True)
+        assert (imode == 0)
+        xm = asarray (xm)
+        info = {"converged": (imode == 0),
+                "iterations": its,
+                "value": fx,
+                "imode": imode,
+                "smode": smode}
 
     # return the result in original shape:
     xm.shape = xshape
