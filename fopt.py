@@ -661,6 +661,8 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
 
     while not converged and iteration < maxit:
         iteration += 1
+        # Prefix for debug output:
+        pfx = "cmin: (%03d) " % iteration
 
         # Update the hessian representation:
         if iteration > 0:       # only then r0 and g0 are meaningfull!
@@ -671,33 +673,34 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
 
         if VERBOSE:
             if e0 is not None:
-                print "cmin: e - e0=", e - e0
-            print "cmin: r=", r
-            print "cmin: e=", e
-            print "cmin: g=", g
-            print "cmin: ..",     dot(lam, A), "(    dot(lam, A))"
-            print "cmin: ..", g + dot(lam, A), "(g + dot(lam, A))"
-            print "cmin: c=", c
-            print "cmin: criteria=", max(abs(dr)), max(abs(c - c0)), max(abs(g + dot(lam, A)))
+                print pfx, "e - e0=", e - e0
+            print pfx, "e=", e
+            print pfx, "criteria=", max(abs(dr)), max(abs(c - c0)), max(abs(g + dot(lam, A)))
+        if VERBOSE > 1:
+            print pfx, "r=", r
+            print pfx, "g=", g
+            print pfx, "..",     dot(lam, A), "(    dot(lam, A))"
+            print pfx, "..", g + dot(lam, A), "(g + dot(lam, A))"
+            print pfx, "c=", c
 
         # Check convergence, if any:
         criteria = 0
 
         if max(abs(c - c0)) < ctol:
             if VERBOSE:
-                print "cmin: converged by constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol
+                print pfx, "converged by constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol
             criteria += 1
 
         if max(abs(dr)) < stol:
             if VERBOSE:
-                print "cmin: converged by step max(abs(dr))=", max(abs(dr)), '<', stol
+                print pfx, "converged by step max(abs(dr))=", max(abs(dr)), '<', stol
             criteria += 1
 
         # purified gradient for CURRENT geometry:
         if max(abs(g + dot(lam, A)))  < gtol:
             # FIXME: this may change after update step!
             if VERBOSE:
-                print "cmin: converged by force max(abs(g + dot(lam, A)))=", max(abs(g + dot(lam, A))), '<', gtol
+                print pfx, "converged by force max(abs(g + dot(lam, A)))=", max(abs(g + dot(lam, A))), '<', gtol
             criteria += 1
 
         if criteria >= 3:
@@ -707,15 +710,16 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
         longest = max(abs(dr))
         if longest > maxstep:
             if VERBOSE:
-                print "cmin: dr=", dr, "(too long, scaling down)"
+                print pfx, "dr=", dr, "(too long, scaling down)"
             dr *= maxstep / longest
             # NOTE: step  restriciton also does  not allow to  fix the
             #       mismatch (c-c0) in constrains in one shot ...
 
+        if VERBOSE > 1:
+            print pfx, "dr=", dr
         if VERBOSE:
-            print "cmin: dr=", dr
-            print "cmin: dot(A, dr)=", dot(A, dr)
-            print "cmin: dot(g, dr)=", dot(g, dr)
+            print pfx, "dot(A, dr)=", dot(A, dr)
+            print pfx, "dot(g, dr)=", dot(g, dr)
 
         # Save for later comparison, need a copy, see "r += dr" below:
         r0 = r.copy()
@@ -739,7 +743,7 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
 
         if VERBOSE:
             if iteration >= maxit:
-                print "cmin: exceeded number of iterations", maxit
+                print pfx, "exceeded number of iterations", maxit
             # see while loop condition ...
 
     # Also return number of  interations, convergence status, and last
@@ -822,7 +826,7 @@ def qnstep(g0, H, c, A):
     # This would be the new values of the constrains:
     rhs = c + dot(A, dx)
 
-    if VERBOSE:
+    if VERBOSE > 1:
         print "qnstep: A=", A
         print "qnstep: dx=", dx
         print "qnstep: c=", c
@@ -834,7 +838,7 @@ def qnstep(g0, H, c, A):
     # Solve linear equations:
     lam = solve(AHA, rhs)
 
-    if VERBOSE:
+    if VERBOSE > 1:
         print "qnstep: rhs=", rhs
         print "qnstep: AHA=", AHA
         print "qnstep: lam=", lam
