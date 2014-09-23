@@ -634,7 +634,7 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
     g0 = None
 
     # Initial value for the variable:
-    r = asarray(x).copy()       # we are going to modify it!
+    r = array(x)                # we are going to modify it!
 
     # Invoke objective function, also computes the gradient:
     e, g = fg(r)
