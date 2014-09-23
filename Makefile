@@ -5,7 +5,6 @@
 # Type "make manual" to create a pdf version of the newest sources for
 # the manual in doc subfolder
 #
-PES = ./pes
 COSOPT = ./cosopt
 TOOL = ./tools
 
@@ -19,6 +18,7 @@ src =	\
 	pes/rosenbrock.py \
 	pes/leps.py \
 	pes/gupta.py \
+	pes/ab2.py \
 	test/testfuns.py \
 	ode.py \
 	path.py \
