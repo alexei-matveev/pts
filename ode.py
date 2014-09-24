@@ -43,7 +43,7 @@ VERBOSE = False
 
 TOL = 1.0e-7
 
-def limit(y, t0=0.0, tol=TOL, maxiter=12):
+def limit(y, t0=0.0, tol=TOL, maxit=12):
     """
     Compute  the limit  of  y(t) at  t  = inf.  The  function y(t)  is
     supposed to be defined at least in the interval [t0, inf).
@@ -66,7 +66,7 @@ def limit(y, t0=0.0, tol=TOL, maxiter=12):
     y1, y2 = y(t0), y(t1)
 
     iteration = -1
-    while max(abs(y2 - y1)) > tol and iteration < maxiter:
+    while max(abs(y2 - y1)) > tol and iteration < maxit:
         iteration += 1
 
         # advance  the upper  limit, by  scaling the  difference  by a
@@ -74,8 +74,8 @@ def limit(y, t0=0.0, tol=TOL, maxiter=12):
         t0, t1 = t1, t1 + 2.0 * (t1 - t0)
         y1, y2 = y2, y(t1)
 
-    if iteration >= maxiter:
-        print "limit: WARNING: maxiter=", maxiter, "exceeded"
+    if iteration >= maxit:
+        print "limit: WARNING: maxit=", maxit, "exceeded"
 
     if VERBOSE:
         print "limit: t=", t1, "guessed", iteration, "times"

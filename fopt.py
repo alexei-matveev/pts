@@ -153,8 +153,8 @@ VERBOSE = 0
 
 TOL = 1.e-6
 
-STOL = TOL                      # step size tolerance
-GTOL = 1.e-5                    # gradient tolerance
+XTOL = TOL                      # step size tolerance
+FTOL = 1.e-5                    # gradient tolerance
 CTOL = TOL                      # constrain tolerance
 
 MAXIT = 50
@@ -179,7 +179,7 @@ def _solve(A, b):
 
     return x.reshape(xshape)
 
-def newton(x, fg, tol=TOL, maxiter=MAXIT, rk=None):
+def newton(x, fg, tol=TOL, maxit=MAXIT, rk=None):
     """
     Solve F(x) = 0 (rather, reduce rhs to < tol)
 
@@ -227,7 +227,7 @@ def newton(x, fg, tol=TOL, maxiter=MAXIT, rk=None):
     it = 0
     converged = False
 
-    while not converged and it < maxiter:
+    while not converged and it < maxit:
         it = it + 1
 
         f, J = fg(x)
@@ -254,7 +254,7 @@ def newton(x, fg, tol=TOL, maxiter=MAXIT, rk=None):
 
     return x, info
 
-def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, maxstep=MAXSTEP, **kw):
+def minimize (f, x, xtol=XTOL, ftol=FTOL, maxit=MAXIT, algo=0, maxstep=MAXSTEP, **kw):
     """
     Minimizes a Func |f| starting with |x|.
     Returns (xm, info)
@@ -276,9 +276,9 @@ def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, maxstep=MAXSTEP, 
     # in case we are given a list instead of array:
     x = asarray(x)
     if VERBOSE:
-        print ("fopt: x(in)=\n", x)
+        print ("minimize: x(in)=\n", x)
         if len(kw) > 0:
-            print ("fopt: ignored kwargs=", kw)
+            print ("minimize: ignored kwargs=", kw)
 
     # save the shape of the actual argument:
     xshape = x.shape
@@ -292,9 +292,9 @@ def minimize (f, x, xtol=STOL, ftol=GTOL, maxit=MAXIT, algo=0, maxstep=MAXSTEP, 
     y = x.flatten()
 
     if algo == 1:
-        xm, info = fmin(fg, y, hess="BFGS", stol=xtol, gtol=ftol, maxiter=maxit, maxstep=maxstep)
+        xm, info = fmin(fg, y, hess="BFGS", xtol=xtol, ftol=ftol, maxit=maxit, maxstep=maxstep)
     elif algo == 0:
-        xm, fm, info =  minimize1D(fg, y, pgtol=ftol, maxfun=maxit) #, iprint=1)
+        xm, fm, info =  minimize1D (fg, y, pgtol=ftol, maxfun=maxit, iprint=VERBOSE)
 
         #
         # External optimizer has its own conventions:
@@ -387,7 +387,7 @@ def cminimize(f, x, c, algo=0, **kwargs):
 
     return xm, info
 
-def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="BFGS"):
+def fmin(fg, x, xtol=XTOL, ftol=FTOL, maxit=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="BFGS"):
     """
     Search for a minimum of fg(x)[0] using the gradients fg(x)[1].
 
@@ -424,7 +424,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
         >>> f = Rosenbrock()
 
-        >>> x0, info = fmin(f.taylor, [-1.2, 1.], gtol=1e-12, maxstep=1.0)
+        >>> x0, info = fmin(f.taylor, [-1.2, 1.], ftol=1e-12, maxstep=1.0)
 
         >>> x0
         array([ 1.,  1.])
@@ -590,22 +590,22 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
         # check convergence, if any:
         criteria = 0
 
-        if max(abs(dr)) < stol:
+        if max(abs(dr)) < xtol:
             if VERBOSE:
-                print (pfx, "converged by step max(abs(dr))=", max(abs(dr)), '<', stol)
+                print (pfx, "converged by step max(abs(dr))=", max(abs(dr)), '<', xtol)
             criteria += 1
 
-        if max(abs(g))  < gtol:
+        if max(abs(g))  < ftol:
             if VERBOSE:
-                print (pfx, "converged by force max(abs(g))=", max(abs(g)), '<', gtol)
+                print (pfx, "converged by force max(abs(g))=", max(abs(g)), '<', ftol)
             criteria += 1
 
         if criteria >= 2:
             converged = True
 
-        if iteration >= maxiter:
+        if iteration >= maxit:
             if VERBOSE:
-                print (pfx, "exceeded number of iterations", maxiter)
+                print (pfx, "exceeded number of iterations", maxit)
             break # out of the while loop
 
     # Also return number of  interations, convergence status, and last
@@ -619,7 +619,7 @@ def fmin(fg, x, stol=STOL, gtol=GTOL, maxiter=MAXIT, maxstep=MAXSTEP, alpha=70.0
 
     return r, info
 
-def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
+def cmin(fg, x, cg, c0=None, xtol=XTOL, ftol=FTOL, ctol=CTOL, \
         maxit=MAXIT, maxstep=MAXSTEP, alpha=70.0, hess="LBFGS", callback=None):
     """
     Search  for a  minimum of  fg(x)[0] using  the  gradients fg(x)[1]
@@ -728,16 +728,16 @@ def cmin(fg, x, cg, c0=None, stol=STOL, gtol=GTOL, ctol=CTOL, \
                 print (pfx, "converged by constraint max(abs(c - c0))=", max(abs(c - c0)), '<', ctol)
             criteria += 1
 
-        if max(abs(dr)) < stol:
+        if max(abs(dr)) < xtol:
             if VERBOSE:
-                print (pfx, "converged by step max(abs(dr))=", max(abs(dr)), '<', stol)
+                print (pfx, "converged by step max(abs(dr))=", max(abs(dr)), '<', xtol)
             criteria += 1
 
         # purified gradient for CURRENT geometry:
-        if max(abs(g + dot(lam, A)))  < gtol:
+        if max(abs(g + dot(lam, A)))  < ftol:
             # FIXME: this may change after update step!
             if VERBOSE:
-                print (pfx, "converged by force max(abs(g + dot(lam, A)))=", max(abs(g + dot(lam, A))), '<', gtol)
+                print (pfx, "converged by force max(abs(g + dot(lam, A)))=", max(abs(g + dot(lam, A))), '<', ftol)
             criteria += 1
 
         if criteria >= 3:
