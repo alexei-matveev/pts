@@ -35,7 +35,7 @@ better way?
 
 __all__ = ["ODE", "limit", "rk45", "rk4", "rk5"]
 
-from numpy import array, max, abs, searchsorted
+from numpy import array, max, abs, searchsorted, zeros, shape
 from scipy.integrate import odeint
 from func import Func
 
@@ -352,8 +352,12 @@ class Clip(Func):
                 converged = True
 
         y, yprime = self.Y.taylor(t)
+        r, rprime = self.R.taylor(t)
 
-        return y, yprime / self.R.fprime(t)
+        if rprime != 0.0:
+            return y, yprime / rprime
+        else:
+            return y, zeros (shape (yprime))
 
 def rk45(t1, x1, f, h, args=()):
     """Returns RK4 and RK5 steps as a tuple.
