@@ -131,7 +131,10 @@ class Default:
 
         return sqrt(dot(dX_, dx_))
 
-    def g_mat(self, X):
+    def g (self, X):
+        """
+        Returns a "matrix" representation of the metric at X.
+        """
         # FIXME: this code is broken for X of a general shape:
         assert len(shape(X)) == 1
         g = zeros((len(X), len(X)))

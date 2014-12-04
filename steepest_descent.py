@@ -339,7 +339,7 @@ def start_values(fun, metric, x0):
     # second derivatives
     hess = f2.fprime(x0)
     # Metric norm matrix
-    g = metric.g_mat(x0)
+    g = metric.g(x0)
 
     # Search for smallest eigenvalue and its vector of H v = w g v
     w, v = eig(hess,b = g)
