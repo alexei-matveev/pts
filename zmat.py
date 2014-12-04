@@ -224,10 +224,10 @@ Now set dihedrals to pi or 0, to observe system at this limits:
     True
 """
 
-from numpy import dot
+from numpy import dot, sqrt
 from numpy import array, asarray, empty, max, abs
 from numpy import eye, zeros
-from numpy import any, shape, size
+from numpy import any, shape, size, copy
 from numpy import vstack, hstack
 from npz import matmul
 # from vector import Vector as V, dot, cross
@@ -1152,6 +1152,51 @@ class ZMatrix3(Func):
         # array could be transformed))
 
         return x, dx
+
+
+class MassWeighted (Func):
+    """
+        >>> from numpy import pi
+        >>> x = [[ 0.0, 2.0, 3.0],
+        ...      [ 1.8, 2.0, 3.0],
+        ...      [-1.8, 2.0, 3.0]]
+        >>> q = MassWeighted ([10**2, 10**4, 10**6])
+
+        >>> q(x)
+        array([[    0.,    20.,    30.],
+               [  180.,   200.,   300.],
+               [-1800.,  2000.,  3000.]])
+
+        >>> from pts.func import NumDiff
+        >>> q1 = NumDiff (q)
+        >>> max (abs (q.fprime (x) - q1.fprime (x))) < 1.0e-9
+        True
+
+    """
+
+    def __init__ (self, m):
+        self.__s = sqrt (asarray (m))
+
+    def taylor (self, x):
+        x = asarray (x)
+        f = copy (x)
+        fx = eye (size (x))
+        f.shape = (-1, 3)
+        fx.shape = shape (f) + shape (x)
+
+        y = empty (shape (f))
+        yx = empty (shape (fx))
+        s = self.__s
+        for i in range (len (f)):
+            y[i, ...] = s[i] * f[i, ...]
+            yx[i, ...] = s[i] * fx[i, ...]
+
+        return y, yx
+
+    # FIXME: this should be doable:
+    def pinv (self, y):
+        raise NotImplementedError
+
 
 # "python zmap.py", eventualy with "-v" option appended:
 if __name__ == "__main__":
