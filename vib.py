@@ -244,16 +244,16 @@ def derivatef( g0, x0, delta = 0.01, pmap = pmap3, direction = 'central' ):
             deriv[i,:] = (gval - gmiddle) / delta
     return deriv
 
-def get_mass_in_internals(mass1, mask):
+def mass_matrix (masses, mask=None):
     """
-    gives back the masses form the atoms as a vector
-    filtered through the mask
-    mass1 are the masses in the Cartesian (atoms object)
+    Returns mass matrix  form the vector of N  atomic masses. The mask
+    which should be  a vector of 3N booleans, if not  None, is used to
+    reduce the dimension of the mass matrix.
     """
-    massvec = eye(len(mass1) * 3) *  repeat(mass1, 3)
+    mm = eye (len (masses) * 3) * repeat (masses, 3)
     if mask is not None:
-        massvec = reducevecm(massvec, mask)
-    return massvec
+        mm = reducevecm (mm, mask)
+    return mm
 
 def reducevecm( mass, mask):
     """
@@ -316,7 +316,7 @@ def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, give_ou
     if save is not None:
         savetxt(save, hessian)
 
-    mass = get_mass_in_internals( atoms.get_masses(), mask)
+    mass = mass_matrix (atoms.get_masses(), mask)
 
     freqs, modes = vibmod(mass, hessian)
 
