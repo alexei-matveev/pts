@@ -333,9 +333,11 @@ def vibmodes(atoms, startdir=None, mask=None, workhere=False, save=None, give_ou
 
     return freqs, modes
 
-def vibmod(mass, hessian):
+def vibmod (mass, hessian):
     """
-    Calculates the vibration modes in harmonic approximation.
+    Calculates  the  vibration   frequencies  and  modes  in  harmonic
+    approximation. The mode vectors as  return from this sub are "row"
+    vectors: freqs[i] corresponds to modes[i].
     """
     mass = asarray(mass)
 
@@ -354,13 +356,13 @@ def vibmod(mass, hessian):
     # For symmetric H and symmetric M > 0 the eigenvalues are real and
     # eigenvectors can be (and are) chosen orthogonal:
     #
-    eigvalues, eigvectors = geigs(hessian, mass)
+    eigvalues, eigvectors = geigs (hessian, mass)
 
     #
     # Negative  eigenvalues correspond  to imaginary  frequencies, for
     # square root to work lift the real numbers to complex domain:
     #
-    freqs = sqrt(eigvalues + 0j)
+    freqs = sqrt (eigvalues + 0j)
     modes = eigvectors.T
 
     return freqs, modes
