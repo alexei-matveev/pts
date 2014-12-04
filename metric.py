@@ -141,8 +141,7 @@ class Default:
         # Components here will be flipped to 1:
         dX = zeros (shape (X))
 
-        # flat views of X and dx:
-        X_ = X.reshape (-1)
+        # flat view dX:
         dX_ = dX.reshape (-1)
 
         g = empty ((size (X), size (X)))
