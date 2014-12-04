@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+__doc__ = \
 """
 Module for calculating the frequencies  of a system.  The main routine
 is
@@ -35,19 +37,19 @@ use a different implementation here:
 
        >>> from paramap import pmap
        >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap=pmap, direction='forward')
-       >>> print hessian
+       >>> print (hessian)
        [[ 4.    0.    0.  ]
         [ 2.    4.01  0.  ]
         [ 4.    0.    1.  ]]
 
        >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap=pmap)
-       >>> print hessian
+       >>> print (hessian)
        [[ 4.  0.  0.]
         [ 2.  4.  0.]
         [ 4.  0.  1.]]
 
        >>> hessian = derivatef(g, [1.0, 2.0, 1.0], pmap=pmap, direction='backward')
-       >>> print hessian
+       >>> print (hessian)
        [[ 4.   -0.   -0.  ]
         [ 2.    3.99 -0.  ]
         [ 4.   -0.    1.  ]]
@@ -384,15 +386,15 @@ def output(freqs, eigvectors=None, mass=None, mask=None):
     # scale eigenvalues to different units:
     modeenerg = eV(freqs)
     modeincm = cm(freqs)
-    print "===================================================="
-    print " Number  imag.   Energy in eV      Energy in cm^-1"
-    print "----------------------------------------------------"
+    print ("====================================================")
+    print (" Number  imag.   Energy in eV      Energy in cm^-1")
+    print ("----------------------------------------------------")
     for i, mode_e  in enumerate(modeenerg):
           if mode_e.imag != 0 and abs(mode_e.imag) > abs(mode_e.real):
-              print "%3d       yes     %10.4f       %10.2f" % (i+1,  mode_e.imag, modeincm[i].imag)
+              print ("%3d       yes     %10.4f       %10.2f" % (i+1,  mode_e.imag, modeincm[i].imag))
           else:
-              print "%3d       no      %10.4f       %10.2f" % (i+1,  mode_e.real, modeincm[i].real)
-    print "----------------------------------------------------"
+              print ("%3d       no      %10.4f       %10.2f" % (i+1,  mode_e.real, modeincm[i].real))
+    print ("----------------------------------------------------")
 
     if eigvectors is not None:
          assert mass is not None
@@ -400,8 +402,8 @@ def output(freqs, eigvectors=None, mass=None, mask=None):
          write = sys.stdout.write
 
          # we don't know if they are cartesian
-         print "The corresponding eigenvectors  are:"
-         print "Number   Vector"
+         print ("The corresponding eigenvectors  are:")
+         print ("Number   Vector")
          for i, ev  in enumerate(eigvectors):
               write("%3d :    " % (i+1)  )
               for j in range(int(len(ev)/3)):
@@ -411,9 +413,9 @@ def output(freqs, eigvectors=None, mass=None, mask=None):
               for k in range(int(len(ev)/3)*3,len(ev)):
                    write("  %10.7f" % (ev[k]))
               write("\n")
-         print "----------------------------------------------------"
-         print "kinetic energy distribution"
-         print "Mode        %Ekin distribution on the atoms"
+         print ("----------------------------------------------------")
+         print ("kinetic energy distribution")
+         print ("Mode        %Ekin distribution on the atoms")
          for i, ev  in enumerate(eigvectors):
              write("%3d :    " % (i+1)  )
              ek =  ev *  dot(mass, ev.T)
@@ -437,18 +439,18 @@ def output(freqs, eigvectors=None, mass=None, mask=None):
 def check_eigensolver(a, V1, A, B):
     if VERBOSE:
         from numpy import transpose
-        print "Check the results for the eigensolver:"
+        print ("Check the results for the eigensolver:")
         #print dot(V, dot(A, V.T)) - a * eye(len(a))
-        print "V^TAV -a, maximum value:", (abs(dot(V1.T, dot(A, V1)) - a * eye(len(a)))).max()
-        print "V^TBV -1, maximum value:", (abs(dot(dot(V1.T,B),V1) - eye(len(a)))).max()
+        print ("V^TAV -a, maximum value:", (abs(dot(V1.T, dot(A, V1)) - a * eye(len(a)))).max())
+        print ("V^TBV -1, maximum value:", (abs(dot(dot(V1.T,B),V1) - eye(len(a)))).max())
 
-        print "a=", a
-        print "V[:, 0]=", V1[:, 0]
-        print "V[:, -1]=", V1[:, -1]
+        print ("a=", a)
+        print ("V[:, 0]=", V1[:, 0])
+        print ("V[:, -1]=", V1[:, -1])
 
-        print (abs(dot(A, V1) - dot(dot(B, V1), diag(a)))).max()
+        print ((abs(dot(A, V1) - dot(dot(B, V1), diag(a)))).max())
         x = dot(dot(transpose(V1), B), V1)
-        print (abs(x - diag(diag(x)))).max()
+        print ((abs(x - diag(diag(x)))).max())
 
 
     assert((abs(dot(V1.T, dot(A, V1)) - a * eye(len(a)))).max() < 1e-8)
@@ -539,7 +541,7 @@ def main(argv):
     from pts.paramap import PMap3
 
     if argv[0] == "--help":
-         print main.__doc__
+         print (main.__doc__)
          sys.exit()
 
     # vibration module  options (not all that the vibmodes function has):
@@ -548,9 +550,9 @@ def main(argv):
 
     # and one geometry:
     if len(args) != 1:
-        print >> sys.stderr, "Error: Need exactly one geometry file to process!"
-        print >> sys.stderr, "Error: found instead:", args
-        print >> sys.stderr, main.__doc__
+        print ("Error: Need exactly one geometry file to process!", file=sys.stderr)
+        print ("Error: found instead:", args, file=sys.stderr)
+        print (main.__doc__, file=sys.stderr)
         sys.exit(1)
 
     atoms = ase.io.read(args[0])
@@ -611,7 +613,7 @@ if __name__ == "__main__":
     from sys import argv as sargs
     # make a message (the complete docstring available)
     if len(sargs) > 1:
-        print __doc__
+        print (__doc__)
         sys.exit()
     doctest.testmod()
 
