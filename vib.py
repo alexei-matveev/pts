@@ -162,6 +162,81 @@ from copy import deepcopy
 
 VERBOSE = False
 
+def harmonic (q, U, T):
+    """
+    Does harmonic analysis of U(q).  Here U(q) is a differentiable PES
+    Func.  T  is  a  kinetic  energy  form  represented  as  a  Metric
+    object. Returns square frequencies w^2 and the corresponding modes
+    as row vectors.
+
+        >>> from numpy import pi, abs, sign
+        >>> from pts.pes.ab2 import AB2
+        >>> from pts.zmat import ZMat, MassWeighted
+        >>> from pts.func import compose
+        >>> from pts.metric import Metric
+
+    UO22+ PES as a function of cartesian coordinates. Soft bending:
+
+        >>> U = AB2 ((1.76, 64.50), (pi, 2.05))
+        >>> s = [1.76, 1.76, pi]
+
+    Hard bending (commented):
+
+        XXX U = AB2 ((1.80, 43.364), (pi, 13.009))
+        XXX s = [1.80, 1.80, pi]
+
+    To get translations and rotations rigth, use cartesian geometry:
+
+        >>> z = ZMat ([(None, None, None), (1, None, None), (1, 2, None)], base=1)
+        >>> q = z(s)
+
+    T is a quadratic form (mass matrix). The masses are those of UO2:
+
+        >>> T = Metric (MassWeighted ([238.029, 15.9994, 15.9994]))
+
+        >>> w2, modes = harmonic (q, U, T)
+
+    Report  imaginary  frequencies  as  negative numbers,  rounded  to
+    integers in cm^-1:
+
+        >>> w = abs (cm (sqrt (w2 + 0j))) * sign (w2)
+        >>> w.astype (int)
+        array([1115, 1047,  159,  159,    0,    0,    0,    0,    0])
+
+    The other, hard bending PES, would give these at the corresponding
+    minimum:
+
+        array([914, 858, 393, 393,   0,   0,   0,   0,   0])
+
+    Note the softer stretching modes and hard bending modes.
+    """
+    from pts.func import NumDiff
+    from numpy import size, shape
+
+    # FIXME:  use module  functionality here  for more  expensive PESs
+    # when numerically computing derivatives:
+    G = NumDiff (U.fprime)
+    H = G.fprime (q)
+
+    # Mass matrix at this location, tensor shaped:
+    M = T.g (q)
+
+    # Hessian and mass matrix as square n x n matrices:
+    n = size (q)
+    H.shape = (n, n)
+    M.shape = (n, n)
+
+    eigvalues, eigvectors = geigs (H, M)
+
+    # Eigensolver returns  modes as column  vectors, eigvectors[:, i],
+    # we will return modes as  row vectors (for ease of iteration) and
+    # in the same shape as the input coordinate array:
+    modes = eigvectors.T
+    modes.shape = (n,) + shape (q)
+
+    return eigvalues, modes
+
+
 def derivatef( g0, x0, delta = 0.01, pmap = pmap3, direction = 'central' ):
     '''
     Derivates another function numerically,
