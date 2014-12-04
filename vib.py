@@ -252,15 +252,14 @@ def mass_matrix (masses, mask=None):
     """
     mm = eye (len (masses) * 3) * repeat (masses, 3)
     if mask is not None:
-        mm = reducevecm (mm, mask)
+        mm = reduce_mass_matrix (mm, mask)
     return mm
 
-def reducevecm( mass, mask):
+def reduce_mass_matrix (mass, mask):
     """
-    gives back a mass-matrix, containing only the elements
-    which are True in mask * mask, therefore giving
-    only back the mass-matrix relevant for the active
-    elements
+    Returns mass  matrix, containing only the elements  which are True
+    in  mask  *  mask,  therefore  giving only  back  the  mass-matrix
+    relevant for the active elements
     """
 
     imax, jmax = mass.shape
