@@ -133,16 +133,26 @@ class Default:
 
     def g (self, X):
         """
-        Returns a "matrix" representation of the metric at X.
+        Returns a  "matrix" representation of  the metric at X.  It is
+        only then a  true matrix when X is 1D  array. In general shape
+        (g) = shape (X) + shape (X).
         """
-        # FIXME: this code is broken for X of a general shape:
-        assert len(shape(X)) == 1
-        g = zeros((len(X), len(X)))
-        c = zeros(len(X))
-        for i in xrange(len(X)):
-            c[i] = 1.
-            g[:, i] = self.lower(c, X)
-            c[i] = 0.
+
+        # Components here will be flipped to 1:
+        dX = zeros (shape (X))
+
+        # flat views of X and dx:
+        X_ = X.reshape (-1)
+        dX_ = dX.reshape (-1)
+
+        g = empty ((size (X), size (X)))
+        for i in xrange (size (X)):
+            dX_[i] = 1.0
+            dx = self.lower (dX, X)
+            g[:, i] = dx.reshape (-1)
+            dX_[i] = 0.0
+
+        g.shape = shape (X) + shape (X)
 
         return g
 
@@ -218,8 +228,8 @@ class Metric(Default):
         transform the result  to a matrix as if  the function used for
         fprime would give back a flattened result.
 
-        Not used  in this class, maybe  in subclasses. I  would let it
-        die.
+        Not used in this class,  maybe in subclasses, but only in this
+        file! I would let it die.
         """
 
         # FIXME: ensure that "fprime" is always returned as an array instead:
@@ -280,6 +290,8 @@ class Metric(Default):
 
         # return original view:
         return dX
+
+    # FIXME: class specific implementation for .g(X) method?
 
     def __str__(self):
         return "Metric: Working with Metric Cartesians (Metric)"
