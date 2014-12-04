@@ -4,7 +4,7 @@ from __future__ import print_function
 """
 """
 
-from numpy import dot, sqrt, exp, zeros, shape, asarray
+from numpy import zeros, shape, asarray
 from pts.func import Func
 from pts.rc import _distance, _angle
 
