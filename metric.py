@@ -72,13 +72,11 @@ def cartesian_norm(dx, x):
 
 class Default:
     """
-    Implements metric relevant functions, like for
-    transforming contra- and covariant vectors into
-    each other
+    Implements  metric  relevant   functions,  like  for  transforming
+    contra- and covariant vectors into each other
 
-    This variant supposes that contra- and covariant vectors
-    are the same, coordinate transformation if provided
-    is ignored:
+    This variant  supposes that contra- and covariant  vectors are the
+    same, coordinate transformation if provided is ignored:
 
         >>> met = Default(None)
 
@@ -102,9 +100,8 @@ class Default:
     """
     def __init__(self, fun = None):
         """
-        normally needs a function with a fprime function
-        in this special case it is only asked for it because
-        of consistency
+        Normally  needs a  function  with a  fprime  function in  this
+        special case it is only asked for it because of consistency
         """
         pass
 
@@ -151,9 +148,8 @@ class Default:
 
 class Metric(Default):
     """
-    Includes metrix relevant functions, like for
-    transforming contra- and covariant vectors into
-    each other
+    Includes metrix relevant  functions, like for transforming contra-
+    and covariant vectors into each other
 
         >>> from numpy import pi, max, abs
 
@@ -201,9 +197,9 @@ class Metric(Default):
         >>> abs(met.norm_down(dy, Y) - sqrt(dy2)) < 1e-15
         True
 
-    FIXME: offering two ways of computing norms here and returning
-    a square root may be a bad decision. Do not consider "norm_up"
-    and "norm_down" a part of the Metric interface!
+    FIXME: offering two  ways of computing norms here  and returning a
+    square root may  be a bad decision. Do  not consider "norm_up" and
+    "norm_down" a part of the Metric interface!
     """
     def __init__(self, fun):
         """
