@@ -324,7 +324,7 @@ def minimize (f, x, xtol=XTOL, ftol=FTOL, maxit=MAXIT, algo=0, maxstep=MAXSTEP, 
 
     return xm, info
 
-def cminimize(f, x, c, algo=0, **kwargs):
+def cminimize(f, x, c, algo=0, maxit=MAXIT, **kwargs):
     """
     Minimizes a Func |f| starting with |x| under constrains |c|.
     Returns (xm, fm, stats)
@@ -351,7 +351,7 @@ def cminimize(f, x, c, algo=0, **kwargs):
 #   z = c0.flatten()
 
     if algo == 0:
-        xm, info =  cmin(fg, y, cg, **kwargs)
+        xm, info =  cmin(fg, y, cg, maxit=maxit, **kwargs)
     else:
         # See SciPy docs for scipy.optimize.fmin_slsqp:
         def func (x):
@@ -372,6 +372,7 @@ def cminimize(f, x, c, algo=0, **kwargs):
             fmin_slsqp (func, y, fprime=fprime, \
                             f_eqcons=f_eqcons, \
                             fprime_eqcons=fprime_eqcons, \
+                            iter=maxit, \
                             iprint=VERBOSE, \
                             full_output=True)
         assert (imode == 0)
