@@ -164,12 +164,14 @@ class Cartesian (Func):
     considers only  that the internal coordinates are  an array, while
     the Cartesian are supposed to be a Matrix of shape N x 3.
     """
-    def __init__(self):
-        pass
+    def __init__(self, x0=None):
+        self.x0 = None if x0 is None else array (x0)
 
     def taylor(self, x):
         y = array (x)
         y.shape = (-1, 3)
+        if self.x0 is not None:
+             y = y + self.x0
         yprime = eye(size(x))
         yprime.shape = (-1, 3) + shape(x)
         return y, yprime
