@@ -185,7 +185,7 @@ def harmonic (q, U, T):
         XXX U = AB2 ((1.80, 43.364), (pi, 13.009))
         XXX s = [1.80, 1.80, pi]
 
-    To get translations and rotations rigth, use cartesian geometry:
+    To get translations and rotations right, use cartesian geometry:
 
         >>> z = ZMat ([(None, None, None), (1, None, None), (1, 2, None)], base=1)
         >>> q = z(s)
