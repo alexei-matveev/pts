@@ -459,7 +459,12 @@ def dimer(pes, start_geo, start_mode, metric, max_translation = 100000000, max_g
     selflogfile.write("Rot. Infos:  Conv.   Steps.       curvature      rot. force        Angle to last\n")
     selflogfile.flush()
 
+    # FIXME:  "res" is  used uninitilized  if error  < trans_converged
+    # already  in   the  first   iteration.  This  will   SILENCE  the
+    # corresponding  error from pyflakes,  but it  does not  solve the
+    # actual logic error:
     res = None                  # will be set to a dict later
+
     i = 0
     # main loop:
     while i < max_translation:
