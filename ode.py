@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+__doc__ = \
 """
 Runge-Kutta procedures adapted from cosopt/quadratic_string.py
 
@@ -75,10 +77,10 @@ def limit(y, t0=0.0, tol=TOL, maxit=12):
         y1, y2 = y2, y(t1)
 
     if iteration >= maxit:
-        print "limit: WARNING: maxit=", maxit, "exceeded"
+        print ("limit: WARNING: maxit=", maxit, "exceeded")
 
     if VERBOSE:
-        print "limit: t=", t1, "guessed", iteration, "times"
+        print ("limit: t=", t1, "guessed", iteration, "times")
 
     return y2
 
@@ -210,8 +212,8 @@ class ODE(Func):
         ys[t] = y
 
         if VERBOSE:
-            print "ODE: ts=", ts
-            print "ODE: ys=", ys
+            print ("ODE: ts=", ts)
+            print ("ODE: ys=", ys)
 
         return y.copy()
 
