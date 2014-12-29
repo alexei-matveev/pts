@@ -630,7 +630,8 @@ def sopt(fg, X, tangents, lambdas=None, xtol=XTOL, ftol=FTOL,
 
         if VERBOSE:
             print "sopt: ODE step, propose h=", h, "norm(dR)=", norm(dR), "(", norm.__doc__, ")"
-            print "sopt: dR=\n", dR
+            if VERBOSE > 1:
+                print "sopt: dR=\n", dR
 
         #
         # Convergency check by step size (xtol) ...
